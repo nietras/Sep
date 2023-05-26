@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkConsole)</TargetFramework>
+    <RootNamespace>nietras.SeparatedValues.Tester</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Reduce size of Native AOT generated executable
+         https://github.com/dotnet/corert/blob/master/Documentation/using-corert/optimizing-corert.md 
+         https://github.com/dotnet/runtimelab/issues/1269 ([NativeAOT] Best way to track down app size bloat?) -->
+    <IlcInvariantGlobalization>true</IlcInvariantGlobalization>
+    <IlcDisableReflection>true</IlcDisableReflection>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sep\Sep.csproj" />
+  </ItemGroup>
+
+</Project>

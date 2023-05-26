@@ -1,0 +1,330 @@
+﻿#define USE_STRING_POOLING
+#define BENCH_SLOW_ONES
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Configs;
+using CsvHelper;
+using CsvHelper.Configuration;
+using Sylvan.Data.Csv;
+
+namespace nietras.SeparatedValues.ComparisonBenchmarks;
+
+// https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers
+// Inspired by https://github.com/nietras/NCsvPerf which is a IMHO not a
+// particular interesting benchmark of CSV parsers since all it tests is
+// splitting lines to strings basically, nothing else. This can be seen in:
+// https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
+[InvocationCount(1)]
+[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
+public abstract class PackageAssetsBench
+{
+    readonly ReaderSpec[] _readers;
+
+    protected PackageAssetsBench(string scope, int lineCount, bool quoteAroundSomeCols = false)
+    {
+        Quotes = quoteAroundSomeCols;
+        Scope = scope;
+        Rows = lineCount;
+        _readers = new ReaderSpec[]
+        {
+            ReaderSpec.FromString("String", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows)),
+            //ReaderSpec.FromBytes("Stream", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows)),
+        };
+        Reader = _readers.First();
+    }
+
+    [ParamsSource(nameof(ScopeParams))] // Attributes for params is challenging 👇
+    public string Scope { get; set; }
+    public IEnumerable<string> ScopeParams() => new[] { Scope };
+
+    [ParamsSource(nameof(QuotesParams))] // Attributes for params is challenging 👇
+    public bool Quotes { get; set; }
+    public IEnumerable<bool> QuotesParams() => new[] { Quotes };
+
+    [ParamsSource(nameof(Readers))]
+    public ReaderSpec Reader { get; set; }
+    public IEnumerable<ReaderSpec> Readers() => _readers;
+
+    [ParamsSource(nameof(RowsParams))] // Attributes for params is challenging 👇
+    public int Rows { get; set; }
+    public IEnumerable<int> RowsParams() => new[] { Rows };
+}
+
+public class QuotesRowPackageAssetsBench : RowPackageAssetsBench
+{
+    public QuotesRowPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
+}
+
+[InvocationCount(1)]
+[BenchmarkCategory("0_Row")]
+public class RowPackageAssetsBench : PackageAssetsBench
+{
+#if DEBUG
+    const int DefaultLineCount = 100_000;
+#else
+    const int DefaultLineCount = 1_000_000;
+#endif
+
+    public RowPackageAssetsBench() : this(false) { }
+    public RowPackageAssetsBench(bool quoteAroundSomeCols) : base("Row", DefaultLineCount, quoteAroundSomeCols) { }
+
+    delegate string SpanToString(ReadOnlySpan<char> chars);
+
+    [Benchmark(Baseline = true)]
+    public void Sep______()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader) { }
+    }
+
+    [Benchmark]
+    public void Sylvan___()
+    {
+        using var reader = Reader.CreateReader();
+        var options = new CsvDataReaderOptions
+        {
+            HasHeaders = false,
+            BufferSize = 0x10000,
+        };
+        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
+        while (csvReader.Read()) { }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void ReadLine_()
+    {
+        using var reader = Reader.CreateReader();
+        string? line = null;
+        while ((line = reader.ReadLine()) != null)
+        {
+            var cols = line.Split(',');
+        }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void CsvHelper()
+    {
+        using var reader = Reader.CreateReader();
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false,
+#if USE_STRING_POOLING
+            CacheFields = true,
+#endif
+        };
+        using var csvParser = new CsvParser(reader, config);
+        while (csvParser.Read()) { }
+    }
+}
+
+
+public class QuotesColsPackageAssetsBench : ColsPackageAssetsBench
+{
+    public QuotesColsPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
+}
+
+[InvocationCount(1)]
+[BenchmarkCategory("1_Cols")]
+public class ColsPackageAssetsBench : PackageAssetsBench
+{
+#if DEBUG
+    const int DefaultLineCount = 100_000;
+#else
+    const int DefaultLineCount = 1_000_000;
+#endif
+
+    public ColsPackageAssetsBench() : this(false) { }
+    public ColsPackageAssetsBench(bool quoteAroundSomeCols) : base("Cols", DefaultLineCount, quoteAroundSomeCols) { }
+
+    delegate string SpanToString(ReadOnlySpan<char> chars);
+
+    [Benchmark(Baseline = true)]
+    public void Sep______()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
+    [Benchmark]
+    public void Sylvan___()
+    {
+        using var reader = Reader.CreateReader();
+        var options = new CsvDataReaderOptions
+        {
+            HasHeaders = false,
+            BufferSize = 0x10000,
+        };
+        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
+        while (csvReader.Read())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetFieldSpan(i);
+            }
+        }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void ReadLine_()
+    {
+        using var reader = Reader.CreateReader();
+        string? line = null;
+        while ((line = reader.ReadLine()) != null)
+        {
+            var cols = line.Split(',');
+            for (var i = 0; i < cols.Length; i++)
+            {
+                var s = cols[i].AsSpan();
+            }
+        }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void CsvHelper()
+    {
+        using var reader = Reader.CreateReader();
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false,
+#if USE_STRING_POOLING
+            CacheFields = true,
+#endif
+        };
+        using var csvParser = new CsvParser(reader, config);
+        while (csvParser.Read())
+        {
+            // CsvHelper has no Span-based API
+            for (var i = 0; i < csvParser.Count; i++)
+            {
+                var s = csvParser[i];
+            }
+        }
+    }
+}
+
+public class QuotesAssetPackageAssetsBench : AssetPackageAssetsBench
+{
+    public QuotesAssetPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
+}
+
+[InvocationCount(1)]
+[BenchmarkCategory("2_Asset")]
+public class AssetPackageAssetsBench : PackageAssetsBench
+{
+#if DEBUG
+    const int DefaultLineCount = 10_000;
+#else
+    const int DefaultLineCount = 1_000_000; //200_000;
+#endif
+
+    public AssetPackageAssetsBench() : this(false) { }
+    public AssetPackageAssetsBench(bool quoteAroundSomeCols) : base("Asset", DefaultLineCount, quoteAroundSomeCols) { }
+
+    delegate string SpanToString(ReadOnlySpan<char> chars);
+
+    [Benchmark(Baseline = true)]
+    public void Sep______()
+    {
+        var assets = new List<PackageAsset>();
+
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        foreach (var row in reader)
+        {
+            var asset = PackageAsset.Read(reader, static (r, i) => r.ToString(i));
+            assets.Add(asset);
+        }
+    }
+
+    [Benchmark]
+    public void Sylvan___()
+    {
+        var assets = new List<PackageAsset>();
+        using var reader = Reader.CreateReader();
+
+#if USE_STRING_POOLING
+        var stringPool = new Sylvan.StringPool(128);
+#endif
+        var options = new Sylvan.Data.Csv.CsvDataReaderOptions
+        {
+            HasHeaders = false,
+            BufferSize = 0x10000,
+#if USE_STRING_POOLING
+            StringFactory = stringPool.GetString,
+#endif
+        };
+        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
+        while (csvReader.Read())
+        {
+            var asset = PackageAsset.Read(csvReader, static (r, i) => r.GetString(i));
+            assets.Add(asset);
+        }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void ReadLine_()
+    {
+        var assets = new List<PackageAsset>();
+        using var reader = Reader.CreateReader();
+        string? line = null;
+        while ((line = reader.ReadLine()) != null)
+        {
+            var cols = line.Split(',');
+            var asset = PackageAsset.Read(cols, static (cs, i) => cs[i]);
+            assets.Add(asset);
+        }
+    }
+
+#if BENCH_SLOW_ONES
+    [Benchmark]
+#endif
+    public void CsvHelper()
+    {
+        var assets = new List<PackageAsset>();
+        using var reader = Reader.CreateReader();
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false,
+#if USE_STRING_POOLING
+            CacheFields = true,
+#endif
+        };
+        using var csvParser = new CsvParser(reader, config);
+        while (csvParser.Read())
+        {
+            var asset = PackageAsset.Read(csvParser, static (p, i) => p[i]);
+            assets.Add(asset);
+        }
+    }
+}

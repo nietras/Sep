@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(TargetFrameworkLibrary)</TargetFramework>
+    <RootNamespace>nietras.SeparatedValues</RootNamespace>
+    <IsPackable>true</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsTrimmable>true</IsTrimmable>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
+
+    <Description>Modern, minimal, fast, zero allocation, reading and writing of separated values (csv, tsv etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.</Description>
+
+    <!-- NuGet -->
+    <PackageId>Sep</PackageId>
+    <PackageTags>csv;csvhelper;comma;semi-colon;tab;separated;value;delimited;io;file;read;write;parse;format</PackageTags>
+    <PackageIcon>Icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIconUrl>https://raw.github.com/nietras/Sep/master/Icon.png</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/nietras/Sep/</PackageProjectUrl>
+    <PackageReleaseNotes>https://github.com/nietras/Sep/releases</PackageReleaseNotes>
+    <PackageLicenseExpression>MS-PL OR Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/nietras/Sep/</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../Icon.png" Pack="true" PackagePath="\" />
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>$(MSBuildProjectName).Test</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>$(MSBuildProjectName).Benchmarks</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>$(MSBuildProjectName).ComparisonBenchmarks</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="csFastFloat" Version="4.1.0" />
+  </ItemGroup>
+
+</Project>

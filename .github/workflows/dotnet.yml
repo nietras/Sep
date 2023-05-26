@@ -2,9 +2,10 @@ name: dotnet
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -26,4 +27,8 @@ jobs:
     - name: Build
       run: dotnet build -c ${{ matrix.configuration }} --no-restore 
     - name: Test
-      run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal
+      run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        flags: ${{ matrix.os }},${{ matrix.configuration }}

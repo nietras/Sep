@@ -2,9 +2,10 @@ name: dotnet
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -27,3 +28,5 @@ jobs:
       run: dotnet build -c ${{ matrix.configuration }} --no-restore 
     - name: Test
       run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3

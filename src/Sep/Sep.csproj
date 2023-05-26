@@ -16,7 +16,7 @@
     <PackageTags>csv;csvhelper;comma;semi-colon;tab;separated;value;delimited;io;file;read;write;parse;format</PackageTags>
     <PackageIcon>Icon.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIconUrl>https://raw.github.com/nietras/Sep/master/Icon.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.github.com/nietras/Sep/main/Icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/nietras/Sep/</PackageProjectUrl>
     <PackageReleaseNotes>https://github.com/nietras/Sep/releases</PackageReleaseNotes>
     <PackageLicenseExpression>MS-PL OR Apache-2.0</PackageLicenseExpression>

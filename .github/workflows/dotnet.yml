@@ -1,0 +1,29 @@
+name: dotnet
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        configuration: [Debug, Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build -c ${{ matrix.configuration }} --no-restore 
+    - name: Test
+      run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal

@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup Label="OutputBuildProps">
+    <Platform Condition="$(Platform) == ''">AnyCPU</Platform>
+    <Configuration Condition="$(Configuration) == ''">Debug</Configuration>
+    
+    <!-- Custom properties -->
+    <BuildDir>$(MSBuildThisFileDirectory)..\build\</BuildDir>
+    <ProjectBuildDirectoryName>$(MSBuildProjectName)_$(Platform)_$(Configuration)</ProjectBuildDirectoryName>
+    <!--<OutputPathWithoutEndSlash>$(BuildDir)$(ProjectBuildDirectoryName)</OutputPathWithoutEndSlash>
+    <BaseOutDir>$(OutputPathWithoutEndSlash)</BaseOutDir>-->
+    <BasePublishDir>$(MSBuildThisFileDirectory)..\publish\</BasePublishDir>
+
+    <!-- MSBuild defined properties redefined -->
+    <BaseIntermediateOutputPath>$(BuildDir)obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(BuildDir)bin\$(MSBuildProjectName)\</BaseOutputPath>
+    <!--<PackageOutputPath>$(BaseOutDir)</PackageOutputPath>-->
+
+    <BeforeTargetFrameworkInferenceTargets>$(MSBuildThisFileDirectory)OutputBuildProject.props</BeforeTargetFrameworkInferenceTargets>
+  </PropertyGroup>
+</Project>

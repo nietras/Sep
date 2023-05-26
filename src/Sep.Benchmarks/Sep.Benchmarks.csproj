@@ -11,8 +11,6 @@
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!--<Optimize>true</Optimize>
-    <Configuration>Release</Configuration>-->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   

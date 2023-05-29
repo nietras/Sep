@@ -6,6 +6,8 @@ Modern, minimal, fast, zero allocation, reading and writing of separated values
 Featuring an opinionated API design and pragmatic implementation targetted at
 machine learning use cases.
 
+⭐ Please star this project if you like it. ⭐
+
 * **⭐ Modern** - utilizes features such as
 [`Span<T>`](https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/january/csharp-all-about-span-exploring-a-new-net-mainstay),
 [Generic Math](https://devblogs.microsoft.com/dotnet/dotnet-7-generic-math/)

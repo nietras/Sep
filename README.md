@@ -353,7 +353,7 @@ The following platforms are used for benchmarking:
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
-* `Snapdragon® 8cx Gen 3` ARM64 Platform Information
+* `Snapdragon® 8cx Gen 3` ARM64 Platform Information (courtesy of [@xoofx](https://github.com/xoofx))
   ```ini
   OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
   Snapdragon Compute Platform, 1 CPU, 8 logical and 8 physical cores

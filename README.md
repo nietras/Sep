@@ -8,7 +8,7 @@ machine learning use cases.
 
 ⭐ Please star this project if you like it. ⭐
 
-* **⭐ Modern** - utilizes features such as
+* **🌃  Modern** - utilizes features such as
 [`Span<T>`](https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/january/csharp-all-about-span-exploring-a-new-net-mainstay),
 [Generic Math](https://devblogs.microsoft.com/dotnet/dotnet-7-generic-math/)
 ([`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1)/[`ISpanFormattable`

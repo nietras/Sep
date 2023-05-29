@@ -457,9 +457,9 @@ only a fraction of the memory due to extensive use of pooling and the
 `ArrayPool<T>`.
 
 This is in many aspects due to Sep having extremely optimized string pooling and
-optimized hashing of `ReadOnlySpan<char>`, and thus not really due the
-the csv-parsing itself, since that is not a big part of the time consumed. At
-least not for a decently fast csv-parser.
+optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
+csv-parsing itself, since that is not a big part of the time consumed. At least
+not for a decently fast csv-parser.
 
 ###### `AMD 5950X` - PackageAssets Benchmark Results (Sep 0.1.0)
 |    Method | Scope |    Rows |        Mean | Ratio |  MB |   MB/s | ns/row |     Allocated |  Alloc Ratio |
@@ -604,7 +604,7 @@ tiny part of the total runtime for Sep for which the run time is dominated by
 parsing the floating points. Since Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
 floating point parser, it is **>2x faster than Sylvan** for example. If using
-Sylvan one may then consider using csFastFloat if that is an option.
+Sylvan one may consider using csFastFloat if that is an option.
 
 CsvHelper suffers from the fact that one can only access the column as a string
 so this has to be allocated for each column (ReadLine by definition always

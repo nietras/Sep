@@ -6,7 +6,9 @@ Modern, minimal, fast, zero allocation, reading and writing of separated values
 Featuring an opinionated API design and pragmatic implementation targetted at
 machine learning use cases.
 
-* **⭐ Modern** - utilizes features such as
+⭐ Please star this project if you like it. ⭐
+
+* **🌃  Modern** - utilizes features such as
 [`Span<T>`](https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/january/csharp-all-about-span-exploring-a-new-net-mainstay),
 [Generic Math](https://devblogs.microsoft.com/dotnet/dotnet-7-generic-math/)
 ([`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1)/[`ISpanFormattable`
@@ -348,13 +350,16 @@ The following runtime is used for benchmarking:
 
 The following platforms are used for benchmarking:
 
-* `AMD 5950X` Platform Information
+* `AMD 5950X` X64 Platform Information
   ``` ini
-  BenchmarkDotNet=v0.13.2, OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
+  OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
-
-More will hopefully be added in the future like ARM or similar.
+* `Snapdragon® 8cx Gen 3` ARM64 Platform Information (courtesy of [@xoofx](https://github.com/xoofx))
+  ```ini
+  OS=Windows 11 (10.0.22621.1702/22H2/2022Update/SunValley2)
+  Snapdragon Compute Platform, 1 CPU, 8 logical and 8 physical cores
+  ```
 
 ### Reader Comparison Benchmarks
 The following reader scenarios are benchmarked:
@@ -447,17 +452,18 @@ without any overlap to other columns. This also allows one to define per column
 specific handling of `ToString` behavior. Whether to pool or not. Or even to use
 a statically defined pool.
 
+##### PackageAssets Benchmark Results
 The results below show Sep is now **the fastest .NET CSV Parser** (for this
-benchmark on this platform/machine 😀). It is **1.27x faster than Sylvan** and
-**2.66x faster than CsvHelper**. While for pure parsing allocating only a
-fraction of the memory due to extensive use of pooling and the `ArrayPool<T>`.
+benchmark on these platforms and machines 😀). While for pure parsing allocating
+only a fraction of the memory due to extensive use of pooling and the
+`ArrayPool<T>`.
 
 This is in many aspects due to Sep having extremely optimized string pooling and
-specifically optimized hashing `ReadOnlySpan<char>`, and thus not really due the
-the csv-parsing itself, since that is not a big part of the time consumed. At
-least not for a decently fast csv-parser.
+optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
+csv-parsing itself, since that is not a big part of the time consumed. At least
+not for a decently fast csv-parser.
 
-##### `AMD 5950X` - PackageAssets Benchmark Results
+###### `AMD 5950X` - PackageAssets Benchmark Results (Sep 0.1.0)
 |    Method | Scope |    Rows |        Mean | Ratio |  MB |   MB/s | ns/row |     Allocated |  Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|--------------:|-------------:|
 | **Sep______** |   **Row** | **1000000** |    **79.59 ms** |  **1.00** | **583** | **7335.3** |   **79.6** |       **1.71 KB** |         **1.00** |
@@ -475,7 +481,26 @@ least not for a decently fast csv-parser.
 | ReadLine_ | Asset | 1000000 | 2,091.20 ms |  2.77 | 583 |  279.2 | 2091.2 | 2038832.84 KB |         7.65 |
 | CsvHelper | Asset | 1000000 | 2,006.48 ms |  2.66 | 583 |  290.9 | 2006.5 |  266838.11 KB |         1.00 |
 
-##### `AMD 5950X` - PackageAssets with Quotes Benchmark Results
+###### `Snapdragon® 8cx Gen 3` - PackageAssets Benchmark Results (Sep 0.1.0)
+|    Method | Scope |    Rows |       Mean | Ratio |  MB |   MB/s | ns/row |     Allocated |  Alloc Ratio |
+|---------- |------ |-------- |-----------:|------:|----:|-------:|-------:|--------------:|-------------:|
+| **Sep______** |   **Row** | **1000000** |   **190.8 ms** |  **1.00** | **583** | **3060.4** |  **190.8** |        **1.5 KB** |         **1.00** |
+| Sylvan___ |   Row | 1000000 |   447.3 ms |  2.35 | 583 | 1305.0 |  447.3 |     134.61 KB |        89.74 |
+| ReadLine_ |   Row | 1000000 |   435.4 ms |  2.28 | 583 | 1340.8 |  435.4 | 1772445.91 KB | 1,181,630.61 |
+| CsvHelper |   Row | 1000000 | 1,524.8 ms |  7.99 | 583 |  382.9 | 1524.8 |      21.09 KB |        14.06 |
+|           |       |         |            |       |     |        |        |               |              |
+| **Sep______** |  **Cols** | **1000000** |   **226.9 ms** |  **1.00** | **583** | **2572.6** |  **226.9** |       **1.83 KB** |         **1.00** |
+| Sylvan___ |  Cols | 1000000 |   543.3 ms |  2.39 | 583 | 1074.5 |  543.3 |     134.61 KB |        73.63 |
+| ReadLine_ |  Cols | 1000000 |   451.7 ms |  1.99 | 583 | 1292.5 |  451.7 | 1772445.91 KB |   969,543.06 |
+| CsvHelper |  Cols | 1000000 | 2,325.8 ms | 10.25 | 583 |  251.0 | 2325.8 |     446.74 KB |       244.37 |
+|           |       |         |            |       |     |        |        |               |              |
+| **Sep______** | **Asset** | **1000000** | **1,068.1 ms** |  **1.00** | **583** |  **546.6** | **1068.1** |  **266668.63 KB** |         **1.00** |
+| Sylvan___ | Asset | 1000000 | 1,519.2 ms |  1.42 | 583 |  384.3 | 1519.2 |  267014.58 KB |         1.00 |
+| ReadLine_ | Asset | 1000000 | 2,536.0 ms |  2.38 | 583 |  230.2 | 2536.0 | 2038833.47 KB |         7.65 |
+| CsvHelper | Asset | 1000000 | 2,926.3 ms |  2.73 | 583 |  199.5 | 2926.3 |  266842.97 KB |         1.00 |
+
+
+##### PackageAssets with Quotes Benchmark Results
 `NCsvPerf` does not examine performance in the face of quotes in the csv. This
 is relevant since some libraries like Sylvan will revert to a slower (not SIMD
 vectorized) parsing code path if it encounters quotes. Sep was designed to
@@ -487,6 +512,8 @@ looking at the numbers. For each row of 25 columns, there are 24 separators
 (here `,`) and one set of line endings (here `\r\n`). That's 26 characters.
 Adding quotes around each of the 25 columns will add 50 characters or almost
 triple the total to 76.
+
+###### `AMD 5950X` - PackageAssets with Quotes Benchmark Results  (Sep 0.1.0)
 
 |    Method | Scope |    Rows |       Mean | Ratio |  MB |   MB/s | ns/row |     Allocated |  Alloc Ratio |
 |---------- |------ |-------- |-----------:|------:|----:|-------:|-------:|--------------:|-------------:|
@@ -504,6 +531,26 @@ triple the total to 76.
 | Sylvan___ | Asset | 1000000 | 1,324.3 ms |  1.48 | 667 |  504.2 | 1324.3 |  267020.43 KB |         1.00 |
 | ReadLine_ | Asset | 1000000 | 2,736.5 ms |  3.05 | 667 |  244.0 | 2736.5 |  2442317.8 KB |         9.16 |
 | CsvHelper | Asset | 1000000 | 2,270.0 ms |  2.53 | 667 |  294.1 | 2270.0 |  266832.73 KB |         1.00 |
+
+###### `Snapdragon® 8cx Gen 3` - PackageAssets with Quotes Benchmark Results (Sep 0.1.0)
+
+|    Method | Scope |    Rows |       Mean | Ratio |  MB |   MB/s | ns/row |     Allocated |  Alloc Ratio |
+|---------- |------ |-------- |-----------:|------:|----:|-------:|-------:|--------------:|-------------:|
+| **Sep______** |   **Row** | **1000000** |   **364.5 ms** |  **1.00** | **667** | **1832.0** |  **364.5** |       **1.83 KB** |         **1.00** |
+| Sylvan___ |   Row | 1000000 |   605.2 ms |  1.65 | 667 | 1103.3 |  605.2 |     134.61 KB |        73.63 |
+| ReadLine_ |   Row | 1000000 |   524.2 ms |  1.43 | 667 | 1273.7 |  524.2 | 2175929.09 KB | 1,190,251.81 |
+| CsvHelper |   Row | 1000000 | 1,910.2 ms |  5.24 | 667 |  349.5 | 1910.2 |      21.09 KB |        11.53 |
+|           |       |         |            |       |     |        |        |               |              |
+| **Sep______** |  **Cols** | **1000000** |   **391.2 ms** |  **1.00** | **667** | **1707.0** |  **391.2** |       **1.83 KB** |         **1.00** |
+| Sylvan___ |  Cols | 1000000 |   726.9 ms |  1.86 | 667 |  918.6 |  726.9 |     134.61 KB |        73.63 |
+| ReadLine_ |  Cols | 1000000 |   535.3 ms |  1.37 | 667 | 1247.4 |  535.3 | 2175929.09 KB | 1,190,251.81 |
+| CsvHelper |  Cols | 1000000 | 2,720.9 ms |  6.93 | 667 |  245.4 | 2720.9 |     446.74 KB |       244.37 |
+|           |       |         |            |       |     |        |        |               |              |
+| **Sep______** | **Asset** | **1000000** | **1,281.5 ms** |  **1.00** | **667** |  **521.0** | **1281.5** |  **266718.98 KB** |         **1.00** |
+| Sylvan___ | Asset | 1000000 | 1,681.9 ms |  1.31 | 667 |  397.0 | 1681.9 |  267020.91 KB |         1.00 |
+| ReadLine_ | Asset | 1000000 | 3,393.8 ms |  2.66 | 667 |  196.7 | 3393.8 | 2442317.49 KB |         9.16 |
+| CsvHelper | Asset | 1000000 | 3,302.2 ms |  2.57 | 667 |  202.2 | 3302.2 |  266842.28 KB |         1.00 |
+
 
 #### Floats Reader Comparison Benchmarks
 The [FloatsReaderBench.cs](src/Sep.ComparisonBenchmarks/FloatsReaderBench.cs)
@@ -558,18 +605,18 @@ As can be seen below, the actual low level parsing of the separated values is a
 tiny part of the total runtime for Sep for which the run time is dominated by
 parsing the floating points. Since Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
-floating point parser, it is more than **2x faster than Sylvan** for example. If
-using Sylvan one may then consider using csFastFloat if that is an option.
+floating point parser, it is **>2x faster than Sylvan** for example. If using
+Sylvan one may consider using csFastFloat if that is an option.
 
 CsvHelper suffers from the fact that one can only access the column as a string
 so this has to be allocated for each column (ReadLine by definition always
 allocates a string per column). Still CsvHelper is significantly slower than the
-naive `ReadLine` approach. With Sep being **3.8x faster than CsvHelper**.
+naive `ReadLine` approach. With Sep being **>3.8x faster than CsvHelper**.
 
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings. 
 
-##### `AMD 5950X` - Floats Benchmark Results
+##### `AMD 5950X` - Floats Benchmark Results (Sep 0.1.0)
 |    Method |  Scope |   Rows |      Mean | Ratio |  MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
 |---------- |------- |------- |----------:|------:|----:|-------:|-------:|-------------:|------------:|
 | **Sep______** |    **Row** | **100000** |  **15.22 ms** |  **1.00** | **109** | **7160.5** |  **152.2** |      **1.49 KB** |        **1.00** |
@@ -586,6 +633,25 @@ pretty good compared to CsvHelper regardless of allocating a lot of strings.
 | Sylvan___ | Floats | 100000 | 291.50 ms |  2.11 | 109 |  374.0 | 2915.0 |     51.53 KB |        5.92 |
 | ReadLine_ | Floats | 100000 | 323.53 ms |  2.34 | 109 |  336.9 | 3235.3 |  359871.8 KB |   41,335.81 |
 | CsvHelper | Floats | 100000 | 549.80 ms |  3.98 | 109 |  198.3 | 5498.0 |  87694.13 KB |   10,072.77 |
+
+##### `Snapdragon® 8cx Gen 3` - Floats Benchmark Results (Sep 0.1.0)
+
+|    Method |  Scope |   Rows |      Mean | Ratio |  MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |------- |------- |----------:|------:|----:|-------:|-------:|-------------:|------------:|
+| **Sep______** |    **Row** | **100000** |  **36.55 ms** |  **1.00** | **109** | **2982.5** |  **365.5** |      **1.51 KB** |        **1.00** |
+| Sylvan___ |    Row | 100000 |  98.62 ms |  2.70 | 109 | 1105.4 |  986.2 |    138.18 KB |       91.76 |
+| ReadLine_ |    Row | 100000 |  85.72 ms |  2.35 | 109 | 1271.7 |  857.2 | 359865.39 KB |  238,976.75 |
+| CsvHelper |    Row | 100000 | 225.93 ms |  6.25 | 109 |  482.5 | 2259.3 |     20.61 KB |       13.69 |
+|           |        |        |           |       |     |        |        |              |             |
+| **Sep______** |   **Cols** | **100000** |  **39.58 ms** |  **1.00** | **109** | **2754.2** |  **395.8** |      **1.51 KB** |        **1.00** |
+| Sylvan___ |   Cols | 100000 | 110.61 ms |  2.79 | 109 |  985.5 | 1106.1 |    138.18 KB |       91.76 |
+| ReadLine_ |   Cols | 100000 |  87.29 ms |  2.20 | 109 | 1248.9 |  872.9 | 359865.39 KB |  238,976.75 |
+| CsvHelper |   Cols | 100000 | 234.58 ms |  5.89 | 109 |  464.7 | 2345.8 | 113699.75 KB |   75,504.89 |
+|           |        |        |           |       |     |        |        |              |             |
+| **Sep______** | **Floats** | **100000** | **188.05 ms** |  **1.00** | **109** |  **579.7** | **1880.5** |      **8.72 KB** |        **1.00** |
+| Sylvan___ | Floats | 100000 | 483.76 ms |  2.57 | 109 |  225.3 | 4837.6 |     50.25 KB |        5.76 |
+| ReadLine_ | Floats | 100000 | 477.34 ms |  2.54 | 109 |  228.4 | 4773.4 | 359871.81 KB |   41,280.24 |
+| CsvHelper | Floats | 100000 | 719.83 ms |  3.83 | 109 |  151.4 | 7198.3 |  87694.14 KB |   10,059.24 |
 
 ## Writer Comparison Benchmarks
 Writer benchmarks are still pending, but Sep is unlikely to be the fastest here

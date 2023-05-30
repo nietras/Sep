@@ -10,6 +10,7 @@ public partial class SepReader
 {
     // Problem here is Row is a ref struct so can't use Action<Row>
     public delegate void RowAction(Row row);
+    public delegate T RowFunc<T>(Row row);
 
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public readonly ref struct Row

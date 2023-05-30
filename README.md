@@ -287,22 +287,22 @@ using C# iterators (aka `yield return`). With local functions this can be done
 inside a method like:
 ```csharp
 var text = """
-            Key;Value
-            Sep;🚀
-            CSV;✅
-            """;
-var expected = new (string Key, string Value)[] { ("Sep", "🚀"), ("CSV", "✅"), };
+           Key;Value
+           Sep;10
+           CSV;20
+           """;
+var expected = new (string Key, int Value)[] { ("Sep", 10), ("CSV", 20), };
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader).ToArray();
 
 CollectionAssert.AreEqual(expected, actual);
 
-static IEnumerable<(string Key, string Value)> Enumerate(SepReader reader)
+static IEnumerable<(string Key, int Value)> Enumerate(SepReader reader)
 {
     foreach (var row in reader)
     {
-        yield return (row["Key"].ToString(), row["Value"].ToString());
+        yield return (row["Key"].ToString(), row["Value"].Parse<int>());
     }
 }
 ```

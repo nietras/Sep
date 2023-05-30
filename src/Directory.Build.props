@@ -3,7 +3,7 @@
   <PropertyGroup>
     <AssemblyVersion>0.1.0</AssemblyVersion>
     <FileVersion>0.1.0</FileVersion>
-    <InformationalVersion>$(FileVersion)-rc.1</InformationalVersion>
+    <InformationalVersion>$(FileVersion)</InformationalVersion>
     <PackageVersion>$(InformationalVersion)</PackageVersion>
 
     <Company>nietras</Company>

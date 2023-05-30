@@ -61,21 +61,102 @@ public class ReadMeTest
     {
         var text = """
                    Key;Value
-                   Sep;10
-                   CSV;20
+                   A;1.1
+                   B;2.2
                    """;
-        var expected = new (string Key, int Value)[] { ("Sep", 10), ("CSV", 20), };
+        var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
 
         using var reader = Sep.Reader().FromText(text);
         var actual = Enumerate(reader).ToArray();
 
         CollectionAssert.AreEqual(expected, actual);
 
-        static IEnumerable<(string Key, int Value)> Enumerate(SepReader reader)
+        static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
         {
             foreach (var row in reader)
             {
-                yield return (row["Key"].ToString(), row["Value"].Parse<int>());
+                yield return (row["Key"].ToString(), row["Value"].Parse<double>());
+            }
+        }
+    }
+
+    [TestMethod]
+    public void ReadMeTest_Enumerate()
+    {
+        var text = """
+                   Key;Value
+                   A;1.1
+                   B;2.2
+                   """;
+        var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
+
+        using var reader = Sep.Reader().FromText(text);
+        var actual = Enumerate(reader,
+            row => (row["Key"].ToString(), row["Value"].Parse<double>()))
+            .ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
+
+        static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+        {
+            foreach (var row in reader)
+            {
+                yield return func(row);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void ReadMeTest_EnumerateWhere()
+    {
+        var text = """
+                   Key;Value
+                   A;1.1
+                   B;2.2
+                   """;
+        var expected = new (string Key, double Value)[] { ("B", 2.2), };
+
+        using var reader = Sep.Reader().FromText(text);
+        var actual = Enumerate(reader,
+            row => (row["Key"].ToString(), row["Value"].Parse<double>()))
+            .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
+            .ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
+
+        static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+        {
+            foreach (var row in reader)
+            {
+                yield return func(row);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void ReadMeTest_IteratorWhere()
+    {
+        var text = """
+                   Key;Value
+                   A;1.1
+                   B;2.2
+                   """;
+        var expected = new (string Key, double Value)[] { ("B", 2.2), };
+
+        using var reader = Sep.Reader().FromText(text);
+        var actual = Enumerate(reader).ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
+
+        static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
+        {
+            foreach (var row in reader)
+            {
+                var keyCol = row["Key"];
+                if (keyCol.Span.StartsWith("B"))
+                {
+                    yield return (keyCol.ToString(), row["Value"].Parse<double>());
+                }
             }
         }
     }
@@ -91,8 +172,11 @@ public class ReadMeTest
 
         var blocksToUpdate = new (string MethodNameWithParenthesis, string ReadmeLineBeforeCodeBlock)[]
         {
-            (nameof(ReadMeTest_) + "()","## Example"),
-            (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()","If you want to use LINQ"),
+            (nameof(ReadMeTest_) + "()", "## Example"),
+            (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
+            (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
+            (nameof(ReadMeTest_EnumerateWhere) + "()", "Which discounting the `Enumerate`"),
+            (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
         };
 
         foreach (var (methodNameWithParenthesis, readmeLineBeforeCodeBlock) in blocksToUpdate)
@@ -101,6 +185,9 @@ public class ReadMeTest
 
             var readmeLineBefore = Array.FindIndex(readmeLines,
                 l => l.StartsWith(readmeLineBeforeCodeBlock, StringComparison.Ordinal)) + 1;
+            if (readmeLineBefore == 0)
+            { throw new ArgumentException($"README line '{readmeLineBeforeCodeBlock}' not found."); }
+
             var readmeCodeStart = Array.FindIndex(readmeLines, readmeLineBefore,
                 l => l.StartsWith("```csharp", StringComparison.Ordinal)) + 1;
             var readmeCodeEnd = Array.FindIndex(readmeLines, readmeCodeStart,

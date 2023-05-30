@@ -274,11 +274,11 @@ basically be no different than a `ReadLine` approach as benchmarked in
 [Comparison Benchmarks](#comparison-benchmarks).
 
 This is perhaps also the reason why no other efficient .NET CSV parser (known to
-author) of implements and API pattern like Sep, but instead let the reader
-define all functionality directly and hence only let's you access the current
-row and cols on that. This API, however, can in this authors opinion not ideal
-and can be a bit confusing, which is why Sep is designed like it is. The
-downside is the above caveat.
+author) implements an API pattern like Sep, but instead let the reader define
+all functionality directly and hence only let's you access the current row and
+cols on that. This API, however, is in this authors opinion not ideal and can be
+a bit confusing, which is why Sep is designed like it is. The downside is the
+above caveat.
 
 If you want to use LINQ or similar you have to first parse or transform the rows
 into some other type and enumerate it. This is easy to do and instead of
@@ -288,26 +288,70 @@ inside a method like:
 ```csharp
 var text = """
            Key;Value
-           Sep;10
-           CSV;20
+           A;1.1
+           B;2.2
            """;
-var expected = new (string Key, int Value)[] { ("Sep", 10), ("CSV", 20), };
+var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader).ToArray();
 
 CollectionAssert.AreEqual(expected, actual);
 
-static IEnumerable<(string Key, int Value)> Enumerate(SepReader reader)
+static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
 {
     foreach (var row in reader)
     {
-        yield return (row["Key"].ToString(), row["Value"].Parse<int>());
+        yield return (row["Key"].ToString(), row["Value"].Parse<double>());
     }
 }
 ```
+Now if instead refactoring this to something LINQ-compatible by defining a
+common `Enumerate` or similar method it could be:
+```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
 
+using var reader = Sep.Reader().FromText(text);
+var actual = Enumerate(reader,
+    row => (row["Key"].ToString(), row["Value"].Parse<double>()))
+    .ToArray();
 
+CollectionAssert.AreEqual(expected, actual);
+
+static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+{
+    foreach (var row in reader)
+    {
+        yield return func(row);
+    }
+}
+```
+Which discounting the `Enumerate` method (which could naturally be an extension
+method), does have less boilerplate, but not really more effective lines of
+code. The issue here is that this tends to favor factoring code in a way that
+can become very inefficient quickly. Consider if one wanted to only enumerate
+rows matching a predicate on `Key` which meant only 1% of rows were to be
+enumerated e.g.:
+```csharp
+var actual = Enumerate(reader,
+    row => (row["Key"].ToString(), row["Value"].Parse<double>()))
+    .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
+    .ToArray();
+```
+This means you are still parsing the double (which is magnitudes slower than
+getting just the key) for all rows. Imagine if this was an array of floating
+points or similar. Not only would you then be parsing a lot of values you would
+also be allocated 99x arrays that aren't used after filtering with `Where`.
+
+Instead, you should focus on how to express the enumeration in a way that is
+both efficient and easy to read. For example, the above could be rewritten as:
+```csharp
+```
 
 ### SepWriter API
 `SepWriter` API has the following structure (in pseudo-C# code):

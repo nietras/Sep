@@ -116,9 +116,8 @@ within a limited range and not being a `char` like `"` (quote) or similar. This
 can be seen in [src/Sep/Sep.cs](src/Sep/Sep.cs). The separator is constrained
 also for internal optimizations, so you cannot use any `char` as a separator.
 
-> Note that all types are within the namespace `nietras.SeparatedValues` and
-> not `Sep` since it is problematic to have a type and a namespace with the
-> same name.
+⚠ Note that all types are within the namespace `nietras.SeparatedValues` and not
+`Sep` since it is problematic to have a type and a namespace with the same name.
 
 To get started you can use `Sep` as the static entry point to building either a
 reader or writer. That is, for `SepReader`:
@@ -135,10 +134,10 @@ row, which might be a header. If the first row does not contain any of the by
 default supported separators or there are no rows, the default separator will be
 used.
 
-> ⚠ Note Sep uses `;` as the default separator, since this is what was used in an
-> internal proprietary library which Sep was built to replace. This is also to
-> avoid issues with comma `,` being used as a decimal separator in some locales.
-> Without having to resort to quoting.
+⚠ Note Sep uses `;` as the default separator, since this is what was used in an
+internal proprietary library which Sep was built to replace. This is also to
+avoid issues with comma `,` being used as a decimal separator in some locales.
+Without having to resort to quoting.
 
 If you want to specify the separator you can write:
 ```csharp
@@ -186,6 +185,20 @@ That and the APIs for reader and writer is covered in the following sections.
 For a complete example, see the [example](#example) above or the
 [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
 
+⚠ Note that it is important to understand that Sep `Row`/`Col`/`Cols` are [`ref
+struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/ref-struct)s
+(please follow the `ref struct` link and understand how this limits the usage of
+those). This is due to these types being simple *facades* or indirections to the
+underlying reader or writer. That means you cannot use LINQ or create an array
+of all rows like `reader.ToArray()` as the reader is not `IEnumerable<>` either
+since `ref struct`s cannot be used in interfaces, which is in fact the point.
+Hence, you need to parse or copy to different types instead. The same applies to
+`Col`/`Cols` which point to internal state that is also reused. This is to avoid
+repeated allocations for each row and get the best possible performance, while
+still defining a well structured and straightforward API that guides users to
+relevant functionality.  See [Why SepReader Is Not IEnumerable and LINQ
+Compatible](#why-sepreader-is-not-ienumerable-and-linq-compatible) for more.
+
 ### SepReader API
 `SepReader` API has the following structure (in pseudo-C# code):
 ```csharp
@@ -223,15 +236,78 @@ That is, to use `SepReader` follow the points below:
     `ToString` to convert to a `string`. Or use `Parse<T>` where `T :
     ISpanParsable<T>` to parse the column `char`s to a specific type.
 
-> ⚠ Note that it is important to understand that Sep only allows enumeration and
-> access to one row at a time. `SepReader.Row` is in fact just a simple *facade*
-> or indirection to the underlying reader. This is why it is defined as a `ref
-> struct`, so it can only be used on the stack. That means you cannot use LINQ
-> or create an array of all rows like `reader.ToArray()`. The same applies to
-> `SepReader.Col/Cols` which point to internal arrays that are reused for each
-> row. This is to avoid repeated allocations for each row and get the best
-> possible performance. Hence, you need to parse or copy to different types
-> instead.
+#### Why SepReader Is Not IEnumerable and LINQ Compatible
+As mentioned earlier Sep only allows enumeration and access to one row at a time
+and `SepReader.Row` is just a simple *facade* or indirection to the underlying
+reader. This is why it is defined as a `ref struct`. In fact, the following code:
+```csharp
+using var reader = Sep.Reader().FromText(text);
+foreach (var row in reader)
+{ }
+```
+can also be rewritten as:
+```csharp
+using var reader = Sep.Reader().FromText(text);
+while (reader.MoveNext())
+{
+    var row = reader.Current;
+}
+```
+where `row` is just a *facade* for exposing row specific functionality. That is,
+`row` is still basically the `reader` underneath. Hence, let's imagine *if*
+`SepReader` did implement `IEnumerable<SepReader.Row>` and the `Row` was *not* a
+`ref struct`. Then, you would be able to write something like below:
+```csharp
+using var reader = Sep.Reader().FromText(text);
+SepReader.Row[] rows = reader.ToArray();
+```
+Given `Row` is just a facade for the reader, this would be equivalent to
+writing:
+```csharp
+using var reader = Sep.Reader().FromText(text);
+SepReader[] rows = reader.ToArray();
+```
+which hopefully makes it clear why this is not a good thing. The array would
+effectively be the reader repeated several times. If this would have to be
+supported one would have to allocate memory for each row always, which would
+basically be no different than a `ReadLine` approach as benchmarked in
+[Comparison Benchmarks](#comparison-benchmarks).
+
+This is perhaps also the reason why no other efficient .NET CSV parser (known to
+author) of implements and API pattern like Sep, but instead let the reader
+define all functionality directly and hence only let's you access the current
+row and cols on that. This API, however, can in this authors opinion not ideal
+and can be a bit confusing, which is why Sep is designed like it is. The
+downside is the above caveat.
+
+If you want to use LINQ or similar you have to first parse or transform the rows
+into some other type and enumerate it. This is easy to do and instead of
+counting lines you should focus on how such enumeration can be easily expressed
+using C# iterators (aka `yield return`). With local functions this can be done
+inside a method like:
+```csharp
+var text = """
+            Key;Value
+            Sep;🚀
+            CSV;✅
+            """;
+var expected = new (string Key, string Value)[] { ("Sep", "🚀"), ("CSV", "✅"), };
+
+using var reader = Sep.Reader().FromText(text);
+var actual = Enumerate(reader).ToArray();
+
+CollectionAssert.AreEqual(expected, actual);
+
+static IEnumerable<(string Key, string Value)> Enumerate(SepReader reader)
+{
+    foreach (var row in reader)
+    {
+        yield return (row["Key"].ToString(), row["Value"].ToString());
+    }
+}
+```
+
+
 
 ### SepWriter API
 `SepWriter` API has the following structure (in pseudo-C# code):

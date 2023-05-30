@@ -338,10 +338,28 @@ can become very inefficient quickly. Consider if one wanted to only enumerate
 rows matching a predicate on `Key` which meant only 1% of rows were to be
 enumerated e.g.:
 ```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+var expected = new (string Key, double Value)[] { ("B", 2.2), };
+
+using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader,
     row => (row["Key"].ToString(), row["Value"].Parse<double>()))
     .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
     .ToArray();
+
+CollectionAssert.AreEqual(expected, actual);
+
+static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+{
+    foreach (var row in reader)
+    {
+        yield return func(row);
+    }
+}
 ```
 This means you are still parsing the double (which is magnitudes slower than
 getting just the key) for all rows. Imagine if this was an array of floating
@@ -351,7 +369,34 @@ also be allocated 99x arrays that aren't used after filtering with `Where`.
 Instead, you should focus on how to express the enumeration in a way that is
 both efficient and easy to read. For example, the above could be rewritten as:
 ```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+var expected = new (string Key, double Value)[] { ("B", 2.2), };
+
+using var reader = Sep.Reader().FromText(text);
+var actual = Enumerate(reader).ToArray();
+
+CollectionAssert.AreEqual(expected, actual);
+
+static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
+{
+    foreach (var row in reader)
+    {
+        var keyCol = row["Key"];
+        if (keyCol.Span.StartsWith("B"))
+        {
+            yield return (keyCol.ToString(), row["Value"].Parse<double>());
+        }
+    }
+}
 ```
+This does not take significantly longer to write and is a lot more efficient
+(also avoids allocating a string for key for each row) and is easier to debug
+and perhaps even read. All examples above can be seen in
+[ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
 
 ### SepWriter API
 `SepWriter` API has the following structure (in pseudo-C# code):

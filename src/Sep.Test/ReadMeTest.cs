@@ -162,6 +162,25 @@ public class ReadMeTest
     }
 
     [TestMethod]
+    public void ReadMeTest_Example_Copy_Rows()
+    {
+        var text = """
+                   A;B;C;D;E;F
+                   Sep;🚀;1;1.2;0.1;0.5
+                   CSV;✅;2;2.2;0.2;1.5
+                   """;
+
+        using var reader = Sep.Reader().FromText(text);
+        using var writer = reader.Spec.Writer().ToText();
+        foreach (var readRow in reader)
+        {
+            using var writeRow = writer.NewRow(readRow);
+        }
+
+        Assert.AreEqual(text, writer.ToString());
+    }
+
+    [TestMethod]
     public void ReadMeTest_UpdateExampleCodeInMarkdown()
     {
         var sourceFile = SourceFile();
@@ -177,6 +196,7 @@ public class ReadMeTest
             (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
             (nameof(ReadMeTest_EnumerateWhere) + "()", "Which discounting the `Enumerate`"),
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
+            (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
         };
 
         foreach (var (methodNameWithParenthesis, readmeLineBeforeCodeBlock) in blocksToUpdate)

@@ -43,6 +43,8 @@ few MBs. 💾
 pragmatic approach towards this especially with regards to quoting and line
 ends. See section [RFC-4180](#rfc-4180).
 
+[Example](#Example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)
+
 ## Example
 ```csharp
 var text = """
@@ -818,7 +820,7 @@ pretty good compared to CsvHelper regardless of allocating a lot of strings.
 | ReadLine_ | Floats | 100000 | 477.34 ms |  2.54 | 109 |  228.4 | 4773.4 | 359871.81 KB |   41,280.24 |
 | CsvHelper | Floats | 100000 | 719.83 ms |  3.83 | 109 |  151.4 | 7198.3 |  87694.14 KB |   10,059.24 |
 
-## Writer Comparison Benchmarks
+### Writer Comparison Benchmarks
 Writer benchmarks are still pending, but Sep is unlikely to be the fastest here
 since it is explicitly designed to make writing more convenient and flexible.
 Still efficient, but not necessarily fastest. That is, Sep does not require
@@ -826,6 +828,27 @@ writing header up front and hence having to keep header column order and row
 values column order the same. This means Sep does not write columns *directly*
 upon definition but defers this until a new row has been fully defined and then
 is ended.
+
+## Example Catalogue
+The following examples are available in [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+
+### Example - Copy Rows
+```csharp
+var text = """
+           A;B;C;D;E;F
+           Sep;🚀;1;1.2;0.1;0.5
+           CSV;✅;2;2.2;0.2;1.5
+           """;
+
+using var reader = Sep.Reader().FromText(text);
+using var writer = reader.Spec.Writer().ToText();
+foreach (var readRow in reader)
+{
+    using var writeRow = writer.NewRow(readRow);
+}
+
+Assert.AreEqual(text, writer.ToString());
+```
 
 ## RFC-4180
 While the [RFC-4180](https://www.ietf.org/rfc/rfc4180.txt) requires `\r\n`

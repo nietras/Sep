@@ -293,7 +293,10 @@ var text = """
            A;1.1
            B;2.2
            """;
-var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
+var expected = new (string Key, double Value)[] {
+    ("A", 1.1),
+    ("B", 2.2),
+};
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader).ToArray();
@@ -316,7 +319,10 @@ var text = """
            A;1.1
            B;2.2
            """;
-var expected = new (string Key, double Value)[] { ("A", 1.1), ("B", 2.2), };
+var expected = new (string Key, double Value)[] {
+    ("A", 1.1),
+    ("B", 2.2),
+};
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader,
@@ -345,7 +351,9 @@ var text = """
            A;1.1
            B;2.2
            """;
-var expected = new (string Key, double Value)[] { ("B", 2.2), };
+var expected = new (string Key, double Value)[] {
+    ("B", 2.2),
+};
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader,
@@ -376,7 +384,9 @@ var text = """
            A;1.1
            B;2.2
            """;
-var expected = new (string Key, double Value)[] { ("B", 2.2), };
+var expected = new (string Key, double Value)[] {
+    ("B", 2.2),
+};
 
 using var reader = Sep.Reader().FromText(text);
 var actual = Enumerate(reader).ToArray();

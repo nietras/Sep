@@ -1,10 +1,12 @@
-﻿#define BENCH_SLOW_ONES
+﻿//#define BENCH_SLOW_ONES
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using csFastFloat;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Sylvan.Data.Csv;
@@ -247,45 +249,52 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     public double Sylvan___()
     {
         using var reader = Reader.CreateReader();
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader);
+        var buf = ArrayPool<char>.Shared.Rent(0x8000);
+        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buf);
 
-        var groundTruthColNames = new List<string>();
-        for (var i = 0; i < csvReader.FieldCount; i++)
-        {
-            var colName = csvReader.GetName(i);
-            if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
-            {
-                groundTruthColNames.Add(colName);
-            }
-        }
-        var resultColNames = groundTruthColNames.Select(n =>
-            n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase))
+        var schema = csvReader.GetColumnSchema();
+
+        var groundTruthColOrdinals =
+            schema
+            .Where(c => c.ColumnName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
+            .Select(c => c.ColumnOrdinal.Value)
+            .ToArray();
+
+        var resultColOrdinals =
+            groundTruthColOrdinals
+            .Select(idx => schema[idx].ColumnName.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase))
+            .Select(n => schema.First(i => i.ColumnName == n).ColumnOrdinal.Value)
             .ToArray();
 
         var sum = 0.0;
         var count = 0;
 
-        Span<float> gts = stackalloc float[groundTruthColNames.Count];
-        Span<float> res = stackalloc float[resultColNames.Length];
+        Span<float> gts = stackalloc float[groundTruthColOrdinals.Length];
+        Span<float> res = stackalloc float[resultColOrdinals.Length];
 
         while (csvReader.Read())
         {
-            for (var i = 0; i < groundTruthColNames.Count; i++)
+            for (var i = 0; i < groundTruthColOrdinals.Length; i++)
             {
-                var colIndex = csvReader.GetOrdinal(groundTruthColNames[i]);
-                var value = csvReader.GetFloat(colIndex);
-                gts[i] = value;
+                gts[i] = GetFloat(csvReader, groundTruthColOrdinals[i]);
             }
-            for (var i = 0; i < resultColNames.Length; i++)
+            for (var i = 0; i < resultColOrdinals.Length; i++)
             {
-                var colIndex = csvReader.GetOrdinal(resultColNames[i]);
-                var value = csvReader.GetFloat(colIndex);
-                res[i] = value;
+                res[i] = GetFloat(csvReader, resultColOrdinals[i]);
             }
 
             sum += MeanSquaredError(gts, res);
             ++count;
+
+            static float GetFloat(Sylvan.Data.Csv.CsvDataReader r, int ordinal)
+            {
+                // use the standard .NET float parser
+                //return r.GetFloat(ordinal);
+                // use the csFastFloat library float parser
+                return FastFloatParser.ParseFloat(r.GetFieldSpan(ordinal));
+            }
         }
+        ArrayPool<char>.Shared.Return(buf);
         return sum / count;
     }
 

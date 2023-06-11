@@ -84,11 +84,13 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
                 // Optimize for case of only separators i.e. no endings or quotes
                 if (sepsMask == specialCharMask)
                 {
-                    positionsRefCurrent = ref PackSeparatorPositions(sepsMask, separatorShifted, dataIndex, ref positionsRefCurrent);
+                    positionsRefCurrent = ref PackSeparatorPositions(sepsMask,
+                        separatorShifted, dataIndex, ref positionsRefCurrent);
                 }
                 else
                 {
-                    positionsRefCurrent = ref PackSpecialCharPositions(specialCharMask, ref charsRef, dataIndex, ref positionsRefCurrent);
+                    positionsRefCurrent = ref PackSpecialCharPositions(specialCharMask,
+                        ref charsRef, dataIndex, ref positionsRefCurrent);
                 }
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next Vector256<byte>.Count.

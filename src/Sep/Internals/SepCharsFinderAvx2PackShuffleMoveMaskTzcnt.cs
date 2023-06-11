@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using static nietras.SeparatedValues.SepDefaults;
+using static nietras.SeparatedValues.SepCharsFinderHelper;
 
 namespace nietras.SeparatedValues;
 
@@ -122,39 +122,14 @@ sealed class SepCharsFinderAvx2PackShuffleMoveMaskTzcnt : ISepCharsFinder
                 // Optimize for case of only separators i.e. no endings or quotes
                 if (sepsMask == specialCharMask)
                 {
-                    var mask = sepsMask;
                     SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
-                    var dataIndexWithSeparatorShifted = separatorShifted | dataIndex;
-                    do
-                    {
-                        var sepRelativeIndex = BitOperations.TrailingZeroCount(mask);
-                        mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
-
-                        // Accumulate index + character found, bit pack char with index
-                        // Using ctor and Pos type is too slow due to bad code gen
-                        var sepIndex = dataIndexWithSeparatorShifted + sepRelativeIndex;
-                        positionsRefCurrent = sepIndex;
-                        positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
-                    }
-                    while (mask != 0);
+                    positionsRefCurrent = ref PackSeparatorPositions(sepsMask,
+                        separatorShifted, dataIndex, ref positionsRefCurrent);
                 }
                 else
                 {
-                    var mask = specialCharMask;
-                    do
-                    {
-                        var sepRelativeIndex = BitOperations.TrailingZeroCount(mask);
-                        mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
-
-                        // Accumulate index + character found, bit pack char with index
-                        // Getting from Vector is slow and incurs bounds check
-                        // Instead code generation better if just get as char from buffer
-                        var charFound = Unsafe.Add(ref charsRef, sepRelativeIndex);
-                        var sepIndex = dataIndex + sepRelativeIndex;
-                        positionsRefCurrent = SepCharPosition.PackRaw(charFound, sepIndex);
-                        positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
-                    }
-                    while (mask != 0);
+                    positionsRefCurrent = ref PackSpecialCharPositions(specialCharMask,
+                        ref charsRef, dataIndex, ref positionsRefCurrent);
                 }
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next Vector256<byte>.Count.

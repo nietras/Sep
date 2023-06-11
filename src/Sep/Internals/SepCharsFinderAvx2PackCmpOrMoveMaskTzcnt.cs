@@ -84,21 +84,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
                 // Optimize for case of only separators i.e. no endings or quotes
                 if (sepsMask == specialCharMask)
                 {
-                    var mask = sepsMask;
-                    SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
-                    var dataIndexWithSeparatorShifted = separatorShifted | dataIndex;
-                    do
-                    {
-                        var sepRelativeIndex = BitOperations.TrailingZeroCount((int)mask);
-                        mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
-
-                        // Accumulate index + character found, bit pack char with index
-                        // Using ctor and Pos type is too slow due to bad code gen
-                        var sepIndex = dataIndexWithSeparatorShifted + sepRelativeIndex;
-                        positionsRefCurrent = sepIndex;
-                        positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
-                    }
-                    while (mask != 0);
+                    positionsRefCurrent = ref PackSeparatorPositions(ref positionsRefCurrent, separatorShifted, dataIndex, sepsMask);
                 }
                 else
                 {
@@ -132,5 +118,26 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
         // Step is Vector256<byte>.Count so may go past end, ensure limited
         dataIndex = Math.Min(charsEnd, dataIndex);
         return dataIndex;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static ref int PackSeparatorPositions(ref int positionsRefCurrent, int separatorShifted, int dataIndex, int sepsMask)
+    {
+        var mask = sepsMask;
+        SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
+        var dataIndexWithSeparatorShifted = separatorShifted | dataIndex;
+        do
+        {
+            var sepRelativeIndex = BitOperations.TrailingZeroCount((int)mask);
+            mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
+
+            // Accumulate index + character found, bit pack char with index
+            // Using ctor and Pos type is too slow due to bad code gen
+            var sepIndex = dataIndexWithSeparatorShifted + sepRelativeIndex;
+            positionsRefCurrent = sepIndex;
+            positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
+        }
+        while (mask != 0);
+        return ref positionsRefCurrent;
     }
 }

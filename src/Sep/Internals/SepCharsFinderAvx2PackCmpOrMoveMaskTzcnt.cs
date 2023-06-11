@@ -84,6 +84,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
                 // Optimize for case of only separators i.e. no endings or quotes
                 if (sepsMask == specialCharMask)
                 {
+                    SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
                     positionsRefCurrent = ref PackSeparatorPositions(sepsMask,
                         separatorShifted, dataIndex, ref positionsRefCurrent);
                 }

@@ -10,7 +10,6 @@ static class SepCharsFinderHelper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int PackSeparatorPositions(int mask, int separatorShifted, int dataIndex, ref int positionsRefCurrent)
     {
-        SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
         var dataIndexWithSeparatorShifted = separatorShifted | dataIndex;
         do
         {

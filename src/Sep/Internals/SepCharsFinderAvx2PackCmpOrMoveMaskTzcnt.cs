@@ -84,25 +84,11 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
                 // Optimize for case of only separators i.e. no endings or quotes
                 if (sepsMask == specialCharMask)
                 {
-                    positionsRefCurrent = ref PackSeparatorPositions(ref positionsRefCurrent, separatorShifted, dataIndex, sepsMask);
+                    positionsRefCurrent = ref PackSeparatorPositions(sepsMask, separatorShifted, dataIndex, ref positionsRefCurrent);
                 }
                 else
                 {
-                    var mask = specialCharMask;
-                    do
-                    {
-                        var sepRelativeIndex = BitOperations.TrailingZeroCount(mask);
-                        mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
-
-                        // Accumulate index + character found, bit pack char with index
-                        // Getting from Vector is slow and incurs bounds check
-                        // Instead code generation better if just get as char from buffer
-                        var charFound = Unsafe.Add(ref charsRef, sepRelativeIndex);
-                        var sepIndex = dataIndex + sepRelativeIndex;
-                        positionsRefCurrent = SepCharPosition.PackRaw(charFound, sepIndex);
-                        positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
-                    }
-                    while (mask != 0);
+                    positionsRefCurrent = ref PackSpecialCharPositions(ref charsRef, ref positionsRefCurrent, dataIndex, specialCharMask);
                 }
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next Vector256<byte>.Count.
@@ -121,9 +107,8 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ref int PackSeparatorPositions(ref int positionsRefCurrent, int separatorShifted, int dataIndex, int sepsMask)
+    static ref int PackSeparatorPositions(int mask, int separatorShifted, int dataIndex, ref int positionsRefCurrent)
     {
-        var mask = sepsMask;
         SepAssert.AssertMaxPosition(dataIndex, Vector256<byte>.Count);
         var dataIndexWithSeparatorShifted = separatorShifted | dataIndex;
         do
@@ -135,6 +120,27 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
             // Using ctor and Pos type is too slow due to bad code gen
             var sepIndex = dataIndexWithSeparatorShifted + sepRelativeIndex;
             positionsRefCurrent = sepIndex;
+            positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
+        }
+        while (mask != 0);
+        return ref positionsRefCurrent;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static ref int PackSpecialCharPositions(ref char charsRef, ref int positionsRefCurrent, int dataIndex, int specialCharMask)
+    {
+        var mask = specialCharMask;
+        do
+        {
+            var sepRelativeIndex = BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1); // Or Bmi1.ResetLowestSetBit/JIT seems to do it fine
+
+            // Accumulate index + character found, bit pack char with index
+            // Getting from Vector is slow and incurs bounds check
+            // Instead code generation better if just get as char from buffer
+            var charFound = Unsafe.Add(ref charsRef, sepRelativeIndex);
+            var sepIndex = dataIndex + sepRelativeIndex;
+            positionsRefCurrent = SepCharPosition.PackRaw(charFound, sepIndex);
             positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
         }
         while (mask != 0);

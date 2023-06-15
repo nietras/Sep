@@ -1,6 +1,7 @@
 ﻿#define USE_STRING_POOLING
 #define BENCH_SLOW_ONES
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -88,10 +89,14 @@ public class RowPackageAssetsBench : PackageAssetsBench
         var options = new CsvDataReaderOptions
         {
             HasHeaders = false,
-            BufferSize = 0x10000,
         };
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        while (csvReader.Read()) { }
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
+        {
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
+            while (csvReader.Read()) { }
+        }
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES
@@ -168,16 +173,20 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         var options = new CsvDataReaderOptions
         {
             HasHeaders = false,
-            BufferSize = 0x10000,
         };
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        while (csvReader.Read())
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
         {
-            for (var i = 0; i < csvReader.FieldCount; i++)
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
+            while (csvReader.Read())
             {
-                var span = csvReader.GetFieldSpan(i);
+                for (var i = 0; i < csvReader.FieldCount; i++)
+                {
+                    var span = csvReader.GetFieldSpan(i);
+                }
             }
         }
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES
@@ -276,17 +285,21 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         var options = new Sylvan.Data.Csv.CsvDataReaderOptions
         {
             HasHeaders = false,
-            BufferSize = 0x10000,
 #if USE_STRING_POOLING
             StringFactory = stringPool.GetString,
 #endif
         };
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        while (csvReader.Read())
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
         {
-            var asset = PackageAsset.Read(csvReader, static (r, i) => r.GetString(i));
-            assets.Add(asset);
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
+            while (csvReader.Read())
+            {
+                var asset = PackageAsset.Read(csvReader, static (r, i) => r.GetString(i));
+                assets.Add(asset);
+            }
         }
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES

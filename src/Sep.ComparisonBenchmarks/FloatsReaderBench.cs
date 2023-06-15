@@ -1,5 +1,6 @@
 ﻿#define BENCH_SLOW_ONES
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -74,12 +75,16 @@ public class RowFloatsReaderBench : FloatsReaderBench
         var options = new CsvDataReaderOptions
         {
             HasHeaders = false,
-            BufferSize = 0x10000,
         };
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        while (csvReader.Read())
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
         {
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
+            while (csvReader.Read())
+            {
+            }
         }
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES
@@ -151,16 +156,20 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         var options = new CsvDataReaderOptions
         {
             HasHeaders = false,
-            BufferSize = 0x10000,
         };
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        while (csvReader.Read())
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
         {
-            for (var i = 0; i < csvReader.FieldCount; i++)
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
+            while (csvReader.Read())
             {
-                var span = csvReader.GetFieldSpan(i);
+                for (var i = 0; i < csvReader.FieldCount; i++)
+                {
+                    var span = csvReader.GetFieldSpan(i);
+                }
             }
         }
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES
@@ -247,46 +256,52 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     public double Sylvan___()
     {
         using var reader = Reader.CreateReader();
-        using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader);
 
-        var groundTruthColNames = new List<string>();
-        for (var i = 0; i < csvReader.FieldCount; i++)
+        var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
+        try
         {
-            var colName = csvReader.GetName(i);
-            if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
+            using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer);
+
+            var groundTruthColNames = new List<string>();
+            for (var i = 0; i < csvReader.FieldCount; i++)
             {
-                groundTruthColNames.Add(colName);
+                var colName = csvReader.GetName(i);
+                if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
+                {
+                    groundTruthColNames.Add(colName);
+                }
             }
+            var resultColNames = groundTruthColNames.Select(n =>
+                n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            var sum = 0.0;
+            var count = 0;
+
+            Span<float> gts = stackalloc float[groundTruthColNames.Count];
+            Span<float> res = stackalloc float[resultColNames.Length];
+
+            while (csvReader.Read())
+            {
+                for (var i = 0; i < groundTruthColNames.Count; i++)
+                {
+                    var colIndex = csvReader.GetOrdinal(groundTruthColNames[i]);
+                    var value = csvReader.GetFloat(colIndex);
+                    gts[i] = value;
+                }
+                for (var i = 0; i < resultColNames.Length; i++)
+                {
+                    var colIndex = csvReader.GetOrdinal(resultColNames[i]);
+                    var value = csvReader.GetFloat(colIndex);
+                    res[i] = value;
+                }
+
+                sum += MeanSquaredError(gts, res);
+                ++count;
+            }
+            return sum / count;
         }
-        var resultColNames = groundTruthColNames.Select(n =>
-            n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        var sum = 0.0;
-        var count = 0;
-
-        Span<float> gts = stackalloc float[groundTruthColNames.Count];
-        Span<float> res = stackalloc float[resultColNames.Length];
-
-        while (csvReader.Read())
-        {
-            for (var i = 0; i < groundTruthColNames.Count; i++)
-            {
-                var colIndex = csvReader.GetOrdinal(groundTruthColNames[i]);
-                var value = csvReader.GetFloat(colIndex);
-                gts[i] = value;
-            }
-            for (var i = 0; i < resultColNames.Length; i++)
-            {
-                var colIndex = csvReader.GetOrdinal(resultColNames[i]);
-                var value = csvReader.GetFloat(colIndex);
-                res[i] = value;
-            }
-
-            sum += MeanSquaredError(gts, res);
-            ++count;
-        }
-        return sum / count;
+        finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
 #if BENCH_SLOW_ONES

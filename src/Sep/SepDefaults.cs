@@ -5,14 +5,16 @@ namespace nietras.SeparatedValues;
 
 public static class SepDefaults
 {
-    internal const char _separator = ';';
-    internal const byte _separatorByte = (byte)_separator;
+    const char _separator = ';';
+    //const byte _separatorByte = (byte)_separator;
 
     public static char Separator => _separator;
     public static CultureInfo CultureInfo { get; } = CultureInfo.InvariantCulture;
 
     internal static IReadOnlyList<char> AutoDetectSeparators { get; } =
         new[] { Separator, '\t', '|', ',' };
+
+    internal const int RowLengthMax = 1 << 24;
 
     // Note the following common line feed chars:
     // \n - UNIX   \r\n - DOS   \r - Mac

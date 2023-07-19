@@ -45,19 +45,17 @@ public partial class SepReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     ReadOnlySpan<char> GetColSpan(int index)
     {
-        if ((uint)index >= (uint)_colCount)
-        {
-            SepThrow.IndexOutOfRangeException();
-        }
-        // Implicitly checking `index` via built in array range check
+        if ((uint)index >= (uint)_colCount) { SepThrow.IndexOutOfRangeException(); }
+
+        // Using array indexing is slightly faster despite more code 🤔
         var colEnds = _colEnds;
         var colStart = colEnds[index] + 1; // +1 since previous end
         var colEnd = colEnds[index + 1];
         // Above bounds checked is faster than below 🤔
-        //var endIndex = index + 1;
         //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEnds);
         //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
-        //var colEnd = Unsafe.Add(ref colEndsRef, endIndex);
+        //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
+
         var colLength = colEnd - colStart;
         // Much better code generation given col span always inside buffer
         ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
@@ -73,8 +71,15 @@ public partial class SepReader
         {
             return s;
         }
-        var spanToString = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_colToStrings), index);
-        return spanToString.ToString(span);
+        if (index < _colToStrings.Length)
+        {
+            var spanToString = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_colToStrings), index);
+            return spanToString.ToString(span);
+        }
+        else
+        {
+            return new(span);
+        }
     }
 
     public string ToStringRaw(int index)

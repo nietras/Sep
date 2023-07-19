@@ -24,24 +24,26 @@ if (args.Length > 0)
 {
     var config = (Debugger.IsAttached ? new DebugInProcessConfig() : DefaultConfig.Instance)
         .WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(200))
-        .AddColumn(MBPerSecFromCharsLength());
+        .AddColumn(MBPerSecFromCharsLength())
+        ;
     //BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args, config);
     //BenchmarkRunner.Run(typeof(SepReaderBench), config, args);
     //BenchmarkRunner.Run(typeof(SepWriterBench), config, args);
     //BenchmarkRunner.Run(typeof(SepReaderWriterBench), config, args);
     //BenchmarkRunner.Run(typeof(SepEndToEndBench), config, args);
     //BenchmarkRunner.Run(typeof(SepHashBench), config, args);
-    BenchmarkRunner.Run(typeof(SepCharsFinderBench), config, args);
+    //BenchmarkRunner.Run(typeof(SepParseSeparatorsMaskBench), config, args);
+    BenchmarkRunner.Run(typeof(SepParserBench), config, args);
 }
 else
 {
-    var b = new SepCharsFinderBench();
+    var b = new SepParserBench();
     b.GlobalSetup();
-    b.Find();
+    b.Parse();
     Thread.Sleep(200);
     for (var i = 0; i < 200000000; i++)
     {
-        b.Find();
+        b.Parse();
     }
 
     //Runner.ParseAndFormatGenerated(log);
@@ -52,5 +54,7 @@ static IColumn MBPerSecFromCharsLength() => new BytesStatisticColumn("MB/s",
 
 static long BytesFromCharsLength(IReadOnlyList<ParameterInstance> parameters)
 {
-    return parameters.Where(p => p.Name == nameof(SepCharsFinderBench.Length)).Select(p => (int)p.Value).Single()!;
+    return parameters.Where(p => p.Name == nameof(SepParserBench.Filler))
+        .Select(p => ((SepParserBench.FillerSpec)p.Value).Text.Length * sizeof(char))
+        .Single()!;
 }

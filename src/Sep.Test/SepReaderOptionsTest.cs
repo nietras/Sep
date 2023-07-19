@@ -15,7 +15,8 @@ public class SepReaderOptionsTest
         Assert.AreSame(CultureInfo.InvariantCulture, sut.CultureInfo);
         Assert.IsTrue(sut.HasHeader);
         Assert.AreSame(SepToString.Direct, sut.CreateToString);
-        Assert.IsTrue(sut.UseFastFloat);
+        Assert.IsFalse(sut.DisableFastFloat);
+        Assert.IsFalse(sut.DisableColCountCheck);
     }
 
     [TestMethod]
@@ -27,13 +28,15 @@ public class SepReaderOptionsTest
             CultureInfo = CultureInfo.CreateSpecificCulture("da-Dk"),
             HasHeader = false,
             CreateToString = SepToString.OnePool(),
-            UseFastFloat = false,
+            DisableFastFloat = true,
+            DisableColCountCheck = true,
         };
 
         Assert.AreEqual(new Sep(','), sut.Sep);
         Assert.AreNotSame(CultureInfo.InvariantCulture, sut.CultureInfo);
         Assert.IsFalse(sut.HasHeader);
         Assert.AreNotSame(SepToString.Direct, sut.CreateToString);
-        Assert.IsFalse(sut.UseFastFloat);
+        Assert.IsTrue(sut.DisableFastFloat);
+        Assert.IsTrue(sut.DisableColCountCheck);
     }
 }

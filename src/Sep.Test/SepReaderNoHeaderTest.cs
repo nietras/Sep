@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -125,78 +126,65 @@ public class SepReaderNoHeaderTest
         AssertEnumerate(text, expected);
     }
 
+    internal static IEnumerable<object[]> ColCountMismatchData =>
+        SepReaderTest.ColCountMismatchData;
+
     [DataTestMethod]
-    [DataRow("""
-             C1;C2
-             123
-             """,
-             """
-             Found 1 column(s) on row 1:'123'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2
-
-             1;2
-             """,
-             """
-             Found 1 column(s) on row 1:''
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2;C3
-             1;2;3
-             4;5
-             """,
-             """
-             Found 2 column(s) on row 2:'4;5'
-             Expected 3 column(s) matching header/first row 'C1;C2;C3'
-             """)]
-    [DataRow("""
-             C1;C2;C3
-             4;5
-             1;2;3
-             """,
-             """
-             Found 2 column(s) on row 1:'4;5'
-             Expected 3 column(s) matching header/first row 'C1;C2;C3'
-             """)]
-    [DataRow("""
-             C1
-
-             4;5
-             """,
-             """
-             Found 2 column(s) on row 2:'4;5'
-             Expected 1 column(s) matching header/first row 'C1'
-             """)]
-    [DataRow("""
-             C1;C2
-             4;5
-             1;2;3
-             """,
-             """
-             Found 3 column(s) on row 2:'1;2;3'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2
-             4";"5
-             1;2;3
-             """,
-             """
-             Found 1 column(s) on row 1:'4";"5'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    public void SepReaderNoHeaderTest_ColumnCountMismatch(string text, string message)
+    [DynamicData(nameof(ColCountMismatchData))]
+    public void SepReaderNoHeaderTest_ColumnCountMismatch(string text, string message, int[] _)
     {
+        Contract.Assume(message is not null);
         var e = Assert.ThrowsException<InvalidDataException>(() =>
         {
-            using var reader = Sep.Reader().FromText(text);
+            using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
             foreach (var readRow in reader)
             { }
         });
+        // When no header no first row data is available
+        var index = message.LastIndexOf("first row ", StringComparison.OrdinalIgnoreCase);
+        message = string.Concat(message.AsSpan(0, index), "first row ''");
         Assert.AreEqual(message, e.Message);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ColCountMismatchData))]
+    public void SepReaderNoHeaderTest_ColumnCountMismatch_DisableColCountCheck(
+        string text, string _, int[] expectedColCounts)
+    {
+        Contract.Assume(expectedColCounts != null);
+        using var reader = Sep.Reader(o => o with { HasHeader = false, DisableColCountCheck = true }).FromText(text);
+        var colCountIndex = 0;
+        foreach (var readRow in reader)
+        {
+            Assert.AreEqual(expectedColCounts[colCountIndex], readRow.ColCount);
+            for (var colIndex = 0; colIndex < readRow.ColCount; colIndex++)
+            {
+                // Ensure ToString works, since may be outside SepToString bounds
+                Assert.IsNotNull(readRow[colIndex].ToString());
+            }
+            ++colCountIndex;
+        }
+    }
+
+    [TestMethod]
+    public void SepNoHeaderReaderTest_MaximumColCount()
+    {
+        var maxColCount = SepReader._colEndsMaximumLength - 1; // -1 since col ends is 1 longer due to having row start
+        var text = new string(';', maxColCount - 1);
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(maxColCount, row.ColCount);
+    }
+
+    [TestMethod]
+    public void SepNoHeaderReaderTest_ExceedingMaximumColCount_Throws()
+    {
+        var maxColCount = SepReader._colEndsMaximumLength;
+        var text = new string(';', maxColCount);
+        var e = Assert.ThrowsException<NotSupportedException>(() =>
+            Sep.Reader(o => o with { HasHeader = false }).FromText(text));
+        Assert.AreEqual($"Col count has reached maximum supported count of {maxColCount}.", e.Message);
     }
 
     static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,

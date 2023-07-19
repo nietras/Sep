@@ -47,6 +47,8 @@ public class SepReaderRowTest
         // but here state is asserted anyway.
         var row = enumerator.Current;
         Assert.AreEqual(1, row.RowIndex);
+        Assert.AreEqual(1, row.LineNumberFrom);
+        Assert.AreEqual(1, row.LineNumberToExcl);
         Assert.AreEqual(string.Empty, row.ToString());
         Assert.AreEqual(0, row.Span.Length);
     }
@@ -59,6 +61,8 @@ public class SepReaderRowTest
         Assert.IsTrue(enumerator.MoveNext());
         var row = enumerator.Current;
         Assert.AreEqual(1, row.RowIndex);
+        Assert.AreEqual(2, row.LineNumberFrom);
+        Assert.AreEqual(3, row.LineNumberToExcl);
         Assert.AreEqual(string.Empty, row.ToString());
         Assert.AreEqual(0, row.Span.Length);
     }
@@ -68,6 +72,8 @@ public class SepReaderRowTest
     {
         var row = _enumerator.Current;
         Assert.AreEqual(1, row.RowIndex);
+        Assert.AreEqual(2, row.LineNumberFrom);
+        Assert.AreEqual(3, row.LineNumberToExcl);
         Assert.AreEqual(_rowText, row.ToString());
         Assert.IsTrue(_rowText.AsSpan().Equals(row.Span, StringComparison.Ordinal));
     }
@@ -189,7 +195,7 @@ public class SepReaderRowTest
     [TestMethod]
     public void SepReaderRowTest_Row_DebuggerDisplay()
     {
-        Assert.AreEqual("  1 = ' ;;1.23456789;abcdefgh\t, ._'", _enumerator.Current.DebuggerDisplay);
+        Assert.AreEqual("  1:[2..3] = ' ;;1.23456789;abcdefgh\t, ._'", _enumerator.Current.DebuggerDisplay);
     }
 
     static void AssertCols(ReadOnlySpan<string> expected, in SepReader.Cols cols)

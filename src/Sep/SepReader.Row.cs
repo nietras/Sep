@@ -21,6 +21,9 @@ public partial class SepReader
 
         public int RowIndex => _reader._rowIndex;
 
+        public int LineNumberFrom => _reader._rowLineNumberFrom;
+        public int LineNumberToExcl => _reader._lineNumber;
+
         public int ColCount => _reader._colCount;
 
         public ReadOnlySpan<char> Span => _reader.RowSpan();
@@ -122,7 +125,7 @@ public partial class SepReader
         //    throw new NotImplementedException();
         //}
 
-        internal string DebuggerDisplay => $"{RowIndex,3} = '{Span}'";
+        internal string DebuggerDisplay => $"{RowIndex,3}:[{LineNumberFrom}..{LineNumberToExcl}] = '{Span}'";
     }
 
     public ReadOnlySpan<char> RowSpan()

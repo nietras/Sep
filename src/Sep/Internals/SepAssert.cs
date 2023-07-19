@@ -21,7 +21,8 @@ static class SepAssert
     [Conditional(Condition)]
     internal static void AssertMaxPosition(int dataIndex, int vectorCount)
     {
-        A.Assert(dataIndex < (SepCharPosition.MaxPosition - vectorCount), $"index {dataIndex} must be within pack limits {(SepCharPosition.MaxPosition - vectorCount)} and max position {SepCharPosition.MaxPosition}");
+        const int MaxPosition = SepDefaults.RowLengthMax;
+        A.Assert(dataIndex < (MaxPosition - vectorCount), $"index {dataIndex} must be within limits {(MaxPosition - vectorCount)} and max position {MaxPosition}");
     }
 
     [Conditional(Condition)]

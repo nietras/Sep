@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,15 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepReaderTest
 {
+    [TestMethod]
+    public void SepReaderTest_AssetsQuotes()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText("38769756-9bb4-4ba9-a9a5-40362d1fd96f,2020-11-28T01:48:51.2932584+00:00,\"AspNetCore.Mvc.RangedStreamResult\",\"1.3.1\",2020-11-27T20:28:44.2430000+00:00,\"AvailableAssets\",\"RuntimeAssemblies\",\"\",\"\",\"netstandard2.1\",\"\",\"\",\"\",\"\",\"\",\"lib/netstandard2.1/AspNetCore.Mvc.RangedStreamResult.dll\",\"AspNetCore.Mvc.RangedStreamResult.dll\",\".dll\",\"lib\",\"netstandard2.1\",\".NETStandard\",\"2.1.0.0\",\"\",\"\",\"0.0.0.0\"");
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(25, row.ColCount);
+    }
+
     [TestMethod]
     public void SepReaderTest_CreateFromStreamReader()
     {
@@ -152,72 +162,104 @@ public class SepReaderTest
         AssertEnumerate(text, expected);
     }
 
+    [TestMethod]
+    public void SepReaderTest_Enumerate_Quotes_Rows_3_LongCols()
+    {
+        var longColA = new string('A', 10000);
+        var longColB = new string('B', 20000);
+        var longCol0 = new string('0', 32 * 1024);
+        var text = $"""
+                    C1;C2;C3
+                    10;"{longColA};";20";"11
+                    "11";";"{longColB};"20;{longCol0}"
+                    """;
+        var expected = new (string c1, string c2, string c3)[]
+        {
+            ("10", $"\"{longColA};\"", "20\";\"11"),
+            ("\"11\"", $"\";\"{longColB}", $"\"20;{longCol0}\""),
+        };
+        AssertEnumerate(text, expected);
+    }
+
     // TODO: Need test of quotes at end
 
+    internal static IEnumerable<object[]> ColCountMismatchData => new object[][]
+    {
+        new object[]{ """
+                      C1;C2
+                      123
+                      """,
+                      """
+                      Found 1 column(s) on row 1/lines [2..3]:'123'
+                      Expected 2 column(s) matching header/first row 'C1;C2'
+                      """,
+                      new [] { 2, 1 } },
+        new object[]{ """
+                      C1;C2
+                      
+                      1;2
+                      """,
+                      """
+                      Found 1 column(s) on row 1/lines [2..3]:''
+                      Expected 2 column(s) matching header/first row 'C1;C2'
+                      """,
+                      new [] { 2, 1, 2 } },
+        new object[]{ """
+                      C1;C2;C3
+                      1;2;3
+                      4;5
+                      """,
+                      """
+                      Found 2 column(s) on row 2/lines [3..4]:'4;5'
+                      Expected 3 column(s) matching header/first row 'C1;C2;C3'
+                      """,
+                      new [] { 3, 3, 2 } },
+        new object[]{ """
+                      C1;C2;C3
+                      4;5
+                      1;2;3
+                      """,
+                      """
+                      Found 2 column(s) on row 1/lines [2..3]:'4;5'
+                      Expected 3 column(s) matching header/first row 'C1;C2;C3'
+                      """,
+                      new [] { 3, 2, 3 } },
+        new object[]{ """
+                      C1
+                      
+                      4;5
+                      """,
+                      """
+                      Found 2 column(s) on row 2/lines [3..4]:'4;5'
+                      Expected 1 column(s) matching header/first row 'C1'
+                      """,
+                      new [] { 1, 1, 2 } },
+        new object[]{ """
+                      C1;C2
+                      4;5
+                      1;2;3
+                      """,
+                      """
+                      Found 3 column(s) on row 2/lines [3..4]:'1;2;3'
+                      Expected 2 column(s) matching header/first row 'C1;C2'
+                      """,
+                      new [] { 2, 2, 3 } },
+        new object[]{ """
+                      C1;C2
+                      4";"5
+                      1;2;345
+                      """,
+                      """
+                      Found 1 column(s) on row 1/lines [2..3]:'4";"5'
+                      Expected 2 column(s) matching header/first row 'C1;C2'
+                      """,
+                      new [] { 2, 1, 3 } },
+    };
+
     [DataTestMethod]
-    [DataRow("""
-             C1;C2
-             123
-             """,
-             """
-             Found 1 column(s) on row 1:'123'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2
-
-             1;2
-             """,
-             """
-             Found 1 column(s) on row 1:''
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2;C3
-             1;2;3
-             4;5
-             """,
-             """
-             Found 2 column(s) on row 2:'4;5'
-             Expected 3 column(s) matching header/first row 'C1;C2;C3'
-             """)]
-    [DataRow("""
-             C1;C2;C3
-             4;5
-             1;2;3
-             """,
-             """
-             Found 2 column(s) on row 1:'4;5'
-             Expected 3 column(s) matching header/first row 'C1;C2;C3'
-             """)]
-    [DataRow("""
-             C1
-
-             4;5
-             """,
-             """
-             Found 2 column(s) on row 2:'4;5'
-             Expected 1 column(s) matching header/first row 'C1'
-             """)]
-    [DataRow("""
-             C1;C2
-             4;5
-             1;2;3
-             """,
-             """
-             Found 3 column(s) on row 2:'1;2;3'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    [DataRow("""
-             C1;C2
-             4";"5
-             1;2;3
-             """,
-             """
-             Found 1 column(s) on row 1:'4";"5'
-             Expected 2 column(s) matching header/first row 'C1;C2'
-             """)]
-    public void SepReaderTest_ColumnCountMismatch(string text, string message)
+    [DynamicData(nameof(ColCountMismatchData))]
+    public void SepReaderTest_ColumnCountMismatch_Throws(
+        string text, string message, int[] _)
     {
         var e = Assert.ThrowsException<InvalidDataException>(() =>
         {
@@ -226,6 +268,111 @@ public class SepReaderTest
             { }
         });
         Assert.AreEqual(message, e.Message);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ColCountMismatchData))]
+    public void SepReaderTest_ColumnCountMismatch_DisableColCountCheck(
+        string text, string _, int[] expectedColCounts)
+    {
+        Contract.Assume(expectedColCounts != null);
+        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
+        var colCountIndex = 0;
+        Assert.AreEqual(expectedColCounts[colCountIndex], reader.Header.ColNames.Count);
+        foreach (var readRow in reader)
+        {
+            ++colCountIndex;
+            Assert.AreEqual(expectedColCounts[colCountIndex], readRow.ColCount);
+            for (var colIndex = 0; colIndex < readRow.ColCount; colIndex++)
+            {
+                // Ensure ToString works, since may be outside SepToString bounds
+                Assert.IsNotNull(readRow[colIndex].ToString());
+            }
+        }
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ColCountMismatchData))]
+    public void SepReaderTest_ColumnCountMismatch_IgnoreThrows(
+        string text, string _, int[] expectedColCounts)
+    {
+        Contract.Assume(expectedColCounts != null);
+        using var reader = Sep.Reader().FromText(text);
+        var colCountIndex = 0;
+        Assert.AreEqual(expectedColCounts[colCountIndex], reader.Header.ColNames.Count);
+        var moveNext = false;
+        do
+        {
+            // Assert that even if ignoring exception thrown, the reader
+            // continues with next rows.
+            try
+            {
+                moveNext = reader.MoveNext();
+            }
+            catch (InvalidDataException)
+            {
+                moveNext = true;
+            }
+            if (moveNext)
+            {
+                var readRow = reader.Current;
+                ++colCountIndex;
+                Assert.AreEqual(expectedColCounts[colCountIndex], readRow.ColCount);
+                for (var colIndex = 0; colIndex < readRow.ColCount; colIndex++)
+                {
+                    // Ensure ToString works, since may be outside SepToString bounds
+                    Assert.IsNotNull(readRow[colIndex].ToString());
+                }
+            }
+        } while (moveNext);
+    }
+
+
+    internal static IEnumerable<object[]> LineNumbersData => new object[][]
+    {
+        new object[]{ "C1;C2\n123;456", new [] { (1, 2), (2, 3) } },
+        new object[]{ "C1;C2\n123;456\n", new [] { (1, 2), (2, 3) } },
+        new object[]{ "C1;C2\r\n123;456\r\n", new [] { (1, 2), (2, 3) } },
+        new object[]{ "C1;C2\r123;456\r", new [] { (1, 2), (2, 3) } },
+        new object[]{ "C1;C2\n123;456\n789;012\n", new [] { (1, 2), (2, 3), (3, 4) } },
+        // Line endings in quotes
+        new object[]{ """
+                      "C1
+                      ;
+                      ";C2
+                      "ab
+                      ";"cd
+                      ;
+                      e"
+                      "
+                      
+                      
+                      
+                      1";2
+                      """, new [] { (1, 4), (4, 8), (8, 13) } },
+        new object[]{ "\"C1\n\";C2\n\"1\n2\r3\";\"4\r\n56\"\n\"7\r\r\r\r\r89\";012\n",
+                      new [] { (1, 3), (3, 7), (7, 13) } },
+    };
+
+    [DataTestMethod]
+    [DynamicData(nameof(LineNumbersData))]
+    public void SepReaderTest_LineNumbers(string text,
+        (int LineNumberFrom, int LineNumberToExcl)[] expectedLineNumbers)
+    {
+        Contract.Assume(expectedLineNumbers != null);
+        // Repeat test for with/without header
+        foreach (var options in new[] { new SepReaderOptions(),
+                                        new SepReaderOptions() { HasHeader = false } })
+        {
+            using var reader = Sep.Reader().FromText(text);
+            foreach (var row in reader)
+            {
+                var e = expectedLineNumbers[row.RowIndex];
+                Assert.AreEqual(e, (row.LineNumberFrom, row.LineNumberToExcl));
+                Assert.AreEqual(e.LineNumberFrom, row.LineNumberFrom, nameof(row.LineNumberFrom));
+                Assert.AreEqual(e.LineNumberToExcl, row.LineNumberToExcl, nameof(row.LineNumberToExcl));
+            }
+        }
     }
 
     [TestMethod]
@@ -250,9 +397,9 @@ public class SepReaderTest
     [TestMethod]
     public void SepReaderTest_MaximumColCount()
     {
-        var maxColCount = SepReader._colEndsMaximumLength;
-        var text = $"{new string(';', maxColCount - 1)}";
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        var maxColCount = SepReader._colEndsMaximumLength - 1; // -1 since col ends is 1 longer due to having row start
+        var text = "A" + Environment.NewLine + new string(';', maxColCount - 1);
+        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(maxColCount, row.ColCount);
@@ -262,9 +409,9 @@ public class SepReaderTest
     public void SepReaderTest_ExceedingMaximumColCount_Throws()
     {
         var maxColCount = SepReader._colEndsMaximumLength;
-        var text = new string(';', maxColCount);
-        var e = Assert.ThrowsException<NotSupportedException>(() =>
-            Sep.Reader(o => o with { HasHeader = false }).FromText(text));
+        var text = "A" + Environment.NewLine + new string(';', maxColCount);
+        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
+        var e = Assert.ThrowsException<NotSupportedException>(() => reader.MoveNext());
         Assert.AreEqual($"Col count has reached maximum supported count of {maxColCount}.", e.Message);
     }
 
@@ -272,7 +419,7 @@ public class SepReaderTest
     [TestMethod]
     public void SepReaderTest_TooLongRow_Throws()
     {
-        var maxLength = SepCharPosition.MaxLength + 1;
+        var maxLength = SepDefaults.RowLengthMax + 1;
         var text = new string('a', maxLength);
         var e = Assert.ThrowsException<NotSupportedException>(() =>
             Sep.Reader().FromText(text));

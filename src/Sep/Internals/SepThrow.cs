@@ -49,10 +49,11 @@ static class SepThrow
 
     [DoesNotReturn]
     internal static void InvalidDataException_ColCountMismatch(
-        int colCount, int rowIndex, string row,
+        int colCount, int rowIndex, int lineNumberFrom, int lineNumberToExcl, string row,
         int expectedColCount, string firstRow)
     {
-        throw new InvalidDataException($"Found {colCount} column(s) on row {rowIndex}:'{row}'{s_newLine}" +
+        throw new InvalidDataException(
+            $"Found {colCount} column(s) on row {rowIndex}/lines [{lineNumberFrom}..{lineNumberToExcl}]:'{row}'{s_newLine}" +
             $"Expected {expectedColCount} column(s) matching header/first row '{firstRow}'");
     }
 

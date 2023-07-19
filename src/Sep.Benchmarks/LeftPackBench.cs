@@ -10,6 +10,7 @@ namespace nietras.SeparatedValues.Benchmarks;
 
 public sealed class LeftPackBench
 {
+    const int CharShift = 24;
     static readonly Vector256<byte> _zero = Vector256<byte>.Zero;
     static readonly Vector256<byte> _permutationMask = Vector256.Create(0x0020100884828180L).AsByte();
     static readonly Vector256<byte> _invertMask = Vector256.Create(0x0020100880808080L).AsByte();
@@ -181,10 +182,10 @@ public sealed class LeftPackBench
             var (packUShort0, packUShort1) = Vector256.Widen(pack);
             var (packUInt0, packUInt1) = Vector256.Widen(packUShort0);
             var (packUInt2, packUInt3) = Vector256.Widen(packUShort1);
-            packUInt0 = Vector256.ShiftLeft(packUInt0, SepCharPosition.CharShift);
-            packUInt1 = Vector256.ShiftLeft(packUInt1, SepCharPosition.CharShift);
-            packUInt2 = Vector256.ShiftLeft(packUInt2, SepCharPosition.CharShift);
-            packUInt3 = Vector256.ShiftLeft(packUInt3, SepCharPosition.CharShift);
+            packUInt0 = Vector256.ShiftLeft(packUInt0, CharShift);
+            packUInt1 = Vector256.ShiftLeft(packUInt1, CharShift);
+            packUInt2 = Vector256.ShiftLeft(packUInt2, CharShift);
+            packUInt3 = Vector256.ShiftLeft(packUInt3, CharShift);
 
             var (packSeqUShort0, packSeqUShort1) = Vector256.Widen(packSeq);
             var (packSeqUInt0, packSeqUInt1) = Vector256.Widen(packSeqUShort0);

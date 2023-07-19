@@ -5,9 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using static nietras.SeparatedValues.SepDefaults;
 
@@ -27,20 +25,20 @@ public partial class SepReader : IDisposable
     readonly SepHeader _header;
     readonly TextReader _reader;
     readonly CultureInfo? _cultureInfo;
-    ISepCharsFinder? _finder;
+    ISepParser? _parser;
 
     int _rowIndex = -1;
-    // TODO: Count lines independently of rows for easy look up in e.g. notepad
-    //int _lineNumber = 0;
+    int _rowLineNumberFrom = 0;
+    int _lineNumber = 1;
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
     // force chars buffer management paths to be used.
     internal const int CharsMinimumLength = 32;
 #else
-    // Based on L1d typically being 32KB, so aiming for <= 16K x sizeof(char).
+    // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
     // Benchmarks show below to be a good minimum length.
-    internal const int CharsMinimumLength = 12 * 1024;
+    internal const int CharsMinimumLength = 24 * 1024;
 #endif
     internal const int _charsCheckDataAvailableWhenLessThanLength = 256;
     readonly int _charsMinimumFreeLength;
@@ -50,14 +48,6 @@ public partial class SepReader : IDisposable
     int _charsDataEnd = 0;
     int _charsParseStart = 0;
     int _charsRowStart = 0;
-
-    const int _positionsMinimumLength = 8;
-    Pos[] _positions;
-    readonly int _positionsMinimumFreeLength;
-    int _positionsStart = 0;
-    int _positionsEnd = 0;
-    int _positionPreviousChar = LineFeed;
-    int _positionPreviousPos = -1; // -1 is valid if before current row start e.g. when line end from previous row
 
     internal const int _colEndsMaximumLength = 1024;
     // [0] = Previous row/col end e.g. one before row/first col start
@@ -82,7 +72,8 @@ public partial class SepReader : IDisposable
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
             System.Globalization.CultureInfo.InvariantCulture.NumberFormat.CurrencyDecimalSeparator;
-        _fastFloatDecimalSeparatorOrZero = decimalSeparator.Length == 1 && _options.UseFastFloat
+        _fastFloatDecimalSeparatorOrZero =
+            decimalSeparator.Length == 1 && !_options.DisableFastFloat
             ? decimalSeparator[0]
             : '\0';
 
@@ -95,8 +86,8 @@ public partial class SepReader : IDisposable
         var sep = options.Sep;
         if (sep.HasValue)
         {
-            _finder = SepCharsFinderFactory.GetBest(sep.Value);
-            _charsPaddingLength = _finder.PaddingLength;
+            _parser = SepParserFactory.CreateBest(sep.Value);
+            _charsPaddingLength = _parser.PaddingLength;
             _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
             _separator = sep.Value.Separator;
         }
@@ -106,18 +97,9 @@ public partial class SepReader : IDisposable
             _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
         }
 
-        var positionsPaddingLength = _finder?.PaddingLength ?? 32;
-#if DEBUG
-        var positionsLength = positionsPaddingLength;
-#else
-        // Performance quite sensitive to positions length, 1024 seems okay
-        var positionsLength = _finder?.RequestedPositionsFreeLength ?? 1024;
-#endif
-        positionsLength = Math.Max(_positionsMinimumLength, positionsLength);
-        _positions = ArrayPool<Pos>.Shared.Rent(positionsLength);
-        _positionsMinimumFreeLength = Math.Max(positionsLength / 2, positionsPaddingLength);
+        var paddingLength = _parser?.PaddingLength ?? 32;
 
-        _colEnds = ArrayPool<int>.Shared.Rent(_colEndsMaximumLength);
+        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsMaximumLength, paddingLength * 2));
 
         // Parse first row/header
         if (MoveNext())
@@ -139,7 +121,7 @@ public partial class SepReader : IDisposable
 
                 // Check if more data available and hence minimum 1 row after header
                 // What if \n after \r after header only? Where \n lingering after MoveNext?
-                HasRows = _charsDataEnd > _charsDataStart;
+                HasRows = _charsDataEnd > _charsParseStart;
                 if (!HasRows)
                 {
                     HasRows = !CheckCharsAvailableDataMaybeRead(_charsPaddingLength);
@@ -173,6 +155,7 @@ public partial class SepReader : IDisposable
         {
             _colToStrings[colIndex] = options.CreateToString(_header, colIndex);
         }
+        _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
     }
 
     public bool IsEmpty { get; }
@@ -198,6 +181,7 @@ public partial class SepReader : IDisposable
         if (foundRow) { goto ROW_ALREADY_FOUND; }
 
         ++_rowIndex;
+        _rowLineNumberFrom = _lineNumber;
 
         // Reset
 #if DEBUG
@@ -205,31 +189,52 @@ public partial class SepReader : IDisposable
 #endif
         _cacheIndex = 0;
         _arrayPool.Reset();
+        _charsDataStart = _charsRowStart;
         _colEnds[0] = _charsRowStart - 1;
         _colCount = 0;
 
         var endOfFile = false;
     LOOP:
-        CheckPoint($"{nameof(ParsePositionsForNewRow)} BEFORE");
-        // Look through existing positions for new row, if found finish
-        if (_positionsStart < _positionsEnd && ParsePositionsForNewRow(endOfFile))
+        if (_rowIndex == 56) { Debugger.Break(); }
+        CheckPoint($"{nameof(_parser.Parse)} BEFORE");
+
+        var rowLineEndingOffset = 0;
+        _charsParseStart = _parser?.Parse(_chars, _charsParseStart, _charsDataEnd,
+            _colEnds, ref _colCount, ref rowLineEndingOffset, ref _lineNumber) ?? _charsParseStart;
+    MAYBEROW:
+        if (rowLineEndingOffset != 0)
         {
-            CheckPoint($"{nameof(ParsePositionsForNewRow)} AFTER - RETURN TRUE");
-            // Remove data for next time, perhaps move to first thing above instead
-            _charsDataStart = Math.Min(_charsRowStart, _charsDataEnd);
+            CheckPoint($"{nameof(_parser.Parse)} AFTER - RETURN TRUE");
+            if (_colCountExpected >= 0 && _colCount != _colCountExpected)
+            {
+                // Capture row start and move next to be able to continue even
+                // after exception.
+                var rowStart = _charsRowStart;
+                _charsRowStart = _charsParseStart;
+                ThrowInvalidDataExceptionColCountMismatch(_colCountExpected, _colEnds[_colCount], rowStart);
+            }
+            _charsRowStart = _charsParseStart;
             foundRow = true;
             goto RETURN;
         }
         else if (endOfFile)
         {
-            CheckPoint($"{nameof(ParsePositionsForNewRow)} AFTER - ENDOFFILE");
+            CheckPoint($"{nameof(_parser.Parse)} AFTER - ENDOFFILE");
             foundRow = false;
             goto RETURN;
         }
 
-        CheckPoint($"{nameof(ParsePositionsForNewRow)} AFTER");
+        CheckPoint($"{nameof(_parser.Parse)} AFTER");
 
-        endOfFile = ReadDataFindNextPositions(endOfFile);
+        endOfFile = EnsureInitializeAndReadData(endOfFile);
+        if (endOfFile && _charsRowStart < _charsDataEnd && _charsParseStart == _charsDataEnd)
+        {
+            ++_colCount;
+            _colEnds[_colCount] = _charsDataEnd;
+            rowLineEndingOffset = 1;
+            ++_lineNumber;
+            goto MAYBEROW;
+        }
         goto LOOP;
     ROW_ALREADY_FOUND:
         _rowAlreadyFound = false;
@@ -237,216 +242,12 @@ public partial class SepReader : IDisposable
         return foundRow;
     }
 
-#pragma warning disable CA1502 // Avoid excessive complexity
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    bool ParsePositionsForNewRow(bool endOfFile)
-#pragma warning restore CA1502 // Avoid excessive complexity
-    {
-        A.Assert(_positionsStart < _positionsEnd);
-
-        var separator = _separator;
-
-        ref var positionsRefFirst = ref MemoryMarshal.GetArrayDataReference(_positions);
-
-        var colEnds = _colEnds;
-        var colEndsLength = colEnds.Length;
-        ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
-
-        var positionCurrentChar = _positionPreviousChar;
-        var positionCurrentPos = _positionPreviousPos;
-
-        // Line end if found, last position of \r or \n found as part of new line
-        var lineEnd = -1;
-        nint positionsStart = _positionsStart;
-        nint positionsEnd = _positionsEnd;
-
-        // Fast-track for common case of separator after separator or line endings
-        if (positionCurrentChar == separator || positionCurrentChar == LineFeed || positionCurrentChar == CarriageReturn)
-        {
-            // Enregister col count and update member field after loop
-            var colCount = _colCount;
-            for (; positionsStart < positionsEnd; ++positionsStart)
-            {
-                var newPacked = Unsafe.Add(ref positionsRefFirst, positionsStart);
-                var newChar = SepCharPosition.UnpackCharacter(newPacked);
-                if (newChar == separator)
-                {
-                    positionCurrentChar = newChar;
-                    positionCurrentPos = SepCharPosition.UnpackPosition(newPacked);
-                    // Pre-increment since col ends 1 forward
-                    ++colCount;
-                    if (colCount < colEndsLength)
-                    {
-                        Unsafe.Add(ref colEndsRef, colCount) = positionCurrentPos;
-                    }
-                    else
-                    {
-                        SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(colEndsLength);
-                    }
-                    continue;
-                }
-                //else if (newFlags == LineFeed)
-                //{
-                //    var newPos = SepParserPosition.UnpackPosition(newPacked);
-                //    if (positionCurrentFlags == CarriageReturn && newPos == (positionCurrentPos - 1))
-                //    {
-                //        // Row already ended, but move next
-                //        A.Assert(_charsRowStart == positionCurrentPos, $"New row start {_charsRowStart} != {positionCurrentPos} position of carriage return");
-                //        colEndsRef = _charsRowStart;
-                //        ++_charsRowStart;
-                //        continue;
-                //    }
-                //}
-                break;
-            }
-            _colCount = colCount;
-        }
-
-    PARSE_POSITIONS_QUOTE:
-        if (positionCurrentChar == Quote)
-        {
-            while (positionsStart < positionsEnd)
-            {
-                var positionsCurrent = Unsafe.Add(ref positionsRefFirst, positionsStart);
-                ++positionsStart;
-                var newChar = SepCharPosition.UnpackCharacter(positionsCurrent);
-                if (newChar == Quote)
-                {
-                    positionCurrentPos = SepCharPosition.UnpackPosition(positionsCurrent);
-                    // HACK: Unquote simply by marking previous as separator
-                    positionCurrentChar = separator;
-                    break;
-                }
-                // TODO: Count lines (requires prev/current char to say if quote with CR, LF.
-                else
-                {
-
-                }
-                // EOF/EOT?
-            }
-        }
-
-        var nextRowStartOffset = 1;
-        for (; positionsStart < positionsEnd && lineEnd < 0; ++positionsStart)
-        {
-            var previousCharacter = positionCurrentChar;
-            var previousPosition = positionCurrentPos;
-
-            var positionsCurrent = Unsafe.Add(ref positionsRefFirst, positionsStart);
-            positionCurrentChar = SepCharPosition.UnpackCharacter(positionsCurrent);
-            positionCurrentPos = SepCharPosition.UnpackPosition(positionsCurrent);
-
-            var newCol = false;
-            if (positionCurrentChar == separator)
-            {
-                // Fast track normal separator case
-                if (previousCharacter == separator)
-                {
-                    // Pre-increment since col ends 1 forward
-                    ++_colCount;
-                    if (_colCount < colEndsLength)
-                    {
-                        Unsafe.Add(ref colEndsRef, _colCount) = positionCurrentPos;
-                    }
-                    else
-                    {
-                        SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(colEndsLength);
-                    }
-                    continue;
-                }
-            }
-            else if (positionCurrentChar == Quote)
-            {
-                ++positionsStart;
-                goto PARSE_POSITIONS_QUOTE;
-            }
-            // Handle new line in any of the three forms: \n, \r\n, \r (LF, CR/LF, CR)
-            else if (positionCurrentChar == CarriageReturn)
-            {
-                lineEnd = positionCurrentPos;
-
-                // When CR there should always be an extra position after with LF if present
-                var positionsIndexNext = positionsStart + 1;
-                if (positionsIndexNext < _positionsEnd)
-                {
-                    var positionsNext = Unsafe.Add(ref positionsRefFirst, positionsIndexNext);
-                    var positionNextChar = SepCharPosition.UnpackCharacter(positionsNext);
-                    var positionNextPos = SepCharPosition.UnpackPosition(positionsNext);
-                    // Skip LF if following CR
-                    if (positionNextChar == LineFeed && (positionNextPos == positionCurrentPos + 1))
-                    {
-                        positionCurrentChar = positionNextChar;
-                        positionCurrentPos = positionNextPos;
-                        A.Assert(positionsStart < positionsEnd);
-                        ++positionsStart;
-                        ++nextRowStartOffset;
-                    }
-                }
-            }
-            else if (positionCurrentChar == LineFeed)
-            {
-                A.Assert(!(previousCharacter == CarriageReturn && previousPosition == (positionCurrentPos - 1)),
-                         "Should never hit CR before LF, since handle when CR found looking at next");
-                // Since sole LineFeed always new line
-                lineEnd = positionCurrentPos;
-            }
-            // HACK: ETX is added to positions on end-of-file and then used
-            //       here to finish anything on end of file
-            //
-            // BEWARE: Empty lines after carriage return or line feed at end
-            //         of file, is handled at end of parse by checking col
-            //         count == 0 and end of file
-            else if (positionCurrentChar == EndOfText && positionCurrentPos != 0 &&
-                     !(previousPosition == (positionCurrentPos - 1) && (previousCharacter == CarriageReturn || previousCharacter == LineFeed)))
-            {
-                lineEnd = positionCurrentPos;
-            }
-
-            if (lineEnd >= 0 || newCol)
-            {
-                var makeNewCol = previousCharacter == separator ||
-                                 previousCharacter == CarriageReturn ||
-                                 previousCharacter == LineFeed;
-                if (makeNewCol)
-                {
-                    // Pre-increment since col ends 1 forward
-                    ++_colCount;
-                    if (_colCount < colEndsLength)
-                    {
-                        // CR or LF at start of first row can be same position as previous
-                        A.Assert(previousPosition <= lineEnd);
-                        Unsafe.Add(ref colEndsRef, _colCount) = lineEnd;
-                    }
-                }
-            }
-        }
-        _positionsStart = (int)positionsStart;
-
-        _positionPreviousChar = positionCurrentChar;
-        _positionPreviousPos = positionCurrentPos;
-
-        var newLine = lineEnd >= 0;
-        if (newLine || endOfFile)
-        {
-            // Empty end
-            var end = _colCount == 0 && endOfFile;
-            // New line, end parsing of line, check cols found
-            if (_colCountExpected >= 0 && _colCount != _colCountExpected && !end)
-            {
-                ThrowInvalidDataExceptionColCountMismatch(_colCountExpected, lineEnd);
-            }
-            _charsRowStart = newLine && !endOfFile ? lineEnd + nextRowStartOffset : _charsDataEnd;
-            return !end;
-        }
-        return false;
-    }
-
-    bool ReadDataFindNextPositions(bool endOfFile)
+    bool EnsureInitializeAndReadData(bool endOfFile)
     {
         // Check how much data in buffer and read more to batch parsing in block
         // of certain size.
         var nothingLeftToRead = false;
-        if (_finder == null ||
+        if (_parser == null ||
             (_charsDataEnd - _charsParseStart) < _charsCheckDataAvailableWhenLessThanLength)
         {
             nothingLeftToRead = CheckCharsAvailableDataMaybeRead(_charsPaddingLength);
@@ -454,53 +255,28 @@ public partial class SepReader : IDisposable
             CheckPoint($"{nameof(CheckCharsAvailableDataMaybeRead)} AFTER");
         }
 
-        if (_finder == null)
+        if (_parser == null)
         {
-            TryDetectSeparatorInitializeFinder(nothingLeftToRead);
+            TryDetectSeparatorInitializeParser(nothingLeftToRead);
 
-            CheckPoint($"{nameof(TryDetectSeparatorInitializeFinder)} AFTER");
+            CheckPoint($"{nameof(TryDetectSeparatorInitializeParser)} AFTER");
         }
 
-        if (_finder != null && _charsParseStart < _charsDataEnd)
+        if (_parser != null && _charsParseStart < _charsDataEnd)
         {
-            ref var positions = ref _positions;
-            ref var positionsStart = ref _positionsStart;
-            ref var positionsEnd = ref _positionsEnd;
-
-            CheckPoint($"{nameof(SepArrayExtensions.CheckFreeMaybeMoveMaybeDoubleLength)} {nameof(_positions)} BEFORE");
-
-            SepArrayExtensions.CheckFreeMaybeMoveMaybeDoubleLength(
-                ref positions, ref positionsStart, ref positionsEnd,
-                _positionsMinimumFreeLength, paddingLengthToClear: 0);
-
-            CheckPoint($"{nameof(_finder.Find)} BEFORE");
-
-            // Parse and update positions
-            _charsParseStart = _finder.Find(_chars, _charsParseStart, _charsDataEnd,
-                                            positions, positionsStart, ref positionsEnd);
-
-            CheckPoint($"{nameof(_finder.Find)} AFTER");
-
-            // Finders may stop due to positions not having enough padding
-            // Ensure positions always has CR followed by LF by checking manually here
-            if (positionsEnd > positionsStart &&
-                SepCharPosition.UnpackCharacter(_positions[positionsEnd - 1]) == CarriageReturn &&
-                _charsParseStart < _charsDataEnd &&
-                _chars[_charsParseStart] == LineFeed)
+            if (_colCount > (_colEnds.Length - _parser.PaddingLength))
             {
-                _positions[positionsEnd] = SepCharPosition.Pack(LineFeed, _charsParseStart);
-                ++_charsParseStart;
-                ++positionsEnd;
+                SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
             }
         }
         else
         {
             if (nothingLeftToRead)
             {
-                // Note this relies on positions always having padding
-                A.Assert(_positionsEnd < _positions.Length);
-                _positions[_positionsEnd] = SepCharPosition.Pack(EndOfText, _charsDataEnd);
-                ++_positionsEnd;
+                if (_colCount >= _colEnds.Length)
+                {
+                    SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
+                }
                 // If nothing has been read, then at end of file.
                 endOfFile = true;
             }
@@ -509,12 +285,11 @@ public partial class SepReader : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int lineEnd)
+    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int lineEnd, int rowStart)
     {
-        var rowStart = _charsRowStart;
         AssertState(lineEnd, rowStart);
         var line = new string(_chars, rowStart, lineEnd - rowStart);
-        SepThrow.InvalidDataException_ColCountMismatch(_colCount, _rowIndex, line,
+        SepThrow.InvalidDataException_ColCountMismatch(_colCount, _rowIndex, _rowLineNumberFrom, _lineNumber, line,
             colCountExpected, _header.ToString());
 
         [ExcludeFromCodeCoverage]
@@ -531,9 +306,9 @@ public partial class SepReader : IDisposable
         var offset = SepArrayExtensions.CheckFreeMaybeMoveMaybeDoubleLength(
             ref _chars, ref _charsDataStart, ref _charsDataEnd,
             _charsMinimumFreeLength, paddingLength);
-        if (_chars.Length > SepCharPosition.MaxLength)
+        if (_chars.Length > RowLengthMax)
         {
-            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(SepCharPosition.MaxLength);
+            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax);
         }
         if (offset > 0)
         {
@@ -581,21 +356,6 @@ public partial class SepReader : IDisposable
         // Adjust row start
         A.Assert(_charsRowStart >= offset);
         _charsRowStart -= offset;
-        // Adjust found positions
-        A.Assert(_positionsStart == _positionsEnd, "Positions should currently always been emptied before data move.");
-        // Keeping adjustment as a safety for future changes
-        for (var i = _positionsStart; i < _positionsEnd; ++i)
-        {
-            ref var p = ref _positions[i];
-            // HACK: Utilize we know position > offset so we can just
-            //       subtract due to byte packed in most significant bits
-            A.Assert(SepCharPosition.UnpackPosition(p) >= offset);
-            Unsafe.As<Pos, int>(ref p) -= offset;
-        }
-        // Previous position might be before data start since old line end or
-        // similar. Hence, 2 due to for example `\r\n`.
-        A.Assert(_positionPreviousPos >= (offset - 2));
-        _positionPreviousPos -= offset;
         // Adjust found cols, note includes _colCount since +1
         var colEnds = _colEnds;
         for (var i = 0; i <= _colCount; i++)
@@ -624,18 +384,18 @@ public partial class SepReader : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    void TryDetectSeparatorInitializeFinder(bool nothingLeftToRead)
+    void TryDetectSeparatorInitializeParser(bool nothingLeftToRead)
     {
-        // Detect separator if no finder defined
+        // Detect separator if no parser defined
         var validChars = _chars.AsSpan(_charsDataStart.._charsDataEnd);
         var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead);
         if (maybeSep.HasValue)
         {
             var sep = maybeSep.Value;
             _separator = sep.Separator;
-            _finder = SepCharsFinderFactory.GetBest(sep);
+            _parser = SepParserFactory.CreateBest(sep);
             // TODO: Initialize other members
-            _charsPaddingLength = _finder.PaddingLength;
+            _charsPaddingLength = _parser.PaddingLength;
         }
     }
 
@@ -653,7 +413,6 @@ public partial class SepReader : IDisposable
     {
         T.WriteLine($"{filePath}({lineNumber}): {name}");
         T.WriteLine($"{nameof(_chars),-10}:{_chars.Length,5} [{_charsDataStart,4},{_charsDataEnd,4}] ({_charsParseStart,2}) '{FormatValidChars()}'");
-        T.WriteLine($"{nameof(_positions),-10}:{_positions.Length,5} [{_positionsStart,4},{_positionsEnd,4}] {FormatValidPositions()}");
         T.WriteLine($"{nameof(_colEnds),-10}:{_colEnds.Length,5} [{0,4},{_colCount,4}] {string.Join(',', _colEnds[0..Math.Min(_colCount, _colEnds.Length)])}");
 
         [ExcludeFromCodeCoverage]
@@ -665,30 +424,6 @@ public partial class SepReader : IDisposable
                 ? _chars.AsSpan().Slice(_charsDataStart, _charsDataEnd - _charsDataStart)
                 : default;
         }
-
-        [ExcludeFromCodeCoverage]
-        string FormatValidPositions()
-        {
-            if (_positionsStart < _positionsEnd)
-            {
-                var range = Enumerable.Range(_positionsStart, _positionsEnd - _positionsStart);
-                return string.Join(',', range.Select(i =>
-                {
-                    var p = _positions[i];
-                    return $"('{Format((char)SepCharPosition.UnpackCharacter(p))}',{SepCharPosition.UnpackPosition(p)})";
-                }));
-            }
-            return string.Empty;
-        }
-
-        [ExcludeFromCodeCoverage]
-        static string Format(char c) => c switch
-        {
-            '\r' => "\\r",
-            '\n' => "\\n",
-            EndOfText => "EOT",
-            _ => c.ToString(),
-        };
     }
 
     [ExcludeFromCodeCoverage]
@@ -699,26 +434,7 @@ public partial class SepReader : IDisposable
         A.Assert(0 <= _charsDataStart && _charsDataStart <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _charsDataEnd && _charsDataEnd <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(_charsDataStart <= _charsDataEnd, $"{name}", filePath, lineNumber);
-
-        A.Assert(_positions.Length > 0, $"{name}", filePath, lineNumber);
-        A.Assert(0 <= _positionsStart && _positionsStart <= _positions.Length, $"{name}", filePath, lineNumber);
-        A.Assert(0 <= _positionsEnd && _positionsEnd <= _positions.Length, $"{name}", filePath, lineNumber);
-        A.Assert(_positionsStart <= _positionsEnd, $"{name}", filePath, lineNumber);
-
-        for (var i = _positionsStart; i < _positionsEnd; i++)
-        {
-            var p = _positions[i];
-            var character = SepCharPosition.UnpackCharacter(p);
-            var position = SepCharPosition.UnpackPosition(p);
-            if (character != EndOfText)
-            {
-                A.Assert(_charsDataStart <= position && position < _charsDataEnd, $"{name} at index {i}", filePath, lineNumber);
-            }
-            else
-            {
-                A.Assert(_charsDataStart <= position && position <= _charsDataEnd, $"{name} at index {i}", filePath, lineNumber);
-            }
-        }
+        A.Assert(_charsDataStart <= _charsRowStart && _charsRowStart <= _charsDataEnd, $"{name}", filePath, lineNumber);
 
         A.Assert(_colEnds.Length > 0, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _colCount && _colCount <= _colEnds.Length, $"{name}", filePath, lineNumber);
@@ -727,7 +443,7 @@ public partial class SepReader : IDisposable
             var colEnd = _colEnds[i];
             // colEnds are one before, so first may be before data starts
             colEnd += i == 0 ? 1 : 0;
-            A.Assert(_charsDataStart <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
+            A.Assert(_charsRowStart <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
         }
         if (_colNameCache != null)
         {
@@ -740,7 +456,6 @@ public partial class SepReader : IDisposable
     {
         _reader.Dispose();
         ArrayPool<char>.Shared.Return(_chars);
-        ArrayPool<Pos>.Shared.Return(_positions);
         ArrayPool<int>.Shared.Return(_colEnds);
         _arrayPool.Dispose();
         foreach (var toString in _colToStrings)

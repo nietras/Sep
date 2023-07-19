@@ -50,8 +50,8 @@ public class SepReaderColTest
     {
         Run(col => Assert.AreEqual(ColValue, col.Parse<int>()));
         AssertParseFloats(o => o);
-        AssertParseFloats(o => o with { UseFastFloat = false });
-        AssertParseFloats(o => o with { CultureInfo = null, UseFastFloat = false });
+        AssertParseFloats(o => o with { DisableFastFloat = true });
+        AssertParseFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
     }
 
     [TestMethod]
@@ -61,8 +61,8 @@ public class SepReaderColTest
         Run(col => Assert.AreEqual(null, col.TryParse<int>()), "a");
 
         AssertTryParseReturnFloats(o => o);
-        AssertTryParseReturnFloats(o => o with { UseFastFloat = false });
-        AssertTryParseReturnFloats(o => o with { CultureInfo = null, UseFastFloat = false });
+        AssertTryParseReturnFloats(o => o with { DisableFastFloat = true });
+        AssertTryParseReturnFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
     }
 
 
@@ -73,8 +73,8 @@ public class SepReaderColTest
         Run(col => Assert.AreEqual((int?)null, col.TryParse<int>(out var v) ? v : null), "a");
 
         AssertTryParseOutFloats(o => o);
-        AssertTryParseOutFloats(o => o with { UseFastFloat = false });
-        AssertTryParseOutFloats(o => o with { CultureInfo = null, UseFastFloat = false });
+        AssertTryParseOutFloats(o => o with { DisableFastFloat = true });
+        AssertTryParseOutFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
     }
 
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)

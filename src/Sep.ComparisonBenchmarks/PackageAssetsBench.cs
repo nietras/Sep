@@ -59,7 +59,7 @@ public class QuotesRowPackageAssetsBench : RowPackageAssetsBench
     public QuotesRowPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
 
-[InvocationCount(1)]
+[InvocationCount(4)]
 [BenchmarkCategory("0_Row")]
 public class RowPackageAssetsBench : PackageAssetsBench
 {

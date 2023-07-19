@@ -1,72 +1,91 @@
 ﻿using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderIndexOfAny : ISepCharsFinder
+sealed class SepCharsFinderIndexOfAny : ISepParser
 {
+    readonly char _separator;
     readonly char[] _specialChars;
+    int _quoting = 0;
 
     public unsafe SepCharsFinderIndexOfAny(Sep sep)
     {
+        _separator = sep.Separator;
         _specialChars = new[] { sep.Separator, CarriageReturn, LineFeed, Quote };
     }
 
     public int PaddingLength => 0;
-    public int RequestedPositionsFreeLength => 1024;
 
     [SkipLocalsInit]
-    public int Find(char[] _chars, int charsStart, int charsEnd,
-                    Pos[] positions, int positionsStart, ref int positionsEnd)
+    public int Parse(char[] chars, int charsIndex, int charsEnd,
+                     int[] colEnds, ref int colEndsEnd,
+                     scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)
     {
-        var chars = _chars;
+        var separator = _separator;
+
+        var quoting = _quoting;
+        var rowLineEndingOffset = _rowLineEndingOffset;
+        var lineNumber = _lineNumber;
+
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        // Absolute minimum, prefer RequestedPositionsFreeLength for free
-        positions.CheckPadding(positionsEnd, PaddingLength);
+        colEnds.CheckPadding(colEndsEnd, PaddingLength);
 
-        A.Assert(charsStart <= charsEnd);
-        A.Assert(charsEnd <= (_chars.Length - PaddingLength));
-        var dataStart = charsStart;
-        var dataEnd = charsEnd;
-        ref var charsRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(chars), dataStart);
+        A.Assert(charsIndex <= charsEnd);
+        A.Assert(charsEnd <= (chars.Length - PaddingLength));
+        ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
-        ref var positionsRef = ref Unsafe.As<Pos, int>(ref MemoryMarshal.GetArrayDataReference(positions));
-        ref var positionsRefCurrent = ref Unsafe.Add(ref positionsRef, positionsEnd);
-        ref var positionsRefStop = ref Unsafe.Add(ref positionsRef, positions.Length - 1);
+        ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
+        ref var colEndsRefCurrent = ref Add(ref colEndsRef, colEndsEnd);
+        ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - 2);
 
-        var span = _chars.AsSpan(0, charsEnd);
+        var span = chars.AsSpan(0, charsEnd);
         var specialCharsSpan = _specialChars.AsSpan();
-        var index = charsStart;
-        while ((uint)index < (uint)charsEnd)
+        while ((uint)charsIndex < (uint)charsEnd)
         {
             // https://github.com/dotnet/runtime/blob/942ce9af6e4858b74cc3a1429e9a64065ffb207a/src/libraries/System.Private.CoreLib/src/System/SpanHelpers.T.cs#L1926-L2045
-            var foundIndex = span.Slice(index).IndexOfAny(specialCharsSpan);
-            if (foundIndex >= 0)
+            var relativeIndex = span.Slice(charsIndex).IndexOfAny(specialCharsSpan);
+            if (relativeIndex >= 0)
             {
-                index += foundIndex;
-                A.Assert(index < charsEnd, $"{nameof(index)} >= {nameof(charsEnd)}");
-                A.Assert(index < (1 << SepCharPosition.CharShift - Vector<byte>.Count), $"index must be within pack limits");
-                var foundChar = span[index];
-                positionsRefCurrent = foundChar << SepCharPosition.CharShift | index;
-                positionsRefCurrent = ref Unsafe.Add(ref positionsRefCurrent, 1);
-                ++index;
+                A.Assert(charsIndex < charsEnd, $"{nameof(charsIndex)} >= {nameof(charsEnd)}");
+
+                ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
+                colEndsRefCurrent = ref SepParseMask.ParseAnyChar(ref charsCurrentRef, charsIndex, relativeIndex,
+                    separator, ref rowLineEndingOffset, ref quoting, ref colEndsRefCurrent, ref lineNumber);
+                charsIndex += relativeIndex + 1;
+
+                // Used both to indicate row ended and if need to step +2 due to '\r\n'
+                if (rowLineEndingOffset != 0)
+                {
+                    // Must be a col end and last is then dataIndex
+                    charsIndex = colEndsRefCurrent + rowLineEndingOffset;
+                    break;
+                }
 
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next.
-                if (Unsafe.IsAddressLessThan(ref positionsRefStop, ref positionsRefCurrent))
+                if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
                 {
                     break;
                 }
             }
             else
             {
-                index = charsEnd;
+                charsIndex = charsEnd;
             }
         }
-        positionsEnd = (int)(Unsafe.ByteOffset(ref positionsRef, ref positionsRefCurrent) >> 2); // / sizeof(int)); // CQ: Weird with div sizeof
-        return Math.Min(index, charsEnd);
+        // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
+        colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
+        // Step is VecBytes.Count so may go past end, ensure limited
+        charsIndex = Math.Min(charsEnd, charsIndex);
+
+        _quoting = quoting;
+        _rowLineEndingOffset = rowLineEndingOffset;
+        _lineNumber = lineNumber;
+
+        return charsIndex;
     }
 }

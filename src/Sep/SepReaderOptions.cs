@@ -12,12 +12,17 @@ public readonly record struct SepReaderOptions
         CultureInfo = SepDefaults.CultureInfo;
         HasHeader = true;
         CreateToString = SepToString.Direct;
-        UseFastFloat = true;
+        DisableFastFloat = false;
+        DisableColCountCheck = false;
     }
 
     public Sep? Sep { get; init; }
     public CultureInfo? CultureInfo { get; init; }
     public bool HasHeader { get; init; }
     public SepCreateToString CreateToString { get; init; }
-    public bool UseFastFloat { get; init; }
+    public bool DisableFastFloat { get; init; }
+    /// <summary>
+    /// Disable checking if column count is the same for all rows.
+    /// </summary>
+    public bool DisableColCountCheck { get; init; }
 }

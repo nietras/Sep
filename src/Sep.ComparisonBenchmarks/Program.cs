@@ -58,7 +58,7 @@ else
 {
     //var b = new ColsPackageAssetsBench();
     //var b = new RowFloatsReaderBench();
-    var b = new AssetPackageAssetsBench();
+    var b = new RowPackageAssetsBench();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {
@@ -82,7 +82,7 @@ else
     log($"Sep    {sep_ms:D4}");
     log($"Ratio  {sep_ms / (double)sylvan_ms:F3}");
     Thread.Sleep(300);
-    for (var i = 0; i < 10; i++)
+    for (var i = 0; i < 20; i++)
     {
         b.Sep______();
     }

@@ -1,109 +1,141 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
-using static nietras.SeparatedValues.SepCharsFinderHelper;
+using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
+using static nietras.SeparatedValues.SepParseMask;
+using ISA = System.Runtime.Intrinsics.X86.Sse2;
+using Vec = System.Runtime.Intrinsics.Vector128;
+using VecI16 = System.Runtime.Intrinsics.Vector128<short>;
+using VecUI8 = System.Runtime.Intrinsics.Vector128<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepCharsFinder
+sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly byte _separator;
-    readonly Vector128<byte> _nls = Vector128.Create(LineFeedByte);
-    readonly Vector128<byte> _crs = Vector128.Create(CarriageReturnByte);
-    readonly Vector128<byte> _qts = Vector128.Create(QuoteByte);
-    readonly Vector128<byte> _sps;
+    readonly VecUI8 _nls = Vec.Create(LineFeedByte);
+    readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
+    readonly VecUI8 _qts = Vec.Create(QuoteByte);
+    readonly VecUI8 _sps;
+    internal int _quoting = 0;
 
     public unsafe SepCharsFinderSse2PackCmpOrMoveMaskTzcnt(Sep sep)
     {
         _separator = (byte)sep.Separator;
-        _sps = Vector128.Create(_separator);
+        _sps = Vec.Create(_separator);
     }
 
-    public int PaddingLength => Vector128<byte>.Count; // Parses 2 x char vectors e.g. 1 byte vector
-    public int RequestedPositionsFreeLength => PaddingLength * 32;
+    // Parses 2 x char vectors e.g. 1 byte vector
+    public int PaddingLength => VecUI8.Count;
 
     [SkipLocalsInit]
-    public int Find(char[] _chars, int charsStart, int charsEnd,
-                    Pos[] positions, int positionsStart, ref int positionsEnd)
+    public int Parse(char[] chars, int charsIndex, int charsEnd,
+                     int[] colEnds, ref int colEndsEnd,
+                     scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        var chars = _chars;
+        var separator = (char)_separator;
+
+        var quoting = _quoting;
+        var rowLineEndingOffset = _rowLineEndingOffset;
+        var lineNumber = _lineNumber;
+
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        // Absolute minimum, prefer RequestedPositionsFreeLength for free
-        positions.CheckPadding(positionsEnd, PaddingLength);
+        colEnds.CheckPadding(colEndsEnd, PaddingLength);
 
-        A.Assert(charsStart <= charsEnd);
+        A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
-        var dataStart = charsStart;
-        var dataEnd = charsEnd;
-        ref var charsRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(chars), dataStart);
+        ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
 
-        ref var positionsRef = ref Unsafe.As<Pos, int>(ref MemoryMarshal.GetArrayDataReference(positions));
-        ref var positionsRefCurrent = ref Unsafe.Add(ref positionsRef, positionsEnd);
-        ref var positionsRefStop = ref Unsafe.Add(ref positionsRef, positions.Length - Vector128<byte>.Count);
+        ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
+        ref var colEndsRefCurrent = ref Add(ref colEndsRef, colEndsEnd);
+        ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - VecUI8.Count);
 
-        var nls = _nls; //Vector128.Create(LineFeedByte);
-        var crs = _crs; //Vector128.Create(CarriageReturnByte);
-        var qts = _qts; //Vector128.Create(QuoteByte);
-        var sps = _sps; //Vector128.Create(_separator);
+        // Use instance fields to force values into registers
+        var nls = _nls; //Vec.Create(LineFeedByte);
+        var crs = _crs; //Vec.Create(CarriageReturnByte);
+        var qts = _qts; //Vec.Create(QuoteByte);
+        var sps = _sps; //Vec.Create(_separator);
 
-        var separatorShifted = _separator << SepCharPosition.CharShift;
-
-        var dataIndex = dataStart;
-        for (; dataIndex < dataEnd; dataIndex += Vector128<byte>.Count,
-             charsRef = ref Unsafe.Add(ref charsRef, Vector128<byte>.Count))
+        for (; charsIndex < charsEnd; charsIndex += VecUI8.Count,
+             charsRef = ref Add(ref charsRef, VecUI8.Count))
         {
-            var vector0 = Unsafe.ReadUnaligned<Vector128<short>>(
-                ref Unsafe.As<char, byte>(ref charsRef));
-            var vector1 = Unsafe.ReadUnaligned<Vector128<short>>(
-                ref Unsafe.As<char, byte>(ref Unsafe.Add(ref charsRef, Vector128<short>.Count)));
+            ref var byteRef = ref As<char, byte>(ref charsRef);
+            var v0 = ReadUnaligned<VecI16>(ref byteRef);
+            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+            var bytes = ISA.PackUnsignedSaturate(v0, v1);
 
-            var bytes = Sse2.PackUnsignedSaturate(vector0, vector1);
-
-            var nlsEq = Vector128.Equals(bytes, nls);
-            var crsEq = Vector128.Equals(bytes, crs);
-            var qtsEq = Vector128.Equals(bytes, qts);
-            var spsEq = Vector128.Equals(bytes, sps);
+            var nlsEq = Vec.Equals(bytes, nls);
+            var crsEq = Vec.Equals(bytes, crs);
+            var qtsEq = Vec.Equals(bytes, qts);
+            var spsEq = Vec.Equals(bytes, sps);
 
             var lineEndings = nlsEq | crsEq;
-            var endingsAndQuotes = lineEndings | qtsEq;
-            var specialChars = endingsAndQuotes | spsEq;
+            var lineEndingsSeparators = spsEq | lineEndings;
+            var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = Sse2.MoveMask(specialChars);
+            var specialCharMask = ISA.MoveMask(specialChars);
             if (specialCharMask != 0)
             {
-                var sepsMask = Sse2.MoveMask(spsEq);
-                // Optimize for case of only separators i.e. no endings or quotes
-                if (sepsMask == specialCharMask)
+                var separatorsMask = ISA.MoveMask(spsEq);
+                // Optimize for case of only separators i.e. no endings or quotes.
+                // Add quoting flags to mask as hack to skip if quoting.
+                var testMask = specialCharMask + quoting;
+                if (separatorsMask == testMask)
                 {
-                    SepAssert.AssertMaxPosition(dataIndex, Vector128<byte>.Count);
-                    positionsRefCurrent = ref PackSeparatorPositions(sepsMask,
-                        separatorShifted, dataIndex, ref positionsRefCurrent);
+                    colEndsRefCurrent = ref ParseSeparatorsMask(separatorsMask, charsIndex,
+                        ref colEndsRefCurrent);
                 }
                 else
                 {
-                    positionsRefCurrent = ref PackSpecialCharPositions(specialCharMask,
-                        ref charsRef, dataIndex, ref positionsRefCurrent);
+                    var separatorLineEndingsMask = ISA.MoveMask(lineEndingsSeparators);
+                    if (separatorLineEndingsMask == testMask)
+                    {
+                        colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(
+                            separatorsMask, separatorLineEndingsMask,
+                            ref charsRef, ref charsIndex, separator,
+                            ref colEndsRefCurrent, ref rowLineEndingOffset, ref lineNumber);
+                        break;
+                    }
+                    else
+                    {
+                        colEndsRefCurrent = ref ParseAnyCharsMask(specialCharMask,
+                            separator, ref charsRef, charsIndex,
+                            ref rowLineEndingOffset, ref quoting,
+                            ref colEndsRefCurrent, ref lineNumber);
+                        // Used both to indicate row ended and if need to step +2 due to '\r\n'
+                        if (rowLineEndingOffset != 0)
+                        {
+                            // Must be a col end and last is then dataIndex
+                            charsIndex = colEndsRefCurrent + rowLineEndingOffset;
+                            break;
+                        }
+                    }
                 }
                 // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next Vector128<byte>.Count.
-                if (Unsafe.IsAddressLessThan(ref positionsRefStop, ref positionsRefCurrent))
+                // There is no longer guaranteed space enough for next VecBytes.Count.
+                if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
                 {
                     // Move data index so next find starts correctly
-                    dataIndex += Vector128<byte>.Count;
+                    charsIndex += VecUI8.Count;
                     break;
                 }
             }
         }
-        positionsEnd = (int)(Unsafe.ByteOffset(ref positionsRef, ref positionsRefCurrent) >> 2); // / sizeof(int)); // CQ: Weird with div sizeof
-        // Step is Vector128<byte>.Count so may go past end, ensure limited
-        dataIndex = Math.Min(charsEnd, dataIndex);
-        return dataIndex;
+
+        // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
+        colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
+        // Step is VecBytes.Count so may go past end, ensure limited
+        charsIndex = Math.Min(charsEnd, charsIndex);
+
+        _quoting = quoting;
+        _rowLineEndingOffset = rowLineEndingOffset;
+        _lineNumber = lineNumber;
+
+        return charsIndex;
     }
 }

@@ -19,6 +19,7 @@ namespace nietras.SeparatedValues.ComparisonBenchmarks;
 // splitting lines to strings basically, nothing else. This can be seen in:
 // https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
 [InvocationCount(1)]
+[HideColumns("InvocationCount")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class PackageAssetsBench
 {

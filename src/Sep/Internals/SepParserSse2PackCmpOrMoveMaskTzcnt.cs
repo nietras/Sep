@@ -11,7 +11,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector128<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepParser
+sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly byte _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -20,7 +20,7 @@ sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     internal int _quoting = 0;
 
-    public unsafe SepCharsFinderSse2PackCmpOrMoveMaskTzcnt(Sep sep)
+    public unsafe SepParserSse2PackCmpOrMoveMaskTzcnt(Sep sep)
     {
         _separator = (byte)sep.Separator;
         _sps = Vec.Create(_separator);
@@ -117,7 +117,7 @@ sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                 }
                 // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next VecBytes.Count.
+                // There is no longer guaranteed space enough for next VecUI8.Count.
                 if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
                 {
                     // Move data index so next find starts correctly
@@ -129,7 +129,7 @@ sealed class SepCharsFinderSse2PackCmpOrMoveMaskTzcnt : ISepParser
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-        // Step is VecBytes.Count so may go past end, ensure limited
+        // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;

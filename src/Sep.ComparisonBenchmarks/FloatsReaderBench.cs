@@ -14,6 +14,7 @@ using T = nietras.SeparatedValues.ComparisonBenchmarks.FloatsTestData;
 namespace nietras.SeparatedValues.ComparisonBenchmarks;
 
 [InvocationCount(10)]
+[HideColumns("InvocationCount")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class FloatsReaderBench
 {

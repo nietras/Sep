@@ -5,13 +5,13 @@ using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
-using Vec = System.Runtime.Intrinsics.Vector64;
-using VecUI16 = System.Runtime.Intrinsics.Vector64<ushort>;
-using VecUI8 = System.Runtime.Intrinsics.Vector64<byte>;
+using Vec = System.Runtime.Intrinsics.Vector128;
+using VecUI16 = System.Runtime.Intrinsics.Vector128<ushort>;
+using VecUI8 = System.Runtime.Intrinsics.Vector128<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderVector64NrwCmpExtMsbTzcnt : ISepParser
+sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
 {
     readonly byte _separator;
     readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
@@ -21,7 +21,7 @@ sealed class SepCharsFinderVector64NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _sps;
     internal int _quoting = 0;
 
-    public unsafe SepCharsFinderVector64NrwCmpExtMsbTzcnt(Sep sep)
+    public unsafe SepParserVector128NrwCmpExtMsbTzcnt(Sep sep)
     {
         _separator = (byte)sep.Separator;
         _sps = Vec.Create(_separator);
@@ -121,7 +121,7 @@ sealed class SepCharsFinderVector64NrwCmpExtMsbTzcnt : ISepParser
                     }
                 }
                 // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next VecBytes.Count.
+                // There is no longer guaranteed space enough for next VecUI8.Count.
                 if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
                 {
                     // Move data index so next find starts correctly
@@ -133,7 +133,7 @@ sealed class SepCharsFinderVector64NrwCmpExtMsbTzcnt : ISepParser
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-        // Step is VecBytes.Count so may go past end, ensure limited
+        // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;

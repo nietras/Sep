@@ -6,13 +6,13 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderIndexOfAny : ISepParser
+sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
     int _quoting = 0;
 
-    public unsafe SepCharsFinderIndexOfAny(Sep sep)
+    public unsafe SepParserIndexOfAny(Sep sep)
     {
         _separator = sep.Separator;
         _specialChars = new[] { sep.Separator, CarriageReturn, LineFeed, Quote };
@@ -79,7 +79,7 @@ sealed class SepCharsFinderIndexOfAny : ISepParser
         }
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-        // Step is VecBytes.Count so may go past end, ensure limited
+        // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;

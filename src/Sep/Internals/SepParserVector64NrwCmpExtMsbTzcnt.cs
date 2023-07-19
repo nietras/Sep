@@ -5,23 +5,23 @@ using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
-using ISA = System.Runtime.Intrinsics.X86.Avx2;
-using Vec = System.Runtime.Intrinsics.Vector256;
-using VecI16 = System.Runtime.Intrinsics.Vector256<short>;
-using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
+using Vec = System.Runtime.Intrinsics.Vector64;
+using VecUI16 = System.Runtime.Intrinsics.Vector64<ushort>;
+using VecUI8 = System.Runtime.Intrinsics.Vector64<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
+sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
 {
     readonly byte _separator;
+    readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
     internal int _quoting = 0;
 
-    public unsafe SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
+    public unsafe SepParserVector64NrwCmpExtMsbTzcnt(Sep sep)
     {
         _separator = (byte)sep.Separator;
         _sps = Vec.Create(_separator);
@@ -56,6 +56,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - VecUI8.Count);
 
         // Use instance fields to force values into registers
+        var max = _max;
         var nls = _nls; //Vec.Create(LineFeedByte);
         var crs = _crs; //Vec.Create(CarriageReturnByte);
         var qts = _qts; //Vec.Create(QuoteByte);
@@ -65,11 +66,11 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
              charsRef = ref Add(ref charsRef, VecUI8.Count))
         {
             ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-            var packed = ISA.PackUnsignedSaturate(v0, v1);
-            // Pack interleaves the two vectors need to permute them back
-            var bytes = ISA.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+            var v0 = ReadUnaligned<VecUI16>(ref byteRef);
+            var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
+            var limit0 = Vec.Min(v0, max);
+            var limit1 = Vec.Min(v1, max);
+            var bytes = Vec.Narrow(limit0, limit1);
 
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);
@@ -81,10 +82,10 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = ISA.MoveMask(specialChars);
+            var specialCharMask = (int)specialChars.ExtractMostSignificantBits();
             if (specialCharMask != 0)
             {
-                var separatorsMask = ISA.MoveMask(spsEq);
+                var separatorsMask = (int)spsEq.ExtractMostSignificantBits();
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoting;
@@ -95,7 +96,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = ISA.MoveMask(lineEndingsSeparators);
+                    var separatorLineEndingsMask = (int)lineEndingsSeparators.ExtractMostSignificantBits();
                     if (separatorLineEndingsMask == testMask)
                     {
                         colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(
@@ -120,7 +121,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                 }
                 // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next VecBytes.Count.
+                // There is no longer guaranteed space enough for next VecUI8.Count.
                 if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
                 {
                     // Move data index so next find starts correctly
@@ -132,7 +133,7 @@ sealed class SepCharsFinderAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-        // Step is VecBytes.Count so may go past end, ensure limited
+        // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;

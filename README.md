@@ -104,7 +104,7 @@ is, using `Sep` for `Separator` and `Col` for `Column` to keep code succinct.
 |`Col` | Short for column, also called *field*. |
 |`Line` | Horizontal set of characters until a line ending; `\r\n`, `\r`, `\n`. |
 |`Index` | 0-based that is `RowIndex` will be 0 for first row (or the header if present). |
-|`Number` | 1-based that is `LineNumber` will be 1 for the first line (as in `notepad`). Given a row may span multiple lines a row can have a *start* line number and an *end* line number. |
+|`Number` | 1-based that is `LineNumber` will be 1 for the first line (as in `notepad`). Given a row may span multiple lines a row can have a *From* line number and an *ToExcl* line number matching the C# range indexing syntax `[LineNumberFrom..LineNumberToExcl]`. |
 
 ## Application Programming Interface (API)
 Besides being the succinct name of the library, `Sep` is both the main entry

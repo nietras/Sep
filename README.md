@@ -223,7 +223,8 @@ That is, to use `SepReader` follow the points below:
     ```csharp
     Sep.Reader(o => o with { HasHeader = false })
     ```
-    For all options consult the properties on the options type.
+    For all options consult the properties on the options type or
+    also see [SepReaderOptions](#sepreaderoptions).
  1. Specify source e.g. file, text (`string`), `TextWriter`, etc. via `From`
     extension methods.
  1. Optionally access the header. For example, to get all columns starting with
@@ -239,6 +240,18 @@ That is, to use `SepReader` follow the points below:
  1. Use `Span` to access the column directly as a `ReadOnlySpan<char>`. Or use
     `ToString` to convert to a `string`. Or use `Parse<T>` where `T :
     ISpanParsable<T>` to parse the column `char`s to a specific type.
+
+#### SepReaderOptions
+The following options are available for `SepReaderOptions`:
+
+| Property               | Description                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| `Sep`                  | Specifies the separator used, if `null` then automatic detection is used.                                 |
+| `CultureInfo`          | Specifies the culture used for parsing.                                                                   |
+| `HasHeader`            | Indicates whether the first row is a header row.                                                          |
+| `CreateToString`       | Specifies the method used to convert a column span of `char`s to a `string`.                              |
+| `DisableFastFloat`     | Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat) for parsing `float` and `double`. |
+| `DisableColCountCheck` | Disables checking if column count is the same for all rows.                                               |
 
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time

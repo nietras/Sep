@@ -33,6 +33,7 @@ public class SepWriterTest
         }
         var expected =
 @"
+
 ";
         Assert.AreEqual(expected, writer.ToString());
     }
@@ -47,7 +48,8 @@ public class SepWriterTest
         }
         var expected =
 @"A
-1";
+1
+";
         Assert.AreEqual(expected, writer.ToString());
     }
 
@@ -71,7 +73,8 @@ public class SepWriterTest
         var expected =
 @"A;B;C
 1;2;34
- 23;3;65";
+ 23;3;65
+";
         Assert.AreEqual(expected, writer.ToString());
     }
 
@@ -100,7 +103,8 @@ public class SepWriterTest
         var expected =
 @"A;B;C
 1;2;34
- 23;3;65";
+ 23;3;65
+";
         Assert.AreEqual(expected, writer.ToString());
     }
 
@@ -140,7 +144,8 @@ public class SepWriterTest
         // Expected output should only be valid rows
         var expected =
 @"A
-1";
+1
+";
         Assert.AreEqual(expected, writer.ToString());
     }
 
@@ -164,7 +169,8 @@ public class SepWriterTest
         // Expected output should only be valid rows
         var expected =
 @"A;B
-1;2";
+1;2
+";
         Assert.AreEqual(expected, writer.ToString());
     }
 
@@ -185,6 +191,7 @@ public class SepWriterTest
         Assert.AreEqual("""
                         A
                         1
+                        
                         """, writer.ToString());
     }
 
@@ -200,6 +207,7 @@ public class SepWriterTest
         Assert.AreEqual("""
                         A
                         1
+                        
                         """, File.ReadAllText(fileName));
         File.Delete(fileName);
     }

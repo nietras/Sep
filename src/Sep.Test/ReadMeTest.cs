@@ -49,7 +49,9 @@ public class ReadMeTest
                        A;B;C;D;E;F
                        Sep;🚀;2;0.6;1;5
                        CSV;✅;4;1.1;2;15
-                       """;
+                       
+                       """;                       // Empty line at end is for line ending,
+                                                  // which is always written.
         Assert.AreEqual(expected, writer.ToString());
 
         // Above example code is for demonstration purposes only.
@@ -178,7 +180,8 @@ public class ReadMeTest
                    A;B;C;D;E;F
                    Sep;🚀;1;1.2;0.1;0.5
                    CSV;✅;2;2.2;0.2;1.5
-                   """;
+                   
+                   """; // Empty line at end is for line ending
 
         using var reader = Sep.Reader().FromText(text);
         using var writer = reader.Spec.Writer().ToText();

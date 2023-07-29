@@ -18,6 +18,7 @@ public class SepWriterColsTest
                             A;B;C
                             10;11;12
                             20;21;22
+                            
                             """;
 
     [TestMethod]
@@ -48,6 +49,7 @@ public class SepWriterColsTest
                                 A;B;C
                                 10;03;12
                                 20;21;1.2
+                                
                                 """;
         Assert.AreEqual(expected, writer.ToString());
     }

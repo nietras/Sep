@@ -112,7 +112,7 @@ public class SepWriterColTest
         }
         if (expectedColValue is not null)
         {
-            var expectedText = $"{ColName}{Environment.NewLine}{expectedColValue}";
+            var expectedText = $"{ColName}{Environment.NewLine}{expectedColValue}{Environment.NewLine}";
             var actualText = writer.ToString();
             Assert.AreEqual(expectedText, actualText);
         }

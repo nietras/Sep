@@ -30,6 +30,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
 
+    <DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSLOWONES</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPASSERT</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>

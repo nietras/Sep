@@ -1,5 +1,4 @@
 ﻿#define USE_STRING_POOLING
-#define BENCH_SLOW_ONES
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -100,7 +99,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -113,7 +112,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -190,7 +189,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -207,7 +206,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -303,7 +302,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -319,7 +318,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void CsvHelper()

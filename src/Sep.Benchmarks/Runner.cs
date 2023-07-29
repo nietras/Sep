@@ -70,9 +70,6 @@ public static class Runner
                 var valuesFromIndeces = colsFromIndeces.Parse<double>();
                 var valuesFromNames = colsFromNames.Parse<double>();
 
-                //if (line == 10)
-                //    Debugger.Break();
-
                 using var writeRow = writer.NewRow();
                 writeRow[C.Name].Set(name);
                 writeRow[C.SByte].Format(i8);

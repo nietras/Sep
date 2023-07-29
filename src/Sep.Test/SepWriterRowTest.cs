@@ -14,13 +14,13 @@ public class SepWriterRowTest
     [TestMethod]
     public void SepWriterRowTest_Indexer_ColIndex_After_ColName()
     {
-        Run(row => { row["A"].Set("1"); row[0].Set("11"); }, $"A{NL}11");
+        Run(row => { row["A"].Set("1"); row[0].Set("11"); }, $"A{NL}11{NL}");
         Run(row =>
             {
                 row["A"].Set("1"); row["B"].Set("2");
                 row[1].Set("22");
             },
-            $"A;B{NL}1;22");
+            $"A;B{NL}1;22{NL}");
     }
 
     [TestMethod]
@@ -34,7 +34,7 @@ public class SepWriterRowTest
             {
                 row[colNames.AsSpan()].Set(colValues0.AsSpan());
                 row[colIndices.AsSpan()].Set(colValues1.AsSpan());
-            }, $"A;B{NL}11;22");
+            }, $"A;B{NL}11;22{NL}");
     }
 
     [TestMethod]
@@ -48,15 +48,15 @@ public class SepWriterRowTest
         {
             row[colNames.AsSpan()].Set(colValues0.AsSpan());
             row[colIndices.AsSpan()].Set(colValues1.AsSpan());
-        }, $"A;B{NL}1;2");
+        }, $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]
     public void SepWriterRowTest_Indexer_ColName()
     {
-        Run(row => row["A"].Set("1"), $"A{NL}1");
+        Run(row => row["A"].Set("1"), $"A{NL}1{NL}");
         Run(row => { row["A"].Set("1"); row["B"].Set("2"); },
-            $"A;B{NL}1;2");
+            $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]
@@ -64,7 +64,7 @@ public class SepWriterRowTest
     {
         var colNames = new string[] { "A", "B" };
         var colValues = new string[] { "1", "2" };
-        Run(row => row[colNames.AsSpan()].Set(colValues.AsSpan()), $"A;B{NL}1;2");
+        Run(row => row[colNames.AsSpan()].Set(colValues.AsSpan()), $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]
@@ -72,7 +72,7 @@ public class SepWriterRowTest
     {
         var colNames = Array.Empty<string>();
         var colValues = Array.Empty<string>();
-        Run(row => row[colNames.AsSpan()].Set(colValues.AsSpan()), $"{NL}");
+        Run(row => row[colNames.AsSpan()].Set(colValues.AsSpan()), $"{NL}{NL}");
     }
 
     [TestMethod]
@@ -80,7 +80,7 @@ public class SepWriterRowTest
     {
         IReadOnlyList<string> colNames = new string[] { "A", "B" };
         IReadOnlyList<string> colValues = new string[] { "1", "2" };
-        Run(row => row[colNames].Set(colValues), $"A;B{NL}1;2");
+        Run(row => row[colNames].Set(colValues), $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]
@@ -88,7 +88,7 @@ public class SepWriterRowTest
     {
         IReadOnlyList<string> colNames = Array.Empty<string>();
         IReadOnlyList<string> colValues = Array.Empty<string>();
-        Run(row => row[colNames].Set(colValues), $"{NL}");
+        Run(row => row[colNames].Set(colValues), $"{NL}{NL}");
     }
 
     [TestMethod]
@@ -105,7 +105,7 @@ public class SepWriterRowTest
     {
         var colNames = new string[] { "A", "B" };
         var colValues = new string[] { "1", "2" };
-        Run(row => row[colNames].Set(colValues), $"A;B{NL}1;2");
+        Run(row => row[colNames].Set(colValues), $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]
@@ -113,7 +113,7 @@ public class SepWriterRowTest
     {
         var colNames = Array.Empty<string>();
         var colValues = Array.Empty<string>();
-        Run(row => row[colNames].Set(colValues), $"{NL}");
+        Run(row => row[colNames].Set(colValues), $"{NL}{NL}");
     }
 
     [TestMethod]

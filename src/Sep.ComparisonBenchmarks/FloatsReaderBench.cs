@@ -1,5 +1,4 @@
-﻿#define BENCH_SLOW_ONES
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
@@ -88,7 +87,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -101,7 +100,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -173,7 +172,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -190,7 +189,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -305,7 +304,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public double ReadLine_()
@@ -357,7 +356,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
-#if BENCH_SLOW_ONES
+#if SEPBENCHSLOWONES
     [Benchmark]
 #endif
     public double CsvHelper()

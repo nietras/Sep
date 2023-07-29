@@ -195,7 +195,6 @@ public partial class SepReader : IDisposable
 
         var endOfFile = false;
     LOOP:
-        if (_rowIndex == 56) { Debugger.Break(); }
         CheckPoint($"{nameof(_parser.Parse)} BEFORE");
 
         var rowLineEndingOffset = 0;

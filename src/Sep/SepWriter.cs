@@ -73,6 +73,7 @@ public partial class SepWriter : IDisposable
                 _colNamesHeader[colIndex] = name;
                 notFirstHeader = true;
             }
+            _writer.WriteLine();
             _headerWritten = true;
         }
         else
@@ -89,7 +90,6 @@ public partial class SepWriter : IDisposable
         }
 
         // New Row
-        _writer.WriteLine();
         if (cols.Count > 0)
         {
             var notFirst = false;
@@ -108,6 +108,8 @@ public partial class SepWriter : IDisposable
                 notFirst = true;
             }
         }
+        _writer.WriteLine();
+
         _newRowActive = false;
     }
 

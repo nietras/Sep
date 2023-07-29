@@ -394,6 +394,28 @@ public class SepReaderTest
         Assert.AreEqual(lengthB, colNames[1].Length);
     }
 
+    [DataTestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
+    {
+#if SEPREADERTRACE // Don't run really long with tracing enabled 😅
+        const int lineEndingCount = 167;
+#else
+        const int lineEndingCount = 1267 + 64 * 1024;
+#endif
+        var lineEnding = "\r\n";
+        var lineEndingStartIndex = (even ? 0 : 1);
+        var sb = new StringBuilder(lineEndingCount * lineEnding.Length + lineEndingStartIndex);
+        // Add space if odd
+        if (!even) { sb.Append(' '); };
+        sb.Insert(lineEndingStartIndex, lineEnding, lineEndingCount);
+        var text = sb.ToString();
+
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        foreach (var row in reader) { }
+    }
+
     [TestMethod]
     public void SepReaderTest_MaximumColCount()
     {

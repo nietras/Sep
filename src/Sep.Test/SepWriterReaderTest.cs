@@ -11,7 +11,9 @@ public class SepWriterReaderTest
     [DataRow(2)]
     [DataRow(3)]
     [DataRow(117)]
+#if !SEPREADERTRACE
     [DataRow(17847)]
+#endif
     public void SepWriterReaderTest_EmptyColumn(int rowCount)
     {
         using var writer = Sep.Writer().ToText();

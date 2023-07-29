@@ -94,7 +94,9 @@ public class SepReaderWriterTest
     [DataRow(2)]
     [DataRow(3)]
     [DataRow(117)]
+#if !SEPREADERTRACE
     [DataRow(17847)]
+#endif
     public void SepReaderWriterTest_CopySingleEmptyColumn(int rowCountWithHeader)
     {
         var newLine = Environment.NewLine;

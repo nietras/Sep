@@ -83,6 +83,39 @@ public class SepReaderWriterTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
+    [DataTestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    [DataRow(2)]
+    [DataRow(3)]
+    [DataRow(117)]
+    [DataRow(17847)]
+    public void SepReaderWriterTest_CopySingleEmptyColumn(int rowCount)
+    {
+        var newLine = Environment.NewLine;
+        var expected = new StringBuilder(rowCount * newLine.Length)
+            .Insert(0, newLine, rowCount).ToString();
+
+        var lineEndings = new[] { "\r", "\r\n", "\n" };
+        foreach (var lineEnding in lineEndings)
+        {
+            var src = new StringBuilder(rowCount * lineEnding.Length)
+                .Insert(0, lineEnding, rowCount).ToString();
+
+            using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(src);
+            using var writer = reader.Spec.Writer().ToText();
+            foreach (var readRow in reader)
+            {
+                using var writeRow = writer.NewRow();
+                writeRow[""].Set(string.Empty);
+            }
+            // Assert
+            var actual = writer.ToString();
+            Assert.AreEqual(expected, actual);
+        }
+    }
+
+
     void AssertCopyColumns(string text)
     {
         ArgumentNullException.ThrowIfNull(text);

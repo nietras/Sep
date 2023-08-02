@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -56,6 +57,27 @@ public class ReadMeTest
 
         // Above example code is for demonstration purposes only.
         // Short names and repeated constants are only for demonstration.
+    }
+
+    [TestMethod]
+    public void ReadMeTest_SepReader_Debuggability()
+    {
+        var text = """
+                   Key;Value
+                   A;"1
+                   2
+                   3"
+                   B;"Apple
+                   Banana
+                   Orange
+                   Pear"
+                   """;
+        using var reader = Sep.Reader().FromText(text);
+        foreach (var row in reader)
+        {
+            // Hover over row when breaking here
+            if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+        }
     }
 
     [TestMethod]
@@ -208,6 +230,7 @@ public class ReadMeTest
         var testBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
         {
             (nameof(ReadMeTest_) + "()", "## Example"),
+            (nameof(ReadMeTest_SepReader_Debuggability) + "()", "#### SepReader Debuggability"),
             (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
             (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
             (nameof(ReadMeTest_EnumerateWhere) + "()", "Which discounting the `Enumerate`"),

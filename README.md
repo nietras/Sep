@@ -273,6 +273,44 @@ public bool DisableFastFloat { get; init; }
 public bool DisableColCountCheck { get; init; }
 ```
 
+#### SepReader Debuggability
+Debuggability is an important part of any library and while this is still a work
+in progress for Sep, `SepReader` does have a unique feature when looking at it's
+row in a debug context. Given the below example code:
+```csharp
+var text = """
+           Key;Value
+           A;"1
+           2
+           3"
+           B;"Apple
+           Banana
+           Orange
+           Pear"
+           """;
+using var reader = Sep.Reader().FromText(text);
+foreach (var row in reader)
+{
+    // Hover over row when breaking here
+    if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+}
+```
+and you are hovering over `row` when the break is triggered then this will show
+something like:
+```
+  2:[5..9] = 'B;"Apple\r\nBanana\r\nOrange\r\nPear"
+```
+This has the format shown below. 
+```
+<ROWINDEX>:[<LINENUMBERRANGE>] = '<ROW>'
+```
+Note how this shows line number range `[FromIncl, ToExcl]`, as in C#, so that
+one can easily find the row in question in `notepad` or similar. This means Sep
+has to track line endings inside quotes and is an example of a feature that
+makes Sep a bit slower but a price considered worth paying.
+> GitHub doesn't show line numbers in code blocks so consider copying the
+> example text to notepad or similar to see the effect.
+
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time
 and `SepReader.Row` is just a simple *facade* or indirection to the underlying

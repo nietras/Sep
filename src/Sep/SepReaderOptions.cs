@@ -17,11 +17,13 @@ public readonly record struct SepReaderOptions
     }
 
     /// <summary>
-    /// Specifies the separator used, if `null` then automatic detection is used.
+    /// Specifies the separator used, if `null` then automatic detection 
+    /// is used based on first row in source.
     /// </summary>
     public Sep? Sep { get; init; }
     /// <summary>
-    /// Specifies the culture used for parsing.
+    /// Specifies the culture used for parsing. 
+    /// May be `null` for default culture.
     /// </summary>
     public CultureInfo? CultureInfo { get; init; }
     /// <summary>
@@ -29,11 +31,13 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public bool HasHeader { get; init; }
     /// <summary>
-    /// Specifies the method used to convert a column span of `char`s to a `string`.
+    /// Specifies the method factory used to convert a column span 
+    /// of `char`s to a `string`.
     /// </summary>
     public SepCreateToString CreateToString { get; init; }
     /// <summary>
-    /// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat) for parsing `float` and `double`.
+    /// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat)
+    /// for parsing `float` and `double`.
     /// </summary>
     public bool DisableFastFloat { get; init; }
     /// <summary>

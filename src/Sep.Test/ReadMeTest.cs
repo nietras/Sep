@@ -196,13 +196,16 @@ public class ReadMeTest
     [TestMethod]
     public void ReadMeTest_UpdateExampleCodeInMarkdown()
     {
-        var sourceFile = SourceFile();
-        var sourceLines = File.ReadAllLines(sourceFile);
+        var testSourceFile = SourceFile();
 
-        var readmeFile = Path.GetDirectoryName(sourceFile) + @"../../../README.md";
+        var rootDirectory = Path.GetDirectoryName(testSourceFile) + @"../../../";
+
+        var readmeFile = rootDirectory + @"README.md";
         var readmeLines = File.ReadAllLines(readmeFile);
 
-        var blocksToUpdate = new (string MethodNameWithParenthesis, string ReadmeLineBeforeCodeBlock)[]
+        // Update README examples
+        var testSourceLines = File.ReadAllLines(testSourceFile);
+        var testBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
         {
             (nameof(ReadMeTest_) + "()", "## Example"),
             (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
@@ -211,10 +214,39 @@ public class ReadMeTest
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
         };
+        readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
+            startLineOffset: 2, "    }", endLineOffset: 0, whitespaceToRemove: 8);
 
-        foreach (var (methodNameWithParenthesis, readmeLineBeforeCodeBlock) in blocksToUpdate)
+        var readerOptionsSourceLines = File.ReadAllLines(rootDirectory + @"src/Sep/SepReaderOptions.cs");
+        var readerOptionsBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
         {
-            var sourceExampleLines = GetSourceExampleLines(sourceLines, methodNameWithParenthesis);
+            ("/// <summary>", "#### SepReaderOptions"),
+        };
+        readmeLines = UpdateReadme(readerOptionsSourceLines, readmeLines, readerOptionsBlocksToUpdate,
+            startLineOffset: 0, "}", endLineOffset: 0, whitespaceToRemove: 4);
+
+        var writerOptionsSourceLines = File.ReadAllLines(rootDirectory + @"src/Sep/SepWriterOptions.cs");
+        var writerOptionsBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
+        {
+            ("/// <summary>", "#### SepWriterOptions"),
+        };
+        readmeLines = UpdateReadme(writerOptionsSourceLines, readmeLines, writerOptionsBlocksToUpdate,
+            startLineOffset: 0, "}", endLineOffset: 0, whitespaceToRemove: 4);
+
+        var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
+        File.WriteAllText(readmeFile, newReadme, Encoding.UTF8);
+    }
+
+    static string[] UpdateReadme(string[] sourceLines, string[] readmeLines,
+        (string StartLineContains, string ReadmeLineBeforeCodeBlock)[] blocksToUpdate,
+        int startLineOffset, string endLineStartsWith, int endLineOffset, int whitespaceToRemove)
+    {
+        foreach (var (startLineContains, readmeLineBeforeCodeBlock) in blocksToUpdate)
+        {
+            var sourceExampleLines = SnipLines(sourceLines,
+                startLineContains, startLineOffset,
+                endLineStartsWith, endLineOffset,
+                whitespaceToRemove);
 
             var readmeLineBefore = Array.FindIndex(readmeLines,
                 l => l.StartsWith(readmeLineBeforeCodeBlock, StringComparison.Ordinal)) + 1;
@@ -231,19 +263,22 @@ public class ReadMeTest
                 .Concat(readmeLines[readmeCodeEnd..]).ToArray();
         }
 
-        var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-        File.WriteAllText(readmeFile, newReadme, Encoding.UTF8);
+        return readmeLines;
     }
 
-    static string[] GetSourceExampleLines(string[] sourceLines, string methodNameWithParenthesis)
+    static string[] SnipLines(string[] sourceLines,
+        string startLineContains, int startLineOffset,
+        string endLineStartsWith, int endLineOffset,
+        int whitespaceToRemove = 8)
     {
-        var sourceStartMethodLine = Array.FindIndex(sourceLines,
-            l => l.Contains(methodNameWithParenthesis, StringComparison.Ordinal));
-        var sourceStartLine = sourceStartMethodLine + 2;
+        var sourceStartLine = Array.FindIndex(sourceLines,
+            l => l.Contains(startLineContains, StringComparison.Ordinal));
+        sourceStartLine += startLineOffset;
         var sourceEndLine = Array.FindIndex(sourceLines, sourceStartLine,
-            l => l.StartsWith("    }", StringComparison.Ordinal));
+            l => l.StartsWith(endLineStartsWith, StringComparison.Ordinal));
+        sourceEndLine += endLineOffset;
         var sourceExampleLines = sourceLines[sourceStartLine..sourceEndLine]
-            .Select(l => l.Length > 0 ? l.Remove(0, 8) : l).ToArray();
+            .Select(l => l.Length > 0 ? l.Remove(0, whitespaceToRemove) : l).ToArray();
         return sourceExampleLines;
     }
 

@@ -223,8 +223,7 @@ That is, to use `SepReader` follow the points below:
     ```csharp
     Sep.Reader(o => o with { HasHeader = false })
     ```
-    For all options consult the properties on the options type or
-    also see [SepReaderOptions](#sepreaderoptions).
+    For all options see [SepReaderOptions](#sepreaderoptions).
  1. Specify source e.g. file, text (`string`), `TextWriter`, etc. via `From`
     extension methods.
  1. Optionally access the header. For example, to get all columns starting with
@@ -242,16 +241,37 @@ That is, to use `SepReader` follow the points below:
     ISpanParsable<T>` to parse the column `char`s to a specific type.
 
 #### SepReaderOptions
-The following options are available for `SepReaderOptions`:
-
-| Property               | Description                                                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Sep`                  | Specifies the separator used, if `null` then automatic detection is used.                                 |
-| `CultureInfo`          | Specifies the culture used for parsing.                                                                   |
-| `HasHeader`            | Indicates whether the first row is a header row.                                                          |
-| `CreateToString`       | Specifies the method used to convert a column span of `char`s to a `string`.                              |
-| `DisableFastFloat`     | Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat) for parsing `float` and `double`. |
-| `DisableColCountCheck` | Disables checking if column count is the same for all rows.                                               |
+The following options are available:
+```csharp
+/// <summary>
+/// Specifies the separator used, if `null` then automatic detection 
+/// is used based on first row in source.
+/// </summary>
+public Sep? Sep { get; init; }
+/// <summary>
+/// Specifies the culture used for parsing. 
+/// May be `null` for default culture.
+/// </summary>
+public CultureInfo? CultureInfo { get; init; }
+/// <summary>
+/// Indicates whether the first row is a header row.
+/// </summary>
+public bool HasHeader { get; init; }
+/// <summary>
+/// Specifies the method factory used to convert a column span 
+/// of `char`s to a `string`.
+/// </summary>
+public SepCreateToString CreateToString { get; init; }
+/// <summary>
+/// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat)
+/// for parsing `float` and `double`.
+/// </summary>
+public bool DisableFastFloat { get; init; }
+/// <summary>
+/// Disables checking if column count is the same for all rows.
+/// </summary>
+public bool DisableColCountCheck { get; init; }
+```
 
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time
@@ -440,7 +460,7 @@ That is, to use `SepWriter` follow the points below:
 
  1. Optionally define `Sep` or use default automatically inferred separator.
  1. Specify writer with optional configuration of `SepWriterOptions`.
-    For all options consult the properties on the options type.
+    For all options see [SepWriterOptions](#sepwriteroptions).
  1. Specify destination e.g. file, text (`string` via `StringWriter`),
     `TextWriter`, etc. via `To` extension methods.
  1. MISSING: `SepWriter` currently does not allow you to define the header up
@@ -464,6 +484,20 @@ That is, to use `SepWriter` follow the points below:
  1. Row is written when `Dispose` is called on the row. 
     > Note this is to allow a row to be defined flexibly with both column
     > removal, moves and renames in the future. This is not yet supported.
+
+#### SepWriterOptions
+The following options are available:
+```csharp
+/// <summary>
+/// Specifies the separator used.
+/// </summary>
+public Sep Sep { get; init; }
+/// <summary>
+/// Specifies the culture used for parsing. 
+/// May be `null` for default culture.
+/// </summary>
+public CultureInfo? CultureInfo { get; init; }
+```
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and

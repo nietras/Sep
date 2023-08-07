@@ -304,10 +304,12 @@ This has the format shown below.
 ```
 <ROWINDEX>:[<LINENUMBERRANGE>] = '<ROW>'
 ```
-Note how this shows line number range `[FromIncl, ToExcl]`, as in C#, so that
-one can easily find the row in question in `notepad` or similar. This means Sep
-has to track line endings inside quotes and is an example of a feature that
-makes Sep a bit slower but a price considered worth paying.
+Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
+expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-8.0/ranges#systemrange),
+so that one can easily find the row in question in `notepad` or similar. This
+means Sep has to track line endings inside quotes and is an example of a feature
+that makes Sep a bit slower but which is a price considered worth paying.
+
 > GitHub doesn't show line numbers in code blocks so consider copying the
 > example text to notepad or similar to see the effect.
 

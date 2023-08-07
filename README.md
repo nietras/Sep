@@ -223,7 +223,7 @@ That is, to use `SepReader` follow the points below:
     ```csharp
     Sep.Reader(o => o with { HasHeader = false })
     ```
-    For all options consult the properties on the options type.
+    For all options see [SepReaderOptions](#sepreaderoptions).
  1. Specify source e.g. file, text (`string`), `TextWriter`, etc. via `From`
     extension methods.
  1. Optionally access the header. For example, to get all columns starting with
@@ -239,6 +239,79 @@ That is, to use `SepReader` follow the points below:
  1. Use `Span` to access the column directly as a `ReadOnlySpan<char>`. Or use
     `ToString` to convert to a `string`. Or use `Parse<T>` where `T :
     ISpanParsable<T>` to parse the column `char`s to a specific type.
+
+#### SepReaderOptions
+The following options are available:
+```csharp
+/// <summary>
+/// Specifies the separator used, if `null` then automatic detection 
+/// is used based on first row in source.
+/// </summary>
+public Sep? Sep { get; init; }
+/// <summary>
+/// Specifies the culture used for parsing. 
+/// May be `null` for default culture.
+/// </summary>
+public CultureInfo? CultureInfo { get; init; }
+/// <summary>
+/// Indicates whether the first row is a header row.
+/// </summary>
+public bool HasHeader { get; init; }
+/// <summary>
+/// Specifies the method factory used to convert a column span 
+/// of `char`s to a `string`.
+/// </summary>
+public SepCreateToString CreateToString { get; init; }
+/// <summary>
+/// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat)
+/// for parsing `float` and `double`.
+/// </summary>
+public bool DisableFastFloat { get; init; }
+/// <summary>
+/// Disables checking if column count is the same for all rows.
+/// </summary>
+public bool DisableColCountCheck { get; init; }
+```
+
+#### SepReader Debuggability
+Debuggability is an important part of any library and while this is still a work
+in progress for Sep, `SepReader` does have a unique feature when looking at it's
+row in a debug context. Given the below example code:
+```csharp
+var text = """
+           Key;Value
+           A;"1
+           2
+           3"
+           B;"Apple
+           Banana
+           Orange
+           Pear"
+           """;
+using var reader = Sep.Reader().FromText(text);
+foreach (var row in reader)
+{
+    // Hover over row when breaking here
+    if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+}
+```
+and you are hovering over `row` when the break is triggered then this will show
+something like:
+```
+  2:[5..9] = 'B;"Apple\r\nBanana\r\nOrange\r\nPear"
+```
+This has the format shown below. 
+```
+<ROWINDEX>:[<LINENUMBERRANGE>] = '<ROW>'
+```
+Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
+expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-8.0/ranges#systemrange),
+so that one can easily find the row in question in `notepad` or similar. This
+means Sep has to track line endings inside quotes and is an example of a feature
+that makes Sep a bit slower but which is a price considered worth paying.
+
+> GitHub doesn't show line numbers in code blocks so consider copying the
+> example text to notepad or similar to see the effect.
 
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time
@@ -427,7 +500,7 @@ That is, to use `SepWriter` follow the points below:
 
  1. Optionally define `Sep` or use default automatically inferred separator.
  1. Specify writer with optional configuration of `SepWriterOptions`.
-    For all options consult the properties on the options type.
+    For all options see [SepWriterOptions](#sepwriteroptions).
  1. Specify destination e.g. file, text (`string` via `StringWriter`),
     `TextWriter`, etc. via `To` extension methods.
  1. MISSING: `SepWriter` currently does not allow you to define the header up
@@ -451,6 +524,20 @@ That is, to use `SepWriter` follow the points below:
  1. Row is written when `Dispose` is called on the row. 
     > Note this is to allow a row to be defined flexibly with both column
     > removal, moves and renames in the future. This is not yet supported.
+
+#### SepWriterOptions
+The following options are available:
+```csharp
+/// <summary>
+/// Specifies the separator used.
+/// </summary>
+public Sep Sep { get; init; }
+/// <summary>
+/// Specifies the culture used for parsing. 
+/// May be `null` for default culture.
+/// </summary>
+public CultureInfo? CultureInfo { get; init; }
+```
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and

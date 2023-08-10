@@ -12,7 +12,6 @@ using T = nietras.SeparatedValues.ComparisonBenchmarks.FloatsTestData;
 
 namespace nietras.SeparatedValues.ComparisonBenchmarks;
 
-[InvocationCount(10)]
 [HideColumns("InvocationCount")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class FloatsReaderBench
@@ -45,14 +44,13 @@ public abstract class FloatsReaderBench
     public IEnumerable<int> RowsParams() => new[] { Rows };
 }
 
-[InvocationCount(10)]
 [BenchmarkCategory("0_Row")]
 public class RowFloatsReaderBench : FloatsReaderBench
 {
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 100_000;
+    const int DefaultLineCount = 25_000;
 #endif
 
     public RowFloatsReaderBench() : base("Row", DefaultLineCount) { }
@@ -121,14 +119,13 @@ public class RowFloatsReaderBench : FloatsReaderBench
     }
 }
 
-[InvocationCount(10)]
 [BenchmarkCategory("1_Cols")]
 public class ColsFloatsReaderBench : FloatsReaderBench
 {
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 100_000;
+    const int DefaultLineCount = 25_000;
 #endif
 
     public ColsFloatsReaderBench() : base("Cols", DefaultLineCount) { }
@@ -215,14 +212,13 @@ public class ColsFloatsReaderBench : FloatsReaderBench
     }
 }
 
-[InvocationCount(10)]
 [BenchmarkCategory("2_Floats")]
 public class FloatsFloatsReaderBench : FloatsReaderBench
 {
 #if DEBUG
     const int DefaultLineCount = 1_000;
 #else
-    const int DefaultLineCount = 100_000;
+    const int DefaultLineCount = 25_000;
 #endif
 
     public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount) { }

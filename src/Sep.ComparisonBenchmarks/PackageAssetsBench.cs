@@ -17,7 +17,6 @@ namespace nietras.SeparatedValues.ComparisonBenchmarks;
 // particular interesting benchmark of CSV parsers since all it tests is
 // splitting lines to strings basically, nothing else. This can be seen in:
 // https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
-[InvocationCount(1)]
 [HideColumns("InvocationCount")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class PackageAssetsBench
@@ -59,15 +58,10 @@ public class QuotesRowPackageAssetsBench : RowPackageAssetsBench
     public QuotesRowPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
 
-[InvocationCount(4)]
 [BenchmarkCategory("0_Row")]
 public class RowPackageAssetsBench : PackageAssetsBench
 {
-#if DEBUG
-    const int DefaultLineCount = 100_000;
-#else
-    const int DefaultLineCount = 1_000_000;
-#endif
+    const int DefaultLineCount = 50_000;
 
     public RowPackageAssetsBench() : this(false) { }
     public RowPackageAssetsBench(bool quoteAroundSomeCols) : base("Row", DefaultLineCount, quoteAroundSomeCols) { }
@@ -137,15 +131,10 @@ public class QuotesColsPackageAssetsBench : ColsPackageAssetsBench
     public QuotesColsPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
 
-[InvocationCount(1)]
 [BenchmarkCategory("1_Cols")]
 public class ColsPackageAssetsBench : PackageAssetsBench
 {
-#if DEBUG
-    const int DefaultLineCount = 100_000;
-#else
-    const int DefaultLineCount = 1_000_000;
-#endif
+    const int DefaultLineCount = 50_000;
 
     public ColsPackageAssetsBench() : this(false) { }
     public ColsPackageAssetsBench(bool quoteAroundSomeCols) : base("Cols", DefaultLineCount, quoteAroundSomeCols) { }
@@ -237,14 +226,13 @@ public class QuotesAssetPackageAssetsBench : AssetPackageAssetsBench
     public QuotesAssetPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
 
-[InvocationCount(1)]
 [BenchmarkCategory("2_Asset")]
 public class AssetPackageAssetsBench : PackageAssetsBench
 {
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 1_000_000; //200_000;
+    const int DefaultLineCount = 50_000;
 #endif
 
     public AssetPackageAssetsBench() : this(false) { }

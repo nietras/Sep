@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -80,16 +81,28 @@ public class SepReaderColTest
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)
     {
         Func<SepReaderOptions, SepReaderOptions> defaultConfigure = static c => c;
-        using var reader = CreateReader(colValue, configure ?? defaultConfigure);
-        Assert.IsTrue(reader.MoveNext());
-        var row = reader.Current;
-        action(row[ColName]);
-    }
+        var useConfigure = configure ?? defaultConfigure;
 
-    static SepReader CreateReader(string colValue, Func<SepReaderOptions, SepReaderOptions> configure)
-    {
         var text = $"{ColName}{Environment.NewLine}{colValue}{Environment.NewLine}";
-        return Sep.Reader(configure).FromText(text);
+        List<Func<SepReader>> createReaders = new()
+        {
+            () => Sep.Reader(useConfigure).FromText(text),
+            () => Sep.Default.Reader(useConfigure).FromText(text),
+            () => ((Sep?)null).Reader(useConfigure).FromText(text),
+            () => new SepSpec(Sep.Default, null).Reader(useConfigure).FromText(text),
+        };
+        if (configure is null)
+        {
+            createReaders.Add(() => new SepSpec(Sep.Default, null).Reader().FromText(text));
+        }
+
+        foreach (var createReader in createReaders)
+        {
+            using var reader = createReader();
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            action(row[ColName]);
+        }
     }
 
     static void AssertParseFloats(Func<SepReaderOptions, SepReaderOptions> configure)

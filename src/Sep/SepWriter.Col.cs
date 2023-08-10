@@ -38,6 +38,7 @@ public partial class SepWriter
             _impl = impl;
         }
 
+        internal int ColIndex => _impl.Index;
         internal string ColName => _impl.Name;
 
 #pragma warning disable CA1822 // Mark members as static

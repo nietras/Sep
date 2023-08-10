@@ -216,6 +216,21 @@ public class ReadMeTest
     }
 
     [TestMethod]
+    public void ReadMeTest_Example_CustomSep_DisableColCountCheck()
+    {
+        var text = """
+                   A;B;C;D;E;F
+                   Sep;🚀;1;1.2;0.1
+                   CSV;✅;2;2.2;0.2;1.5
+                   
+                   """; // Empty line at end is for line ending
+
+        using var reader = Sep.New(';').Reader(o => o with { DisableColCountCheck = true }).FromText(text);
+        using var writer = reader.Spec.Writer().ToText();
+        foreach (var readRow in reader) { }
+    }
+
+    [TestMethod]
     public void ReadMeTest_UpdateExampleCodeInMarkdown()
     {
         var testSourceFile = SourceFile();

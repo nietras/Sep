@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text;
 
@@ -16,6 +17,17 @@ public static class SepWriterExtensions
     public static SepWriterOptions Writer(this Sep sep) => new(sep);
     public static SepWriterOptions Writer(this SepSpec spec) =>
         new SepWriterOptions(spec.Sep) with { CultureInfo = spec.CultureInfo };
+
+    public static SepWriterOptions Writer(this Sep sep, Func<SepWriterOptions, SepWriterOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Writer(sep));
+    }
+    public static SepWriterOptions Writer(this SepSpec spec, Func<SepWriterOptions, SepWriterOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Writer(spec));
+    }
 
     public static SepWriter ToText(this SepWriterOptions options)
     {

@@ -12,6 +12,12 @@ public class SepWriterColTest
     const string ColText = "123456";
 
     [TestMethod]
+    public void SepWriterColTest_ColIndex()
+    {
+        Run(col => Assert.AreEqual(0, col.ColIndex), null);
+    }
+
+    [TestMethod]
     public void SepWriterColTest_ColName()
     {
         Run(col => Assert.AreEqual(ColName, col.ColName), null);
@@ -105,16 +111,25 @@ public class SepWriterColTest
 
     static void Run(SepWriter.ColAction action, string? expectedColValue = ColText, CultureInfo? cultureInfo = null)
     {
-        using var writer = Sep.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText();
+        Func<SepWriter>[] createWriters = new[]
         {
-            using var row = writer.NewRow();
-            action(row[ColName]);
-        }
-        if (expectedColValue is not null)
+            () => Sep.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
+            () => Sep.Default.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
+            () => new SepSpec(Sep.Default, cultureInfo ?? SepDefaults.CultureInfo).Writer(o => o with {  }).ToText(),
+        };
+        foreach (var createWriter in createWriters)
         {
-            var expectedText = $"{ColName}{Environment.NewLine}{expectedColValue}{Environment.NewLine}";
-            var actualText = writer.ToString();
-            Assert.AreEqual(expectedText, actualText);
+            using var writer = createWriter();
+            {
+                using var row = writer.NewRow();
+                action(row[ColName]);
+            }
+            if (expectedColValue is not null)
+            {
+                var expectedText = $"{ColName}{Environment.NewLine}{expectedColValue}{Environment.NewLine}";
+                var actualText = writer.ToString();
+                Assert.AreEqual(expectedText, actualText);
+            }
         }
     }
 }

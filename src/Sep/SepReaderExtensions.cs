@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Contracts;
 using System.IO;
 
 namespace nietras.SeparatedValues;
@@ -17,6 +18,22 @@ public static class SepReaderExtensions
     public static SepReaderOptions Reader(this Sep? sep) => new(sep);
     public static SepReaderOptions Reader(this SepSpec spec) =>
         new SepReaderOptions(spec.Sep) with { CultureInfo = spec.CultureInfo };
+
+    public static SepReaderOptions Reader(this Sep sep, Func<SepReaderOptions, SepReaderOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Reader(sep));
+    }
+    public static SepReaderOptions Reader(this Sep? sep, Func<SepReaderOptions, SepReaderOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Reader(sep));
+    }
+    public static SepReaderOptions Reader(this SepSpec spec, Func<SepReaderOptions, SepReaderOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Reader(spec.Sep));
+    }
 
     public static SepReader FromText(this SepReaderOptions options, string text)
     {

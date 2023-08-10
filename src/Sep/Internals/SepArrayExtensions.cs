@@ -73,10 +73,17 @@ static class SepArrayExtensions
         where T : IEquatable<T>
     {
         array.CheckPadding(end, minimumPaddingLength);
-        // Check padding is zero/default
-        for (var i = 0; i < minimumPaddingLength; i++)
+        // Only check if padding is zero if array contains data, and end is not
+        // the beginning. Otherwise, we might be checking padding that has not
+        // been cleared yet.
+        if (end > 0)
         {
-            A.Assert(array[end + i].Equals(default), $"Padding not zero at {end + i}");
+            // Check padding is zero/default
+            for (var i = 0; i < minimumPaddingLength; i++)
+            {
+                var value = array[end + i];
+                A.Assert(value.Equals(default), $"Padding not zero at {end + i} but {value}");
+            }
         }
     }
 

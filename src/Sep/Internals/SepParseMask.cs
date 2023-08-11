@@ -26,7 +26,7 @@ static class SepParseMask
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsMaskLong(nuint mask, int charsIndex, ref int positionsRefCurrent)
     {
-        var count = BitOperations.PopCount((uint)mask);
+        var count = BitOperations.PopCount(mask);
         ref var positionsRefCurrentEnd = ref Add(ref positionsRefCurrent, count);
         var charsIndexLong = (long)((ulong)charsIndex + ((ulong)charsIndex << 32));
         do
@@ -138,7 +138,7 @@ static class SepParseMask
         {
             var endingsMask = separatorsLineEndingsMask & ~separatorsMask;
             var lineEndingIndex = BitOperations.TrailingZeroCount(endingsMask);
-            if ((31 - BitOperations.LeadingZeroCount((uint)separatorsMask)) < lineEndingIndex)
+            if (((SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(separatorsMask)) < lineEndingIndex)
             {
                 colEndsRefCurrent = ref ParseSeparatorsMask(separatorsMask, charsIndex,
                     ref colEndsRefCurrent);

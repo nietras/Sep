@@ -168,9 +168,9 @@ public class SepParserTest
                                          ref rowLineEndingOffset, ref lineNumber);
 
             AreEqual(expected, _colEnds, _colEndsFrom, _colEndsTo);
-            Assert.AreEqual(expectedNextStart, nextStart);
-            Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset);
-            Assert.AreEqual(expectedLineNumber, lineNumber);
+            Assert.AreEqual(expectedNextStart, nextStart, nameof(nextStart));
+            Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset, nameof(rowLineEndingOffset));
+            Assert.AreEqual(expectedLineNumber, lineNumber, nameof(lineNumber));
             charsStart = nextStart;
             _colEndsFrom = _colEndsTo;
         }
@@ -184,7 +184,7 @@ public class SepParserTest
 
     static void AreEqual(ReadOnlySpan<int> expected, ReadOnlySpan<int> actual)
     {
-        Assert.AreEqual(expected.Length, actual.Length);
+        Assert.AreEqual(expected.Length, actual.Length, nameof(actual.Length));
         for (var i = 0; i < expected.Length; i++)
         {
             var e = expected[i];

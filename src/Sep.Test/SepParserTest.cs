@@ -55,6 +55,22 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
+    public void SepParserTest_Parse_Sequence(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        var parser = (ISepParser)parserObject;
+
+        var charsEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
+        var rowLineEndingOffset = 0;
+        var lineNumber = 3;
+
+        var nextStart = parser.Parse(_chars, charsIndex: 0, charsEnd: charsEnd,
+                                     colEnds: _colEnds, colEndsEnd: ref _colEndsTo,
+                                     ref rowLineEndingOffset, lineNumber: ref lineNumber);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
     public void SepParserTest_Parse_Short(object parserObject)
     {
         Contract.Assume(parserObject is not null);

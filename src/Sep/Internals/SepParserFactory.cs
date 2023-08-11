@@ -34,7 +34,7 @@ static class SepParserFactory
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
-        if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
+        if (Environment.Is64BitProcess)
         { Add(parsers, static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
 #endif
         if (Avx2.IsSupported)

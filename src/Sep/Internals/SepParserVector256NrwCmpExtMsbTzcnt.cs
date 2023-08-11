@@ -19,7 +19,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal int _quoting = 0;
+    internal nuint _quoting = 0;
 
     public unsafe SepParserVector256NrwCmpExtMsbTzcnt(Sep sep)
     {
@@ -82,10 +82,10 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = (int)specialChars.ExtractMostSignificantBits();
+            var specialCharMask = specialChars.ExtractMostSignificantBits();
             if (specialCharMask != 0)
             {
-                var separatorsMask = (int)spsEq.ExtractMostSignificantBits();
+                var separatorsMask = spsEq.ExtractMostSignificantBits();
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoting;
@@ -96,7 +96,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = (int)lineEndingsSeparators.ExtractMostSignificantBits();
+                    var separatorLineEndingsMask = lineEndingsSeparators.ExtractMostSignificantBits();
                     if (separatorLineEndingsMask == testMask)
                     {
                         colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(

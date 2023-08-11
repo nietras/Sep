@@ -19,7 +19,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal int _quoting = 0;
+    internal nuint _quoting = 0;
 
     public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
     {
@@ -81,10 +81,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = ISA.MoveMask(specialChars);
+            var specialCharMask = (uint)ISA.MoveMask(specialChars);
             if (specialCharMask != 0)
             {
-                var separatorsMask = ISA.MoveMask(spsEq);
+                var separatorsMask = (uint)ISA.MoveMask(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoting;
@@ -95,7 +95,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = ISA.MoveMask(lineEndingsSeparators);
+                    var separatorLineEndingsMask = (uint)ISA.MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(

@@ -57,7 +57,7 @@ public partial class SepParseMaskTest
 
     static void AssertParseAnyCharsMask(string chars, int[] expected,
         int rowLineEndingOffset, int expectedRowLineEndingOffset,
-        int quoting = 0, int expectedQuoting = 0,
+        nuint quoting = 0, nuint expectedQuoting = 0,
         int lineNumber = -1, int expectedLineNumber = -1)
     {
         for (var i = 0; i < expected.Length; ++i) { expected[i] += CharsIndexOffset; }

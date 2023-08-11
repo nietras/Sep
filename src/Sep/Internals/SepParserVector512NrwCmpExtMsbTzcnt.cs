@@ -1,17 +1,18 @@
-﻿using System;
+﻿#if NET8_0_OR_GREATER
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
-using Vec = System.Runtime.Intrinsics.Vector64;
-using VecUI16 = System.Runtime.Intrinsics.Vector64<ushort>;
-using VecUI8 = System.Runtime.Intrinsics.Vector64<byte>;
+using Vec = System.Runtime.Intrinsics.Vector512;
+using VecUI16 = System.Runtime.Intrinsics.Vector512<ushort>;
+using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
+sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
 {
     readonly byte _separator;
     readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
@@ -21,8 +22,9 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _sps;
     internal nuint _quoting = 0;
 
-    public unsafe SepParserVector64NrwCmpExtMsbTzcnt(Sep sep)
+    public unsafe SepParserVector512NrwCmpExtMsbTzcnt(Sep sep)
     {
+        A.Assert(Environment.Is64BitProcess);
         _separator = (byte)sep.Separator;
         _sps = Vec.Create(_separator);
     }
@@ -82,10 +84,10 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars.ExtractMostSignificantBits();
+            var specialCharMask = (nuint)specialChars.ExtractMostSignificantBits();
             if (specialCharMask != 0)
             {
-                var separatorsMask = spsEq.ExtractMostSignificantBits();
+                var separatorsMask = (nuint)spsEq.ExtractMostSignificantBits();
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoting;
@@ -96,7 +98,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators.ExtractMostSignificantBits();
+                    var separatorLineEndingsMask = (nuint)lineEndingsSeparators.ExtractMostSignificantBits();
                     if (separatorLineEndingsMask == testMask)
                     {
                         colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(
@@ -143,3 +145,4 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         return charsIndex;
     }
 }
+#endif

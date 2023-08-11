@@ -33,7 +33,7 @@ public partial class SepParseMaskTest
 
     static void AssertParseSeparatorsLineEndingsMasks(string chars, int[] expected,
         int rowLineEndingOffset, int expectedRowLineEndingOffset,
-        int quoting = 0, int expectedQuoting = 0,
+        nuint quoting = 0, nuint expectedQuoting = 0,
         int lineNumber = -1, int expectedLineNumber = -1)
     {
         for (var i = 0; i < expected.Length; ++i) { expected[i] += CharsIndexOffset; }
@@ -55,7 +55,7 @@ public partial class SepParseMaskTest
             expectedLineNumber, lineNumber);
     }
 
-    static int SeparatorsMaskFor(ReadOnlySpan<char> chars)
+    static uint SeparatorsMaskFor(ReadOnlySpan<char> chars)
     {
         var mask = 0;
         for (var i = 0; i < Math.Min(chars.Length, 32); i++)
@@ -65,10 +65,10 @@ public partial class SepParseMaskTest
                 mask |= 1 << i;
             }
         }
-        return mask;
+        return (uint)mask;
     }
 
-    static int LineEndingsMaskFor(ReadOnlySpan<char> chars)
+    static uint LineEndingsMaskFor(ReadOnlySpan<char> chars)
     {
         var mask = 0;
         for (var i = 0; i < Math.Min(chars.Length, 32); i++)
@@ -79,6 +79,6 @@ public partial class SepParseMaskTest
                 mask |= 1 << i;
             }
         }
-        return mask;
+        return (uint)mask;
     }
 }

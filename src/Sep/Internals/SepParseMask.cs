@@ -8,7 +8,7 @@ namespace nietras.SeparatedValues;
 static class SepParseMask
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref int ParseSeparatorsMask(int mask, int charsIndex, ref int colEndsRef)
+    internal static ref int ParseSeparatorsMask(nuint mask, int charsIndex, ref int colEndsRef)
     {
         do
         {
@@ -24,7 +24,7 @@ static class SepParseMask
 
     // Not faster
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref int ParseSeparatorsMaskLong(int mask, int charsIndex, ref int positionsRefCurrent)
+    internal static ref int ParseSeparatorsMaskLong(nuint mask, int charsIndex, ref int positionsRefCurrent)
     {
         var count = BitOperations.PopCount((uint)mask);
         ref var positionsRefCurrentEnd = ref Add(ref positionsRefCurrent, count);
@@ -49,9 +49,9 @@ static class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref int ParseAnyCharsMask(int mask, char separator,
+    internal static ref int ParseAnyCharsMask(nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
-        scoped ref int rowLineEndingOffset, scoped ref int quoting,
+        scoped ref int rowLineEndingOffset, scoped ref nuint quoting,
         ref int colEndsRef, scoped ref int lineNumber)
     {
         do
@@ -71,7 +71,7 @@ static class SepParseMask
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseAnyChar(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
-        scoped ref int rowLineEndingOffset, scoped ref int quoting,
+        scoped ref int rowLineEndingOffset, scoped ref nuint quoting,
         ref int colEndsRef, scoped ref int lineNumber)
     {
         var c = Add(ref charsRef, relativeIndex);
@@ -123,7 +123,7 @@ static class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref int ParseSeparatorsLineEndingsMasks(int separatorsMask, int separatorsLineEndingsMask,
+    internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
         ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
     {
@@ -173,7 +173,7 @@ static class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref int ParseLineEndingMask(int lineEndingsMask,
+    internal static ref int ParseLineEndingMask(nuint lineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex,
         ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
     {
@@ -195,7 +195,7 @@ static class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ref int ParseSeparatorsLineEndingsMask(int mask, char separator,
+    static ref int ParseSeparatorsLineEndingsMask(nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset,
         ref int colEndsRef, scoped ref int lineNumber)

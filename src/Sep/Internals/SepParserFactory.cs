@@ -11,6 +11,9 @@ static class SepParserFactory
     [ExcludeFromCodeCoverage]
     internal static ISepParser CreateBest(Sep sep)
     {
+#if NET8_0_OR_GREATER
+        if (Vector512.IsHardwareAccelerated) { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
+#endif
         if (Avx2.IsSupported) { return new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep); }
         if (Sse2.IsSupported) { return new SepParserSse2PackCmpOrMoveMaskTzcnt(sep); }
         if (Vector256.IsHardwareAccelerated) { return new SepParserVector256NrwCmpExtMsbTzcnt(sep); }
@@ -25,6 +28,10 @@ static class SepParserFactory
     internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateFactories(bool createUnaccelerated = true)
     {
         var parsers = new Dictionary<Type, Func<Sep, ISepParser>>();
+#if NET8_0_OR_GREATER
+        if (Vector512.IsHardwareAccelerated)
+        { Add(parsers, static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
+#endif
         if (Avx2.IsSupported)
         { Add(parsers, static sep => new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep)); }
         if (Sse2.IsSupported)

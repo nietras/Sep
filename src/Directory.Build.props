@@ -11,10 +11,7 @@
     <Copyright>Copyright © nietras A/S 2023</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
-    <TargetFrameworkBase>net7.0</TargetFrameworkBase>
-    <TargetFrameworkLibrary>$(TargetFrameworkBase)</TargetFrameworkLibrary>
-    <TargetFrameworkLibraryTest>$(TargetFrameworkLibrary)</TargetFrameworkLibraryTest>
-    <TargetFrameworkConsole>$(TargetFrameworkLibrary)</TargetFrameworkConsole>
+    <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
 
     <LangVersion>11.0</LangVersion>
     <Deterministic>true</Deterministic>
@@ -24,11 +21,16 @@
     <PublishRelease>true</PublishRelease>
     <PackRelease>true</PackRelease>
 
+    <!-- https://github.com/dotnet/roslyn/issues/41640 🤦‍ -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
 
     <DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSLOWONES</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPASSERT</DefineConstants>

@@ -9,9 +9,10 @@ using System.Text;
 namespace nietras.SeparatedValues;
 
 /// <summary>
-/// Many unit test frameworks do not handle <see cref="A.Assert(bool)"/>
-/// very well including MSTest, so instead defining some custom assert code that
-/// throws an ordinary exception instead and provides some more details.
+/// Many unit test frameworks do not handle <see
+/// cref="System.Diagnostics.Debug.Assert(bool)"/> very well including MSTest,
+/// so instead defining some custom assert code that throws an ordinary
+/// exception instead and provides some more details.
 /// </summary>
 [ExcludeFromCodeCoverage]
 static class SepAssert
@@ -65,7 +66,12 @@ static class SepAssert
         throw new InvalidOperationException(message);
     }
 
-    /// <summary>Provides an interpolated string handler for <see cref="SepAssert.Assert"/> that only performs formatting if the assert fails.</summary>
+    /// <summary>
+    /// Provides an interpolated string handler for <see
+    /// cref="SepAssert.Assert(bool, ref AssertInterpolatedStringHandler,
+    /// string, int, string)"/> that only performs formatting if the assert
+    /// fails.
+    /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [InterpolatedStringHandler]
     internal struct AssertInterpolatedStringHandler

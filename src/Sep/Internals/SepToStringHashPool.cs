@@ -44,6 +44,8 @@ sealed class SepToStringHashPool : SepToString
     /// Simple string pool based on a very simple, fast, but poor hash.
     /// </summary>
     /// <param name="maximumStringLength">The string length beyond which strings will not be pooled.</param>
+    /// <param name="initialCapacity">Initial requested capacity of pool. May be rounded up to nearest power of two.</param>
+    /// <param name="maximumCapacity">Maximum capacity of pool. If pool full all new spans result in new strings.</param>
     /// <remarks>
     /// The <paramref name="maximumStringLength"/> prevents pooling strings beyond a certain length. 
     /// Longer strings are typically less likely to be duplicated, and carry extra cost for identifying uniqueness.

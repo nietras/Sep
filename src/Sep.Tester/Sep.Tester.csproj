@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFramework>$(TargetFrameworkConsole)</TargetFramework>
     <RootNamespace>nietras.SeparatedValues.Tester</RootNamespace>
     <OutputType>Exe</OutputType>
     <IsTrimmable>true</IsTrimmable>

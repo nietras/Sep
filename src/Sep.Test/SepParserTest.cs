@@ -135,12 +135,12 @@ public class SepParserTest
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
-        var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
+        var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var paddingOffset = (parser.PaddingLength > 0 ? parser.PaddingLength : 1);
         _colEndsFrom = _colEnds.Length - paddingOffset;
         _colEndsTo = _colEndsFrom;
         var charsStart = 7;
-        var ends = new[] { 10 }.Where(i => i < (charsStart + paddingOffset)).ToArray();
+        var ends = new[] { 10, 46 }.Where(i => i < (charsStart + paddingOffset)).ToArray();
         var nextStart = charsStart + paddingOffset;
         var lineEndingOffset = 0;
         var expected = new Expected(ends, nextStart, lineEndingOffset, 3 + lineEndingOffset);

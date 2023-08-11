@@ -12,7 +12,8 @@ static class SepParserFactory
     internal static ISepParser CreateBest(Sep sep)
     {
 #if NET8_0_OR_GREATER
-        if (Avx512F.IsSupported) { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
+        if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
+        { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
 #endif
         if (Avx2.IsSupported) { return new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep); }
         if (Sse2.IsSupported) { return new SepParserSse2PackCmpOrMoveMaskTzcnt(sep); }
@@ -29,7 +30,7 @@ static class SepParserFactory
     {
         var parsers = new Dictionary<Type, Func<Sep, ISepParser>>();
 #if NET8_0_OR_GREATER
-        if (Avx512F.IsSupported) //Vector512.IsHardwareAccelerated)
+        if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
         { Add(parsers, static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
 #endif
         if (Avx2.IsSupported)

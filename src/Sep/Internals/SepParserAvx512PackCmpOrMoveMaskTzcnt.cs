@@ -69,7 +69,10 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-            var bytes = ISA.PackUnsignedSaturate(v0, v1);
+            var packed = ISA.PackUnsignedSaturate(v0, v1);
+            // Pack interleaves the two vectors need to permute them back
+            var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
+            var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
 
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);

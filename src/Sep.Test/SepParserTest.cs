@@ -67,6 +67,8 @@ public class SepParserTest
         var nextStart = parser.Parse(_chars, charsIndex: 0, charsEnd: charsEnd,
                                      colEnds: _colEnds, colEndsEnd: ref _colEndsTo,
                                      ref rowLineEndingOffset, lineNumber: ref lineNumber);
+
+        // No assert, test is mainly for debugging SIMD code easily
     }
 
     [TestMethod]

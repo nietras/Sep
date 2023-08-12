@@ -12,7 +12,7 @@ namespace nietras.SeparatedValues;
 /// Many unit test frameworks do not handle <see
 /// cref="System.Diagnostics.Debug.Assert(bool)"/> very well including MSTest,
 /// so instead defining some custom assert code that throws an ordinary
-/// exception instead and provides some more details.
+/// exception and provides some more details.
 /// </summary>
 [ExcludeFromCodeCoverage]
 static class SepAssert

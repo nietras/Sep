@@ -22,10 +22,10 @@ and highly efficient implementation.
 changes to input or output. What you read/write is what you get. This means
 there is no "automatic" escaping/unescaping of quotes, for example.
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
-SIMD vectorized parsing. Uses
-[csFastFloat](https://github.com/CarlVerret/csFastFloat) for fast parsing of
-floating points. Reads or writes one row at a time efficiently with [detailed
-benchmarks](#comparison-benchmarks) to prove it.
+SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
+8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
+fast parsing of floating points. Reads or writes one row at a time efficiently
+with [detailed benchmarks](#comparison-benchmarks) to prove it.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.

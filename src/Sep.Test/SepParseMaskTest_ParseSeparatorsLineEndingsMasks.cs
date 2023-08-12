@@ -26,7 +26,7 @@ public partial class SepParseMaskTest
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
-        AssertParseSeparatorsLineEndingsMasks(new string('a', 31) + "\r\n", new[] { 31 },
+        AssertParseSeparatorsLineEndingsMasks(new string('a', s_nativeBitSize - 1) + "\r\n", new[] { s_nativeBitSize - 1 },
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
     }
@@ -39,7 +39,7 @@ public partial class SepParseMaskTest
         for (var i = 0; i < expected.Length; ++i) { expected[i] += CharsIndexOffset; }
         var separatorsMask = SeparatorsMaskFor(chars);
         var lineEndingsMask = LineEndingsMaskFor(chars);
-        Span<int> colEnds = stackalloc int[32 + 1];
+        Span<int> colEnds = stackalloc int[s_nativeBitSize + 1];
         ref var start = ref colEnds[0];
 
         var charsIndex = CharsIndexOffset;
@@ -55,30 +55,30 @@ public partial class SepParseMaskTest
             expectedLineNumber, lineNumber);
     }
 
-    static uint SeparatorsMaskFor(ReadOnlySpan<char> chars)
+    static nuint SeparatorsMaskFor(ReadOnlySpan<char> chars)
     {
-        var mask = 0;
-        for (var i = 0; i < Math.Min(chars.Length, 32); i++)
+        nuint mask = 0;
+        for (var i = 0; i < LengthForMask(chars.Length); i++)
         {
             if (chars[i] == Separator)
             {
-                mask |= 1 << i;
+                mask |= (nuint)1 << i;
             }
         }
-        return (uint)mask;
+        return mask;
     }
 
-    static uint LineEndingsMaskFor(ReadOnlySpan<char> chars)
+    static nuint LineEndingsMaskFor(ReadOnlySpan<char> chars)
     {
-        var mask = 0;
-        for (var i = 0; i < Math.Min(chars.Length, 32); i++)
+        nuint mask = 0;
+        for (var i = 0; i < LengthForMask(chars.Length); i++)
         {
             var c = chars[i];
             if (c == SepDefaults.LineFeed || c == SepDefaults.CarriageReturn)
             {
-                mask |= 1 << i;
+                mask |= (nuint)1 << i;
             }
         }
-        return (uint)mask;
+        return mask;
     }
 }

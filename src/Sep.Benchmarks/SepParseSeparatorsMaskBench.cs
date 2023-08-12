@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 
@@ -15,9 +16,9 @@ public unsafe class SepParseSeparatorsMaskBench
 
     readonly MaskSpec[] _masks;
     MaskSpec _mask;
-    uint _maskValue;
+    nuint _maskValue;
     readonly int _dataIndex = 17;
-    readonly int* _colEnds = (int*)NativeMemory.Alloc(32, sizeof(int));
+    readonly int* _colEnds = (int*)NativeMemory.Alloc((nuint)Unsafe.SizeOf<nuint>() * 8, sizeof(int));
 
     public SepParseSeparatorsMaskBench()
     {

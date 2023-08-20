@@ -67,7 +67,8 @@ if (true || args.Length > 0)
             var cpuInfo = s.HostEnvironmentInfo.CpuInfo.Value;
             var processorName = ProcessorBrandStringHelper.Prettify(cpuInfo);
             var processorNameInDirectory = processorName
-                .Replace(" Processor", "").Replace(" ", ".");
+                .Replace(" Processor", "").Replace(" CPU", "").Replace(" ", ".");
+            log(processorName);
 
             var sourceDirectory = GetSourceDirectory();
             var directory = $"{sourceDirectory}/../../benchmarks/{processorNameInDirectory}";

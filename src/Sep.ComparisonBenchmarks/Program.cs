@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Loggers;
@@ -64,8 +65,9 @@ if (true || args.Length > 0)
         foreach (var s in summaries)
         {
             var cpuInfo = s.HostEnvironmentInfo.CpuInfo.Value;
-            var processorName = cpuInfo.ProcessorName;
-            var processorNameInDirectory = processorName.Replace(" Processor", "").Replace(" ", ".");
+            var processorName = ProcessorBrandStringHelper.Prettify(cpuInfo);
+            var processorNameInDirectory = processorName
+                .Replace(" Processor", "").Replace(" ", ".");
 
             var sourceDirectory = GetSourceDirectory();
             var directory = $"{sourceDirectory}/../../benchmarks/{processorNameInDirectory}";

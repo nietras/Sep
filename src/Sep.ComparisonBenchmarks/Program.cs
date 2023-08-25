@@ -5,25 +5,28 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Exporters;
-using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using nietras.SeparatedValues.ComparisonBenchmarks;
+#if DEBUG
+using BenchmarkDotNet.Jobs;
 using Perfolizer.Horology;
+#endif
 
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 
 Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 
-log($"{Environment.Version} args: {args.Length}");
+log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 
@@ -55,9 +58,9 @@ if (true || args.Length > 0)
 
     var nameToBenchTypesSet = new Dictionary<string, Type[]>()
     {
-        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), } },
-        { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
-        { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
+        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), /*typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), */} },
+        //{ nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
+        //{ nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)
     {
@@ -87,6 +90,9 @@ if (true || args.Length > 0)
             var text = reader.ReadToEnd();
             text = text.Replace("**", "");
             File.WriteAllText(filePath, text);
+
+            var versions = GetVersions();
+            File.WriteAllText(Path.Combine(directory, "Versions.txt"), versions);
         }
     }
 }
@@ -134,5 +140,13 @@ static long BytesFromReaderSpec(IReadOnlyList<ParameterInstance> parameters)
 {
     return parameters.Select(p => p.Value as ReaderSpec).Where(r => r is not null).Single()!.Bytes;
 }
+
+static string GetVersions() =>
+     $"Sep {GetInformationalVersion(typeof(nietras.SeparatedValues.SepReader).Assembly)}, " +
+     $"Sylvan  {GetInformationalVersion(typeof(Sylvan.Data.Csv.CsvDataReader).Assembly)}, " +
+     $"CsvHelper {GetInformationalVersion(typeof(CsvHelper.CsvReader).Assembly)}";
+
+static string GetInformationalVersion(Assembly assembly) =>
+    FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion!;
 
 static string GetSourceDirectory([CallerFilePath] string filePath = "") => Path.GetDirectoryName(filePath)!;

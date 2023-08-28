@@ -234,48 +234,48 @@ public class ReadMeTest
         foreach (var readRow in reader) { }
     }
 
-    //[TestMethod]
+    [TestMethod]
     public void ReadMeTest_UpdateBenchmarksInMarkdown()
     {
         var readmeFilePath = s_readmeFilePath;
 
         // List benchmark file names and relevant parameters here
-
+        var benchmarkFileNameToConfig = new Dictionary<string, (string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
+        {
+            { "PackageAssetsBench.md", new("##### PackageAssets Benchmark Results", "##### ", "###### ") },
+            { "PackageAssetsBenchQuotes.md", new("##### PackageAssets with Quotes Benchmark Results", "#### ", "###### ") },
+            { "FloatsReaderBench.md", new("#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
+        };
 
         var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
         var processorDirectories = Directory.EnumerateDirectories(benchmarksDirectory).ToArray();
         var processors = processorDirectories.Select(LastDirectoryName).ToArray();
-
-        var processorDirectoryToBenchmarks = processorDirectories.ToDictionary(d => d, d => Directory.EnumerateFiles(d, "*.md"));
-        var grouped = processorDirectoryToBenchmarks.SelectMany(p => p.Value.Select(v =>
-            (Processor: LastDirectoryName(p.Key), Benchmark: Path.GetFileName(v), Contents: File.ReadAllText(v), Versions: File.ReadAllText(Path.Combine(p.Key, "Versions.txt")))
-            ))
-            .GroupBy(t => t.Benchmark);
 
         Trace.WriteLine(string.Join(", ", processorDirectories));
         Trace.WriteLine(string.Join(", ", processors));
 
         var readmeLines = File.ReadAllLines(readmeFilePath);
 
-        foreach (var g in grouped)
+        foreach (var (fileName, config) in benchmarkFileNameToConfig)
         {
-            var fileName = g.Key;
             var name = Path.GetFileNameWithoutExtension(fileName).Replace("Bench", " ").Trim().Replace(" ", " with ");
-            var readmeStartLine = $"##### {name}";
-            var readmeEndLine = "##### ";
-
+            var prefix = config.SectionPrefix;
+            var readmeBefore = config.ReadmeBefore;
+            var readmeEndLine = config.ReadmeEnd;
             var all = "";
-            var results = g.ToArray();
-            foreach (var result in results)
+            foreach (var processorDirectory in processorDirectories)
             {
-                var section = $"###### {result.Processor} - {name} Benchmark Results ({result.Versions})";
-                var benchmarkTable = GetBenchmarkTable(result.Contents);
+                var versions = File.ReadAllText(Path.Combine(processorDirectory, "Versions.txt"));
+                var contents = File.ReadAllText(Path.Combine(processorDirectory, fileName));
+                var processor = LastDirectoryName(processorDirectory);
+
+                var section = $"{prefix}{processor} - {name} Benchmark Results ({versions})";
+                var benchmarkTable = GetBenchmarkTable(contents);
                 var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
                 all += readmeContents;
                 Trace.WriteLine(section);
             }
-
-            ReplaceReadmeLines(readmeLines, new[] { all }, readmeStartLine, "######", 0, readmeEndLine, -1);
+            readmeLines = ReplaceReadmeLines(readmeLines, new[] { all }, readmeBefore, prefix, 0, readmeEndLine, 0);
         }
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;

@@ -239,7 +239,6 @@ public class ReadMeTest
     {
         var readmeFilePath = s_readmeFilePath;
 
-        // List benchmark file names and relevant parameters here
         var benchmarkFileNameToConfig = new Dictionary<string, (string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
         {
             { "PackageAssetsBench.md", new("##### PackageAssets Benchmark Results", "##### ", "###### ") },
@@ -250,9 +249,6 @@ public class ReadMeTest
         var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
         var processorDirectories = Directory.EnumerateDirectories(benchmarksDirectory).ToArray();
         var processors = processorDirectories.Select(LastDirectoryName).ToArray();
-
-        Trace.WriteLine(string.Join(", ", processorDirectories));
-        Trace.WriteLine(string.Join(", ", processors));
 
         var readmeLines = File.ReadAllLines(readmeFilePath);
 
@@ -287,7 +283,6 @@ public class ReadMeTest
         static string GetBenchmarkTable(string markdown) =>
             markdown.Substring(markdown.IndexOf('|'));
     }
-
 
     [TestMethod]
     public void ReadMeTest_UpdateExampleCodeInMarkdown()

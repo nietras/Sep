@@ -31,7 +31,7 @@ log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 
 // Use args as switch to run BDN or not e.g. BDN only run when using script
-if (true || args.Length > 0)
+if (args.Length > 0)
 {
     var baseConfig = ManualConfig.CreateEmpty()
         .AddColumnProvider(DefaultColumnProviders.Instance)

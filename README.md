@@ -612,7 +612,8 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 
 ### Runtime and Platforms
 The following runtime is used for benchmarking:
-* `NET 7.0.5 (7.0.523.17405)`
+* `NET 7.0.X`
+* `NET 8.0.X`
 
 The following platforms are used for benchmarking:
 
@@ -620,6 +621,11 @@ The following platforms are used for benchmarking:
   ``` ini
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
+  ```
+* `Intel Xeon Silver 4316` X64 Platform Information
+  ``` ini
+  OS=Windows 10 (10.0.17763.3287/1809/October2018Update/Redstone5)
+  Intel Xeon Silver 4316 CPU 2.30GHz, 1 CPU, 40 logical and 20 physical cores
   ```
 * `Neoverse N1` ARM64 Platform Information (cloud instance)
   ```ini

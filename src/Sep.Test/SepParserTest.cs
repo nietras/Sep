@@ -55,6 +55,24 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
+    public void SepParserTest_Parse_Sequence(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        var parser = (ISepParser)parserObject;
+
+        var charsEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
+        var rowLineEndingOffset = 0;
+        var lineNumber = 3;
+
+        var nextStart = parser.Parse(_chars, charsIndex: 0, charsEnd: charsEnd,
+                                     colEnds: _colEnds, colEndsEnd: ref _colEndsTo,
+                                     ref rowLineEndingOffset, lineNumber: ref lineNumber);
+
+        // No assert, test is mainly for debugging SIMD code easily
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
     public void SepParserTest_Parse_Short(object parserObject)
     {
         Contract.Assume(parserObject is not null);
@@ -135,12 +153,12 @@ public class SepParserTest
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
-        var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
+        var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var paddingOffset = (parser.PaddingLength > 0 ? parser.PaddingLength : 1);
         _colEndsFrom = _colEnds.Length - paddingOffset;
         _colEndsTo = _colEndsFrom;
         var charsStart = 7;
-        var ends = new[] { 10 }.Where(i => i < (charsStart + paddingOffset)).ToArray();
+        var ends = new[] { 10, 46 }.Where(i => i < (charsStart + paddingOffset)).ToArray();
         var nextStart = charsStart + paddingOffset;
         var lineEndingOffset = 0;
         var expected = new Expected(ends, nextStart, lineEndingOffset, 3 + lineEndingOffset);
@@ -168,9 +186,9 @@ public class SepParserTest
                                          ref rowLineEndingOffset, ref lineNumber);
 
             AreEqual(expected, _colEnds, _colEndsFrom, _colEndsTo);
-            Assert.AreEqual(expectedNextStart, nextStart);
-            Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset);
-            Assert.AreEqual(expectedLineNumber, lineNumber);
+            Assert.AreEqual(expectedNextStart, nextStart, nameof(nextStart));
+            Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset, nameof(rowLineEndingOffset));
+            Assert.AreEqual(expectedLineNumber, lineNumber, nameof(lineNumber));
             charsStart = nextStart;
             _colEndsFrom = _colEndsTo;
         }
@@ -184,7 +202,7 @@ public class SepParserTest
 
     static void AreEqual(ReadOnlySpan<int> expected, ReadOnlySpan<int> actual)
     {
-        Assert.AreEqual(expected.Length, actual.Length);
+        Assert.AreEqual(expected.Length, actual.Length, nameof(actual.Length));
         for (var i = 0; i < expected.Length; i++)
         {
             var e = expected[i];

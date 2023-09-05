@@ -17,7 +17,8 @@ namespace nietras.SeparatedValues.ComparisonBenchmarks;
 // particular interesting benchmark of CSV parsers since all it tests is
 // splitting lines to strings basically, nothing else. This can be seen in:
 // https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
-[HideColumns("InvocationCount")]
+[MemoryDiagnoser]
+[HideColumns("InvocationCount", "Job", "IterationTime", "MinIterationCount", "MaxIterationCount", "Type", "Quotes", "Reader", "RatioSD", "Gen0", "Gen1", "Gen2", "Error", "Median", "StdDev")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class PackageAssetsBench
 {

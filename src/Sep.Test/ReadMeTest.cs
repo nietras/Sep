@@ -12,6 +12,10 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class ReadMeTest
 {
+    static readonly string s_testSourceFilePath = SourceFile();
+    static readonly string s_rootDirectory = Path.GetDirectoryName(s_testSourceFilePath) + @"../../../";
+    static readonly string s_readmeFilePath = s_rootDirectory + @"README.md";
+
     [TestMethod]
     public void ReadMeTest_()
     {
@@ -231,17 +235,66 @@ public class ReadMeTest
     }
 
     [TestMethod]
+    public void ReadMeTest_UpdateBenchmarksInMarkdown()
+    {
+        var readmeFilePath = s_readmeFilePath;
+
+        var benchmarkFileNameToConfig = new Dictionary<string, (string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
+        {
+            { "PackageAssetsBench.md", new("##### PackageAssets Benchmark Results", "##### ", "###### ") },
+            { "PackageAssetsBenchQuotes.md", new("##### PackageAssets with Quotes Benchmark Results", "#### ", "###### ") },
+            { "FloatsReaderBench.md", new("#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
+        };
+
+        var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
+        var processorDirectories = Directory.EnumerateDirectories(benchmarksDirectory).ToArray();
+        var processors = processorDirectories.Select(LastDirectoryName).ToArray();
+
+        var readmeLines = File.ReadAllLines(readmeFilePath);
+
+        foreach (var (fileName, config) in benchmarkFileNameToConfig)
+        {
+            var name = Path.GetFileNameWithoutExtension(fileName).Replace("Bench", " ").Trim().Replace(" ", " with ");
+            var prefix = config.SectionPrefix;
+            var readmeBefore = config.ReadmeBefore;
+            var readmeEndLine = config.ReadmeEnd;
+            var all = "";
+            foreach (var processorDirectory in processorDirectories)
+            {
+                var versions = File.ReadAllText(Path.Combine(processorDirectory, "Versions.txt"));
+                var contents = File.ReadAllText(Path.Combine(processorDirectory, fileName));
+                var processor = LastDirectoryName(processorDirectory);
+
+                var section = $"{prefix}{processor} - {name} Benchmark Results ({versions})";
+                var benchmarkTable = GetBenchmarkTable(contents);
+                var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
+                all += readmeContents;
+                Trace.WriteLine(section);
+            }
+            readmeLines = ReplaceReadmeLines(readmeLines, new[] { all }, readmeBefore, prefix, 0, readmeEndLine, 0);
+        }
+
+        var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
+        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
+
+        static string LastDirectoryName(string d) =>
+            d.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Last();
+
+        static string GetBenchmarkTable(string markdown) =>
+            markdown.Substring(markdown.IndexOf('|'));
+    }
+
+    [TestMethod]
     public void ReadMeTest_UpdateExampleCodeInMarkdown()
     {
-        var testSourceFile = SourceFile();
+        var testSourceFilePath = s_testSourceFilePath;
+        var readmeFilePath = s_readmeFilePath;
+        var rootDirectory = s_rootDirectory;
 
-        var rootDirectory = Path.GetDirectoryName(testSourceFile) + @"../../../";
-
-        var readmeFile = rootDirectory + @"README.md";
-        var readmeLines = File.ReadAllLines(readmeFile);
+        var readmeLines = File.ReadAllLines(readmeFilePath);
 
         // Update README examples
-        var testSourceLines = File.ReadAllLines(testSourceFile);
+        var testSourceLines = File.ReadAllLines(testSourceFilePath);
         var testBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
         {
             (nameof(ReadMeTest_) + "()", "## Example"),
@@ -253,7 +306,7 @@ public class ReadMeTest
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
-            startLineOffset: 2, "    }", endLineOffset: 0, whitespaceToRemove: 8);
+            sourceStartLineOffset: 2, "    }", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 8);
 
         var readerOptionsSourceLines = File.ReadAllLines(rootDirectory + @"src/Sep/SepReaderOptions.cs");
         var readerOptionsBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
@@ -261,7 +314,7 @@ public class ReadMeTest
             ("/// <summary>", "#### SepReaderOptions"),
         };
         readmeLines = UpdateReadme(readerOptionsSourceLines, readmeLines, readerOptionsBlocksToUpdate,
-            startLineOffset: 0, "}", endLineOffset: 0, whitespaceToRemove: 4);
+            sourceStartLineOffset: 0, "}", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 4);
 
         var writerOptionsSourceLines = File.ReadAllLines(rootDirectory + @"src/Sep/SepWriterOptions.cs");
         var writerOptionsBlocksToUpdate = new (string StartLineContains, string ReadmeLineBeforeCodeBlock)[]
@@ -269,38 +322,57 @@ public class ReadMeTest
             ("/// <summary>", "#### SepWriterOptions"),
         };
         readmeLines = UpdateReadme(writerOptionsSourceLines, readmeLines, writerOptionsBlocksToUpdate,
-            startLineOffset: 0, "}", endLineOffset: 0, whitespaceToRemove: 4);
+            sourceStartLineOffset: 0, "}", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 4);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-        File.WriteAllText(readmeFile, newReadme, Encoding.UTF8);
+        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
     }
 
     static string[] UpdateReadme(string[] sourceLines, string[] readmeLines,
-        (string StartLineContains, string ReadmeLineBeforeCodeBlock)[] blocksToUpdate,
-        int startLineOffset, string endLineStartsWith, int endLineOffset, int whitespaceToRemove)
+        (string StartLineContains, string ReadmeLineBefore)[] blocksToUpdate,
+        int sourceStartLineOffset, string sourceEndLineStartsWith, int sourceEndLineOffset, int sourceWhitespaceToRemove,
+        string readmeStartLineStartsWith = "```csharp", int readmeStartLineOffset = 1,
+        string readmeEndLineStartsWith = "```", int readmeEndLineOffset = 0)
     {
-        foreach (var (startLineContains, readmeLineBeforeCodeBlock) in blocksToUpdate)
+        foreach (var (startLineContains, readmeLineBeforeBlock) in blocksToUpdate)
         {
             var sourceExampleLines = SnipLines(sourceLines,
-                startLineContains, startLineOffset,
-                endLineStartsWith, endLineOffset,
-                whitespaceToRemove);
+                startLineContains, sourceStartLineOffset,
+                sourceEndLineStartsWith, sourceEndLineOffset,
+                sourceWhitespaceToRemove);
 
-            var readmeLineBefore = Array.FindIndex(readmeLines,
-                l => l.StartsWith(readmeLineBeforeCodeBlock, StringComparison.Ordinal)) + 1;
-            if (readmeLineBefore == 0)
-            { throw new ArgumentException($"README line '{readmeLineBeforeCodeBlock}' not found."); }
-
-            var readmeCodeStart = Array.FindIndex(readmeLines, readmeLineBefore,
-                l => l.StartsWith("```csharp", StringComparison.Ordinal)) + 1;
-            var readmeCodeEnd = Array.FindIndex(readmeLines, readmeCodeStart,
-                l => l.StartsWith("```", StringComparison.Ordinal));
-
-            readmeLines = readmeLines[..readmeCodeStart].AsEnumerable()
-                .Concat(sourceExampleLines)
-                .Concat(readmeLines[readmeCodeEnd..]).ToArray();
+            readmeLines = ReplaceReadmeLines(readmeLines, sourceExampleLines, readmeLineBeforeBlock,
+                readmeStartLineStartsWith, readmeStartLineOffset, readmeEndLineStartsWith, readmeEndLineOffset);
         }
 
+        return readmeLines;
+    }
+
+    static string[] ReplaceReadmeLines(string[] readmeLines, string[] newReadmeLines, string readmeLineBeforeBlock,
+        string readmeStartLineStartsWith, int readmeStartLineOffset,
+        string readmeEndLineStartsWith, int readmeEndLineOffset)
+    {
+        var readmeLineBeforeIndex = Array.FindIndex(readmeLines,
+            l => l.StartsWith(readmeLineBeforeBlock, StringComparison.Ordinal)) + 1;
+        if (readmeLineBeforeIndex == 0)
+        { throw new ArgumentException($"README line '{readmeLineBeforeBlock}' not found."); }
+
+        return ReplaceReadmeLines(readmeLines, newReadmeLines,
+            readmeLineBeforeIndex, readmeStartLineStartsWith, readmeStartLineOffset, readmeEndLineStartsWith, readmeEndLineOffset);
+    }
+
+    static string[] ReplaceReadmeLines(string[] readmeLines, string[] newReadmeLines, int readmeLineBeforeIndex,
+        string readmeStartLineStartsWith, int readmeStartLineOffset,
+        string readmeEndLineStartsWith, int readmeEndLineOffset)
+    {
+        var readmeReplaceStartIndex = Array.FindIndex(readmeLines, readmeLineBeforeIndex,
+            l => l.StartsWith(readmeStartLineStartsWith, StringComparison.Ordinal)) + readmeStartLineOffset;
+        var readmeReplaceEndIndex = Array.FindIndex(readmeLines, readmeReplaceStartIndex,
+            l => l.StartsWith(readmeEndLineStartsWith, StringComparison.Ordinal)) + readmeEndLineOffset;
+
+        readmeLines = readmeLines[..readmeReplaceStartIndex].AsEnumerable()
+            .Concat(newReadmeLines)
+            .Concat(readmeLines[readmeReplaceEndIndex..]).ToArray();
         return readmeLines;
     }
 

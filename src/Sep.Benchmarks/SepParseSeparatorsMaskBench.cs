@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using BenchmarkDotNet.Attributes;
 
@@ -8,16 +9,16 @@ namespace nietras.SeparatedValues.Benchmarks;
 
 public unsafe class SepParseSeparatorsMaskBench
 {
-    public readonly record struct MaskSpec(int Mask)
+    public readonly record struct MaskSpec(uint Mask)
     {
         public override string ToString() => Convert.ToString(Mask, 2).PadLeft(32, '0');
     }
 
     readonly MaskSpec[] _masks;
     MaskSpec _mask;
-    int _maskValue;
+    nuint _maskValue;
     readonly int _dataIndex = 17;
-    readonly int* _colEnds = (int*)NativeMemory.Alloc(32, sizeof(int));
+    readonly int* _colEnds = (int*)NativeMemory.Alloc((nuint)Unsafe.SizeOf<nuint>() * 8, sizeof(int));
 
     public SepParseSeparatorsMaskBench()
     {

@@ -10,19 +10,22 @@ public partial class SepParseMaskTest
 {
     const char Separator = ';';
     const int CharsIndexOffset = 17;
+    static readonly int s_nativeBitSize = Unsafe.SizeOf<nuint>() * 8;
 
-    static int MaskFor(ReadOnlySpan<char> chars)
+    static nuint MaskFor(ReadOnlySpan<char> chars)
     {
-        var mask = 0;
-        for (var i = 0; i < Math.Min(chars.Length, 32); i++)
+        nuint mask = 0;
+        for (var i = 0; i < LengthForMask(chars.Length); i++)
         {
             if (IsSpecialChar(chars[i]))
             {
-                mask |= 1 << i;
+                mask |= (nuint)1 << i;
             }
         }
         return mask;
     }
+
+    static int LengthForMask(int length) => Math.Min(length, s_nativeBitSize);
 
     static bool IsSpecialChar(char c) => c switch
     {
@@ -36,7 +39,7 @@ public partial class SepParseMaskTest
     static void AssertParseState(int[] expected,
         Span<int> colEnds, ref int start, ref int end,
         int expectedRowLineEndingOffset, int rowLineEndingOffset,
-        int expectedQuoting, int quoting,
+        nuint expectedQuoting, nuint quoting,
         int expectedLineNumber, int lineNumber)
     {
         var count = (int)Unsafe.ByteOffset(ref start, ref end) / sizeof(int);

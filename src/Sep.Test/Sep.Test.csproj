@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(TargetFrameworkLibraryTest)</TargetFramework>
     <RootNamespace>nietras.SeparatedValues.Test</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>

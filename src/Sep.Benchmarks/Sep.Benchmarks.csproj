@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
-    <TargetFramework>$(TargetFrameworkConsole)</TargetFramework>
     <RootNamespace>nietras.SeparatedValues.Benchmarks</RootNamespace>
     <OutputType>Exe</OutputType>
   </PropertyGroup>

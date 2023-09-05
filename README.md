@@ -22,10 +22,10 @@ and highly efficient implementation.
 changes to input or output. What you read/write is what you get. This means
 there is no "automatic" escaping/unescaping of quotes, for example.
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
-SIMD vectorized parsing. Uses
-[csFastFloat](https://github.com/CarlVerret/csFastFloat) for fast parsing of
-floating points. Reads or writes one row at a time efficiently with [detailed
-benchmarks](#comparison-benchmarks) to prove it.
+SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
+8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
+fast parsing of floating points. Reads or writes one row at a time efficiently
+with [detailed benchmarks](#comparison-benchmarks) to prove it.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.
@@ -612,7 +612,8 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 
 ### Runtime and Platforms
 The following runtime is used for benchmarking:
-* `NET 7.0.5 (7.0.523.17405)`
+* `NET 7.0.X`
+* `NET 8.0.X`
 
 The following platforms are used for benchmarking:
 
@@ -620,6 +621,11 @@ The following platforms are used for benchmarking:
   ``` ini
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
+  ```
+* `Intel Xeon Silver 4316` X64 Platform Information
+  ``` ini
+  OS=Windows 10 (10.0.17763.3287/1809/October2018Update/Redstone5)
+  Intel Xeon Silver 4316 CPU 2.30GHz, 1 CPU, 40 logical and 20 physical cores
   ```
 * `Neoverse N1` ARM64 Platform Information (cloud instance)
   ```ini
@@ -729,43 +735,99 @@ optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
-###### `AMD 5950X` - PackageAssets Benchmark Results (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method | Scope |  Rows |       Mean | Ratio | MB |    MB/s | ns/row |    Allocated | Alloc Ratio |
-|---------- |------ |------ |-----------:|------:|---:|--------:|-------:|-------------:|------------:|
-| Sep______ |   Row | 50000 |   2.624 ms |  1.00 | 29 | 11120.2 |   52.5 |      1.23 KB |        1.00 |
-| Sylvan___ |   Row | 50000 |   3.331 ms |  1.27 | 29 |  8760.6 |   66.6 |      7.23 KB |        5.89 |
-| ReadLine_ |   Row | 50000 |  13.397 ms |  5.05 | 29 |  2178.2 |  267.9 |  88608.27 KB |   72,183.66 |
-| CsvHelper |   Row | 50000 |  53.460 ms | 20.37 | 29 |   545.9 | 1069.2 |     21.09 KB |       17.18 |
-|           |       |       |            |       |    |         |        |              |             |
-| Sep______ |  Cols | 50000 |   3.161 ms |  1.00 | 29 |  9231.8 |   63.2 |      1.14 KB |        1.00 |
-| Sylvan___ |  Cols | 50000 |   5.644 ms |  1.78 | 29 |  5169.9 |  112.9 |      7.23 KB |        6.35 |
-| ReadLine_ |  Cols | 50000 |  14.093 ms |  4.43 | 29 |  2070.7 |  281.9 |  88608.27 KB |   77,817.21 |
-| CsvHelper |  Cols | 50000 |  77.814 ms | 24.55 | 29 |   375.0 | 1556.3 |    446.74 KB |      392.34 |
-|           |       |       |            |       |    |         |        |              |             |
-| Sep______ | Asset | 50000 |  30.422 ms |  1.00 | 29 |   959.2 |  608.4 |  13799.67 KB |        1.00 |
-| Sylvan___ | Asset | 50000 |  33.743 ms |  1.11 | 29 |   864.8 |  674.9 |  14025.32 KB |        1.02 |
-| ReadLine_ | Asset | 50000 | 107.547 ms |  3.51 | 29 |   271.3 | 2150.9 | 102133.51 KB |        7.40 |
-| CsvHelper | Asset | 50000 |  94.891 ms |  3.15 | 29 |   307.5 | 1897.8 |  13971.09 KB |        1.01 |
+|    Method |  Runtime | Scope |  Rows |       Mean | Ratio | MB |    MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |-----------:|------:|---:|--------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |   2.565 ms |  1.00 | 29 | 11375.3 |   51.3 |      1.13 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |   3.301 ms |  1.29 | 29 |  8840.1 |   66.0 |      7.17 KB |        6.34 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  13.676 ms |  5.26 | 29 |  2133.7 |  273.5 |  88608.25 KB |   78,287.18 |
+| CsvHelper | .NET 7.0 |   Row | 50000 |  63.120 ms | 24.57 | 29 |   462.3 | 1262.4 |     20.65 KB |       18.25 |
+| Sep______ | .NET 8.0 |   Row | 50000 |   2.458 ms |  0.96 | 29 | 11872.7 |   49.2 |      1.13 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |   3.053 ms |  1.19 | 29 |  9558.2 |   61.1 |      7.17 KB |        6.33 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  12.642 ms |  4.96 | 29 |  2308.3 |  252.8 |  88608.24 KB |   78,287.18 |
+| CsvHelper | .NET 8.0 |   Row | 50000 |  44.515 ms | 17.37 | 29 |   655.5 |  890.3 |     20.59 KB |       18.19 |
+|           |          |       |       |            |       |    |         |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |   3.328 ms |  1.00 | 29 |  8769.4 |   66.6 |      1.13 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |   5.773 ms |  1.74 | 29 |  5054.4 |  115.5 |      7.18 KB |        6.33 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  13.962 ms |  4.11 | 29 |  2090.0 |  279.2 |  88608.25 KB |   78,152.32 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 |  79.138 ms | 23.81 | 29 |   368.7 | 1582.8 |    446.31 KB |      393.65 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |   3.188 ms |  0.96 | 29 |  9153.5 |   63.8 |      1.13 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |   5.598 ms |  1.68 | 29 |  5213.0 |  112.0 |      7.17 KB |        6.33 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  12.944 ms |  3.86 | 29 |  2254.4 |  258.9 |  88608.24 KB |   78,152.32 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 |  71.520 ms | 21.27 | 29 |   408.0 | 1430.4 |    446.29 KB |      393.62 |
+|           |          |       |       |            |       |    |         |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  30.729 ms |  1.00 | 29 |   949.6 |  614.6 |  13799.67 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 |  42.129 ms |  1.37 | 29 |   692.7 |  842.6 |  14025.03 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 115.299 ms |  3.75 | 29 |   253.1 | 2306.0 | 102133.39 KB |        7.40 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 104.802 ms |  3.41 | 29 |   278.4 | 2096.0 |  13972.08 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  30.395 ms |  0.99 | 29 |   960.1 |  607.9 |  13799.62 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 |  38.198 ms |  1.24 | 29 |   764.0 |  764.0 |  14026.64 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 109.821 ms |  3.53 | 29 |   265.7 | 2196.4 | 102133.38 KB |        7.40 |
+| CsvHelper | .NET 8.0 | Asset | 50000 |  85.305 ms |  2.78 | 29 |   342.1 | 1706.1 |  13972.36 KB |        1.01 |
 
-###### `Neoverse N1` - PackageAssets Benchmark Results (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method | Scope |  Rows |      Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
-|---------- |------ |------ |----------:|------:|---:|-------:|-------:|-------------:|------------:|
-| Sep______ |   Row | 50000 |  11.94 ms |  1.00 | 29 | 2436.4 |  238.8 |      1.13 KB |        1.00 |
-| Sylvan___ |   Row | 50000 |  34.06 ms |  2.86 | 29 |  853.9 |  681.2 |      6.25 KB |        5.53 |
-| ReadLine_ |   Row | 50000 |  41.34 ms |  3.46 | 29 |  703.6 |  826.7 |  88608.43 KB |   78,422.67 |
-| CsvHelper |   Row | 50000 | 109.04 ms |  9.13 | 29 |  266.8 | 2180.8 |        21 KB |       18.59 |
-|           |       |       |           |       |    |        |        |              |             |
-| Sep______ |  Cols | 50000 |  14.87 ms |  1.00 | 29 | 1956.5 |  297.3 |      1.39 KB |        1.00 |
-| Sylvan___ |  Cols | 50000 |  40.24 ms |  2.71 | 29 |  722.8 |  804.8 |      6.25 KB |        4.50 |
-| ReadLine_ |  Cols | 50000 |  43.53 ms |  2.93 | 29 |  668.2 |  870.6 |  88608.43 KB |   63,808.04 |
-| CsvHelper |  Cols | 50000 | 157.57 ms | 10.60 | 29 |  184.6 | 3151.5 |    447.07 KB |      321.94 |
-|           |       |       |           |       |    |        |        |              |             |
-| Sep______ | Asset | 50000 |  69.29 ms |  1.00 | 29 |  419.8 | 1385.7 |  13800.13 KB |        1.00 |
-| Sylvan___ | Asset | 50000 | 103.63 ms |  1.49 | 29 |  280.7 | 2072.6 |  14024.48 KB |        1.02 |
-| ReadLine_ | Asset | 50000 | 159.70 ms |  2.31 | 29 |  182.1 | 3193.9 | 102134.85 KB |        7.40 |
-| CsvHelper | Asset | 50000 | 185.31 ms |  2.67 | 29 |  157.0 | 3706.1 |  13971.42 KB |        1.01 |
+|    Method |  Runtime | Scope |  Rows |       Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |-----------:|------:|---:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |   5.948 ms |  1.00 | 29 | 4905.8 |  119.0 |      1.14 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |   6.733 ms |  1.13 | 29 | 4334.0 |  134.7 |      7.18 KB |        6.29 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  27.988 ms |  4.70 | 29 | 1042.6 |  559.8 |  88608.29 KB |   77,617.53 |
+| CsvHelper | .NET 7.0 |   Row | 50000 | 114.902 ms | 19.31 | 29 |  254.0 | 2298.0 |     20.65 KB |       18.09 |
+| Sep______ | .NET 8.0 |   Row | 50000 |   5.440 ms |  0.91 | 29 | 5363.8 |  108.8 |      1.29 KB |        1.13 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |   6.383 ms |  1.07 | 29 | 4571.5 |  127.7 |      7.18 KB |        6.29 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  26.933 ms |  4.53 | 29 | 1083.5 |  538.7 |  88608.26 KB |   77,617.50 |
+| CsvHelper | .NET 8.0 |   Row | 50000 |  90.332 ms | 15.18 | 29 |  323.0 | 1806.6 |     20.69 KB |       18.12 |
+|           |          |       |       |            |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |   7.401 ms |  1.00 | 29 | 3942.7 |  148.0 |      1.15 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |  11.545 ms |  1.56 | 29 | 2527.5 |  230.9 |      7.19 KB |        6.28 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  28.892 ms |  3.90 | 29 | 1010.0 |  577.8 |  88608.29 KB |   77,352.84 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 | 157.705 ms | 21.31 | 29 |  185.0 | 3154.1 |     446.5 KB |      389.78 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |   6.683 ms |  0.90 | 29 | 4366.8 |  133.7 |       1.3 KB |        1.13 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |  10.417 ms |  1.41 | 29 | 2801.2 |  208.3 |      7.19 KB |        6.28 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  27.292 ms |  3.69 | 29 | 1069.2 |  545.8 |  88608.26 KB |   77,352.82 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 | 141.559 ms | 19.11 | 29 |  206.1 | 2831.2 |    446.45 KB |      389.74 |
+|           |          |       |       |            |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  58.708 ms |  1.00 | 29 |  497.1 | 1174.2 |  13799.65 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 |  76.436 ms |  1.31 | 29 |  381.8 | 1528.7 |  14025.71 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 174.574 ms |  3.00 | 29 |  167.2 | 3491.5 | 102133.35 KB |        7.40 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 172.747 ms |  2.95 | 29 |  168.9 | 3454.9 |  13970.85 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  55.672 ms |  0.95 | 29 |  524.2 | 1113.4 |  13800.53 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 |  71.428 ms |  1.22 | 29 |  408.5 | 1428.6 |  14026.38 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 162.203 ms |  2.76 | 29 |  179.9 | 3244.1 | 102133.69 KB |        7.40 |
+| CsvHelper | .NET 8.0 | Asset | 50000 | 161.805 ms |  2.76 | 29 |  180.3 | 3236.1 |   13970.8 KB |        1.01 |
+
+###### Neoverse.N1 - PackageAssets Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
+
+|    Method |  Runtime | Scope |  Rows |      Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |----------:|------:|---:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |  12.15 ms |  1.00 | 29 | 2393.9 |  243.0 |      1.11 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |  34.31 ms |  2.82 | 29 |  847.7 |  686.2 |      6.25 KB |        5.64 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  40.99 ms |  3.37 | 29 |  709.6 |  819.8 |  88608.34 KB |   79,942.68 |
+| CsvHelper | .NET 7.0 |   Row | 50000 | 107.97 ms |  8.89 | 29 |  269.4 | 2159.4 |     20.74 KB |       18.71 |
+| Sep______ | .NET 8.0 |   Row | 50000 |  12.01 ms |  0.99 | 29 | 2421.2 |  240.3 |       1.1 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |  30.14 ms |  2.48 | 29 |  965.0 |  602.8 |      6.09 KB |        5.50 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  39.05 ms |  3.21 | 29 |  744.9 |  780.9 |  88608.41 KB |   79,942.74 |
+| CsvHelper | .NET 8.0 |   Row | 50000 |  91.57 ms |  7.54 | 29 |  317.6 | 1831.5 |     20.77 KB |       18.74 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |  14.52 ms |  1.00 | 29 | 2002.8 |  290.5 |      1.12 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |  40.36 ms |  2.78 | 29 |  720.6 |  807.2 |      6.25 KB |        5.57 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  41.92 ms |  2.89 | 29 |  693.8 |  838.5 |  88608.36 KB |   78,899.97 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 | 156.03 ms | 10.74 | 29 |  186.4 | 3120.6 |    446.66 KB |      397.72 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |  14.24 ms |  0.98 | 29 | 2042.8 |  284.8 |      1.11 KB |        0.99 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |  35.23 ms |  2.43 | 29 |  825.6 |  704.6 |      6.11 KB |        5.44 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  37.10 ms |  2.55 | 29 |  784.0 |  742.0 |  88608.32 KB |   78,899.93 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 | 138.20 ms |  9.52 | 29 |  210.5 | 2763.9 |    446.61 KB |      397.68 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  70.16 ms |  1.00 | 29 |  414.5 | 1403.3 |  13800.75 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 | 107.28 ms |  1.53 | 29 |  271.1 | 2145.6 |  14025.09 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 159.87 ms |  2.27 | 29 |  181.9 | 3197.4 | 102134.11 KB |        7.40 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 189.44 ms |  2.69 | 29 |  153.5 | 3788.8 |  13973.66 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  67.72 ms |  0.96 | 29 |  429.5 | 1354.3 |  13800.73 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 | 100.09 ms |  1.43 | 29 |  290.6 | 2001.8 |  14024.23 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 144.19 ms |  2.06 | 29 |  201.7 | 2883.8 | 102134.74 KB |        7.40 |
+| CsvHelper | .NET 8.0 | Asset | 50000 | 170.81 ms |  2.43 | 29 |  170.3 | 3416.1 |  13971.32 KB |        1.01 |
+
 
 ##### PackageAssets with Quotes Benchmark Results
 `NCsvPerf` does not examine performance in the face of quotes in the csv. This
@@ -780,43 +842,98 @@ looking at the numbers. For each row of 25 columns, there are 24 separators
 Adding quotes around each of the 25 columns will add 50 characters or almost
 triple the total to 76.
 
-###### `AMD 5950X` - PackageAssets with Quotes Benchmark Results  (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+###### AMD.Ryzen.9.5950X - PackageAssets with Quotes Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method | Scope |  Rows |       Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
-|---------- |------ |------ |-----------:|------:|---:|-------:|-------:|-------------:|------------:|
-| Sep______ |   Row | 50000 |   6.936 ms |  1.00 | 33 | 4812.3 |  138.7 |      1.15 KB |        1.00 |
-| Sylvan___ |   Row | 50000 |  20.873 ms |  3.01 | 33 | 1599.1 |  417.5 |      7.33 KB |        6.35 |
-| ReadLine_ |   Row | 50000 |  15.593 ms |  2.23 | 33 | 2140.5 |  311.9 | 108778.78 KB |   94,238.13 |
-| CsvHelper |   Row | 50000 |  61.351 ms |  8.85 | 33 |  544.0 | 1227.0 |     20.65 KB |       17.89 |
-|           |       |       |            |       |    |        |        |              |             |
-| Sep______ |  Cols | 50000 |   7.753 ms |  1.00 | 33 | 4305.1 |  155.1 |      1.33 KB |        1.00 |
-| Sylvan___ |  Cols | 50000 |  23.848 ms |  2.99 | 33 | 1399.6 |  476.9 |      7.33 KB |        5.51 |
-| ReadLine_ |  Cols | 50000 |  16.048 ms |  2.03 | 33 | 2079.8 |  321.0 | 108778.78 KB |   81,783.75 |
-| CsvHelper |  Cols | 50000 |  96.011 ms | 12.01 | 33 |  347.6 | 1920.2 |     446.5 KB |      335.69 |
-|           |       |       |            |       |    |        |        |              |             |
-| Sep______ | Asset | 50000 |  38.192 ms |  1.00 | 33 |  873.9 |  763.8 |  13808.03 KB |        1.00 |
-| Sylvan___ | Asset | 50000 |  63.024 ms |  1.66 | 33 |  529.6 | 1260.5 |  14026.72 KB |        1.02 |
-| ReadLine_ | Asset | 50000 | 120.942 ms |  3.17 | 33 |  276.0 | 2418.8 | 122304.67 KB |        8.86 |
-| CsvHelper | Asset | 50000 | 110.273 ms |  2.92 | 33 |  302.7 | 2205.5 |  13970.79 KB |        1.01 |
+|    Method |  Runtime | Scope |  Rows |       Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |-----------:|------:|---:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |   7.414 ms |  1.00 | 33 | 4501.8 |  148.3 |      1.15 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |  21.528 ms |  2.91 | 33 | 1550.4 |  430.6 |      7.33 KB |        6.40 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  15.944 ms |  2.13 | 33 | 2093.4 |  318.9 | 108778.76 KB |   94,961.17 |
+| CsvHelper | .NET 7.0 |   Row | 50000 |  68.558 ms |  9.26 | 33 |  486.8 | 1371.2 |     20.65 KB |       18.03 |
+| Sep______ | .NET 8.0 |   Row | 50000 |   6.773 ms |  0.91 | 33 | 4928.3 |  135.5 |      1.14 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |  18.409 ms |  2.47 | 33 | 1813.1 |  368.2 |       7.2 KB |        6.28 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  14.955 ms |  2.03 | 33 | 2231.9 |  299.1 | 108778.75 KB |   94,961.16 |
+| CsvHelper | .NET 8.0 |   Row | 50000 |  53.158 ms |  7.17 | 33 |  627.9 | 1063.2 |      20.6 KB |       17.98 |
+|           |          |       |       |            |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |   7.723 ms |  1.00 | 33 | 4321.6 |  154.5 |      1.15 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |  23.941 ms |  3.10 | 33 | 1394.2 |  478.8 |      7.33 KB |        6.40 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  16.261 ms |  2.11 | 33 | 2052.6 |  325.2 | 108778.75 KB |   94,880.28 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 |  90.538 ms | 11.65 | 33 |  368.7 | 1810.8 |    446.31 KB |      389.29 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |   7.323 ms |  0.95 | 33 | 4557.6 |  146.5 |      1.14 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |  21.064 ms |  2.73 | 33 | 1584.6 |  421.3 |      7.31 KB |        6.38 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  15.523 ms |  2.02 | 33 | 2150.2 |  310.5 | 108778.75 KB |   94,880.27 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 |  84.033 ms | 10.81 | 33 |  397.2 | 1680.7 |    446.35 KB |      389.32 |
+|           |          |       |       |            |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  38.130 ms |  1.00 | 33 |  875.4 |  762.6 |  13808.03 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 |  61.626 ms |  1.62 | 33 |  541.6 | 1232.5 |  14025.04 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 125.779 ms |  3.33 | 33 |  265.4 | 2515.6 | 122304.12 KB |        8.86 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 114.214 ms |  3.00 | 33 |  292.2 | 2284.3 |  13971.43 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  34.585 ms |  0.91 | 33 |  965.1 |  691.7 |  13808.01 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 |  53.850 ms |  1.41 | 33 |  619.8 | 1077.0 |  14025.15 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 115.295 ms |  3.02 | 33 |  289.5 | 2305.9 | 122304.01 KB |        8.86 |
+| CsvHelper | .NET 8.0 | Asset | 50000 |  99.115 ms |  2.60 | 33 |  336.8 | 1982.3 |  13970.79 KB |        1.01 |
 
-###### `Neoverse N1` - PackageAssets with Quotes Benchmark Results (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets with Quotes Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method | Scope |  Rows |      Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
-|---------- |------ |------ |----------:|------:|---:|-------:|-------:|-------------:|------------:|
-| Sep______ |   Row | 50000 |  25.17 ms |  1.00 | 33 | 1322.5 |  503.3 |      1.39 KB |        1.00 |
-| Sylvan___ |   Row | 50000 |  45.92 ms |  1.82 | 33 |  724.8 |  918.4 |      6.25 KB |        4.50 |
-| ReadLine_ |   Row | 50000 |  50.73 ms |  2.01 | 33 |  656.0 | 1014.7 | 108779.08 KB |   78,333.18 |
-| CsvHelper |   Row | 50000 | 121.14 ms |  4.81 | 33 |  274.7 | 2422.8 |        21 KB |       15.13 |
-|           |       |       |           |       |    |        |        |              |             |
-| Sep______ |  Cols | 50000 |  27.98 ms |  1.00 | 33 | 1189.4 |  559.7 |      1.39 KB |        1.00 |
-| Sylvan___ |  Cols | 50000 |  53.35 ms |  1.91 | 33 |  623.8 | 1067.1 |      7.01 KB |        5.05 |
-| ReadLine_ |  Cols | 50000 |  51.20 ms |  1.83 | 33 |  650.0 | 1024.1 | 108778.93 KB |   78,333.07 |
-| CsvHelper |  Cols | 50000 | 178.67 ms |  6.38 | 33 |  186.3 | 3573.3 |    447.07 KB |      321.94 |
-|           |       |       |           |       |    |        |        |              |             |
-| Sep______ | Asset | 50000 |  84.66 ms |  1.00 | 33 |  393.1 | 1693.2 |  13810.64 KB |        1.00 |
-| Sylvan___ | Asset | 50000 | 115.08 ms |  1.36 | 33 |  289.2 | 2301.6 |  14024.41 KB |        1.02 |
-| ReadLine_ | Asset | 50000 | 189.87 ms |  2.24 | 33 |  175.3 | 3797.4 | 122305.42 KB |        8.86 |
-| CsvHelper | Asset | 50000 | 207.91 ms |  2.45 | 33 |  160.1 | 4158.3 |  13971.42 KB |        1.01 |
+|    Method |  Runtime | Scope |  Rows |      Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |----------:|------:|---:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |  15.13 ms |  1.00 | 33 | 2206.5 |  302.5 |      1.17 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |  42.25 ms |  2.80 | 33 |  790.0 |  845.0 |      7.26 KB |        6.22 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  32.95 ms |  2.18 | 33 | 1013.0 |  659.0 | 108778.78 KB |   93,135.01 |
+| CsvHelper | .NET 7.0 |   Row | 50000 | 121.55 ms |  8.03 | 33 |  274.6 | 2431.1 |     20.84 KB |       17.84 |
+| Sep______ | .NET 8.0 |   Row | 50000 |  12.34 ms |  0.82 | 33 | 2705.0 |  246.8 |      1.31 KB |        1.12 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |  35.42 ms |  2.34 | 33 |  942.4 |  708.4 |      7.24 KB |        6.20 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  32.15 ms |  2.13 | 33 | 1038.3 |  642.9 | 108778.77 KB |   93,135.00 |
+| CsvHelper | .NET 8.0 |   Row | 50000 | 104.02 ms |  6.88 | 33 |  320.9 | 2080.4 |     20.69 KB |       17.72 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |  15.80 ms |  1.00 | 33 | 2112.6 |  316.0 |      1.18 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |  45.83 ms |  2.91 | 33 |  728.3 |  916.6 |      7.33 KB |        6.24 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  33.98 ms |  2.15 | 33 |  982.2 |  679.7 | 108778.78 KB |   92,516.17 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 | 177.61 ms | 11.23 | 33 |  187.9 | 3552.2 |    446.43 KB |      379.69 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |  15.59 ms |  0.99 | 33 | 2140.6 |  311.8 |       1.5 KB |        1.28 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |  38.85 ms |  2.46 | 33 |  859.2 |  777.0 |      7.25 KB |        6.16 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  32.64 ms |  2.06 | 33 | 1022.6 |  652.8 | 108778.77 KB |   92,516.16 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 | 161.84 ms | 10.23 | 33 |  206.2 | 3236.9 |    446.45 KB |      379.70 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  71.19 ms |  1.00 | 33 |  468.9 | 1423.8 |  13808.03 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 | 106.82 ms |  1.50 | 33 |  312.5 | 2136.5 |  14025.33 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 205.79 ms |  2.89 | 33 |  162.2 | 4115.9 | 122304.11 KB |        8.86 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 192.54 ms |  2.71 | 33 |  173.3 | 3850.9 |  13970.85 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  52.18 ms |  0.74 | 33 |  639.6 | 1043.7 |  13808.73 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 |  96.05 ms |  1.35 | 33 |  347.5 | 1921.0 |  14026.75 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 202.80 ms |  2.82 | 33 |  164.6 | 4056.0 | 122304.21 KB |        8.86 |
+| CsvHelper | .NET 8.0 | Asset | 50000 | 179.61 ms |  2.52 | 33 |  185.8 | 3592.1 |   13970.8 KB |        1.01 |
+
+###### Neoverse.N1 - PackageAssets with Quotes Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
+
+|    Method |  Runtime | Scope |  Rows |      Mean | Ratio | MB |   MB/s | ns/row |    Allocated | Alloc Ratio |
+|---------- |--------- |------ |------ |----------:|------:|---:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 7.0 |   Row | 50000 |  25.47 ms |  1.00 | 33 | 1306.5 |  509.5 |      1.39 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Row | 50000 |  46.21 ms |  1.81 | 33 |  720.2 |  924.2 |      6.25 KB |        4.50 |
+| ReadLine_ | .NET 7.0 |   Row | 50000 |  49.46 ms |  1.94 | 33 |  673.0 |  989.1 | 108778.86 KB |   78,333.02 |
+| CsvHelper | .NET 7.0 |   Row | 50000 | 121.28 ms |  4.76 | 33 |  274.4 | 2425.6 |     20.74 KB |       14.93 |
+| Sep______ | .NET 8.0 |   Row | 50000 |  23.43 ms |  0.92 | 33 | 1420.5 |  468.6 |      1.36 KB |        0.98 |
+| Sylvan___ | .NET 8.0 |   Row | 50000 |  39.42 ms |  1.55 | 33 |  844.2 |  788.5 |      6.11 KB |        4.40 |
+| ReadLine_ | .NET 8.0 |   Row | 50000 |  47.68 ms |  1.87 | 33 |  698.1 |  953.5 | 108778.91 KB |   78,333.05 |
+| CsvHelper | .NET 8.0 |   Row | 50000 | 107.00 ms |  4.20 | 33 |  311.0 | 2140.1 |     20.77 KB |       14.96 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 |  Cols | 50000 |  28.30 ms |  1.00 | 33 | 1175.9 |  566.1 |      1.39 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |  Cols | 50000 |  53.39 ms |  1.89 | 33 |  623.4 | 1067.8 |      6.25 KB |        4.50 |
+| ReadLine_ | .NET 7.0 |  Cols | 50000 |  50.71 ms |  1.79 | 33 |  656.3 | 1014.2 | 108778.93 KB |   78,333.07 |
+| CsvHelper | .NET 7.0 |  Cols | 50000 | 180.08 ms |  6.36 | 33 |  184.8 | 3601.5 |    446.66 KB |      321.65 |
+| Sep______ | .NET 8.0 |  Cols | 50000 |  25.68 ms |  0.91 | 33 | 1295.8 |  513.7 |      1.36 KB |        0.98 |
+| Sylvan___ | .NET 8.0 |  Cols | 50000 |  45.33 ms |  1.61 | 33 |  734.2 |  906.6 |      6.15 KB |        4.43 |
+| ReadLine_ | .NET 8.0 |  Cols | 50000 |  44.96 ms |  1.59 | 33 |  740.3 |  899.2 | 108778.91 KB |   78,333.05 |
+| CsvHelper | .NET 8.0 |  Cols | 50000 | 153.04 ms |  5.41 | 33 |  217.5 | 3060.7 |    446.61 KB |      321.61 |
+|           |          |       |       |           |       |    |        |        |              |             |
+| Sep______ | .NET 7.0 | Asset | 50000 |  88.20 ms |  1.00 | 33 |  377.4 | 1764.0 |  13808.62 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Asset | 50000 | 115.22 ms |  1.31 | 33 |  288.9 | 2304.4 |  14024.52 KB |        1.02 |
+| ReadLine_ | .NET 7.0 | Asset | 50000 | 200.14 ms |  2.28 | 33 |  166.3 | 4002.9 | 122305.55 KB |        8.86 |
+| CsvHelper | .NET 7.0 | Asset | 50000 | 208.19 ms |  2.35 | 33 |  159.9 | 4163.8 |  13971.42 KB |        1.01 |
+| Sep______ | .NET 8.0 | Asset | 50000 |  84.89 ms |  0.96 | 33 |  392.1 | 1697.7 |  13808.47 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 50000 | 109.42 ms |  1.24 | 33 |  304.2 | 2188.4 |   14025.4 KB |        1.02 |
+| ReadLine_ | .NET 8.0 | Asset | 50000 | 190.83 ms |  2.19 | 33 |  174.4 | 3816.6 | 122305.06 KB |        8.86 |
+| CsvHelper | .NET 8.0 | Asset | 50000 | 185.03 ms |  2.09 | 33 |  179.9 | 3700.5 |  13972.06 KB |        1.01 |
 
 
 #### Floats Reader Comparison Benchmarks
@@ -883,43 +1000,99 @@ naive `ReadLine` approach. With Sep being **>3.8x faster than CsvHelper**.
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings. 
 
-##### `AMD 5950X` - Floats Benchmark Results (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method |  Scope |  Rows |       Mean | Ratio | MB |    MB/s | ns/row |   Allocated | Alloc Ratio |
-|---------- |------- |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
-| Sep______ |    Row | 25000 |   2.655 ms |  1.00 | 27 | 10270.5 |  106.2 |     1.63 KB |        1.00 |
-| Sylvan___ |    Row | 25000 |   3.141 ms |  1.17 | 27 |  8680.9 |  125.6 |    10.61 KB |        6.51 |
-| ReadLine_ |    Row | 25000 |  13.953 ms |  5.24 | 27 |  1954.0 |  558.1 | 89986.87 KB |   55,243.74 |
-| CsvHelper |    Row | 25000 |  49.216 ms | 18.71 | 27 |   554.0 | 1968.7 |    20.74 KB |       12.73 |
-|           |        |       |            |       |    |         |        |             |             |
-| Sep______ |   Cols | 25000 |   3.054 ms |  1.00 | 27 |  8927.5 |  122.2 |     1.63 KB |        1.00 |
-| Sylvan___ |   Cols | 25000 |   4.956 ms |  1.62 | 27 |  5500.8 |  198.3 |    10.56 KB |        6.49 |
-| ReadLine_ |   Cols | 25000 |  13.977 ms |  4.55 | 27 |  1950.6 |  559.1 | 89986.87 KB |   55,243.74 |
-| CsvHelper |   Cols | 25000 |  52.276 ms | 17.14 | 27 |   521.5 | 2091.0 | 28451.27 KB |   17,466.49 |
-|           |        |       |            |       |    |         |        |             |             |
-| Sep______ | Floats | 25000 |  33.263 ms |  1.00 | 27 |   819.6 | 1330.5 |      9.1 KB |        1.00 |
-| Sylvan___ | Floats | 25000 |  72.137 ms |  2.17 | 27 |   377.9 | 2885.5 |    19.11 KB |        2.10 |
-| ReadLine_ | Floats | 25000 |  83.109 ms |  2.50 | 27 |   328.0 | 3324.3 | 89993.63 KB |    9,894.08 |
-| CsvHelper | Floats | 25000 | 128.119 ms |  3.86 | 27 |   212.8 | 5124.7 | 22039.48 KB |    2,423.07 |
+|    Method |  Runtime |  Scope |  Rows |       Mean | Ratio | MB |    MB/s | ns/row |   Allocated | Alloc Ratio |
+|---------- |--------- |------- |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
+| Sep______ | .NET 7.0 |    Row | 25000 |   2.689 ms |  1.00 | 27 | 10137.6 |  107.6 |     1.56 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |    Row | 25000 |   3.017 ms |  1.12 | 27 |  9036.1 |  120.7 |    10.55 KB |        6.78 |
+| ReadLine_ | .NET 7.0 |    Row | 25000 |  13.916 ms |  5.14 | 27 |  1959.1 |  556.6 | 89986.83 KB |   57,808.36 |
+| CsvHelper | .NET 7.0 |    Row | 25000 |  49.716 ms | 18.60 | 27 |   548.4 | 1988.7 |    20.74 KB |       13.32 |
+| Sep______ | .NET 8.0 |    Row | 25000 |   2.610 ms |  0.97 | 27 | 10445.9 |  104.4 |     1.56 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |    Row | 25000 |   2.968 ms |  1.10 | 27 |  9185.7 |  118.7 |    10.55 KB |        6.78 |
+| ReadLine_ | .NET 8.0 |    Row | 25000 |  13.343 ms |  4.98 | 27 |  2043.3 |  533.7 | 89986.83 KB |   57,808.35 |
+| CsvHelper | .NET 8.0 |    Row | 25000 |  34.199 ms | 12.72 | 27 |   797.2 | 1368.0 |    20.61 KB |       13.24 |
+|           |          |        |       |            |       |    |         |        |             |             |
+| Sep______ | .NET 7.0 |   Cols | 25000 |   3.097 ms |  1.00 | 27 |  8804.5 |  123.9 |     1.56 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Cols | 25000 |   4.980 ms |  1.61 | 27 |  5474.5 |  199.2 |    10.56 KB |        6.77 |
+| ReadLine_ | .NET 7.0 |   Cols | 25000 |  13.959 ms |  4.51 | 27 |  1953.2 |  558.3 | 89986.84 KB |   57,735.92 |
+| CsvHelper | .NET 7.0 |   Cols | 25000 |  53.680 ms | 17.10 | 27 |   507.9 | 2147.2 | 28451.27 KB |   18,254.45 |
+| Sep______ | .NET 8.0 |   Cols | 25000 |   3.059 ms |  0.99 | 27 |  8912.6 |  122.4 |     1.56 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |   Cols | 25000 |   4.840 ms |  1.56 | 27 |  5632.9 |  193.6 |    10.55 KB |        6.77 |
+| ReadLine_ | .NET 8.0 |   Cols | 25000 |  13.615 ms |  4.40 | 27 |  2002.4 |  544.6 | 89986.83 KB |   57,735.91 |
+| CsvHelper | .NET 8.0 |   Cols | 25000 |  37.445 ms | 12.09 | 27 |   728.1 | 1497.8 | 28451.15 KB |   18,254.37 |
+|           |          |        |       |            |       |    |         |        |             |             |
+| Sep______ | .NET 7.0 | Floats | 25000 |  33.069 ms |  1.00 | 27 |   824.4 | 1322.8 |     8.89 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Floats | 25000 |  71.582 ms |  2.16 | 27 |   380.9 | 2863.3 |    18.86 KB |        2.12 |
+| ReadLine_ | .NET 7.0 | Floats | 25000 |  82.038 ms |  2.48 | 27 |   332.3 | 3281.5 | 89993.42 KB |   10,122.28 |
+| CsvHelper | .NET 7.0 | Floats | 25000 | 127.852 ms |  3.86 | 27 |   213.2 | 5114.1 | 22039.48 KB |    2,478.96 |
+| Sep______ | .NET 8.0 | Floats | 25000 |  22.521 ms |  0.68 | 27 |  1210.6 |  900.8 |     9.11 KB |        1.02 |
+| Sylvan___ | .NET 8.0 | Floats | 25000 |  65.072 ms |  1.97 | 27 |   419.0 | 2602.9 |    18.84 KB |        2.12 |
+| ReadLine_ | .NET 8.0 | Floats | 25000 |  72.803 ms |  2.20 | 27 |   374.5 | 2912.1 |  89990.3 KB |   10,121.93 |
+| CsvHelper | .NET 8.0 | Floats | 25000 | 112.180 ms |  3.39 | 27 |   243.0 | 4487.2 | 22035.55 KB |    2,478.51 |
 
-##### `Neoverse N1` - Floats Benchmark Results (Sep 0.2.1, Sylvan 1.3.2, CsvHelper 30.0.1)
+##### Intel.Xeon.Silver.4316.2.30GHz - FloatsReader Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
 
-|    Method |  Scope |  Rows |      Mean | Ratio | MB |   MB/s |  ns/row |   Allocated | Alloc Ratio |
-|---------- |------- |------ |----------:|------:|---:|-------:|--------:|------------:|------------:|
-| Sep______ |    Row | 25000 |  11.46 ms |  1.00 | 27 | 2374.1 |   458.5 |     1.89 KB |        1.00 |
-| Sylvan___ |    Row | 25000 |  36.77 ms |  3.21 | 27 |  740.2 |  1470.8 |    10.48 KB |        5.54 |
-| ReadLine_ |    Row | 25000 |  42.43 ms |  3.70 | 27 |  641.4 |  1697.2 | 89987.08 KB |   47,547.36 |
-| CsvHelper |    Row | 25000 |  84.49 ms |  7.37 | 27 |  322.1 |  3379.7 |    21.74 KB |       11.49 |
-|           |        |       |           |       |    |        |         |             |             |
-| Sep______ |   Cols | 25000 |  14.36 ms |  1.00 | 27 | 1895.9 |   574.2 |     1.89 KB |        1.00 |
-| Sylvan___ |   Cols | 25000 |  42.33 ms |  2.95 | 27 |  642.9 |  1693.4 |    11.48 KB |        6.07 |
-| ReadLine_ |   Cols | 25000 |  44.04 ms |  3.08 | 27 |  618.0 |  1761.4 | 89987.08 KB |   47,547.36 |
-| CsvHelper |   Cols | 25000 |  90.92 ms |  6.33 | 27 |  299.3 |  3636.8 | 28457.72 KB |   15,036.49 |
-|           |        |       |           |       |    |        |         |             |             |
-| Sep______ | Floats | 25000 |  64.87 ms |  1.00 | 27 |  419.5 |  2594.9 |     9.12 KB |        1.00 |
-| Sylvan___ | Floats | 25000 | 210.41 ms |  3.24 | 27 |  129.3 |  8416.3 |    19.55 KB |        2.15 |
-| ReadLine_ | Floats | 25000 | 217.31 ms |  3.35 | 27 |  125.2 |  8692.5 | 89994.37 KB |    9,872.96 |
-| CsvHelper | Floats | 25000 | 296.95 ms |  4.58 | 27 |   91.7 | 11877.9 | 22040.05 KB |    2,417.94 |
+|    Method |  Runtime |  Scope |  Rows |       Mean | Ratio | MB |   MB/s |  ns/row |   Allocated | Alloc Ratio |
+|---------- |--------- |------- |------ |-----------:|------:|---:|-------:|--------:|------------:|------------:|
+| Sep______ | .NET 7.0 |    Row | 25000 |   5.417 ms |  1.00 | 27 | 5033.3 |   216.7 |     1.57 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |    Row | 25000 |   6.328 ms |  1.17 | 27 | 4308.3 |   253.1 |    10.56 KB |        6.74 |
+| ReadLine_ | .NET 7.0 |    Row | 25000 |  28.805 ms |  5.35 | 27 |  946.5 |  1152.2 |  89986.9 KB |   57,412.20 |
+| CsvHelper | .NET 7.0 |    Row | 25000 |  76.930 ms | 14.20 | 27 |  354.4 |  3077.2 |    20.74 KB |       13.23 |
+| Sep______ | .NET 8.0 |    Row | 25000 |   5.841 ms |  1.08 | 27 | 4667.7 |   233.6 |     1.72 KB |        1.10 |
+| Sylvan___ | .NET 8.0 |    Row | 25000 |   6.526 ms |  1.20 | 27 | 4177.8 |   261.0 |    10.56 KB |        6.74 |
+| ReadLine_ | .NET 8.0 |    Row | 25000 |  28.041 ms |  5.18 | 27 |  972.3 |  1121.7 |  89986.9 KB |   57,412.20 |
+| CsvHelper | .NET 8.0 |    Row | 25000 |  77.364 ms | 14.27 | 27 |  352.4 |  3094.5 |    20.77 KB |       13.25 |
+|           |          |        |       |            |       |    |        |         |             |             |
+| Sep______ | .NET 7.0 |   Cols | 25000 |   6.921 ms |  1.00 | 27 | 3939.4 |   276.8 |     1.57 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Cols | 25000 |  10.300 ms |  1.49 | 27 | 2647.0 |   412.0 |    10.58 KB |        6.72 |
+| ReadLine_ | .NET 7.0 |   Cols | 25000 |  29.077 ms |  4.19 | 27 |  937.6 |  1163.1 |  89986.9 KB |   57,198.38 |
+| CsvHelper | .NET 7.0 |   Cols | 25000 |  95.212 ms | 13.76 | 27 |  286.3 |  3808.5 | 28451.27 KB |   18,084.48 |
+| Sep______ | .NET 8.0 |   Cols | 25000 |   6.685 ms |  0.97 | 27 | 4078.0 |   267.4 |     1.73 KB |        1.10 |
+| Sylvan___ | .NET 8.0 |   Cols | 25000 |   9.724 ms |  1.41 | 27 | 2803.8 |   388.9 |    10.57 KB |        6.72 |
+| ReadLine_ | .NET 8.0 |   Cols | 25000 |  27.190 ms |  3.94 | 27 | 1002.7 |  1087.6 | 89986.89 KB |   57,198.37 |
+| CsvHelper | .NET 8.0 |   Cols | 25000 |  81.925 ms | 11.88 | 27 |  332.8 |  3277.0 | 28451.84 KB |   18,084.85 |
+|           |          |        |       |            |       |    |        |         |             |             |
+| Sep______ | .NET 7.0 | Floats | 25000 |  61.789 ms |  1.00 | 27 |  441.2 |  2471.6 |      9.1 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Floats | 25000 | 146.737 ms |  2.37 | 27 |  185.8 |  5869.5 |    19.62 KB |        2.16 |
+| ReadLine_ | .NET 7.0 | Floats | 25000 | 168.368 ms |  2.73 | 27 |  161.9 |  6734.7 | 89993.63 KB |    9,894.08 |
+| CsvHelper | .NET 7.0 | Floats | 25000 | 264.441 ms |  4.28 | 27 |  103.1 | 10577.6 | 22039.48 KB |    2,423.07 |
+| Sep______ | .NET 8.0 | Floats | 25000 |  44.122 ms |  0.71 | 27 |  617.9 |  1764.9 |     9.08 KB |        1.00 |
+| Sylvan___ | .NET 8.0 | Floats | 25000 | 135.504 ms |  2.19 | 27 |  201.2 |  5420.2 |    19.07 KB |        2.10 |
+| ReadLine_ | .NET 8.0 | Floats | 25000 | 151.400 ms |  2.45 | 27 |  180.1 |  6056.0 | 89990.48 KB |    9,893.74 |
+| CsvHelper | .NET 8.0 | Floats | 25000 | 231.426 ms |  3.75 | 27 |  117.8 |  9257.1 | 22036.58 KB |    2,422.75 |
+
+##### Neoverse.N1 - FloatsReader Benchmark Results (Sep 0.2.3, Sylvan  1.3.2.0, CsvHelper 30.0.1.0)
+
+|    Method |  Runtime |  Scope |  Rows |      Mean | Ratio | MB |   MB/s |  ns/row |   Allocated | Alloc Ratio |
+|---------- |--------- |------- |------ |----------:|------:|---:|-------:|--------:|------------:|------------:|
+| Sep______ | .NET 7.0 |    Row | 25000 |  11.54 ms |  1.00 | 27 | 2359.4 |   461.4 |     1.54 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |    Row | 25000 |  37.00 ms |  3.21 | 27 |  735.6 |  1479.9 |    10.48 KB |        6.80 |
+| ReadLine_ | .NET 7.0 |    Row | 25000 |  40.34 ms |  3.50 | 27 |  674.7 |  1613.6 | 89986.96 KB |   58,394.58 |
+| CsvHelper | .NET 7.0 |    Row | 25000 |  84.31 ms |  7.31 | 27 |  322.8 |  3372.4 |    20.82 KB |       13.51 |
+| Sep______ | .NET 8.0 |    Row | 25000 |  11.63 ms |  1.01 | 27 | 2339.4 |   465.3 |     1.54 KB |        1.00 |
+| Sylvan___ | .NET 8.0 |    Row | 25000 |  38.26 ms |  3.32 | 27 |  711.3 |  1530.4 |     10.3 KB |        6.69 |
+| ReadLine_ | .NET 8.0 |    Row | 25000 |  40.77 ms |  3.53 | 27 |  667.5 |  1630.8 | 89987.06 KB |   58,394.64 |
+| CsvHelper | .NET 8.0 |    Row | 25000 |  79.69 ms |  6.91 | 27 |  341.5 |  3187.7 |    20.86 KB |       13.53 |
+|           |          |        |       |           |       |    |        |         |             |             |
+| Sep______ | .NET 7.0 |   Cols | 25000 |  13.37 ms |  1.00 | 27 | 2035.0 |   535.0 |     1.55 KB |        1.00 |
+| Sylvan___ | .NET 7.0 |   Cols | 25000 |  41.82 ms |  3.13 | 27 |  650.8 |  1672.8 |    10.48 KB |        6.74 |
+| ReadLine_ | .NET 7.0 |   Cols | 25000 |  42.16 ms |  3.15 | 27 |  645.5 |  1686.4 | 89986.99 KB |   57,881.08 |
+| CsvHelper | .NET 7.0 |   Cols | 25000 |  90.73 ms |  6.79 | 27 |  300.0 |  3629.2 | 28451.35 KB |   18,300.37 |
+| Sep______ | .NET 8.0 |   Cols | 25000 |  13.74 ms |  1.03 | 27 | 1980.9 |   549.6 |     1.55 KB |        0.99 |
+| Sylvan___ | .NET 8.0 |   Cols | 25000 |  42.55 ms |  3.18 | 27 |  639.7 |  1701.9 |    10.33 KB |        6.64 |
+| ReadLine_ | .NET 8.0 |   Cols | 25000 |  38.88 ms |  2.90 | 27 |  700.0 |  1555.1 | 89987.06 KB |   57,881.12 |
+| CsvHelper | .NET 8.0 |   Cols | 25000 |  85.89 ms |  6.42 | 27 |  316.9 |  3435.7 | 28451.39 KB |   18,300.39 |
+|           |          |        |       |           |       |    |        |         |             |             |
+| Sep______ | .NET 7.0 | Floats | 25000 |  64.82 ms |  1.00 | 27 |  419.9 |  2592.6 |     9.12 KB |        1.00 |
+| Sylvan___ | .NET 7.0 | Floats | 25000 | 209.21 ms |  3.23 | 27 |  130.1 |  8368.4 |    19.55 KB |        2.15 |
+| ReadLine_ | .NET 7.0 | Floats | 25000 | 214.76 ms |  3.31 | 27 |  126.7 |  8590.6 | 89994.37 KB |    9,872.96 |
+| CsvHelper | .NET 7.0 | Floats | 25000 | 297.94 ms |  4.60 | 27 |   91.3 | 11917.5 | 22040.05 KB |    2,417.94 |
+| Sep______ | .NET 8.0 | Floats | 25000 |  53.37 ms |  0.82 | 27 |  510.0 |  2134.7 |     8.95 KB |        0.98 |
+| Sylvan___ | .NET 8.0 | Floats | 25000 | 164.95 ms |  2.55 | 27 |  165.0 |  6598.0 |    18.84 KB |        2.07 |
+| ReadLine_ | .NET 8.0 | Floats | 25000 | 160.20 ms |  2.47 | 27 |  169.9 |  6408.1 | 89990.64 KB |    9,872.55 |
+| CsvHelper | .NET 8.0 | Floats | 25000 | 231.15 ms |  3.57 | 27 |  117.7 |  9245.8 | 22037.14 KB |    2,417.62 |
+
 
 ### Writer Comparison Benchmarks
 Writer benchmarks are still pending, but Sep is unlikely to be the fastest here

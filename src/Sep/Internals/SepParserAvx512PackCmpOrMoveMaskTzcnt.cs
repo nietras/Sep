@@ -1,28 +1,30 @@
-﻿using System;
+﻿#if NET8_0_OR_GREATER
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
-using Vec = System.Runtime.Intrinsics.Vector64;
-using VecUI16 = System.Runtime.Intrinsics.Vector64<ushort>;
-using VecUI8 = System.Runtime.Intrinsics.Vector64<byte>;
+using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
+using Vec = System.Runtime.Intrinsics.Vector512;
+using VecI16 = System.Runtime.Intrinsics.Vector512<short>;
+using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
+sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly byte _separator;
-    readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
     internal nuint _quoting = 0;
 
-    public unsafe SepParserVector64NrwCmpExtMsbTzcnt(Sep sep)
+    public unsafe SepParserAvx512PackCmpOrMoveMaskTzcnt(Sep sep)
     {
+        A.Assert(Environment.Is64BitProcess);
         _separator = (byte)sep.Separator;
         _sps = Vec.Create(_separator);
     }
@@ -56,7 +58,6 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - VecUI8.Count);
 
         // Use instance fields to force values into registers
-        var max = _max;
         var nls = _nls; //Vec.Create(LineFeedByte);
         var crs = _crs; //Vec.Create(CarriageReturnByte);
         var qts = _qts; //Vec.Create(QuoteByte);
@@ -66,11 +67,12 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
              charsRef = ref Add(ref charsRef, VecUI8.Count))
         {
             ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecUI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
-            var limit0 = Vec.Min(v0, max);
-            var limit1 = Vec.Min(v1, max);
-            var bytes = Vec.Narrow(limit0, limit1);
+            var v0 = ReadUnaligned<VecI16>(ref byteRef);
+            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+            var packed = ISA.PackUnsignedSaturate(v0, v1);
+            // Pack interleaves the two vectors need to permute them back
+            var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
+            var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
 
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);
@@ -82,10 +84,10 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars.ExtractMostSignificantBits();
+            var specialCharMask = (nuint)Vec.ExtractMostSignificantBits(specialChars);
             if (specialCharMask != 0)
             {
-                var separatorsMask = spsEq.ExtractMostSignificantBits();
+                var separatorsMask = (nuint)Vec.ExtractMostSignificantBits(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoting;
@@ -96,7 +98,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators.ExtractMostSignificantBits();
+                    var separatorLineEndingsMask = (nuint)Vec.ExtractMostSignificantBits(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(
@@ -143,3 +145,4 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         return charsIndex;
     }
 }
+#endif

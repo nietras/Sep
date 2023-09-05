@@ -83,7 +83,6 @@ public class InterpolatedStringHandlerTest
         internal string GetFormattedText() => builder.ToString();
     }
 
-    /// <summary>Provides a handler used by the language compiler to append interpolated strings into <see cref="Col"/> instances.</summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [InterpolatedStringHandler]
     public readonly struct FormatInterpolatedStringHandler

@@ -34,7 +34,7 @@ public partial class SepReader : IDisposable
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
     // force chars buffer management paths to be used.
-    internal const int CharsMinimumLength = 32;
+    internal const int CharsMinimumLength = 64;
 #else
     // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
     // Benchmarks show below to be a good minimum length.
@@ -93,11 +93,11 @@ public partial class SepReader : IDisposable
         }
         else
         {
-            _charsPaddingLength = 32;
+            _charsPaddingLength = 64;
             _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
         }
 
-        var paddingLength = _parser?.PaddingLength ?? 32;
+        var paddingLength = _parser?.PaddingLength ?? 64;
 
         _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsMaximumLength, paddingLength * 2));
 

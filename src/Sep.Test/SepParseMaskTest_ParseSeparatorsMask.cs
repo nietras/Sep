@@ -10,20 +10,20 @@ namespace nietras.SeparatedValues.Test;
 
 public partial class SepParseMaskTest
 {
-    sealed record Data(int Mask, int[] Expected);
+    sealed record Data(nuint Mask, int[] Expected);
 
     public delegate ref int ParseSeparatorsMaskMethod(
-        int mask, int charsIndex, ref int colEndsRef);
+        nuint mask, int charsIndex, ref int colEndsRef);
 
     static readonly Data[] s_data = new Data[]
     {
         new(0b0000_0000_0100_0001, new[] { 0, 6, }),
         new(0b1000_1001_0100_0001, new[] { 0, 6, 8, 11, 15 }),
-        new(-1, Enumerable.Range(0, 32).ToArray()),
+        new(nuint.MaxValue, Enumerable.Range(0, s_nativeBitSize).ToArray()),
         // Empty mask will output index after mask, that is expected, check mask
         // before calling parse mask. Some methods will not do the same since
         // using PopCount.
-        // new(0, new[] { 32 }),
+        // new(0, new[] { s_nativeBitSize }),
     };
 
     static IEnumerable<object[]> Methods => new object[][]
@@ -44,9 +44,9 @@ public partial class SepParseMaskTest
     }
 
     static void AssertParseSeparatorsMask(
-        int mask, ParseSeparatorsMaskMethod parse, int[] expected)
+        nuint mask, ParseSeparatorsMaskMethod parse, int[] expected)
     {
-        Span<int> colEnds = stackalloc int[32 + 1];
+        Span<int> colEnds = stackalloc int[s_nativeBitSize + 1];
         ref var start = ref MemoryMarshal.GetReference(colEnds);
 
         ref var end = ref parse(mask, CharsIndexOffset, ref start);

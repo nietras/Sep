@@ -26,7 +26,7 @@ public partial class SepParseMaskTest
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 0,
             lineNumber: 2, expectedLineNumber: 2);
 
-        AssertParseAnyCharsMask(new string('a', 31) + "\r\n", new[] { 31 },
+        AssertParseAnyCharsMask(new string('a', s_nativeBitSize - 1) + "\r\n", new[] { s_nativeBitSize - 1 },
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
     }
@@ -46,23 +46,23 @@ public partial class SepParseMaskTest
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 4);
 
-        AssertParseAnyCharsMask("\"" + new string('a', 30) + "\r\n", Array.Empty<int>(),
+        AssertParseAnyCharsMask("\"" + new string('a', s_nativeBitSize - 2) + "\r\n", Array.Empty<int>(),
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 0, expectedQuoting: 1,
             lineNumber: 2, expectedLineNumber: 2); // Line number first increment when \n handled
 
-        AssertParseAnyCharsMask("\"" + new string('\r', 29) + "\"\r\n", new[] { 31 },
+        AssertParseAnyCharsMask("\"" + new string('\r', s_nativeBitSize - 3) + "\"\r\n", new[] { s_nativeBitSize - 1 },
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
-            lineNumber: 2, expectedLineNumber: 3 + 29);
+            lineNumber: 2, expectedLineNumber: 3 + s_nativeBitSize - 3);
     }
 
     static void AssertParseAnyCharsMask(string chars, int[] expected,
         int rowLineEndingOffset, int expectedRowLineEndingOffset,
-        int quoting = 0, int expectedQuoting = 0,
+        nuint quoting = 0, nuint expectedQuoting = 0,
         int lineNumber = -1, int expectedLineNumber = -1)
     {
         for (var i = 0; i < expected.Length; ++i) { expected[i] += CharsIndexOffset; }
         var mask = MaskFor(chars);
-        Span<int> colEnds = stackalloc int[32 + 1];
+        Span<int> colEnds = stackalloc int[s_nativeBitSize + 1];
         ref var start = ref colEnds[0];
 
         ref var end = ref ParseAnyCharsMask(mask, Separator,

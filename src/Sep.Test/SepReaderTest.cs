@@ -466,6 +466,32 @@ public class SepReaderTest
         Assert.AreEqual(1, row["A"].Parse<int>());
     }
 
+    [TestMethod]
+    public void SepReaderTest_TextReaderLengthLongerThan32Bit()
+    {
+        const string text = """
+                            A;B
+                            1;2
+                            """;
+        var utf8Bytes = Encoding.UTF8.GetBytes(text);
+        using var fakeLongStream = new FakeLongMemoryStream(utf8Bytes, int.MaxValue + 1L);
+        using var reader = Sep.Auto.Reader().From(fakeLongStream);
+
+        Assert.AreEqual(true, reader.MoveNext());
+    }
+
+    public class FakeLongMemoryStream : MemoryStream
+    {
+        readonly long _fakeLength;
+
+        public FakeLongMemoryStream(byte[] buffer, long fakeLength) : base(buffer)
+        {
+            _fakeLength = fakeLength;
+        }
+
+        public override long Length => _fakeLength;
+    }
+
     static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,
         bool isEmpty = false, bool hasHeader = true, bool hasRows = true,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")

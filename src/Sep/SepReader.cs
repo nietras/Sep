@@ -78,9 +78,14 @@ public partial class SepReader : IDisposable
             : '\0';
 
         var guessPaddingLength = 128;
-        var bufferLength = TryGetTextReaderLength(_reader, out var readerLength)
-            ? ((readerLength < CharsMinimumLength) ? (readerLength + guessPaddingLength) : CharsMinimumLength)
+        int? textReaderLength = TryGetTextReaderLength(_reader, out var readerLength)
+            // TextReader length can be greater than int.MaxValue so have to
+            // constrain it to avoid overflow.
+            ? (int)Math.Min(readerLength, int.MaxValue) : null;
+        var bufferLength = textReaderLength.HasValue
+            ? ((textReaderLength.Value < CharsMinimumLength) ? (textReaderLength.Value + guessPaddingLength) : CharsMinimumLength)
             : CharsMinimumLength;
+
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);
 
         var sep = options.Sep;
@@ -364,7 +369,7 @@ public partial class SepReader : IDisposable
         }
     }
 
-    static bool TryGetTextReaderLength(TextReader reader, out int length)
+    static bool TryGetTextReaderLength(TextReader reader, out long length)
     {
         // utf8 bytes can only get shorter when converted to characters so
         // if we can determine an underlying stream length, then we can
@@ -374,7 +379,7 @@ public partial class SepReader : IDisposable
             var s = sr.BaseStream;
             if (s.CanSeek)
             {
-                length = (int)s.Length;
+                length = s.Length;
                 return true;
             }
         }

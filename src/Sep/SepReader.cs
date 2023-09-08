@@ -78,12 +78,12 @@ public partial class SepReader : IDisposable
             : '\0';
 
         var guessPaddingLength = 128;
-        int? textReaderLength = TryGetTextReaderLength(_reader, out var readerLength)
+        int? maybeReaderLengthEstimate = TryGetTextReaderLength(_reader, out var longReaderLength)
             // TextReader length can be greater than int.MaxValue so have to
             // constrain it to avoid overflow.
-            ? (int)Math.Min(readerLength, int.MaxValue) : null;
-        var bufferLength = textReaderLength.HasValue
-            ? ((textReaderLength.Value < CharsMinimumLength) ? (textReaderLength.Value + guessPaddingLength) : CharsMinimumLength)
+            ? (int)Math.Min(longReaderLength, int.MaxValue) : null;
+        var bufferLength = maybeReaderLengthEstimate.HasValue
+            ? ((maybeReaderLengthEstimate.Value < CharsMinimumLength) ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : CharsMinimumLength)
             : CharsMinimumLength;
 
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);

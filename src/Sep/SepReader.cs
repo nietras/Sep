@@ -83,7 +83,8 @@ public partial class SepReader : IDisposable
             // constrain it to avoid overflow.
             ? (int)Math.Min(longReaderLength, int.MaxValue) : null;
         var bufferLength = maybeReaderLengthEstimate.HasValue
-            ? ((maybeReaderLengthEstimate.Value < CharsMinimumLength) ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : CharsMinimumLength)
+            ? ((maybeReaderLengthEstimate.Value < CharsMinimumLength)
+               ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : CharsMinimumLength)
             : CharsMinimumLength;
 
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);

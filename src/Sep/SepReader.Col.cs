@@ -7,7 +7,7 @@ namespace nietras.SeparatedValues;
 
 public partial class SepReader
 {
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerDisplay("{DebuggerDisplay}")]
     public readonly ref struct Col
     {
         readonly SepReader _reader;

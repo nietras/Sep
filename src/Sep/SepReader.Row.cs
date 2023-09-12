@@ -12,7 +12,7 @@ public partial class SepReader
     public delegate void RowAction(Row row);
     public delegate T RowFunc<T>(Row row);
 
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
     [DebuggerTypeProxy(typeof(DebugView))]
     public readonly ref struct Row
     {
@@ -126,7 +126,7 @@ public partial class SepReader
         //    throw new NotImplementedException();
         //}
 
-        internal string DebuggerDisplay => $"{RowIndex,3}:[{LineNumberFrom}..{LineNumberToExcl}] = '{Span}'";
+        internal string DebuggerDisplayPrefix => $"{RowIndex,3}:[{LineNumberFrom}..{LineNumberToExcl}] = ";
 
         internal class DebugView
         {

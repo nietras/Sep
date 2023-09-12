@@ -298,18 +298,20 @@ var text = """
 using var reader = Sep.Reader().FromText(text);
 foreach (var row in reader)
 {
-    // Hover over row when breaking here
+    // Hover over reader, row or col when breaking here
+    var col = row[1];
     if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+    Debug.WriteLine(col.ToString());
 }
 ```
 and you are hovering over `row` when the break is triggered then this will show
 something like:
 ```
-  2:[5..9] = 'B;"Apple\r\nBanana\r\nOrange\r\nPear"
+  2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 This has the format shown below. 
 ```
-<ROWINDEX>:[<LINENUMBERRANGE>] = '<ROW>'
+<ROWINDEX>:[<LINENUMBERRANGE>] = "<ROW>"
 ```
 Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
 expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-8.0/ranges#systemrange),
@@ -325,7 +327,11 @@ triangle) you will see each column of the row similar to below.
 ```
 00:'Key'   = "B"
 01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
-``` 
+```
+If you hover over `col` you should see:
+```
+"\"Apple\r\nBanana\r\nOrange\r\nPear\""
+```
 
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time

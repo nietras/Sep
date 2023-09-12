@@ -193,9 +193,9 @@ public class SepReaderRowTest
     }
 
     [TestMethod]
-    public void SepReaderRowTest_Row_DebuggerDisplay()
+    public void SepReaderRowTest_Row_DebuggerDisplayPrefix()
     {
-        Assert.AreEqual("  1:[2..3] = ' ;;1.23456789;abcdefgh\t, ._'", _enumerator.Current.DebuggerDisplay);
+        Assert.AreEqual("  1:[2..3] = ", _enumerator.Current.DebuggerDisplayPrefix);
     }
 
     [TestMethod]

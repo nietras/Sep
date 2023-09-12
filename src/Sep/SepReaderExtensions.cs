@@ -37,29 +37,53 @@ public static class SepReaderExtensions
 
     public static SepReader FromText(this SepReaderOptions options, string text)
     {
+        ArgumentNullException.ThrowIfNull(text);
         var reader = new StringReader(text);
-        return From(options, reader);
+        Func<SepReader.Info, string> display = static info => $"From string with Length {((string)info.Source).Length}";
+        return FromWithInfo(new(text, display), options, reader);
     }
 
     public static SepReader FromFile(this SepReaderOptions options, string filePath)
     {
         var reader = new StreamReader(filePath, s_streamReaderOptions);
-        return From(options, reader);
+        Func<SepReader.Info, string> display = static info => $"From File '{info.Source}'";
+        return FromWithInfo(new(filePath, display), options, reader);
     }
 
+    public static SepReader From(this SepReaderOptions options, string name, Func<string, Stream> nameToStream)
+    {
+        ArgumentNullException.ThrowIfNull(nameToStream);
+        var reader = new StreamReader(nameToStream(name));
+        Func<SepReader.Info, string> display = static info => $"From Stream with Name '{info.Source}'";
+        return FromWithInfo(new(name, display), options, reader);
+    }
     public static SepReader From(this SepReaderOptions options, Stream stream)
     {
         var reader = new StreamReader(stream);
-        return From(options, reader);
+        Func<SepReader.Info, string> display = static info => $"From Stream '{info.Source}'";
+        return FromWithInfo(new(stream, display), options, reader);
     }
 
+    public static SepReader From(this SepReaderOptions options, string name, Func<string, TextReader> nameToReader)
+    {
+        ArgumentNullException.ThrowIfNull(nameToReader);
+        var reader = nameToReader(name);
+        Func<SepReader.Info, string> display = static info => $"From TextReader with Name '{info.Source}'";
+        return FromWithInfo(new(name, display), options, reader);
+    }
     public static SepReader From(this SepReaderOptions options, TextReader reader)
+    {
+        Func<SepReader.Info, string> display = static info => $"From TextReader '{info.Source}'";
+        return FromWithInfo(new(reader, display), options, reader);
+    }
+
+    internal static SepReader FromWithInfo(SepReader.Info info, SepReaderOptions options, TextReader reader)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
         try
         {
-            return new SepReader(options, reader);
+            return new SepReader(info, options, reader);
         }
         catch (Exception)
         {

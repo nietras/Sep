@@ -132,26 +132,22 @@ public partial class SepReader
         {
             readonly SepReader _reader;
 
-            public DebugView(Row row)
-            {
-                _reader = row._reader;
-            }
+            internal DebugView(Row row) => _reader = row._reader;
 
             [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-            public ColDebugView[] Cols
+            internal ColDebugView[] Cols => GetCols();
+
+            ColDebugView[] GetCols()
             {
-                get
+                var row = _reader.Current;
+                var cols = new ColDebugView[_reader._colCount];
+                var maybeHeader = _reader.HasHeader ? _reader._header : null;
+                for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {
-                    var row = _reader.Current;
-                    var cols = new ColDebugView[_reader._colCount];
-                    var maybeHeader = _reader.HasHeader ? _reader._header : null;
-                    for (var colIndex = 0; colIndex < cols.Length; colIndex++)
-                    {
-                        var colValue = row[colIndex].ToStringRaw();
-                        cols[colIndex] = new(colIndex, maybeHeader?.ColNames[colIndex], colValue);
-                    }
-                    return cols;
+                    var colValue = row[colIndex].ToStringRaw();
+                    cols[colIndex] = new(colIndex, maybeHeader?.ColNames[colIndex], colValue);
                 }
+                return cols;
             }
         }
 

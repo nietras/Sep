@@ -320,6 +320,13 @@ that makes Sep a bit slower but which is a price considered worth paying.
 > GitHub doesn't show line numbers in code blocks so consider copying the
 > example text to notepad or similar to see the effect.
 
+Additionally, if you expand the `row` in the debugger (e.g. via the small
+triangle) you will see each column of the row similar to below.
+```
+00:'Key'   = "B"
+01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
+``` 
+
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time
 and `SepReader.Row` is just a simple *facade* or indirection to the underlying

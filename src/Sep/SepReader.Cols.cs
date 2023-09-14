@@ -27,7 +27,7 @@ public partial class SepReader
         public Col this[int index] => new(_reader, _colIndices[index]);
 
         /// <summary>
-        /// Get all cols as strings in an array.
+        /// Get all selected cols as strings in an array.
         /// </summary>
         /// <remarks>
         /// Convenience method since <see cref="Parse{T}()" /> only works for
@@ -37,7 +37,7 @@ public partial class SepReader
         /// <returns>Newly allocated array of each col as a string.</returns>
         public string[] ToStringsArray() => _reader.ToStringsArray(_colIndices);
         /// <summary>
-        /// Get all cols as strings in a span.
+        /// Get all selected cols as strings in a span.
         /// </summary>
         /// <remarks>
         /// Convenience method since <see cref="Parse{T}()" /> only works for

@@ -282,8 +282,8 @@ public bool DisableColCountCheck { get; init; }
 
 #### SepReader Debuggability
 Debuggability is an important part of any library and while this is still a work
-in progress for Sep, `SepReader` does have a unique feature when looking at it's
-row in a debug context. Given the below example code:
+in progress for Sep, `SepReader` does have a unique feature when looking at it
+and it's row or cols in a debug context. Given the below example code:
 ```csharp
 var text = """
            Key;Value
@@ -304,8 +304,16 @@ foreach (var row in reader)
     Debug.WriteLine(col.ToString());
 }
 ```
-and you are hovering over `row` when the break is triggered then this will show
-something like:
+and you are hovering over `reader` when the break is triggered then this will
+show something like:
+```
+String Length=55
+```
+That is, it will show information of the source for the reader, in this case a
+string of length 55.
+
+##### SepReader.Row Debuggability
+If you are hovering over `row` then this will show something like:
 ```
   2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
@@ -328,6 +336,8 @@ triangle) you will see each column of the row similar to below.
 00:'Key'   = "B"
 01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
+
+##### SepReader.Col Debuggability
 If you hover over `col` you should see:
 ```
 "\"Apple\r\nBanana\r\nOrange\r\nPear\""

@@ -39,28 +39,35 @@ public static class SepReaderExtensions
     {
         ArgumentNullException.ThrowIfNull(text);
         var reader = new StringReader(text);
-        Func<SepReader.Info, string> display = static info => $"From string with Length {((string)info.Source).Length}";
+        Func<SepReader.Info, string> display = static info => $"String Length={((string)info.Source).Length}";
         return FromWithInfo(new(text, display), options, reader);
     }
 
     public static SepReader FromFile(this SepReaderOptions options, string filePath)
     {
         var reader = new StreamReader(filePath, s_streamReaderOptions);
-        Func<SepReader.Info, string> display = static info => $"From File '{info.Source}'";
+        Func<SepReader.Info, string> display = static info => $"File='{info.Source}'";
         return FromWithInfo(new(filePath, display), options, reader);
+    }
+
+    public static SepReader From(this SepReaderOptions options, byte[] buffer)
+    {
+        var reader = new StreamReader(new MemoryStream(buffer));
+        Func<SepReader.Info, string> display = static info => $"Bytes Length={((byte[])info.Source).Length}";
+        return FromWithInfo(new(buffer, display), options, reader);
     }
 
     public static SepReader From(this SepReaderOptions options, string name, Func<string, Stream> nameToStream)
     {
         ArgumentNullException.ThrowIfNull(nameToStream);
         var reader = new StreamReader(nameToStream(name));
-        Func<SepReader.Info, string> display = static info => $"From Stream with Name '{info.Source}'";
+        Func<SepReader.Info, string> display = static info => $"Stream Name='{info.Source}'";
         return FromWithInfo(new(name, display), options, reader);
     }
     public static SepReader From(this SepReaderOptions options, Stream stream)
     {
         var reader = new StreamReader(stream);
-        Func<SepReader.Info, string> display = static info => $"From Stream '{info.Source}'";
+        Func<SepReader.Info, string> display = static info => $"Stream='{info.Source}'";
         return FromWithInfo(new(stream, display), options, reader);
     }
 
@@ -68,12 +75,12 @@ public static class SepReaderExtensions
     {
         ArgumentNullException.ThrowIfNull(nameToReader);
         var reader = nameToReader(name);
-        Func<SepReader.Info, string> display = static info => $"From TextReader with Name '{info.Source}'";
+        Func<SepReader.Info, string> display = static info => $"TextReader Name='{info.Source}'";
         return FromWithInfo(new(name, display), options, reader);
     }
     public static SepReader From(this SepReaderOptions options, TextReader reader)
     {
-        Func<SepReader.Info, string> display = static info => $"From TextReader '{info.Source}'";
+        Func<SepReader.Info, string> display = static info => $"TextReader='{info.Source}'";
         return FromWithInfo(new(reader, display), options, reader);
     }
 

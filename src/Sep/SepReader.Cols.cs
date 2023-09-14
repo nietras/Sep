@@ -30,7 +30,7 @@ public partial class SepReader
         /// Get all selected cols as strings in an array.
         /// </summary>
         /// <remarks>
-        /// Convenience method since <see cref="Parse{T}()" /> only works for
+        /// Convenience method since <see cref="ParseToArray{T}()" /> only works for
         /// <see cref="string"/> in .NET 8+ where <see cref="string"/>  is <see
         /// cref="ISpanParsable{TSelf}"/>.
         /// </remarks>

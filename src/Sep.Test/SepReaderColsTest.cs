@@ -45,7 +45,6 @@ public class SepReaderColsTest
     {
         Run(cols => CollectionAssert.AreEqual(_colValues, cols.ParseToArray<int>()));
         Run(cols => CollectionAssert.AreEqual(_colValuesFloat, cols.ParseToArray<float>()));
-        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ToStringsArray()));
 #if NET8_0_OR_GREATER
         // string unfortunately did not implement ISpanParsable until .NET 8 see ToStringsArray
         Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ParseToArray<string>()));

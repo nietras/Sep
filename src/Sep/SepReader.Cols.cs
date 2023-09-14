@@ -26,6 +26,13 @@ public partial class SepReader
 
         public Col this[int index] => new(_reader, _colIndices[index]);
 
+        public T[] ParseToArray<T>() where T : ISpanParsable<T>
+        {
+            var values = new T[_colIndices.Length];
+            _reader.Parse<T>(_colIndices, values);
+            return values;
+        }
+
         public Span<T> Parse<T>() where T : ISpanParsable<T> =>
             _reader.Parse<T>(_colIndices);
 

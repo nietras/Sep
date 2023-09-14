@@ -95,24 +95,34 @@ public partial class SepReader
 
     T Parse<T>(int index) where T : ISpanParsable<T>
     {
-        var span = GetColSpan(index);
-        var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-        if (decimalSeparator != '\0')
+        // To ensure SepToString and potential string pooling used for generic
+        // case, check if type is T and use normal ToString
+        if (typeof(T) == typeof(string))
         {
-            if (typeof(T) == typeof(float))
-            {
-                var v = csFastFloat.FastFloatParser.ParseFloat(span,
-                    decimal_separator: decimalSeparator);
-                return Unsafe.As<float, T>(ref v);
-            }
-            else if (typeof(T) == typeof(double))
-            {
-                var v = csFastFloat.FastDoubleParser.ParseDouble(span,
-                    decimal_separator: decimalSeparator);
-                return Unsafe.As<double, T>(ref v);
-            }
+            var s = ToString(index);
+            return Unsafe.As<string, T>(ref s);
         }
-        return T.Parse(span, _cultureInfo);
+        else
+        {
+            var span = GetColSpan(index);
+            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+            if (decimalSeparator != '\0')
+            {
+                if (typeof(T) == typeof(float))
+                {
+                    var v = csFastFloat.FastFloatParser.ParseFloat(span,
+                        decimal_separator: decimalSeparator);
+                    return Unsafe.As<float, T>(ref v);
+                }
+                else if (typeof(T) == typeof(double))
+                {
+                    var v = csFastFloat.FastDoubleParser.ParseDouble(span,
+                        decimal_separator: decimalSeparator);
+                    return Unsafe.As<double, T>(ref v);
+                }
+            }
+            return T.Parse(span, _cultureInfo);
+        }
     }
 
     T? TryParse<T>(int index) where T : struct, ISpanParsable<T> =>
@@ -120,34 +130,45 @@ public partial class SepReader
 
     bool TryParse<T>(int index, out T value) where T : ISpanParsable<T>
     {
-        var span = GetColSpan(index);
-        var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-        if (decimalSeparator != '\0')
+        // To ensure SepToString and potential string pooling used for generic
+        // case, check if type is T and use normal ToString
+        if (typeof(T) == typeof(string))
         {
-            if (typeof(T) == typeof(float))
-            {
-                if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
-                    decimal_separator: decimalSeparator))
-                {
-                    value = Unsafe.As<float, T>(ref v);
-                    return true;
-                }
-                value = default!;
-                return false;
-            }
-            else if (typeof(T) == typeof(double))
-            {
-                if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
-                    decimal_separator: decimalSeparator))
-                {
-                    value = Unsafe.As<double, T>(ref v);
-                    return true;
-                }
-                value = default!;
-                return false;
-            }
+            var s = ToString(index);
+            value = Unsafe.As<string, T>(ref s);
+            return true;
         }
-        return T.TryParse(span, _cultureInfo, out value!);
+        else
+        {
+            var span = GetColSpan(index);
+            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+            if (decimalSeparator != '\0')
+            {
+                if (typeof(T) == typeof(float))
+                {
+                    if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
+                        decimal_separator: decimalSeparator))
+                    {
+                        value = Unsafe.As<float, T>(ref v);
+                        return true;
+                    }
+                    value = default!;
+                    return false;
+                }
+                else if (typeof(T) == typeof(double))
+                {
+                    if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
+                        decimal_separator: decimalSeparator))
+                    {
+                        value = Unsafe.As<double, T>(ref v);
+                        return true;
+                    }
+                    value = default!;
+                    return false;
+                }
+            }
+            return T.TryParse(span, _cultureInfo, out value!);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -480,6 +480,60 @@ public class SepReaderTest
         Assert.AreEqual(true, reader.MoveNext());
     }
 
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromText()
+    {
+        using var reader = Sep.Reader().FromText("A;B");
+        Assert.AreEqual("String Length=3", reader.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromFile()
+    {
+        var filePath = Path.GetTempFileName();
+        File.WriteAllText(filePath, "A;B");
+        using (var reader = Sep.Reader().FromFile(filePath))
+        {
+            Assert.AreEqual($"File='{filePath}'", reader.DebuggerDisplay);
+        }
+        File.Delete(filePath);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromBytes()
+    {
+        using var reader = Sep.Reader().From(Encoding.UTF8.GetBytes("A;B"));
+        Assert.AreEqual($"Bytes Length=3", reader.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromNameStream()
+    {
+        var name = "TEST";
+        using var reader = Sep.Reader().From(name, n => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
+        Assert.AreEqual($"Stream Name='{name}'", reader.DebuggerDisplay);
+    }
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromStream()
+    {
+        using var reader = Sep.Reader().From((Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
+        Assert.AreEqual($"Stream='{typeof(MemoryStream)}'", reader.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromNameTextReader()
+    {
+        var name = "TEST";
+        using var reader = Sep.Reader().From(name, n => (TextReader)new StringReader("A;B"));
+        Assert.AreEqual($"TextReader Name='{name}'", reader.DebuggerDisplay);
+    }
+    [TestMethod]
+    public void SepReaderTest_DebuggerDisplay_FromTextReader()
+    {
+        using var reader = Sep.Reader().From((TextReader)new StringReader("A;B"));
+        Assert.AreEqual($"TextReader='{typeof(StringReader)}'", reader.DebuggerDisplay);
+    }
+
     public class FakeLongMemoryStream : MemoryStream
     {
         readonly long _fakeLength;

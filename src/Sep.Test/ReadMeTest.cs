@@ -79,8 +79,10 @@ public class ReadMeTest
         using var reader = Sep.Reader().FromText(text);
         foreach (var row in reader)
         {
-            // Hover over row when breaking here
+            // Hover over reader, row or col when breaking here
+            var col = row[1];
             if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+            Debug.WriteLine(col.ToString());
         }
     }
 

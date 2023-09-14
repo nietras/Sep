@@ -26,6 +26,30 @@ public partial class SepReader
 
         public Col this[int index] => new(_reader, _colIndices[index]);
 
+        /// <summary>
+        /// Get all selected cols as strings in an array.
+        /// </summary>
+        /// <remarks>
+        /// Convenience method since <see cref="ParseToArray{T}()" /> only works for
+        /// <see cref="string"/> in .NET 8+ where <see cref="string"/>  is <see
+        /// cref="ISpanParsable{TSelf}"/>.
+        /// </remarks>
+        /// <returns>Newly allocated array of each col as a string.</returns>
+        public string[] ToStringsArray() => _reader.ToStringsArray(_colIndices);
+        /// <summary>
+        /// Get all selected cols as strings in a span.
+        /// </summary>
+        /// <remarks>
+        /// Convenience method since <see cref="Parse{T}()" /> only works for
+        /// <see cref="string"/> in .NET 8+ where <see cref="string"/>  is <see
+        /// cref="ISpanParsable{TSelf}"/>.
+        /// </remarks>
+        /// <returns>Span with each col as a string.</returns>
+        public Span<string> ToStrings() => _reader.ToStrings(_colIndices);
+
+        public T[] ParseToArray<T>() where T : ISpanParsable<T> =>
+            _reader.ParseToArray<T>(_colIndices);
+
         public Span<T> Parse<T>() where T : ISpanParsable<T> =>
             _reader.Parse<T>(_colIndices);
 
@@ -45,6 +69,34 @@ public partial class SepReader
             _reader.Select<T>(_colIndices, selector);
     }
 
+    string[] ToStringsArray(ReadOnlySpan<int> colIndices)
+    {
+        var values = new string[colIndices.Length];
+        ToStrings(colIndices, values);
+        return values;
+    }
+
+    Span<string> ToStrings(ReadOnlySpan<int> colIndices)
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<string>(colIndices.Length);
+        ToStrings(colIndices, span);
+        return span;
+    }
+
+    void ToStrings(ReadOnlySpan<int> colIndices, Span<string> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = ToString(colIndices[i]);
+        }
+    }
+
+    T[] ParseToArray<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
+    {
+        var values = new T[colIndices.Length];
+        Parse<T>(colIndices, values);
+        return values;
+    }
 
     Span<T> Parse<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
     {

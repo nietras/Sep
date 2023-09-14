@@ -12,7 +12,8 @@ public partial class SepReader
     public delegate void RowAction(Row row);
     public delegate T RowFunc<T>(Row row);
 
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
+    [DebuggerTypeProxy(typeof(DebugView))]
     public readonly ref struct Row
     {
         internal readonly SepReader _reader;
@@ -125,7 +126,48 @@ public partial class SepReader
         //    throw new NotImplementedException();
         //}
 
-        internal string DebuggerDisplay => $"{RowIndex,3}:[{LineNumberFrom}..{LineNumberToExcl}] = '{Span}'";
+        internal string DebuggerDisplayPrefix => $"{RowIndex,3}:[{LineNumberFrom}..{LineNumberToExcl}] = ";
+
+        internal class DebugView
+        {
+            readonly SepReader _reader;
+
+            internal DebugView(Row row) => _reader = row._reader;
+
+            [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+            internal ColDebugView[] Cols => GetCols();
+
+            ColDebugView[] GetCols()
+            {
+                var row = _reader.Current;
+                var cols = new ColDebugView[_reader._colCount];
+                var maybeHeader = _reader.HasHeader ? _reader._header : null;
+                for (var colIndex = 0; colIndex < cols.Length; colIndex++)
+                {
+                    var colValue = row[colIndex].ToStringRaw();
+                    cols[colIndex] = new(colIndex, maybeHeader?.ColNames[colIndex], colValue);
+                }
+                return cols;
+            }
+        }
+
+        [DebuggerDisplay("{ColValue}", Name = "{ColIndexName,nq}")]
+        internal readonly struct ColDebugView
+        {
+            internal ColDebugView(int colIndex, string? colName, string colValue)
+            {
+                ColIndex = colIndex;
+                ColName = colName;
+                ColValue = colValue;
+            }
+
+            internal int ColIndex { get; }
+            internal string? ColName { get; }
+            internal string ColValue { get; }
+
+            internal string ColIndexName => ColName is not null
+                ? $"{ColIndex:D2}:'{ColName}'" : ColIndex.ToString("D2");
+        }
     }
 
     public ReadOnlySpan<char> RowSpan()

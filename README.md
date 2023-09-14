@@ -282,8 +282,8 @@ public bool DisableColCountCheck { get; init; }
 
 #### SepReader Debuggability
 Debuggability is an important part of any library and while this is still a work
-in progress for Sep, `SepReader` does have a unique feature when looking at it's
-row in a debug context. Given the below example code:
+in progress for Sep, `SepReader` does have a unique feature when looking at it
+and it's row or cols in a debug context. Given the below example code:
 ```csharp
 var text = """
            Key;Value
@@ -298,18 +298,28 @@ var text = """
 using var reader = Sep.Reader().FromText(text);
 foreach (var row in reader)
 {
-    // Hover over row when breaking here
+    // Hover over reader, row or col when breaking here
+    var col = row[1];
     if (Debugger.IsAttached && row.RowIndex == 2) { Debugger.Break(); }
+    Debug.WriteLine(col.ToString());
 }
 ```
-and you are hovering over `row` when the break is triggered then this will show
-something like:
+and you are hovering over `reader` when the break is triggered then this will
+show something like:
 ```
-  2:[5..9] = 'B;"Apple\r\nBanana\r\nOrange\r\nPear"
+String Length=55
+```
+That is, it will show information of the source for the reader, in this case a
+string of length 55.
+
+##### SepReader.Row Debuggability
+If you are hovering over `row` then this will show something like:
+```
+  2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 This has the format shown below. 
 ```
-<ROWINDEX>:[<LINENUMBERRANGE>] = '<ROW>'
+<ROWINDEX>:[<LINENUMBERRANGE>] = "<ROW>"
 ```
 Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
 expression](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-8.0/ranges#systemrange),
@@ -319,6 +329,19 @@ that makes Sep a bit slower but which is a price considered worth paying.
 
 > GitHub doesn't show line numbers in code blocks so consider copying the
 > example text to notepad or similar to see the effect.
+
+Additionally, if you expand the `row` in the debugger (e.g. via the small
+triangle) you will see each column of the row similar to below.
+```
+00:'Key'   = "B"
+01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
+```
+
+##### SepReader.Col Debuggability
+If you hover over `col` you should see:
+```
+"\"Apple\r\nBanana\r\nOrange\r\nPear\""
+```
 
 #### Why SepReader Is Not IEnumerable and LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time

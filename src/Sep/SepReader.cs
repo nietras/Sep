@@ -11,14 +11,19 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
 public partial class SepReader : IDisposable
 {
+    internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
+    internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
+
     const string TraceCondition = "SEPREADERTRACE";
     const string AssertCondition = "SEPREADERASSERT";
 
     // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
     // promote cache to member here.
     readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
+    readonly Info _info;
     readonly SepReaderOptions _options;
     readonly char _fastFloatDecimalSeparatorOrZero;
     char _separator;
@@ -64,8 +69,9 @@ public partial class SepReader : IDisposable
     int _cacheIndex = 0;
     readonly SepToString[] _colToStrings;
 
-    internal SepReader(SepReaderOptions options, TextReader reader)
+    internal SepReader(Info info, SepReaderOptions options, TextReader reader)
     {
+        _info = info;
         _options = options;
         _reader = reader;
         _cultureInfo = _options.CultureInfo;

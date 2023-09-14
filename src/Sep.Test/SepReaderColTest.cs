@@ -78,6 +78,22 @@ public class SepReaderColTest
         AssertTryParseOutFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
     }
 
+#if NET8_0_OR_GREATER
+    // string unfortunately did not implement ISpanParsable until .NET 8
+
+    [TestMethod]
+    public void SepReaderColTest_Parse_String()
+    {
+        Run(col => Assert.AreEqual(ColText, col.Parse<string>()));
+    }
+
+    [TestMethod]
+    public void SepReaderColTest_TryParse_Out_String()
+    {
+        Run(col => Assert.AreEqual(ColText, col.TryParse<string>(out var v) ? v : null));
+    }
+#endif
+
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)
     {
         Func<SepReaderOptions, SepReaderOptions> defaultConfigure = static c => c;

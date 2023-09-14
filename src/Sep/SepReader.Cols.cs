@@ -26,7 +26,25 @@ public partial class SepReader
 
         public Col this[int index] => new(_reader, _colIndices[index]);
 
+        /// <summary>
+        /// Get all cols as strings in an array.
+        /// </summary>
+        /// <remarks>
+        /// Convenience method since <see cref="Parse{T}()" /> only works for
+        /// <see cref="string"/> in .NET 8+ where <see cref="string"/>  is <see
+        /// cref="ISpanParsable{TSelf}"/>.
+        /// </remarks>
+        /// <returns>Newly allocated array of each col as a string.</returns>
         public string[] ToStringsArray() => _reader.ToStringsArray(_colIndices);
+        /// <summary>
+        /// Get all cols as strings in a span.
+        /// </summary>
+        /// <remarks>
+        /// Convenience method since <see cref="Parse{T}()" /> only works for
+        /// <see cref="string"/> in .NET 8+ where <see cref="string"/>  is <see
+        /// cref="ISpanParsable{TSelf}"/>.
+        /// </remarks>
+        /// <returns>Span with each col as a string.</returns>
         public Span<string> ToStrings() => _reader.ToStrings(_colIndices);
 
         public T[] ParseToArray<T>() where T : ISpanParsable<T> =>

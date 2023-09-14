@@ -29,14 +29,15 @@ public class SepReaderColsTest
     }
 
     [TestMethod]
-    public void SepReaderColsTest_Parse()
+    public void SepReaderColsTest_ToStringsArray()
     {
-        Run(cols => CollectionAssert.AreEqual(_colValues, cols.Parse<int>().ToArray()));
-        Run(cols => CollectionAssert.AreEqual(_colValuesFloat, cols.Parse<float>().ToArray()));
-#if NET8_0_OR_GREATER
-        // string unfortunately did not implement ISpanParsable until .NET 8
-        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.Parse<string>().ToArray()));
-#endif
+        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ToStringsArray()));
+    }
+
+    [TestMethod]
+    public void SepReaderColsTest_ToStrings()
+    {
+        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ToStrings().ToArray()));
     }
 
     [TestMethod]
@@ -44,9 +45,21 @@ public class SepReaderColsTest
     {
         Run(cols => CollectionAssert.AreEqual(_colValues, cols.ParseToArray<int>()));
         Run(cols => CollectionAssert.AreEqual(_colValuesFloat, cols.ParseToArray<float>()));
+        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ToStringsArray()));
 #if NET8_0_OR_GREATER
-        // string unfortunately did not implement ISpanParsable until .NET 8
+        // string unfortunately did not implement ISpanParsable until .NET 8 see ToStringsArray
         Run(cols => CollectionAssert.AreEqual(_colTexts, cols.ParseToArray<string>()));
+#endif
+    }
+
+    [TestMethod]
+    public void SepReaderColsTest_Parse()
+    {
+        Run(cols => CollectionAssert.AreEqual(_colValues, cols.Parse<int>().ToArray()));
+        Run(cols => CollectionAssert.AreEqual(_colValuesFloat, cols.Parse<float>().ToArray()));
+#if NET8_0_OR_GREATER
+        // string unfortunately did not implement ISpanParsable until .NET 8 see ToStrings
+        Run(cols => CollectionAssert.AreEqual(_colTexts, cols.Parse<string>().ToArray()));
 #endif
     }
 

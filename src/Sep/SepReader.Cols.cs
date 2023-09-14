@@ -26,12 +26,11 @@ public partial class SepReader
 
         public Col this[int index] => new(_reader, _colIndices[index]);
 
-        public T[] ParseToArray<T>() where T : ISpanParsable<T>
-        {
-            var values = new T[_colIndices.Length];
-            _reader.Parse<T>(_colIndices, values);
-            return values;
-        }
+        public string[] ToStringsArray() => _reader.ToStringsArray(_colIndices);
+        public Span<string> ToStrings() => _reader.ToStrings(_colIndices);
+
+        public T[] ParseToArray<T>() where T : ISpanParsable<T> =>
+            _reader.ParseToArray<T>(_colIndices);
 
         public Span<T> Parse<T>() where T : ISpanParsable<T> =>
             _reader.Parse<T>(_colIndices);
@@ -52,6 +51,34 @@ public partial class SepReader
             _reader.Select<T>(_colIndices, selector);
     }
 
+    string[] ToStringsArray(ReadOnlySpan<int> colIndices)
+    {
+        var values = new string[colIndices.Length];
+        ToStrings(colIndices, values);
+        return values;
+    }
+
+    Span<string> ToStrings(ReadOnlySpan<int> colIndices)
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<string>(colIndices.Length);
+        ToStrings(colIndices, span);
+        return span;
+    }
+
+    void ToStrings(ReadOnlySpan<int> colIndices, Span<string> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = ToString(colIndices[i]);
+        }
+    }
+
+    T[] ParseToArray<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
+    {
+        var values = new T[colIndices.Length];
+        Parse<T>(colIndices, values);
+        return values;
+    }
 
     Span<T> Parse<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
     {

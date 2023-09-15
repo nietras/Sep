@@ -20,21 +20,13 @@ public partial class SepReader : SepReaderRowState, IDisposable
     const string TraceCondition = "SEPREADERTRACE";
     const string AssertCondition = "SEPREADERASSERT";
 
-    // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
-    // promote cache to member here.
-    readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
     readonly Info _info;
     readonly SepReaderOptions _options;
     readonly char _fastFloatDecimalSeparatorOrZero;
     char _separator;
-    readonly SepHeader _header;
     readonly TextReader _reader;
     readonly CultureInfo? _cultureInfo;
     ISepParser? _parser;
-
-    int _rowIndex = -1;
-    int _rowLineNumberFrom = 0;
-    int _lineNumber = 1;
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
@@ -50,11 +42,6 @@ public partial class SepReader : SepReaderRowState, IDisposable
     int _charsPaddingLength;
 
     bool _rowAlreadyFound = false;
-
-    readonly SepArrayPoolAccessIndexed _arrayPool = new();
-    readonly (string colName, int colIndex)[] _colNameCache;
-    int _cacheIndex = 0;
-    readonly SepToString[] _colToStrings;
 
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
     {
@@ -159,9 +146,7 @@ public partial class SepReader : SepReaderRowState, IDisposable
 
     public bool IsEmpty { get; }
     public SepSpec Spec => new(new(_separator), _options.CultureInfo);
-    public bool HasHeader { get; }
     public bool HasRows { get; }
-    public SepHeader Header => _header;
 
     internal int CharsLength => _chars.Length;
 

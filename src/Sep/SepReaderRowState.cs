@@ -86,7 +86,20 @@ public class SepReaderRowState : IDisposable
         rowSpan.CopyTo(otherChars);
         other._charsDataEnd = rowSpan.Length;
 
-        _colEnds.AsSpan().Slice(0, _colCount + 1).CopyTo(other._colEnds);
+        // Copy starts at 0 index so need to fix up col ends
+        var colCount = _colCount;
+        if (colCount > 0)
+        {
+            var thisColEnds = _colEnds;
+            var start = thisColEnds[0] + 1; // +1 since previous end
+            var otherColEnds = other._colEnds;
+            for (var col = 0; col <= colCount; col++)
+            {
+                otherColEnds[col] = thisColEnds[col] - start;
+            }
+            // Assume colEnds length is divisible by Vector128<int>.Length
+            // and vectorize col ends fix up if need be
+        }
     }
 
     #region Row

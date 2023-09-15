@@ -241,6 +241,23 @@ public class AssetPackageAssetsBench : PackageAssetsBench
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
+    [Benchmark()]
+    public void Sep_MT___()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        var assets = reader.ParallelEnumerate(
+            r => PackageAsset.Read(r._rowState, (r, i) => r.ToString(i)),
+            maxDegreeOfParallelism: Environment.ProcessorCount).ToList();
+    }
+
     [Benchmark(Baseline = true)]
     public void Sep______()
     {

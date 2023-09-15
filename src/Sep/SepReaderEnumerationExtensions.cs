@@ -43,7 +43,7 @@ public static class SepReaderEnumerationExtensions
         var workIndicesReady = new Stack<int>(workerCount);
         var workIndicesExecutingOrdered = new Queue<int>(workerCount);
 
-        using var someWorkItemsDoneEvent = new ManualResetEventSlim();
+        using var someWorkItemsDoneEvent = new ManualResetEvent(false);
         Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
 
         try
@@ -64,13 +64,14 @@ public static class SepReaderEnumerationExtensions
                     var workIndexReady = workIndicesReady.Pop();
                     var workItemReady = workItems[workIndexReady];
                     reader.CopyNewRowTo(workItemReady.RowState);
+                    workItemReady.IsDone = false;
 
                     ThreadPool.UnsafeQueueUserWorkItem(workItemReady, preferLocal: false);
 
                     workIndicesExecutingOrdered.Enqueue(workIndexReady);
                 }
 
-                someWorkItemsDoneEvent.Wait();
+                someWorkItemsDoneEvent.WaitOne();
                 RowThreadPoolWorkItem<T> nextWorkItemToReturn = null!;
                 if (workIndicesExecutingOrdered.TryPeek(out var nextWorkIndexToReturn) &&
                     (nextWorkItemToReturn = workItems[nextWorkIndexToReturn]).IsDone)

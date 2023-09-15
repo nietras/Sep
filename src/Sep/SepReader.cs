@@ -12,7 +12,7 @@ using static nietras.SeparatedValues.SepDefaults;
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public partial class SepReader : IDisposable
+public partial class SepReader : SepReaderRowState, IDisposable
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -48,19 +48,6 @@ public partial class SepReader : IDisposable
     internal const int _charsCheckDataAvailableWhenLessThanLength = 256;
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
-    char[] _chars;
-    int _charsDataStart = 0;
-    int _charsDataEnd = 0;
-    int _charsParseStart = 0;
-    int _charsRowStart = 0;
-
-    internal const int _colEndsMaximumLength = 1024;
-    // [0] = Previous row/col end e.g. one before row/first col start
-    // [1...] = Col ends e.g. [1] = first col end
-    // Length = colCount + 1
-    readonly int[] _colEnds;
-    readonly int _colCountExpected = -1;
-    int _colCount = 0;
 
     bool _rowAlreadyFound = false;
 

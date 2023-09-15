@@ -66,25 +66,27 @@ public class SepReaderRowState : IDisposable
 
     internal void CopyNewRowTo(SepReaderRowState other)
     {
-        _cacheIndex = 0;
-        _arrayPool.Reset();
+        other._cacheIndex = 0;
+        other._arrayPool.Reset();
 
-        _colCount = other._colCount;
+        other._colCount = _colCount;
 
-        _rowIndex = other._rowIndex;
-        _rowLineNumberFrom = other._rowLineNumberFrom;
-        _lineNumber = other._lineNumber;
+        other._rowIndex = _rowIndex;
+        other._rowLineNumberFrom = _rowLineNumberFrom;
+        other._lineNumber = _lineNumber;
 
-        var rowSpan = other.RowSpan();
-        if (rowSpan.Length > _chars.Length)
+        var rowSpan = RowSpan();
+        ref var otherChars = ref other._chars;
+        if (rowSpan.Length > otherChars.Length)
         {
-            if (_chars.Length > 0) { ArrayPool<char>.Shared.Return(_chars); }
-            _chars = ArrayPool<char>.Shared.Rent(rowSpan.Length);
+            if (otherChars.Length > 0)
+            { ArrayPool<char>.Shared.Return(otherChars); }
+            otherChars = ArrayPool<char>.Shared.Rent(rowSpan.Length);
         }
-        rowSpan.CopyTo(_chars);
-        _charsDataEnd = rowSpan.Length;
+        rowSpan.CopyTo(otherChars);
+        other._charsDataEnd = rowSpan.Length;
 
-        other._colEnds.AsSpan().Slice(0, _colCount).CopyTo(_colEnds);
+        _colEnds.AsSpan().Slice(0, _colCount + 1).CopyTo(other._colEnds);
     }
 
     #region Row

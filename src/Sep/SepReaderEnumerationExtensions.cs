@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
@@ -29,9 +28,10 @@ public static class SepReaderEnumerationExtensions
 
     static IEnumerable<T> ParallelEnumerateInternal<T>(this SepReader reader, SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
     {
-        // For now limit parallelism to max processor count times 2
-        var workerCount = Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount) * 2;
+        // For now limit parallelism to max processor count
+        var workerCount = Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount);
 
+        // Consider whether to capture ExecutionContext see:
         // https://github.com/dotnet/runtime/blob/9aeed3023cad3889c56ab7f8c2eba0955d336987/src/libraries/System.Private.CoreLib/src/System/Threading/ThreadPoolWorkQueue.cs#L1526-L1542
         //ExecutionContext? context = ExecutionContext.Capture();
         //object tpcallBack = (context == null || context.IsDefault) ?
@@ -41,10 +41,10 @@ public static class SepReaderEnumerationExtensions
 
         var workItems = new RowThreadPoolWorkItem<T>[workerCount];
         var workIndicesReady = new Stack<int>(workerCount);
+        var workIndicesExecutingOrdered = new Queue<int>(workerCount);
 
-        var workIndicesDone = new ConcurrentQueue<int>();
-        using var workSemaphore = new SemaphoreSlim(workIndicesReady.Count);
-        Action<int> enqueueDone = workIndex => { workIndicesDone.Enqueue(workIndex); workSemaphore.Release(); };
+        using var someWorkItemsDoneEvent = new ManualResetEventSlim();
+        Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
 
         try
         {
@@ -55,19 +55,31 @@ public static class SepReaderEnumerationExtensions
                 workIndicesReady.Push(workIndex);
             }
 
-            while (reader.MoveNext())
+            var readerNext = true;
+
+            while (readerNext || workIndicesExecutingOrdered.Count > 0)
             {
-                workSemaphore.Wait();
-                var dequeued = workIndicesDone.TryDequeue(out var workIndex);
-                Debug.Assert(dequeued);
-                var workItem = workItems[workIndex];
+                while (workIndicesReady.Count > 0 && (readerNext = reader.MoveNext()))
+                {
+                    var workIndexReady = workIndicesReady.Pop();
+                    var workItemReady = workItems[workIndexReady];
+                    reader.CopyNewRowTo(workItemReady.RowState);
 
-                yield return workItem.Result;
+                    ThreadPool.UnsafeQueueUserWorkItem(workItemReady, preferLocal: false);
 
-                reader.CopyNewRowTo(workItem.RowState);
+                    workIndicesExecutingOrdered.Enqueue(workIndexReady);
+                }
 
-                // TODO: Parallelize
-                workItem.Execute();
+                someWorkItemsDoneEvent.Wait();
+                RowThreadPoolWorkItem<T> nextWorkItemToReturn = null!;
+                if (workIndicesExecutingOrdered.TryPeek(out var nextWorkIndexToReturn) &&
+                    (nextWorkItemToReturn = workItems[nextWorkIndexToReturn]).IsDone)
+                {
+                    workIndicesExecutingOrdered.Dequeue();
+                    Debug.Assert(nextWorkIndexToReturn == nextWorkItemToReturn.WorkIndex);
+                    yield return nextWorkItemToReturn.Result;
+                    workIndicesReady.Push(nextWorkIndexToReturn);
+                }
             }
         }
         finally
@@ -77,32 +89,33 @@ public static class SepReaderEnumerationExtensions
                 workItem.RowState.Dispose();
             }
         }
-        //public static bool UnsafeQueueUserWorkItem(IThreadPoolWorkItem callBack, bool preferLocal)
     }
 
     class RowThreadPoolWorkItem<T> : IThreadPoolWorkItem
     {
         readonly SepReader.RowFunc<T> _select;
-        readonly Action<int> _enqueueDone;
+        readonly Action<int> _signalDone;
 
         public RowThreadPoolWorkItem(
             SepReaderRowState rowState, SepReader.RowFunc<T> select,
-            int workIndex, Action<int> enqueueDone)
+            int workIndex, Action<int> signalDone)
         {
             RowState = rowState;
             _select = select;
             WorkIndex = workIndex;
-            _enqueueDone = enqueueDone;
+            _signalDone = signalDone;
         }
 
         public SepReaderRowState RowState { get; }
         public int WorkIndex { get; }
         public T Result { get; set; } = default!;
+        public volatile bool IsDone = false;
 
         public void Execute()
         {
             Result = _select(new(RowState));
-            _enqueueDone(WorkIndex);
+            IsDone = true;
+            _signalDone(WorkIndex);
         }
     }
 }

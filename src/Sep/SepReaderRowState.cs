@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,7 +8,7 @@ using static nietras.SeparatedValues.SepReader;
 namespace nietras.SeparatedValues;
 
 // Cannot be nested due to CS0146: Circular base type dependency
-public class SepReaderRowState
+public class SepReaderRowState : IDisposable
 {
     // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
     // promote cache to member here.
@@ -42,6 +43,49 @@ public class SepReaderRowState
 
     public bool HasHeader { get; internal init; }
     public SepHeader Header => _header;
+
+    internal SepReaderRowState() { }
+
+    internal SepReaderRowState(SepReader other)
+    {
+        _header = other._header;
+        _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
+        _cultureInfo = other._cultureInfo;
+
+        // TODO: Consider if length should be less for copy or if wait on initialize to copy
+        //_chars = ArrayPool<char>.Shared.Rent(other._chars.Length);
+        _colEnds = ArrayPool<int>.Shared.Rent(other._colEnds.Length);
+        _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        _colToStrings = new SepToString[other._colToStrings.Length];
+        for (var colIndex = 0; colIndex < _colToStrings.Length; colIndex++)
+        {
+            _colToStrings[colIndex] = other._options.CreateToString(_header, colIndex);
+        }
+        _colCountExpected = other._colCountExpected;
+    }
+
+    internal void CopyNewRowTo(SepReaderRowState other)
+    {
+        _cacheIndex = 0;
+        _arrayPool.Reset();
+
+        _colCount = other._colCount;
+
+        _rowIndex = other._rowIndex;
+        _rowLineNumberFrom = other._rowLineNumberFrom;
+        _lineNumber = other._lineNumber;
+
+        var rowSpan = other.RowSpan();
+        if (rowSpan.Length > _chars.Length)
+        {
+            if (_chars.Length > 0) { ArrayPool<char>.Shared.Return(_chars); }
+            _chars = ArrayPool<char>.Shared.Rent(rowSpan.Length);
+        }
+        rowSpan.CopyTo(_chars);
+        _charsDataEnd = rowSpan.Length;
+
+        other._colEnds.AsSpan().Slice(0, _colCount).CopyTo(_colEnds);
+    }
 
     #region Row
     public ReadOnlySpan<char> RowSpan()
@@ -319,4 +363,38 @@ public class SepReaderRowState
         return span;
     }
     #endregion
+
+    protected virtual void DisposeManaged()
+    {
+        ArrayPool<char>.Shared.Return(_chars);
+        ArrayPool<int>.Shared.Return(_colEnds);
+        _arrayPool.Dispose();
+        foreach (var toString in _colToStrings)
+        {
+            toString.Dispose();
+        }
+    }
+
+    #region Dispose
+    bool _disposed;
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                DisposeManaged();
+            }
+
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+    #endregion Dispose
 }

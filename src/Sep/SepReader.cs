@@ -12,7 +12,7 @@ using static nietras.SeparatedValues.SepDefaults;
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public partial class SepReader : SepReaderRowState, IDisposable
+public partial class SepReader : SepReaderRowState
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -21,7 +21,7 @@ public partial class SepReader : SepReaderRowState, IDisposable
     const string AssertCondition = "SEPREADERASSERT";
 
     readonly Info _info;
-    readonly SepReaderOptions _options;
+    internal readonly SepReaderOptions _options;
     readonly char _fastFloatDecimalSeparatorOrZero;
     char _separator;
     readonly TextReader _reader;
@@ -435,38 +435,9 @@ public partial class SepReader : SepReaderRowState, IDisposable
         }
     }
 
-    void DisposeManaged()
+    protected override void DisposeManaged()
     {
         _reader.Dispose();
-        ArrayPool<char>.Shared.Return(_chars);
-        ArrayPool<int>.Shared.Return(_colEnds);
-        _arrayPool.Dispose();
-        foreach (var toString in _colToStrings)
-        {
-            toString.Dispose();
-        }
+        base.DisposeManaged();
     }
-
-    #region Dispose
-    bool _disposed;
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                DisposeManaged();
-            }
-
-            _disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    #endregion Dispose
 }

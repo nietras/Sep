@@ -46,24 +46,37 @@ public static class SepReaderEnumerationExtensions
         using var workSemaphore = new SemaphoreSlim(workIndicesReady.Count);
         Action<int> enqueueDone = workIndex => { workIndicesDone.Enqueue(workIndex); workSemaphore.Release(); };
 
-        for (var workIndex = 0; workIndex < workerCount; workIndex++)
+        try
         {
-            var rowState = new SepReaderRowState();
-            workItems[workIndex] = new RowThreadPoolWorkItem<T>(rowState, select, workIndex, enqueueDone);
-            workIndicesReady.Push(workIndex);
-        }
+            for (var workIndex = 0; workIndex < workerCount; workIndex++)
+            {
+                var rowState = new SepReaderRowState(reader);
+                workItems[workIndex] = new RowThreadPoolWorkItem<T>(rowState, select, workIndex, enqueueDone);
+                workIndicesReady.Push(workIndex);
+            }
 
-        foreach (var row in reader)
+            while (reader.MoveNext())
+            {
+                workSemaphore.Wait();
+                var dequeued = workIndicesDone.TryDequeue(out var workIndex);
+                Debug.Assert(dequeued);
+                var workItem = workItems[workIndex];
+
+                yield return workItem.Result;
+
+                reader.CopyNewRowTo(workItem.RowState);
+
+                // TODO: Parallelize
+                workItem.Execute();
+            }
+        }
+        finally
         {
-            workSemaphore.Wait();
-            var dequeued = workIndicesDone.TryDequeue(out var workIndex);
-            Debug.Assert(dequeued);
-            var workItem = workItems[workIndex];
-            //row.CopyTo(workItem.RowState);
-
-            yield return select(row);
+            foreach (var workItem in workItems)
+            {
+                workItem.RowState.Dispose();
+            }
         }
-
         //public static bool UnsafeQueueUserWorkItem(IThreadPoolWorkItem callBack, bool preferLocal)
     }
 
@@ -88,7 +101,7 @@ public static class SepReaderEnumerationExtensions
 
         public void Execute()
         {
-            //Result = _select(RowState);
+            Result = _select(new(RowState));
             _enqueueDone(WorkIndex);
         }
     }

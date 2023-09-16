@@ -14,32 +14,32 @@ public class SepReaderRowState : IDisposable
     // promote cache to member here.
     readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
 
-    protected internal SepHeader _header = null!;
-    readonly char _fastFloatDecimalSeparatorOrZero;
-    readonly CultureInfo? _cultureInfo;
+    internal SepHeader _header = null!;
+    internal char _fastFloatDecimalSeparatorOrZero;
+    internal CultureInfo? _cultureInfo;
 
-    protected internal char[] _chars = Array.Empty<char>();
-    protected internal int _charsDataStart = 0;
-    protected internal int _charsDataEnd = 0;
-    protected internal int _charsParseStart = 0;
-    protected internal int _charsRowStart = 0;
+    internal char[] _chars = Array.Empty<char>();
+    internal int _charsDataStart = 0;
+    internal int _charsDataEnd = 0;
+    internal int _charsParseStart = 0;
+    internal int _charsRowStart = 0;
 
-    protected internal const int _colEndsMaximumLength = 1024;
+    internal const int _colEndsMaximumLength = 1024;
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1...] = Col ends e.g. [1] = first col end
     // Length = colCount + 1
-    protected internal int[] _colEnds = Array.Empty<int>();
-    protected internal int _colCountExpected = -1;
-    protected internal int _colCount = 0;
+    internal int[] _colEnds = Array.Empty<int>();
+    internal int _colCountExpected = -1;
+    internal int _colCount = 0;
 
-    protected internal int _rowIndex = -1;
-    protected internal int _rowLineNumberFrom = 0;
-    protected internal int _lineNumber = 1;
+    internal int _rowIndex = -1;
+    internal int _rowLineNumberFrom = 0;
+    internal int _lineNumber = 1;
 
     internal readonly SepArrayPoolAccessIndexed _arrayPool = new();
-    protected internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
-    protected internal int _cacheIndex = 0;
-    protected internal SepToString[] _colToStrings = Array.Empty<SepToString>();
+    internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
+    internal int _cacheIndex = 0;
+    internal SepToString[] _colToStrings = Array.Empty<SepToString>();
 
     public bool HasHeader { get; internal init; }
     public SepHeader Header => _header;
@@ -50,6 +50,7 @@ public class SepReaderRowState : IDisposable
     {
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
+        System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
         _cultureInfo = other._cultureInfo;
 
         // TODO: Consider if length should be less for copy or if wait on initialize to copy

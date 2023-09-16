@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -22,10 +21,8 @@ public partial class SepReader : SepReaderRowState
 
     readonly Info _info;
     internal readonly SepReaderOptions _options;
-    readonly char _fastFloatDecimalSeparatorOrZero;
     char _separator;
     readonly TextReader _reader;
-    readonly CultureInfo? _cultureInfo;
     ISepParser? _parser;
 
 #if DEBUG

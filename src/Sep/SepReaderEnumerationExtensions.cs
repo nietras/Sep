@@ -1,4 +1,5 @@
-﻿using System;
+﻿//#define SEPTRACEPARALLEL
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,6 +26,7 @@ public static class SepReaderEnumerationExtensions
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         return ParallelEnumerateInternal(reader, select, maxDegreeOfParallelism);
+        //return ParallelEnumerateInternalOneWorkItemPerRow(reader, select, maxDegreeOfParallelism);
     }
 
     static IEnumerable<T> ParallelEnumerateInternal<T>(this SepReader reader, SepReader.RowFunc<T> select,
@@ -41,7 +43,6 @@ public static class SepReaderEnumerationExtensions
 
         using var someWorkItemsDoneEvent = new ManualResetEvent(false);
         Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
-
 
         try
         {
@@ -83,7 +84,9 @@ public static class SepReaderEnumerationExtensions
                     if (rowsToReadPerLoop < maxRowsInPlay)
                     {
                         rowsToReadPerLoop = Math.Min((rowsToReadPerLoop * 2), maxRowsInPlay);
+#if SEPTRACEPARALLEL
                         Trace.WriteLine($"Increased rows to read {rowsToReadPerLoop}");
+#endif
                     }
                     // Only queue worker on there are no workers running,
                     // and we have not reached maxRowsInPlay being executed
@@ -92,7 +95,9 @@ public static class SepReaderEnumerationExtensions
                     {
                         if (readyWorkers.TryTake(out var worker))
                         {
+#if SEPTRACEPARALLEL
                             Trace.WriteLine("Queue ready worker");
+#endif
                             ThreadPool.UnsafeQueueUserWorkItem(worker, preferLocal: false);
                         }
                         else
@@ -104,7 +109,9 @@ public static class SepReaderEnumerationExtensions
                 else if (rowStatesForExecuting.Count > workers.Count && rowStates.Count > workers.Count
                          && workers.Count < maxDegreeOfParallelism)
                 {
+#if SEPTRACEPARALLEL
                     Trace.WriteLine($"Add worker {nameof(rowStatesForExecuting)}:{rowStatesForExecuting.Count} {nameof(workers)}:{workers.Count}  {nameof(rowStates)}:{rowStates.Count}");
+#endif
                     var worker = new LoopThreadPoolWorkItem<T>(rowStatesForExecuting, readyWorkers, enqueueDone);
                     workers.Add(worker);
                     ThreadPool.UnsafeQueueUserWorkItem(worker, preferLocal: false);
@@ -122,8 +129,6 @@ public static class SepReaderEnumerationExtensions
                     rowStatesUnused.Push(nextRowStateIndexToReturn);
                     ++returnCount;
                 }
-
-
 
                 if (rowStates.Count >= maxRowsInPlay)
                 {

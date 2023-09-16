@@ -33,7 +33,8 @@ if (args.Length > 0)
     //BenchmarkRunner.Run(typeof(SepEndToEndBench), config, args);
     //BenchmarkRunner.Run(typeof(SepHashBench), config, args);
     //BenchmarkRunner.Run(typeof(SepParseSeparatorsMaskBench), config, args);
-    BenchmarkRunner.Run(typeof(SepParserBench), config, args);
+    //BenchmarkRunner.Run(typeof(SepParserBench), config, args);
+    BenchmarkRunner.Run(typeof(StopwatchBench), config, args);
 }
 else
 {

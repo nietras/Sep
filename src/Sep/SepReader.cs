@@ -20,7 +20,7 @@ public partial class SepReader : SepReaderRowState
     const string AssertCondition = "SEPREADERASSERT";
 
     readonly Info _info;
-    internal readonly SepReaderOptions _options;
+    //internal readonly SepReaderOptions _options;
     char _separator;
     readonly TextReader _reader;
     ISepParser? _parser;
@@ -43,9 +43,11 @@ public partial class SepReader : SepReaderRowState
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
     {
         _info = info;
-        _options = options;
+        var _options = options;
         _reader = reader;
         _cultureInfo = _options.CultureInfo;
+        _createToString = _options.CreateToString;
+        _arrayPool = new();
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
             System.Globalization.CultureInfo.InvariantCulture.NumberFormat.CurrencyDecimalSeparator;
@@ -142,7 +144,7 @@ public partial class SepReader : SepReaderRowState
     }
 
     public bool IsEmpty { get; }
-    public SepSpec Spec => new(new(_separator), _options.CultureInfo);
+    public SepSpec Spec => new(new(_separator), _cultureInfo);
     public bool HasRows { get; }
 
     internal int CharsLength => _chars.Length;

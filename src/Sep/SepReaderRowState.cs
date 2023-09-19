@@ -17,6 +17,7 @@ public class SepReaderRowState : IDisposable
     internal SepHeader _header = null!;
     internal char _fastFloatDecimalSeparatorOrZero;
     internal CultureInfo? _cultureInfo;
+    internal SepCreateToString _createToString = default!;
 
     internal char[] _chars = Array.Empty<char>();
     internal int _charsDataStart = 0;
@@ -36,7 +37,7 @@ public class SepReaderRowState : IDisposable
     internal int _rowLineNumberFrom = 0;
     internal int _lineNumber = 1;
 
-    internal readonly SepArrayPoolAccessIndexed _arrayPool = new();
+    internal SepArrayPoolAccessIndexed _arrayPool = null!;
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
     internal SepToString[] _colToStrings = Array.Empty<SepToString>();
@@ -48,21 +49,42 @@ public class SepReaderRowState : IDisposable
 
     internal SepReaderRowState(SepReader other)
     {
+        InitializeFrom(other);
+        InitializeFromWithNewCacheState(other);
+    }
+
+    internal SepReaderRowState CloneWithSharedCache()
+    {
+        var clone = new SepReaderRowState();
+        clone.InitializeFrom(this);
+        clone._arrayPool = _arrayPool;
+        clone._colNameCache = _colNameCache;
+        clone._colToStrings = _colToStrings;
+        return clone;
+    }
+
+    void InitializeFrom(SepReaderRowState other)
+    {
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
         _cultureInfo = other._cultureInfo;
+        _createToString = other._createToString;
 
-        // TODO: Consider if length should be less for copy or if wait on initialize to copy
-        //_chars = ArrayPool<char>.Shared.Rent(other._chars.Length);
         _colEnds = ArrayPool<int>.Shared.Rent(other._colEnds.Length);
+        _colCountExpected = other._colCountExpected;
+    }
+
+    void InitializeFromWithNewCacheState(SepReaderRowState other)
+    {
+        _arrayPool = new();
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        // TODO: Skip if all to string are thread safe
         _colToStrings = new SepToString[other._colToStrings.Length];
         for (var colIndex = 0; colIndex < _colToStrings.Length; colIndex++)
         {
-            _colToStrings[colIndex] = other._options.CreateToString(_header, colIndex);
+            _colToStrings[colIndex] = _createToString(_header, colIndex);
         }
-        _colCountExpected = other._colCountExpected;
     }
 
     internal void CopyNewRowTo(SepReaderRowState other)
@@ -102,6 +124,8 @@ public class SepReaderRowState : IDisposable
             // and vectorize col ends fix up if need be
         }
     }
+
+    internal void ResetSharedCache() => _arrayPool.Reset();
 
     #region Row
     public ReadOnlySpan<char> RowSpan()
@@ -393,7 +417,9 @@ public class SepReaderRowState : IDisposable
 
     #region Dispose
     bool _disposed;
-    protected virtual void Dispose(bool disposing)
+#pragma warning disable CA1063 // Implement IDisposable Correctly
+    void Dispose(bool disposing)
+#pragma warning restore CA1063 // Implement IDisposable Correctly
     {
         if (!_disposed)
         {
@@ -412,5 +438,6 @@ public class SepReaderRowState : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+
     #endregion Dispose
 }

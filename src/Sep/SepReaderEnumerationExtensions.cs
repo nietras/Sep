@@ -25,11 +25,225 @@ public static class SepReaderEnumerationExtensions
         if (maxDegreeOfParallelism <= 1) { return Enumerate(reader, select); }
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
-        return ParallelEnumerateInternal(reader, select, maxDegreeOfParallelism);
+        if (!reader.HasRows) { return Array.Empty<T>(); }
+        return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalOneWorkItemPerRow(reader, select, maxDegreeOfParallelism);
     }
 
-    static IEnumerable<T> ParallelEnumerateInternal<T>(this SepReader reader, SepReader.RowFunc<T> select,
+    sealed class RowStatesThreadPoolWorkItem<T> : IThreadPoolWorkItem, IDisposable
+    {
+        readonly SepReaderRowState _protoRowState;
+        readonly int _rowStateCountPerExecute;
+        readonly SepReader.RowFunc<T> _select;
+        readonly int _index;
+        readonly Action<int> _signal;
+        readonly List<SepReaderRowState> _rowStates;
+        readonly List<T> _results;
+        bool _disposedValue;
+
+        public RowStatesThreadPoolWorkItem(
+            SepReaderRowState protoRowState, int initialRowStateCount, SepReader.RowFunc<T> select,
+            int index, Action<int> signal)
+        {
+            _protoRowState = protoRowState;
+            _rowStateCountPerExecute = Math.Max(1, initialRowStateCount);
+            _select = select;
+            _index = index;
+            _signal = signal;
+            _rowStates = new(initialRowStateCount) { protoRowState };
+            EnsureRowStates(initialRowStateCount);
+            _results = new(initialRowStateCount);
+        }
+
+        public int RowsToExecute { get; set; }
+        public List<SepReaderRowState> RowStates => _rowStates;
+        public List<T> Results => _results;
+        public volatile bool IsDone = false;
+
+        public void Execute()
+        {
+#if SEPTRACEPARALLEL
+            var b = Stopwatch.GetTimestamp();
+#endif
+            _results.Clear();
+            Debug.Assert(RowsToExecute <= _rowStates.Count);
+            for (var i = 0; i < RowsToExecute; i++)
+            {
+                var rowState = _rowStates[i];
+                rowState.ResetSharedCache();
+                _results.Add(_select(new(rowState)));
+            }
+            IsDone = true;
+#if SEPTRACEPARALLEL
+            var a = Stopwatch.GetTimestamp();
+            var ms = ((a - b) * 1000.0) / Stopwatch.Frequency;
+            Console.WriteLine($"{RowsToExecute,4} {ms,6:F3}");
+#endif
+            _signal(_index);
+        }
+
+        void EnsureRowStates(int maxRowsToExecute)
+        {
+            while (_rowStates.Count < maxRowsToExecute)
+            {
+                _rowStates.Add(_protoRowState.CloneWithSharedCache());
+            }
+        }
+
+        void DisposeManaged()
+        {
+            foreach (var rowState in _rowStates)
+            {
+                rowState.Dispose();
+            }
+            _rowStates.Clear();
+        }
+
+        #region Dispose
+        void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    DisposeManaged();
+                }
+                _disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
+    }
+
+
+    static IEnumerable<T> ParallelEnumerateInternalRowStatesGroupPerWorker<T>(this SepReader reader, SepReader.RowFunc<T> select,
+        int maxDegreeOfParallelism, int maxRowsPerWorker = 1024)
+    {
+        var readerHasMore = reader.MoveNext();
+        if (!readerHasMore) { yield break; }
+
+        //var enumerateMoreRows = MicrosecondsToTicks(100);
+        //var oneRowStatePerWorkerThresholdMicroseconds = MicrosecondsToTicks(2000);
+        static long MicrosecondsToTicks(int microseconds) => (microseconds * Stopwatch.Frequency) / 1_000_000;
+        //static long TicksToMicroseconds(int ticks) => (ticks * 1_000_000) / Stopwatch.Frequency;
+
+        // Initial time estimates may be grossly over estimate the time per row,
+        // given JIT, tiering JITing etc.
+
+        var initialBefore = Stopwatch.GetTimestamp();
+        var initialResult = select(reader.Current);
+        var initialAfter = Stopwatch.GetTimestamp();
+        var initialDiff = initialAfter - initialBefore;
+
+        yield return initialResult;
+
+        const int QuantaMicroseconds = 2000;
+        // Enumerate rows for quanta to estimate time per row, if more than
+        // quanta measured for one, no more will be enumerated
+        var quantaTicks = MicrosecondsToTicks(QuantaMicroseconds);
+        var rowsPerWorker = (int)Math.Min(int.MaxValue, Math.Max(1, Math.Min(maxRowsPerWorker, quantaTicks / initialDiff)));
+        if (rowsPerWorker > 1)
+        {
+            var results = new List<T>(rowsPerWorker);
+            var estimateBefore = Stopwatch.GetTimestamp();
+            for (var i = 0; i < rowsPerWorker && (readerHasMore = reader.MoveNext()); i++)
+            {
+                results.Add(select(reader.Current));
+            }
+            if (results.Count > 0)
+            {
+                var estimateAfter = Stopwatch.GetTimestamp();
+                foreach (var result in results)
+                {
+                    yield return result;
+                }
+                var estimateDiff = estimateAfter - estimateBefore;
+                var estimateDiffPerRow = estimateDiff / results.Count;
+                rowsPerWorker = (int)Math.Min(int.MaxValue, Math.Max(1, Math.Min(maxRowsPerWorker, quantaTicks / estimateDiffPerRow)));
+            }
+        }
+        if (!readerHasMore) { yield break; }
+
+        using var someWorkItemsDoneEvent = new ManualResetEvent(false);
+        Action<int> enqueueDone = workerIndex => { someWorkItemsDoneEvent.Set(); };
+
+        var workersReady = new Stack<int>(maxDegreeOfParallelism);
+        var workersExecutingOrdered = new Queue<int>(maxDegreeOfParallelism);
+
+        var workers = new List<RowStatesThreadPoolWorkItem<T>>(maxDegreeOfParallelism);
+        for (var workerIndex = 0; workerIndex < maxDegreeOfParallelism; workerIndex++)
+        {
+            var protoRowState = new SepReaderRowState(reader);
+            var worker = new RowStatesThreadPoolWorkItem<T>(protoRowState, rowsPerWorker, select, workerIndex, enqueueDone);
+            workers.Add(worker);
+            workersReady.Push(workerIndex);
+        }
+
+        Debugger.Break();
+
+        try
+        {
+            while (readerHasMore || workersExecutingOrdered.Count > 0)
+            {
+                while (workersExecutingOrdered.TryPeek(out var workerIndexHead) && workers[workerIndexHead].IsDone)
+                {
+                    workersExecutingOrdered.TryDequeue(out var expected);
+                    Debug.Assert(workerIndexHead == expected);
+                    var worker = workers[workerIndexHead];
+                    foreach (var result in worker.Results)
+                    {
+                        yield return result;
+                    }
+                    worker.IsDone = false;
+                    workersReady.Push(workerIndexHead);
+                }
+
+                if (readerHasMore && workersReady.TryPop(out var workerIndexNext))
+                {
+                    var worker = workers[workerIndexNext];
+                    Debug.Assert(worker.IsDone == false);
+                    var rowStates = worker.RowStates;
+                    var rowIndex = 0;
+                    for (; rowIndex < rowStates.Count && (readerHasMore = reader.MoveNext()); rowIndex++)
+                    {
+                        var rowState = rowStates[rowIndex];
+                        reader.CopyNewRowTo(rowState);
+                    }
+                    if (rowIndex > 0)
+                    {
+                        worker.RowsToExecute = rowIndex;
+                        workersExecutingOrdered.Enqueue(workerIndexNext);
+                        ThreadPool.UnsafeQueueUserWorkItem(worker, preferLocal: false);
+                    }
+                    else
+                    {
+                        workersReady.Push(workerIndexNext);
+                    }
+                }
+                else
+                {
+                    someWorkItemsDoneEvent.WaitOne();
+                }
+            }
+        }
+        finally
+        {
+            foreach (var worker in workers)
+            {
+                worker.Dispose();
+            }
+        }
+        Debug.Assert(workers.Count == workersReady.Count);
+        Debug.Assert(workersExecutingOrdered.Count == 0);
+    }
+
+    static IEnumerable<T> ParallelEnumerateInternalManyRowStates<T>(this SepReader reader, SepReader.RowFunc<T> select,
         int maxDegreeOfParallelism, int maxRowsInPlay = 16 * 1024)
     {
         var rowStates = new List<SepReaderRowStateForParallel<T>>(maxDegreeOfParallelism);

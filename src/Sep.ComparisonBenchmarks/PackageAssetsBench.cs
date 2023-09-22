@@ -77,7 +77,19 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
-    [Benchmark]
+    [Benchmark()]
+    public void Sep_RowSt()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        var rowState = new SepReaderRowState(reader);
+        foreach (var row in reader)
+        {
+            reader.CopyNewRowTo(rowState);
+        }
+    }
+
+    //[Benchmark]
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -254,8 +266,8 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         .From(Reader.CreateReader());
 
         var assets = reader.ParallelEnumerate(
-            r => PackageAsset.Read(r._rowState, (r, i) => r.ToString(i)),
-            maxDegreeOfParallelism: Environment.ProcessorCount).ToList();
+            static r => PackageAsset.Read(r._rowState, static (r, i) => r.ToString(i)),
+            maxDegreeOfParallelism: 128).ToList();
     }
 
     [Benchmark(Baseline = true)]
@@ -279,7 +291,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-    [Benchmark]
+    //[Benchmark]
     public void Sylvan___()
     {
         var assets = new List<PackageAsset>();

@@ -58,9 +58,9 @@ if (args.Length > 0)
 
     var nameToBenchTypesSet = new Dictionary<string, Type[]>()
     {
-        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), } },
-        { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
-        { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
+        //{ nameof(PackageAssetsBench), new[] { /*typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench),*/ typeof(AssetPackageAssetsBench), } },
+        //{ nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
+        { nameof(FloatsReaderBench), new[] { /*typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench),*/ typeof(FloatsFloatsReaderBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)
     {
@@ -100,18 +100,19 @@ else
 {
     //var b = new ColsPackageAssetsBench();
     //var b = new RowFloatsReaderBench();
-    var b = new RowPackageAssetsBench();
+    var b = new FloatsFloatsReaderBench();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {
         b.Sylvan___();
         b.Sep______();
-        b.CsvHelper();
-        b.ReadLine_();
+        b.Sep_MT___();
+        //b.CsvHelper();
+        b.ReadLineP();
+        //b.ReadLine_();
     }
     Thread.Sleep(500);
 #endif
-    b.CsvHelper();
     var sw = new Stopwatch();
     sw.Restart();
     b.Sylvan___();
@@ -120,13 +121,19 @@ else
     sw.Restart();
     b.Sep______();
     var sep_ms = sw.ElapsedMilliseconds;
+    Thread.Sleep(300);
+    sw.Restart();
+    b.Sep_MT___();
+    var sep_mt_ms = sw.ElapsedMilliseconds;
     log($"Sylvan {sylvan_ms:D4}");
     log($"Sep    {sep_ms:D4}");
-    log($"Ratio  {sep_ms / (double)sylvan_ms:F3}");
-    Thread.Sleep(300);
-    for (var i = 0; i < 20; i++)
+    log($"Sep MT {sep_mt_ms:D4}");
+    log($"Ratio    {sep_ms / (double)sylvan_ms:F3}");
+    log($"Ratio MT {sep_mt_ms / (double)sylvan_ms:F3}");
+    Thread.Sleep(1000);
+    for (var i = 0; i < 1; i++)
     {
-        b.Sep______();
+        b.Sep_MT___();
     }
 }
 

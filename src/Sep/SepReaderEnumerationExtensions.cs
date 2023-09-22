@@ -123,7 +123,7 @@ public static class SepReaderEnumerationExtensions
 
 
     static IEnumerable<T> ParallelEnumerateInternalRowStatesGroupPerWorker<T>(this SepReader reader, SepReader.RowFunc<T> select,
-        int maxDegreeOfParallelism, int maxRowsPerWorker = 1024)
+        int maxDegreeOfParallelism, int maxRowsPerWorker = 32)
     {
         var readerHasMore = reader.MoveNext();
         if (!readerHasMore) { yield break; }
@@ -184,8 +184,6 @@ public static class SepReaderEnumerationExtensions
             workers.Add(worker);
             workersReady.Push(workerIndex);
         }
-
-        Debugger.Break();
 
         try
         {

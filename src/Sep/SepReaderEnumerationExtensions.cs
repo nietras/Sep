@@ -338,6 +338,8 @@ public static class SepReaderEnumerationExtensions
 
         try
         {
+            //var queueCount = 0;
+            //var waitCount = 0;
             while (readerHasMore || workersExecutingOrdered.Count > 0)
             {
                 while (workersExecutingOrdered.TryPeek(out var workerIndexHead) && workers[workerIndexHead].IsDone)
@@ -369,6 +371,7 @@ public static class SepReaderEnumerationExtensions
                         worker.RowsToExecute = rowIndex;
                         workersExecutingOrdered.Enqueue(workerIndexNext);
                         ThreadPool.UnsafeQueueUserWorkItem(worker, preferLocal: false);
+                        //++queueCount;
                     }
                     else
                     {
@@ -378,8 +381,11 @@ public static class SepReaderEnumerationExtensions
                 else
                 {
                     someWorkItemsDoneEvent.WaitOne(10);
+                    //++waitCount;
                 }
             }
+
+            //Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex}");
         }
         finally
         {

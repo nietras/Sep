@@ -219,7 +219,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
 #if DEBUG
     const int DefaultLineCount = 1_000;
 #else
-    const int DefaultLineCount = 1_000_000;
+    const int DefaultLineCount = 200_000;
 #endif
 
     public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount) { }

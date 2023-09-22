@@ -104,20 +104,20 @@ else
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {
-        b.Sylvan___();
+        //b.Sylvan___();
         b.Sep______();
         b.Sep_MT___();
         //b.CsvHelper();
-        b.ReadLineP();
+        //b.ReadLineP();
         //b.ReadLine_();
     }
     Thread.Sleep(500);
 #endif
     var sw = new Stopwatch();
-    sw.Restart();
-    b.Sylvan___();
-    var sylvan_ms = sw.ElapsedMilliseconds;
-    Thread.Sleep(300);
+    //sw.Restart();
+    //b.Sylvan___();
+    //var sylvan_ms = sw.ElapsedMilliseconds;
+    //Thread.Sleep(300);
     sw.Restart();
     b.Sep______();
     var sep_ms = sw.ElapsedMilliseconds;
@@ -125,12 +125,12 @@ else
     sw.Restart();
     b.Sep_MT___();
     var sep_mt_ms = sw.ElapsedMilliseconds;
-    log($"Sylvan {sylvan_ms:D4}");
+    //log($"Sylvan {sylvan_ms:D4}");
     log($"Sep    {sep_ms:D4}");
     log($"Sep MT {sep_mt_ms:D4}");
-    log($"Ratio    {sep_ms / (double)sylvan_ms:F3}");
-    log($"Ratio MT {sep_mt_ms / (double)sylvan_ms:F3}");
-    Thread.Sleep(1000);
+    //log($"Ratio    {sep_ms / (double)sylvan_ms:F3}");
+    //log($"Ratio MT {sep_mt_ms / (double)sylvan_ms:F3}");
+    Thread.Sleep(300);
     for (var i = 0; i < 1; i++)
     {
         b.Sep_MT___();

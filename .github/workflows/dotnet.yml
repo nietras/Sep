@@ -1,3 +1,10 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+# https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm
+# https://github.com/MichalStrehovsky/pdfmerge/blob/master/.github/workflows/ci.yml
+# https://github.com/adamralph/minver
+# https://github.com/Kurpanik/MinVerExample # not great example
+
 name: dotnet
 
 on:
@@ -6,6 +13,15 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to create'
+        required: true
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  NuGetDirectory: ${{ github.workspace }}/nuget
 
 jobs:
   build:
@@ -32,3 +48,87 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         flags: ${{ matrix.os }},${{ matrix.configuration }}
+
+  pack:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
+    - run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
+    - uses: actions/upload-artifact@v3
+      with:
+        name: nuget
+        if-no-files-found: error
+        retention-days: 7
+        path: ${{ env.NuGetDirectory }}/*nupkg
+
+  validate:
+    runs-on: windows-latest
+    needs: [ pack ]
+    steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
+    - name: Download nuget packages
+      uses: actions/download-artifact@v3
+      with:
+        name: nuget
+        path: ${{ env.NuGetDirectory }}
+    - name: Install nuget validator
+      run: dotnet tool update Meziantou.Framework.NuGetPackageValidation.Tool --global
+    # Validate metadata and content of the NuGet package
+    # https://www.nuget.org/packages/Meziantou.Framework.NuGetPackageValidation.Tool#readme-body-tab
+    # If some rules are not applicable, you can disable them
+    # using the --excluded-rules or --excluded-rule-ids option
+    - name: Validate package
+      run: meziantou.validate-nuget-package (Get-ChildItem "${{ env.NuGetDirectory }}/*.nupkg")
+
+  publish:
+    needs: [ build, pack, validate ]
+    runs-on: windows-latest
+    if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download nuget packages
+      uses: actions/download-artifact@v3
+      with:
+        name: nuget
+        path: ${{ env.NuGetDirectory }}
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        release_name: v${{ github.event.inputs.version }}
+        draft: true
+    # - name: Create tag
+    #   run: |
+    #     git tag v${{ github.event.inputs.version }}
+    #     git push origin v${{ github.event.inputs.version }}
+    - name: Upload nupkg package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Sep.${{ github.event.inputs.version }}.nupkg
+        asset_name: Sep.${{ github.event.inputs.version }}.nupkg
+        asset_content_type: application/zip
+    - name: Upload snupkg package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: Sep.${{ github.event.inputs.version }}.snupkg
+        asset_name: Sep.${{ github.event.inputs.version }}.snupkg
+        asset_content_type: application/zip

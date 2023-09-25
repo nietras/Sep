@@ -65,7 +65,9 @@ jobs:
       run:  minver -v d -t v -p preview
     - name: Run MinVer (output)
       id: minverrun
-      run:  echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> "$GITHUB_ENV"
+      run: |
+        echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> "$GITHUB_ENV"
+        echo "${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Output MinVer
       run: |
         echo "${{ env.MINVERVERSIONOVERRIDE }}"

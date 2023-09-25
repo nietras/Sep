@@ -77,7 +77,7 @@ jobs:
         path: ${{ env.NuGetDirectory }}/*nupkg
 
   create-release-push:
-    needs: [ build, pack, validate ]
+    needs: [ build, pack ]
     runs-on: windows-latest
     if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
     

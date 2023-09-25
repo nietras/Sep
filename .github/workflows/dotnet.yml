@@ -79,6 +79,8 @@ jobs:
   create-release-push:
     needs: [ build, pack ]
     runs-on: windows-latest
+    permissions:
+      contents: write
     if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
     
     steps:
@@ -107,7 +109,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: Sep.${{ github.event.inputs.version }}.nupkg
+        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg
         asset_name: Sep.${{ github.event.inputs.version }}.nupkg
         asset_content_type: application/zip
     - name: Upload snupkg package
@@ -116,6 +118,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: Sep.${{ github.event.inputs.version }}.snupkg
+        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
         asset_name: Sep.${{ github.event.inputs.version }}.snupkg
         asset_content_type: application/zip

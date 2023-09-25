@@ -59,27 +59,8 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         global-json-file: global.json
-    - run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
-    - uses: actions/upload-artifact@v3
-      with:
-        name: nuget
-        if-no-files-found: error
-        retention-days: 7
-        path: ${{ env.NuGetDirectory }}/*nupkg
-
-  validate:
-    runs-on: windows-latest
-    needs: [ pack ]
-    steps:
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        global-json-file: global.json
-    - name: Download nuget packages
-      uses: actions/download-artifact@v3
-      with:
-        name: nuget
-        path: ${{ env.NuGetDirectory }}
+    - name: Pack nuget package
+      run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - name: Install nuget validator
       run: dotnet tool update Meziantou.Framework.NuGetPackageValidation.Tool --global
     # Validate metadata and content of the NuGet package
@@ -88,8 +69,14 @@ jobs:
     # using the --excluded-rules or --excluded-rule-ids option
     - name: Validate package
       run: meziantou.validate-nuget-package (Get-ChildItem "${{ env.NuGetDirectory }}/*.nupkg")
+    - uses: actions/upload-artifact@v3
+      with:
+        name: nuget
+        if-no-files-found: error
+        retention-days: 7
+        path: ${{ env.NuGetDirectory }}/*nupkg
 
-  publish:
+  create-release-push:
     needs: [ build, pack, validate ]
     runs-on: windows-latest
     if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}

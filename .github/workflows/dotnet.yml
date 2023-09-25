@@ -63,6 +63,13 @@ jobs:
       run:  dotnet tool install --global minver-cli --version 4.3.0
     - name: Run MinVer
       run:  minver -v d -t v -p preview
+    - name: Run MinVer (output)
+      id: minver-run
+      run:  echo "minverversion=$(minver -v d -t v -p preview)" >> $GITHUB_OUTPUT
+    - name: Output MinVer
+      id: minver-run-output
+      run: |
+        echo "${{ steps.version.outputs.minverversion }}"
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - uses: actions/upload-artifact@v3

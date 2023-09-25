@@ -64,12 +64,12 @@ jobs:
     - name: Run MinVer
       run:  minver -v d -t v -p preview
     - name: Run MinVer (output)
-      id: minver-run
+      id: minverrun
       run:  echo "minverversion=$(minver -v d -t v -p preview)" >> $GITHUB_OUTPUT
     - name: Output MinVer
       id: minver-run-output
       run: |
-        echo "${{ steps.version.outputs.minverversion }}"
+        echo "${{ steps.minverrun.outputs.minverversion }}"
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - uses: actions/upload-artifact@v3

@@ -1,10 +1,10 @@
 <Project>
 
   <PropertyGroup>
-    <AssemblyVersion>0.2.0</AssemblyVersion>
+    <!--<AssemblyVersion>0.2.0</AssemblyVersion>
     <FileVersion>0.2.6</FileVersion>
     <InformationalVersion>$(FileVersion)-preview.1</InformationalVersion>
-    <PackageVersion>$(InformationalVersion)</PackageVersion>
+    <PackageVersion>$(InformationalVersion)</PackageVersion>-->
 
     <Company>nietras</Company>
     <Authors>nietras</Authors>
@@ -21,7 +21,7 @@
     <PublishRelease>true</PublishRelease>
     <PackRelease>true</PackRelease>
 
-    <!-- https://github.com/dotnet/roslyn/issues/41640 🤦‍ -->
+    <!-- https://github.com/dotnet/roslyn/issues/41640 🤦 -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
 
@@ -37,6 +37,10 @@
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERTRACE</DefineConstants>
+
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerVerbosity>d</MinVerVerbosity>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,5 +52,9 @@
   <Import Project="$(MSBuildThisFileDirectory)\OutputBuildProps.props" />
 
   <Import Project="$(MSBuildThisFileDirectory)\SourceLink.GitHub.props" />
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="4.3.0" PrivateAssets="All" /> 
+  </ItemGroup>
 
 </Project>

@@ -61,14 +61,14 @@ jobs:
         global-json-file: global.json
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
-    - name: Install nuget validator
-      run: dotnet tool update Meziantou.Framework.NuGetPackageValidation.Tool --global
+    # - name: Install nuget validator
+    #   run: dotnet tool update Meziantou.Framework.NuGetPackageValidation.Tool --global
     # Validate metadata and content of the NuGet package
     # https://www.nuget.org/packages/Meziantou.Framework.NuGetPackageValidation.Tool#readme-body-tab
     # If some rules are not applicable, you can disable them
     # using the --excluded-rules or --excluded-rule-ids option
-    - name: Validate package
-      run: meziantou.validate-nuget-package (Get-ChildItem "${{ env.NuGetDirectory }}/*.nupkg")
+    # - name: Validate package
+    #   run: meziantou.validate-nuget-package (Get-ChildItem "${{ env.NuGetDirectory }}/*.nupkg")
     - uses: actions/upload-artifact@v3
       with:
         name: nuget

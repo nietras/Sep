@@ -65,11 +65,10 @@ jobs:
       run:  minver -v d -t v -p preview
     - name: Run MinVer (output)
       id: minverrun
-      run:  echo "minverversion=$(minver -v d -t v -p preview)" >> $GITHUB_OUTPUT
+      run:  echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> "$GITHUB_ENV"
     - name: Output MinVer
-      id: minver-run-output
       run: |
-        echo "${{ steps.minverrun.outputs.minverversion }}"
+        echo "${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - uses: actions/upload-artifact@v3

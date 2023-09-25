@@ -101,10 +101,10 @@ jobs:
         tag_name: v${{ github.event.inputs.version }}
         release_name: v${{ github.event.inputs.version }}
         draft: true
-    - name: Create tag
-      run: |
-        git tag v${{ github.event.inputs.version }}
-        git push origin v${{ github.event.inputs.version }}
+    # - name: Create tag
+    #   run: |
+    #     git tag v${{ github.event.inputs.version }}
+    #     git push origin v${{ github.event.inputs.version }}
     - name: Upload nupkg package
       uses: actions/upload-release-asset@v1
       env:

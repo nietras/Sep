@@ -59,6 +59,15 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         global-json-file: global.json
+    - name: TEST Set the value
+      id: step_one
+      run: |
+        echo "action_state=yellow" >> "$GITHUB_ENV"
+    - name: TEST Use the value
+      id: step_two
+      run: |
+        printf '%s\n' "$action_state" # This will output 'yellow'
+        echo "TEST ${{ env.action_state }}"
     - name: Install MinVer
       run:  dotnet tool install --global minver-cli --version 4.3.0
     - name: Run MinVer
@@ -67,7 +76,7 @@ jobs:
       id: minverrun
       run: |
         echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> "$GITHUB_ENV"
-        echo "${{ env.MINVERVERSIONOVERRIDE }}"
+        echo "TEST ${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Output MinVer
       run: |
         echo "${{ env.MINVERVERSIONOVERRIDE }}"

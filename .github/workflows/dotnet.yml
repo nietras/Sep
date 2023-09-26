@@ -16,7 +16,7 @@ on:
     inputs:
       version:
         description: 'Release version to create'
-        required: true
+        required: false
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1

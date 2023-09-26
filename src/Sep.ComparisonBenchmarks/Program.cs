@@ -142,11 +142,11 @@ static long BytesFromReaderSpec(IReadOnlyList<ParameterInstance> parameters)
 }
 
 static string GetVersions() =>
-     $"Sep {GetInformationalVersion(typeof(nietras.SeparatedValues.SepReader).Assembly)}, " +
-     $"Sylvan  {GetInformationalVersion(typeof(Sylvan.Data.Csv.CsvDataReader).Assembly)}, " +
-     $"CsvHelper {GetInformationalVersion(typeof(CsvHelper.CsvReader).Assembly)}";
+     $"Sep {GetFileVersion(typeof(nietras.SeparatedValues.SepReader).Assembly)}, " +
+     $"Sylvan  {GetFileVersion(typeof(Sylvan.Data.Csv.CsvDataReader).Assembly)}, " +
+     $"CsvHelper {GetFileVersion(typeof(CsvHelper.CsvReader).Assembly)}";
 
-static string GetInformationalVersion(Assembly assembly) =>
+static string GetFileVersion(Assembly assembly) =>
     FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion!;
 
 static string GetSourceDirectory([CallerFilePath] string filePath = "") => Path.GetDirectoryName(filePath)!;

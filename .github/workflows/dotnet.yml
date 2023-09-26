@@ -62,7 +62,7 @@ jobs:
     - name: TEST Set the value
       id: step_one
       run: |
-        echo "action_state=yellow" >> "$GITHUB_ENV"
+        echo "action_state=yellow" >> $env:GITHUB_ENV
     - name: TEST Use the value
       id: step_two
       run: |
@@ -75,7 +75,7 @@ jobs:
     - name: Run MinVer (output)
       id: minverrun
       run: |
-        echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> "$GITHUB_ENV"
+        echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
         echo "TEST ${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Output MinVer
       run: |

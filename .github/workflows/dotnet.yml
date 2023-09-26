@@ -63,17 +63,19 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         global-json-file: global.json
-    - name: Install MinVer
-      run:  dotnet tool install --global minver-cli --version 4.3.0
-    - name: Run MinVer
-      run:  minver -v d -t v -p preview
-    - name: Run MinVer (output)
-      id: minverrun
-      run: |
-        echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
-    - name: Output MinVer
-      run: |
-        echo "${{ env.MINVERVERSIONOVERRIDE }}"
+    # No need to define min ver version globally now since only uploading release 
+    # when version and tag is defined.
+    # - name: Install MinVer
+    #   run:  dotnet tool install --global minver-cli --version 4.3.0
+    # - name: Run MinVer
+    #   run:  minver -v d -t v -p preview
+    # - name: Run MinVer (output)
+    #   id: minverrun
+    #   run: |
+    #     echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
+    # - name: Output MinVer
+    #   run: |
+    #     echo "${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - name: Get version of dll
@@ -106,12 +108,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v${{ github.event.inputs.version }}
-        release_name: v${{ github.event.inputs.version }}
+        release_name: ${{ github.event.inputs.version }}
         draft: true
     - name: Create tag (for release)
       run: |
         git tag v${{ github.event.inputs.version }}
-    #    git push origin v${{ github.event.inputs.version }}
+        git push origin v${{ github.event.inputs.version }}
     - name: Upload nupkg package
       uses: actions/upload-release-asset@v1
       env:

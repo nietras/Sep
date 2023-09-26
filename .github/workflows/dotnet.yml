@@ -25,6 +25,7 @@ env:
 
 jobs:
   build:
+    if: ${{ false }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -76,12 +77,13 @@ jobs:
       id: minverrun
       run: |
         echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
-        echo "TEST ${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Output MinVer
       run: |
         echo "${{ env.MINVERVERSIONOVERRIDE }}"
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
+    - name: Get version of dll
+      run: (Get-Item ./build/bin/Sep/Release/net8.0/Sep.dll).VersionInfo.ProductVersion
     - uses: actions/upload-artifact@v3
       with:
         name: nuget
@@ -94,7 +96,7 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
-    if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
+    if: ${{ false && github.event.inputs.version != '' && github.actor == 'nietras' }}
     
     steps:
     - uses: actions/checkout@v3

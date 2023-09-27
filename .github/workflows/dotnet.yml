@@ -127,6 +127,10 @@ jobs:
         asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
         asset_name: Sep.${{ github.event.inputs.version }}.snupkg
         asset_content_type: application/zip
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
     - name: Push nupkg package
       run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
     - name: Push snupkg package

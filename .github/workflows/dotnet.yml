@@ -127,9 +127,7 @@ jobs:
         asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
         asset_name: Sep.${{ github.event.inputs.version }}.snupkg
         asset_content_type: application/zip
-    - name: Setup nuget
-      uses: nuget/setup-nuget@v1
-      with:
-        nuget-version: latest
-    - name: Push nuget packages
-      run: nuget push ${{ env.NuGetDirectory }}/*nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}
+    - name: Push nupkg package
+      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Push snupkg package
+      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate

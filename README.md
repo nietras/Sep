@@ -1202,3 +1202,6 @@ Ask questions on GitHub and this section will be expanded. :)
 ### SepReader FAQ
 
 ### SepWriter FAQ
+
+## Links
+ * [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)

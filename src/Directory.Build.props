@@ -5,13 +5,16 @@
     <FileVersion>0.2.6</FileVersion>
     <InformationalVersion>$(FileVersion)-preview.1</InformationalVersion>
     <PackageVersion>$(InformationalVersion)</PackageVersion>-->
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerVerbosity>minimal</MinVerVerbosity>
 
     <Company>nietras</Company>
     <Authors>nietras</Authors>
     <Copyright>Copyright © nietras A/S 2023</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
-    <TargetFrameworks>net7.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net7.0</TargetFrameworks>
 
     <LangVersion>11.0</LangVersion>
     <Deterministic>true</Deterministic>
@@ -37,10 +40,6 @@
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERTRACE</DefineConstants>
-
-    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
-    <MinVerTagPrefix>v</MinVerTagPrefix>
-    <MinVerVerbosity>d</MinVerVerbosity>
   </PropertyGroup>
 
   <ItemGroup>

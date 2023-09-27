@@ -1,3 +1,21 @@
 ﻿<Project>
   <Import Project="$(MSBuildThisFileDirectory)\OutputBuildTargets.props" />
+  
+  <Target Name="AfterMinVer" AfterTargets="MinVer">
+    <PropertyGroup>
+      <AssemblyVersion>$(MinVerMajor).$(MinVerMinor).0</AssemblyVersion>
+      <!--InformationalVersion is set before Build based on Version-->
+      <!--<InformationalVersion>$(MinVerVersion)</InformationalVersion>-->
+    </PropertyGroup>
+    <Message Text="Version: $(Version) FileVersion: $(FileVersion) AssemblyVersion: $(AssemblyVersion)"
+             Importance="high" Condition="$(PackageId) == 'Sep'"/>
+    <!--<Message Text="InformationalVersion: $(InformationalVersion)" Importance="high"/>
+    <Message Text="PackageVersion: $(PackageVersion)" Importance="high"/>-->
+    <!--<Message Text="MinVerVersion: $(MinVerVersion)" Importance="high"/>
+    <Message Text="MinVerMajor: $(MinVerMajor)" Importance="high"/>
+    <Message Text="MinVerMinor: $(MinVerMinor)" Importance="high"/>
+    <Message Text="MinVerPatch: $(MinVerPatch)" Importance="high"/>
+    <Message Text="MinVerPreRelease: $(MinVerPreRelease)" Importance="high"/>
+    <Message Text="MinVerBuildMetadata: $(MinVerBuildMetadata)" Importance="high"/>-->
+  </Target>
 </Project>

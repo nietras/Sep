@@ -132,6 +132,6 @@ jobs:
       with:
         global-json-file: global.json
     - name: Push nupkg package
-      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
     - name: Push snupkg package
-      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg --api-key "${{ secrets.NUGET_APIKEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

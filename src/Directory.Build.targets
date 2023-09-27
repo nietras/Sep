@@ -7,7 +7,8 @@
       <!--InformationalVersion is set before Build based on Version-->
       <!--<InformationalVersion>$(MinVerVersion)</InformationalVersion>-->
     </PropertyGroup>
-    <Message Text="Version: $(Version) FileVersion: $(FileVersion) AssemblyVersion: $(AssemblyVersion) " Importance="high" Condition="$(PackageId) == 'Sep'"/>
+    <Message Text="Version: $(Version) FileVersion: $(FileVersion) AssemblyVersion: $(AssemblyVersion)"
+             Importance="high" Condition="$(PackageId) == 'Sep'"/>
     <!--<Message Text="InformationalVersion: $(InformationalVersion)" Importance="high"/>
     <Message Text="PackageVersion: $(PackageVersion)" Importance="high"/>-->
     <!--<Message Text="MinVerVersion: $(MinVerVersion)" Importance="high"/>

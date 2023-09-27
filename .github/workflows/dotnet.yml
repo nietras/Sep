@@ -1,3 +1,5 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
 name: dotnet
 
 on:
@@ -6,6 +8,15 @@ on:
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to tag and create'
+        required: false
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  NuGetDirectory: ${{ github.workspace }}/nuget
 
 jobs:
   build:
@@ -32,3 +43,93 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         flags: ${{ matrix.os }},${{ matrix.configuration }}
+
+  pack:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+    - name: Create tag (to set version of nuget package)
+      if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
+      run: |
+        git tag v${{ github.event.inputs.version }}
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
+    # No need to define min ver version globally now since only uploading release 
+    # when version and tag is defined.
+    # - name: Install MinVer
+    #   run:  dotnet tool install --global minver-cli --version 4.3.0
+    # - name: Run MinVer
+    #   run:  minver -v d -t v -p preview
+    # - name: Run MinVer (output)
+    #   id: minverrun
+    #   run: |
+    #     echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
+    # - name: Output MinVer
+    #   run: |
+    #     echo "${{ env.MINVERVERSIONOVERRIDE }}"
+    - name: Pack nuget package
+      run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
+    - name: Get version of dll
+      run: (Get-Item ./build/bin/Sep/Release/net8.0/Sep.dll).VersionInfo.ProductVersion
+    - uses: actions/upload-artifact@v3
+      with:
+        name: nuget
+        if-no-files-found: error
+        retention-days: 7
+        path: ${{ env.NuGetDirectory }}/*nupkg
+
+  create-release-push:
+    needs: [ build, pack ]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
+    
+    steps:
+    - uses: actions/checkout@v3
+    - name: Download nuget packages
+      uses: actions/download-artifact@v3
+      with:
+        name: nuget
+        path: ${{ env.NuGetDirectory }}
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        release_name: ${{ github.event.inputs.version }}
+        draft: true
+    - name: Create tag (for release)
+      run: |
+        git tag v${{ github.event.inputs.version }}
+        git push origin v${{ github.event.inputs.version }}
+    - name: Upload nupkg package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg
+        asset_name: Sep.${{ github.event.inputs.version }}.nupkg
+        asset_content_type: application/zip
+    - name: Upload snupkg package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
+        asset_name: Sep.${{ github.event.inputs.version }}.snupkg
+        asset_content_type: application/zip
+    - name: Setup nuget
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: latest
+    - name: Push nuget packages
+      run: nuget push ${{ env.NuGetDirectory }}/*nupkg -Source https://api.nuget.org/v3/index.json -ApiKey ${{ secrets.NUGET_API_KEY }}

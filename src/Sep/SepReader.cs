@@ -20,7 +20,6 @@ public partial class SepReader : SepReaderState
     const string AssertCondition = "SEPREADERASSERT";
 
     readonly Info _info;
-    //internal readonly SepReaderOptions _options;
     char _separator;
     readonly TextReader _reader;
     ISepParser? _parser;
@@ -43,16 +42,15 @@ public partial class SepReader : SepReaderState
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
     {
         _info = info;
-        var _options = options;
         _reader = reader;
-        _cultureInfo = _options.CultureInfo;
-        _createToString = _options.CreateToString;
+        _cultureInfo = options.CultureInfo;
+        _createToString = options.CreateToString;
         _arrayPool = new();
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
             System.Globalization.CultureInfo.InvariantCulture.NumberFormat.CurrencyDecimalSeparator;
         _fastFloatDecimalSeparatorOrZero =
-            decimalSeparator.Length == 1 && !_options.DisableFastFloat
+            decimalSeparator.Length == 1 && !options.DisableFastFloat
             ? decimalSeparator[0]
             : '\0';
 
@@ -86,6 +84,11 @@ public partial class SepReader : SepReaderState
 
         _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsMaximumLength, paddingLength * 2));
 
+        Initialize(options);
+    }
+
+    void Initialize(SepReaderOptions options)
+    {
         // Parse first row/header
         if (MoveNext())
         {
@@ -143,9 +146,9 @@ public partial class SepReader : SepReaderState
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
     }
 
-    public bool IsEmpty { get; }
+    public bool IsEmpty { get; private set; }
     public SepSpec Spec => new(new(_separator), _cultureInfo);
-    public bool HasRows { get; }
+    public bool HasRows { get; private set; }
 
     internal int CharsLength => _chars.Length;
 

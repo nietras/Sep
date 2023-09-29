@@ -42,7 +42,7 @@ public class SepReaderState : IDisposable
     internal int _cacheIndex = 0;
     internal SepToString[] _colToStrings = Array.Empty<SepToString>();
 
-    public bool HasHeader { get; internal init; }
+    public bool HasHeader { get; internal set; }
     public SepHeader Header => _header;
 
     internal SepReaderState() { }

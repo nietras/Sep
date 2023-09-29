@@ -167,24 +167,26 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepNoHeaderReaderTest_MaximumColCount()
+    public void SepReaderNoHeaderTest_ColsInitialLength()
     {
-        var maxColCount = SepReader._colEndsMaximumLength - 1; // -1 since col ends is 1 longer due to having row start
-        var text = new string(';', maxColCount - 1);
+        var initialColCountCapacity = SepReader._colEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
+        var text = new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        Assert.AreEqual(maxColCount, row.ColCount);
+        Assert.AreEqual(initialColCountCapacity, row.ColCount);
     }
 
     [TestMethod]
-    public void SepNoHeaderReaderTest_ExceedingMaximumColCount_Throws()
+    public void SepReaderNoHeaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
-        var maxColCount = SepReader._colEndsMaximumLength;
-        var text = new string(';', maxColCount);
-        var e = Assert.ThrowsException<NotSupportedException>(() =>
-            Sep.Reader(o => o with { HasHeader = false }).FromText(text));
-        Assert.AreEqual($"Col count has reached maximum supported count of {maxColCount}.", e.Message);
+        var initialColCountCapacity = SepReader._colEndsInitialLength;
+        var text = new string(';', initialColCountCapacity - 1);
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        Assert.AreEqual(initialColCountCapacity * 2, reader._colEnds.Length);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(initialColCountCapacity, row.ColCount);
     }
 
     static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,

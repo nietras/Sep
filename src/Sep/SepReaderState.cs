@@ -25,7 +25,7 @@ public class SepReaderState : IDisposable
     internal int _charsParseStart = 0;
     internal int _charsRowStart = 0;
 
-    internal const int _colEndsMaximumLength = 1024;
+    internal const int _colEndsInitialLength = 128;
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1...] = Col ends e.g. [1] = first col end
     // Length = colCount + 1

@@ -88,12 +88,6 @@ static class SepThrow
     }
 
     [DoesNotReturn]
-    internal static void NotSupportedException_ColCountExceedsMaximumSupported(int maxColCount)
-    {
-        throw new NotSupportedException($"Col count has reached maximum supported count of {maxColCount}.");
-    }
-
-    [DoesNotReturn]
     internal static void NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(int maxLength)
     {
         throw new NotSupportedException(

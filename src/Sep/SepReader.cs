@@ -26,7 +26,7 @@ public partial class SepReader : SepReaderState
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
-    // force chars buffer management paths to be used.
+    // force buffer management paths to be used.
     internal const int CharsMinimumLength = 64;
 #else
     // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
@@ -82,7 +82,7 @@ public partial class SepReader : SepReaderState
 
         var paddingLength = _parser?.PaddingLength ?? 64;
 
-        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsMaximumLength, paddingLength * 2));
+        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsInitialLength, paddingLength * 2));
     }
 
     internal void Initialize(SepReaderOptions options)
@@ -247,24 +247,37 @@ public partial class SepReader : SepReaderState
 
         if (_parser != null && _charsParseStart < _charsDataEnd)
         {
-            if (_colCount > (_colEnds.Length - _parser.PaddingLength))
+            // + 1 - must be room for one more col always
+            if ((_colCount + 1) >= (_colEnds.Length - _parser.PaddingLength))
             {
-                SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
+                DoubleColsCapacityCopyState();
             }
         }
         else
         {
             if (nothingLeftToRead)
             {
-                if (_colCount >= _colEnds.Length)
+                // + 1 - must be room for one more col always
+                if ((_colCount + 1) >= _colEnds.Length)
                 {
-                    SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
+                    DoubleColsCapacityCopyState();
                 }
                 // If nothing has been read, then at end of file.
                 endOfFile = true;
             }
         }
         return endOfFile;
+    }
+
+    void DoubleColsCapacityCopyState()
+    {
+        var previousColEnds = _colEnds;
+        _colEnds = ArrayPool<int>.Shared.Rent(_colEnds.Length * 2);
+        var length = _colCount + 1;
+        var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, length);
+        var newColEndsSpan = _colEnds.AsSpan().Slice(0, length);
+        previousColEndsSpan.CopyTo(newColEndsSpan);
+        ArrayPool<int>.Shared.Return(previousColEnds);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

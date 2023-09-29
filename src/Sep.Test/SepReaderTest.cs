@@ -417,24 +417,27 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_MaximumColCount()
+    public void SepReaderTest_ColsInitialLength()
     {
-        var maxColCount = SepReader._colEndsMaximumLength - 1; // -1 since col ends is 1 longer due to having row start
-        var text = "A" + Environment.NewLine + new string(';', maxColCount - 1);
+        var initialColCountCapacity = SepReader._colEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
+        var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        Assert.AreEqual(maxColCount, row.ColCount);
+        Assert.AreEqual(initialColCountCapacity, row.ColCount);
     }
 
     [TestMethod]
-    public void SepReaderTest_ExceedingMaximumColCount_Throws()
+    public void SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
-        var maxColCount = SepReader._colEndsMaximumLength;
-        var text = "A" + Environment.NewLine + new string(';', maxColCount);
+        var initialColCountCapacity = SepReader._colEndsInitialLength;
+        var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
-        var e = Assert.ThrowsException<NotSupportedException>(() => reader.MoveNext());
-        Assert.AreEqual($"Col count has reached maximum supported count of {maxColCount}.", e.Message);
+        Assert.AreEqual(initialColCountCapacity, reader._colEnds.Length);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(initialColCountCapacity, row.ColCount);
+        Assert.AreEqual(initialColCountCapacity * 2, reader._colEnds.Length);
     }
 
 #if !DEBUG // Causes OOMs in Debug due to tracing

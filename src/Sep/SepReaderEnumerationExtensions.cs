@@ -36,18 +36,18 @@ public static class SepReaderEnumerationExtensions
 
     class KeepDequeueThreadPoolWorkItem<T> : IThreadPoolWorkItem
     {
-        readonly ConcurrentQueue<SepReaderRowStateForParallel<T>> _rowStatesForExecuting;
+        readonly ConcurrentQueue<SepReaderRowStateForParallel<T>> _statesForExecuting;
         //readonly SemaphoreSlim _semaphoreSlim;
         readonly ConcurrentBag<KeepDequeueThreadPoolWorkItem<T>> _doneWorkItems;
         readonly Action<int> _signal;
 
         public KeepDequeueThreadPoolWorkItem(
-            ConcurrentQueue<SepReaderRowStateForParallel<T>> rowStatesForExecuting,
+            ConcurrentQueue<SepReaderRowStateForParallel<T>> statesForExecuting,
             //SemaphoreSlim semaphoreSlim,
             ConcurrentBag<KeepDequeueThreadPoolWorkItem<T>> doneWorkItems,
             Action<int> signal)
         {
-            _rowStatesForExecuting = rowStatesForExecuting;
+            _statesForExecuting = statesForExecuting;
             //_semaphoreSlim = semaphoreSlim;
             _doneWorkItems = doneWorkItems;
             _signal = signal;
@@ -58,10 +58,10 @@ public static class SepReaderEnumerationExtensions
             var count = 0;
             //while (_semaphoreSlim.Wait(10))
             //{
-            //    if (_rowStatesForExecuting.TryDequeue(out var rowState))
+            //    if (_statesForExecuting.TryDequeue(out var state))
             //    {
-            //        rowState.Execute();
-            //        _signal(rowState.Index);
+            //        state.Execute();
+            //        _signal(state.Index);
             //        ++count;
             //    }
             //    else
@@ -69,10 +69,10 @@ public static class SepReaderEnumerationExtensions
             //        Debug.Assert(false, "semaphore / queue inconsistency");
             //    }
             //}
-            while (_rowStatesForExecuting.TryDequeue(out var rowState))
+            while (_statesForExecuting.TryDequeue(out var state))
             {
-                rowState.Execute();
-                _signal(rowState.Index);
+                state.Execute();
+                _signal(state.Index);
                 ++count;
             }
             //Log?.Invoke($"TEST Worker done {count}");
@@ -87,76 +87,76 @@ public static class SepReaderEnumerationExtensions
 
         // For now limit parallelism to max processor count
         var workerCount = Math.Min(maxDegreeOfParallelism, Environment.ProcessorCount);
-        var maxRowsCount = workerCount * 32;
+        var maxRowsCount = workerCount;
 
         var workers = new List<KeepDequeueThreadPoolWorkItem<T>>(workerCount);
         //var workIndicesReady = new Stack<int>(workerCount);
         //var workIndicesExecutingOrdered = new Queue<int>(workerCount);
         var readyWorkers = new ConcurrentBag<KeepDequeueThreadPoolWorkItem<T>>();
 
-        var rowStates = new SepReaderRowStateForParallel<T>[maxRowsCount];
-        var rowStatesUnused = new Stack<int>(maxDegreeOfParallelism);
-        var rowStatesExecutingOrdered = new Queue<int>(maxDegreeOfParallelism);
-        var rowStatesForExecuting = new ConcurrentQueue<SepReaderRowStateForParallel<T>>();
-        //using var rowStatesForExecutingSemaphore = new SemaphoreSlim(initialCount: 0);
-        //var rowStatesIndicesForExecuting = new ConcurrentQueue<int>();
+        var states = new SepReaderRowStateForParallel<T>[maxRowsCount];
+        var statesUnused = new Stack<int>(maxDegreeOfParallelism);
+        var statesExecutingOrdered = new Queue<int>(maxDegreeOfParallelism);
+        var statesForExecuting = new ConcurrentQueue<SepReaderRowStateForParallel<T>>();
+        //using var statesForExecutingSemaphore = new SemaphoreSlim(initialCount: 0);
+        //var statesIndicesForExecuting = new ConcurrentQueue<int>();
 
         using var someWorkItemsDoneEvent = new AutoResetEvent(false);
         Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
 
         try
         {
-            for (var rowStateIndex = 0; rowStateIndex < maxRowsCount; rowStateIndex++)
+            for (var stateIndex = 0; stateIndex < maxRowsCount; stateIndex++)
             {
-                var rowState = new SepReaderRowStateForParallel<T>(reader, rowStateIndex, select);
-                rowStates[rowStateIndex] = rowState;
-                rowStatesUnused.Push(rowStateIndex);
+                var state = new SepReaderRowStateForParallel<T>(reader, stateIndex, select);
+                states[stateIndex] = state;
+                statesUnused.Push(stateIndex);
             }
 
             var waitCount = 0;
             var queueCount = 0;
 
             var readerNext = true;
-            while (readerNext || rowStatesExecutingOrdered.Count > 0)
+            while (readerNext || statesExecutingOrdered.Count > 0)
             {
-                //while (rowStatesForExecuting.Count > workerCount &&
-                //       workers.Count > 0 && readyWorkers.Count < 1)
-                ////while (rowStatesForExecuting.Count >= rowStates.Length &&
-                ////   workers.Count >= maxDegreeOfParallelism && readyWorkers.Count < 1)
-                //{
-                //    //Log?.Invoke($"TEST Waiting {rowStatesExecutingOrdered.Count} {readyWorkers.Count}:{workers.Count}");
-                //    someWorkItemsDoneEvent.WaitOne(1);
-                //    ++waitCount;
-                //}
-                // Fill up row states
-                while (rowStatesUnused.Count > 0 && readerNext && (readerNext = reader.MoveNext()))
+                while (statesForExecuting.Count > workerCount &&
+                       workers.Count > 0 && readyWorkers.Count >= workers.Count)
+                //while (statesForExecuting.Count >= states.Length &&
+                //   workers.Count >= maxDegreeOfParallelism && readyWorkers.Count < 1)
                 {
-                    var rowStateIndex = rowStatesUnused.Pop();
-                    var rowState = rowStates[rowStateIndex];
-                    rowState.IsDone = false;
-                    reader.CopyNewRowTo(rowState);
-                    rowStatesExecutingOrdered.Enqueue(rowStateIndex);
-                    rowStatesForExecuting.Enqueue(rowState);
-                    //rowStatesForExecutingSemaphore.Release();
+                    //Log?.Invoke($"TEST Waiting {statesExecutingOrdered.Count} {readyWorkers.Count}:{workers.Count}");
+                    someWorkItemsDoneEvent.WaitOne(1);
+                    ++waitCount;
+                }
+                // Fill up row states
+                while (statesUnused.Count > 0 && readerNext && (readerNext = reader.MoveNext()))
+                {
+                    var stateIndex = statesUnused.Pop();
+                    var state = states[stateIndex];
+                    state.IsDone = false;
+                    reader.CopyNewRowTo(state);
+                    statesExecutingOrdered.Enqueue(stateIndex);
+                    statesForExecuting.Enqueue(state);
+                    //statesForExecutingSemaphore.Release();
                 }
                 // Yield results
-                SepReaderRowStateForParallel<T>? rowStateMaybeDone;
-                while (rowStatesExecutingOrdered.TryPeek(out var rowStateIndexNext) &&
-                       (rowStateMaybeDone = rowStates[rowStateIndexNext]).IsDone)
+                SepReaderRowStateForParallel<T>? stateMaybeDone;
+                while (statesExecutingOrdered.TryPeek(out var stateIndexNext) &&
+                       (stateMaybeDone = states[stateIndexNext]).IsDone)
                 {
-                    rowStatesExecutingOrdered.Dequeue();
-                    yield return rowStateMaybeDone.Result;
-                    rowStatesUnused.Push(rowStateIndexNext);
+                    statesExecutingOrdered.Dequeue();
+                    yield return stateMaybeDone.Result;
+                    statesUnused.Push(stateIndexNext);
                 }
                 // Add worker if ??
-                if (rowStatesForExecuting.Count > ((rowStates.Length - workerCount) / 2) ||
+                if (statesForExecuting.Count > ((states.Length - workerCount) / 2) ||
                     readyWorkers.Count == workers.Count)
                 {
                     if (!readyWorkers.TryTake(out var worker))
                     {
                         if (workers.Count < maxDegreeOfParallelism)
                         {
-                            worker = new KeepDequeueThreadPoolWorkItem<T>(rowStatesForExecuting, /*rowStatesForExecutingSemaphore,*/ readyWorkers, enqueueDone);
+                            worker = new KeepDequeueThreadPoolWorkItem<T>(statesForExecuting, /*statesForExecutingSemaphore,*/ readyWorkers, enqueueDone);
                             workers.Add(worker);
                             //Log?.Invoke($"TEST Added worker {workers.Count}");
                         }
@@ -170,44 +170,45 @@ public static class SepReaderEnumerationExtensions
                 }
             }
 
-            Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex}");
+            ThreadPool.GetAvailableThreads(out var workerThreads, out var _);
+            Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex} ThreadPool {workerThreads}");
         }
         finally
         {
-            foreach (var rowState in rowStates)
+            foreach (var state in states)
             {
-                rowState.Dispose();
+                state.Dispose();
             }
         }
     }
 
     sealed class RowStatesThreadPoolWorkItem<T> : IThreadPoolWorkItem, IDisposable
     {
-        readonly SepReaderRowState _protoRowState;
-        readonly int _rowStateCountPerExecute;
+        readonly SepReaderState _protoRowState;
+        readonly int _stateCountPerExecute;
         readonly SepReader.RowFunc<T> _select;
         readonly int _index;
         readonly Action<int> _signal;
-        readonly List<SepReaderRowState> _rowStates;
+        readonly List<SepReaderState> _states;
         readonly List<T> _results;
         bool _disposedValue;
 
         public RowStatesThreadPoolWorkItem(
-            SepReaderRowState protoRowState, int initialRowStateCount, SepReader.RowFunc<T> select,
+            SepReaderState protoRowState, int initialRowStateCount, SepReader.RowFunc<T> select,
             int index, Action<int> signal)
         {
             _protoRowState = protoRowState;
-            _rowStateCountPerExecute = Math.Max(1, initialRowStateCount);
+            _stateCountPerExecute = Math.Max(1, initialRowStateCount);
             _select = select;
             _index = index;
             _signal = signal;
-            _rowStates = new(initialRowStateCount) { protoRowState };
+            _states = new(initialRowStateCount) { protoRowState };
             EnsureRowStates(initialRowStateCount);
             _results = new(initialRowStateCount);
         }
 
         public int RowsToExecute { get; set; }
-        public List<SepReaderRowState> RowStates => _rowStates;
+        public List<SepReaderState> RowStates => _states;
         public List<T> Results => _results;
         public volatile bool IsDone = false;
 
@@ -217,12 +218,12 @@ public static class SepReaderEnumerationExtensions
             var b = Stopwatch.GetTimestamp();
 #endif
             _results.Clear();
-            Debug.Assert(RowsToExecute <= _rowStates.Count);
+            Debug.Assert(RowsToExecute <= _states.Count);
             for (var i = 0; i < RowsToExecute; i++)
             {
-                var rowState = _rowStates[i];
-                rowState.ResetSharedCache();
-                _results.Add(_select(new(rowState)));
+                var state = _states[i];
+                state.ResetSharedCache();
+                _results.Add(_select(new(state)));
             }
             IsDone = true;
 #if SEPTRACEPARALLEL
@@ -235,19 +236,19 @@ public static class SepReaderEnumerationExtensions
 
         void EnsureRowStates(int maxRowsToExecute)
         {
-            while (_rowStates.Count < maxRowsToExecute)
+            while (_states.Count < maxRowsToExecute)
             {
-                _rowStates.Add(_protoRowState.CloneWithSharedCache());
+                _states.Add(_protoRowState.CloneWithSharedCache());
             }
         }
 
         void DisposeManaged()
         {
-            foreach (var rowState in _rowStates)
+            foreach (var state in _states)
             {
-                rowState.Dispose();
+                state.Dispose();
             }
-            _rowStates.Clear();
+            _states.Clear();
         }
 
         #region Dispose
@@ -330,7 +331,7 @@ public static class SepReaderEnumerationExtensions
         var workers = new List<RowStatesThreadPoolWorkItem<T>>(maxDegreeOfParallelism);
         for (var workerIndex = 0; workerIndex < maxDegreeOfParallelism; workerIndex++)
         {
-            var protoRowState = new SepReaderRowState(reader);
+            var protoRowState = new SepReaderState(reader);
             var worker = new RowStatesThreadPoolWorkItem<T>(protoRowState, rowsPerWorker, select, workerIndex, enqueueDone);
             workers.Add(worker);
             workersReady.Push(workerIndex);
@@ -342,6 +343,7 @@ public static class SepReaderEnumerationExtensions
             //var waitCount = 0;
             while (readerHasMore || workersExecutingOrdered.Count > 0)
             {
+                var t0 = Stopwatch.GetTimestamp();
                 while (workersExecutingOrdered.TryPeek(out var workerIndexHead) && workers[workerIndexHead].IsDone)
                 {
                     workersExecutingOrdered.TryDequeue(out var expected);
@@ -354,17 +356,17 @@ public static class SepReaderEnumerationExtensions
                     worker.IsDone = false;
                     workersReady.Push(workerIndexHead);
                 }
-
+                var t1 = Stopwatch.GetTimestamp();
                 if (readerHasMore && workersReady.TryPop(out var workerIndexNext))
                 {
                     var worker = workers[workerIndexNext];
                     Debug.Assert(worker.IsDone == false);
-                    var rowStates = worker.RowStates;
+                    var states = worker.RowStates;
                     var rowIndex = 0;
-                    for (; rowIndex < rowStates.Count && (readerHasMore = reader.MoveNext()); rowIndex++)
+                    for (; rowIndex < states.Count && (readerHasMore = reader.MoveNext()); rowIndex++)
                     {
-                        var rowState = rowStates[rowIndex];
-                        reader.CopyNewRowTo(rowState);
+                        var state = states[rowIndex];
+                        reader.CopyNewRowTo(state);
                     }
                     if (rowIndex > 0)
                     {
@@ -383,6 +385,10 @@ public static class SepReaderEnumerationExtensions
                     someWorkItemsDoneEvent.WaitOne(10);
                     //++waitCount;
                 }
+                var t2 = Stopwatch.GetTimestamp();
+                //var d1 = (t1 - t0) * 1000_000.0 / Stopwatch.Frequency;
+                //var d2 = (t2 - t1) * 1000_000.0 / Stopwatch.Frequency;
+                //Log?.Invoke($"Loop {d1,7:F3} us {d2,7:F3} us");
             }
 
             //Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex}");
@@ -401,14 +407,14 @@ public static class SepReaderEnumerationExtensions
     static IEnumerable<T> ParallelEnumerateInternalManyRowStates<T>(this SepReader reader, SepReader.RowFunc<T> select,
         int maxDegreeOfParallelism, int maxRowsInPlay = 16 * 1024)
     {
-        var rowStates = new List<SepReaderRowStateForParallel<T>>(maxDegreeOfParallelism);
+        var states = new List<SepReaderRowStateForParallel<T>>(maxDegreeOfParallelism);
 
         var workers = new List<LoopThreadPoolWorkItem<T>>(maxDegreeOfParallelism);
         var readyWorkers = new ConcurrentBag<LoopThreadPoolWorkItem<T>>();
 
-        var rowStatesUnused = new Stack<int>(maxDegreeOfParallelism);
-        var rowStatesExecutingOrdered = new Queue<int>(maxDegreeOfParallelism);
-        var rowStatesForExecuting = new ConcurrentQueue<SepReaderRowStateForParallel<T>>();
+        var statesUnused = new Stack<int>(maxDegreeOfParallelism);
+        var statesExecutingOrdered = new Queue<int>(maxDegreeOfParallelism);
+        var statesForExecuting = new ConcurrentQueue<SepReaderRowStateForParallel<T>>();
 
         using var someWorkItemsDoneEvent = new AutoResetEvent(false);
         Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
@@ -417,30 +423,30 @@ public static class SepReaderEnumerationExtensions
         {
             var rowsToReadPerLoop = Math.Min(maxDegreeOfParallelism, maxRowsInPlay);
             var readerNext = true;
-            while (readerNext || rowStatesExecutingOrdered.Count > 0)
+            while (readerNext || statesExecutingOrdered.Count > 0)
             {
                 //workers.Count < maxDegreeOfParallelism ||
                 var rowsRead = 0;
-                while ((rowsRead < rowsToReadPerLoop && rowStatesExecutingOrdered.Count < maxRowsInPlay)
+                while ((rowsRead < rowsToReadPerLoop && statesExecutingOrdered.Count < maxRowsInPlay)
                        && (readerNext = reader.MoveNext()))
                 {
-                    SepReaderRowStateForParallel<T> rowState;
-                    if (rowStatesUnused.TryPop(out var rowStatesIndex))
+                    SepReaderRowStateForParallel<T> state;
+                    if (statesUnused.TryPop(out var statesIndex))
                     {
-                        rowState = rowStates[rowStatesIndex];
+                        state = states[statesIndex];
                     }
                     else
                     {
-                        rowStatesIndex = rowStates.Count;
-                        rowState = new SepReaderRowStateForParallel<T>(reader, rowStatesIndex, select);
-                        rowStates.Add(rowState);
+                        statesIndex = states.Count;
+                        state = new SepReaderRowStateForParallel<T>(reader, statesIndex, select);
+                        states.Add(state);
                     }
 
-                    rowState.IsDone = false;
-                    reader.CopyNewRowTo(rowState);
+                    state.IsDone = false;
+                    reader.CopyNewRowTo(state);
 
-                    rowStatesExecutingOrdered.Enqueue(rowStatesIndex);
-                    rowStatesForExecuting.Enqueue(rowState);
+                    statesExecutingOrdered.Enqueue(statesIndex);
+                    statesForExecuting.Enqueue(state);
 
                     ++rowsRead;
                 }
@@ -460,7 +466,7 @@ public static class SepReaderEnumerationExtensions
                     // Only queue worker on there are no workers running,
                     // and we have not reached maxRowsInPlay being executed
                     if (workers.Count == readyWorkers.Count ||
-                        rowStatesExecutingOrdered.Count >= maxRowsInPlay)
+                        statesExecutingOrdered.Count >= maxRowsInPlay)
                     {
                         if (readyWorkers.TryTake(out var worker))
                         {
@@ -475,31 +481,31 @@ public static class SepReaderEnumerationExtensions
                         }
                     }
                 }
-                else if (rowStatesForExecuting.Count > workers.Count && rowStates.Count > workers.Count
+                else if (statesForExecuting.Count > workers.Count && states.Count > workers.Count
                          && workers.Count < maxDegreeOfParallelism)
                 {
 #if SEPTRACEPARALLEL
-                    Trace.WriteLine($"Add worker {nameof(rowStatesForExecuting)}:{rowStatesForExecuting.Count} {nameof(workers)}:{workers.Count}  {nameof(rowStates)}:{rowStates.Count}");
+                    Trace.WriteLine($"Add worker {nameof(statesForExecuting)}:{statesForExecuting.Count} {nameof(workers)}:{workers.Count}  {nameof(states)}:{states.Count}");
 #endif
-                    var worker = new LoopThreadPoolWorkItem<T>(rowStatesForExecuting, readyWorkers, enqueueDone);
+                    var worker = new LoopThreadPoolWorkItem<T>(statesForExecuting, readyWorkers, enqueueDone);
                     workers.Add(worker);
                     ThreadPool.UnsafeQueueUserWorkItem(worker, preferLocal: false);
                 }
 
                 var returnCount = 0;
                 SepReaderRowStateForParallel<T> nextRowStateToReturn;
-                while (rowStatesExecutingOrdered.TryPeek(out var nextRowStateIndexToReturn) &&
-                       (nextRowStateToReturn = rowStates[nextRowStateIndexToReturn]).IsDone)
+                while (statesExecutingOrdered.TryPeek(out var nextRowStateIndexToReturn) &&
+                       (nextRowStateToReturn = states[nextRowStateIndexToReturn]).IsDone)
                 {
-                    var index = rowStatesExecutingOrdered.Dequeue();
+                    var index = statesExecutingOrdered.Dequeue();
                     Debug.Assert(nextRowStateIndexToReturn == index);
                     Debug.Assert(nextRowStateIndexToReturn == nextRowStateToReturn.Index);
                     yield return nextRowStateToReturn.Result;
-                    rowStatesUnused.Push(nextRowStateIndexToReturn);
+                    statesUnused.Push(nextRowStateIndexToReturn);
                     ++returnCount;
                 }
 
-                if (rowStates.Count >= maxRowsInPlay)
+                if (states.Count >= maxRowsInPlay)
                 {
                     someWorkItemsDoneEvent.WaitOne(100);
                 }
@@ -507,9 +513,9 @@ public static class SepReaderEnumerationExtensions
         }
         finally
         {
-            foreach (var rowState in rowStates)
+            foreach (var state in states)
             {
-                rowState.Dispose();
+                state.Dispose();
             }
         }
     }
@@ -534,14 +540,14 @@ public static class SepReaderEnumerationExtensions
         using var someWorkItemsDoneEvent = new AutoResetEvent(false);
         Action<int> enqueueDone = workIndex => { someWorkItemsDoneEvent.Set(); };
 
-        var rowStatesIndicesForExecuting = new ConcurrentQueue<int>();
+        var statesIndicesForExecuting = new ConcurrentQueue<int>();
 
         try
         {
             for (var workIndex = 0; workIndex < workerCount; workIndex++)
             {
-                var rowState = new SepReaderRowStateForParallel<T>(reader, workIndex, select);
-                workItems[workIndex] = new RowThreadPoolWorkItem<T>(rowState, select, workIndex, enqueueDone);
+                var state = new SepReaderRowStateForParallel<T>(reader, workIndex, select);
+                workItems[workIndex] = new RowThreadPoolWorkItem<T>(state, select, workIndex, enqueueDone);
                 workIndicesReady.Push(workIndex);
             }
 
@@ -582,7 +588,7 @@ public static class SepReaderEnumerationExtensions
         }
     }
 
-    sealed class SepReaderRowStateForParallel<T> : SepReaderRowState
+    sealed class SepReaderRowStateForParallel<T> : SepReaderState
     {
         readonly SepReader.RowFunc<T> _select;
 
@@ -606,16 +612,16 @@ public static class SepReaderEnumerationExtensions
 
     class LoopThreadPoolWorkItem<T> : IThreadPoolWorkItem
     {
-        readonly ConcurrentQueue<SepReaderRowStateForParallel<T>> _rowStatesForExecuting;
+        readonly ConcurrentQueue<SepReaderRowStateForParallel<T>> _statesForExecuting;
         readonly ConcurrentBag<LoopThreadPoolWorkItem<T>> _doneWorkItems;
         readonly Action<int> _signal;
 
         public LoopThreadPoolWorkItem(
-            ConcurrentQueue<SepReaderRowStateForParallel<T>> rowStatesForExecuting,
+            ConcurrentQueue<SepReaderRowStateForParallel<T>> statesForExecuting,
             ConcurrentBag<LoopThreadPoolWorkItem<T>> doneWorkItems,
             Action<int> signal)
         {
-            _rowStatesForExecuting = rowStatesForExecuting;
+            _statesForExecuting = statesForExecuting;
             _doneWorkItems = doneWorkItems;
             _signal = signal;
         }
@@ -623,10 +629,10 @@ public static class SepReaderEnumerationExtensions
         public void Execute()
         {
             var count = 0;
-            while (_rowStatesForExecuting.TryDequeue(out var rowState))
+            while (_statesForExecuting.TryDequeue(out var state))
             {
-                rowState.Execute();
-                _signal(rowState.Index);
+                state.Execute();
+                _signal(state.Index);
                 ++count;
             }
             //Log?.Invoke($"TEST Executed {count}");
@@ -640,10 +646,10 @@ public static class SepReaderEnumerationExtensions
         readonly Action<int> _signalDone;
 
         public RowThreadPoolWorkItem(
-            SepReaderRowStateForParallel<T> rowState, SepReader.RowFunc<T> select,
+            SepReaderRowStateForParallel<T> state, SepReader.RowFunc<T> select,
             int workIndex, Action<int> signalDone)
         {
-            RowState = rowState;
+            RowState = state;
             _select = select;
             WorkIndex = workIndex;
             _signalDone = signalDone;

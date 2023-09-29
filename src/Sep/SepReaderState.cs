@@ -8,7 +8,7 @@ using static nietras.SeparatedValues.SepReader;
 namespace nietras.SeparatedValues;
 
 // Cannot be nested due to CS0146: Circular base type dependency
-public class SepReaderRowState : IDisposable
+public class SepReaderState : IDisposable
 {
     // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
     // promote cache to member here.
@@ -45,17 +45,17 @@ public class SepReaderRowState : IDisposable
     public bool HasHeader { get; internal init; }
     public SepHeader Header => _header;
 
-    internal SepReaderRowState() { }
+    internal SepReaderState() { }
 
-    internal SepReaderRowState(SepReader other)
+    internal SepReaderState(SepReader other)
     {
         InitializeFrom(other);
         InitializeFromWithNewCacheState(other);
     }
 
-    internal SepReaderRowState CloneWithSharedCache()
+    internal SepReaderState CloneWithSharedCache()
     {
-        var clone = new SepReaderRowState();
+        var clone = new SepReaderState();
         clone.InitializeFrom(this);
         clone._arrayPool = _arrayPool;
         clone._colNameCache = _colNameCache;
@@ -63,7 +63,7 @@ public class SepReaderRowState : IDisposable
         return clone;
     }
 
-    void InitializeFrom(SepReaderRowState other)
+    void InitializeFrom(SepReaderState other)
     {
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
@@ -75,7 +75,7 @@ public class SepReaderRowState : IDisposable
         _colCountExpected = other._colCountExpected;
     }
 
-    void InitializeFromWithNewCacheState(SepReaderRowState other)
+    void InitializeFromWithNewCacheState(SepReaderState other)
     {
         _arrayPool = new();
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
@@ -87,7 +87,7 @@ public class SepReaderRowState : IDisposable
         }
     }
 
-    internal void CopyNewRowTo(SepReaderRowState other)
+    internal void CopyNewRowTo(SepReaderState other)
     {
         other._cacheIndex = 0;
         other._arrayPool.Reset();

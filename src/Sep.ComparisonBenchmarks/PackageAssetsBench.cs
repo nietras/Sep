@@ -82,10 +82,10 @@ public class RowPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false })
                               .From(Reader.CreateReader());
-        var rowState = new SepReaderRowState(reader);
+        var state = new SepReaderState(reader);
         foreach (var row in reader)
         {
-            reader.CopyNewRowTo(rowState);
+            reader.CopyNewRowTo(state);
         }
     }
 
@@ -266,7 +266,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         .From(Reader.CreateReader());
 
         var assets = reader.ParallelEnumerate(
-            static r => PackageAsset.Read(r._rowState, static (r, i) => r.ToString(i)),
+            static r => PackageAsset.Read(r._state, static (r, i) => r.ToString(i)),
             maxDegreeOfParallelism: 128).ToList();
     }
 

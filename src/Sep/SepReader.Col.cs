@@ -9,33 +9,33 @@ public partial class SepReader
     [DebuggerDisplay("{DebuggerDisplay}")]
     public readonly ref struct Col
     {
-        readonly SepReaderRowState _rowState;
+        readonly SepReaderState _state;
         readonly int _colIndex;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Col(SepReaderRowState rowState, int colIndex)
+        internal Col(SepReaderState state, int colIndex)
         {
-            _rowState = rowState;
+            _state = state;
             _colIndex = colIndex;
         }
 
-        public ReadOnlySpan<char> Span => _rowState.GetColSpan(_colIndex);
+        public ReadOnlySpan<char> Span => _state.GetColSpan(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString() => _rowState.ToString(_colIndex);
+        public override string ToString() => _state.ToString(_colIndex);
 
         // Allow opt out of pooling and don't add yet another configuration option
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public string ToStringRaw() => _rowState.ToStringRaw(_colIndex);
+        public string ToStringRaw() => _state.ToStringRaw(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Parse<T>() where T : ISpanParsable<T> => _rowState.Parse<T>(_colIndex);
+        public T Parse<T>() where T : ISpanParsable<T> => _state.Parse<T>(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T? TryParse<T>() where T : struct, ISpanParsable<T> => _rowState.TryParse<T>(_colIndex);
+        public T? TryParse<T>() where T : struct, ISpanParsable<T> => _state.TryParse<T>(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryParse<T>(out T value) where T : ISpanParsable<T> => _rowState.TryParse<T>(_colIndex, out value);
+        public bool TryParse<T>(out T value) where T : ISpanParsable<T> => _state.TryParse<T>(_colIndex, out value);
 
         internal string DebuggerDisplay => new(Span);
     }

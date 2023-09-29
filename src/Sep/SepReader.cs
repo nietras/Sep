@@ -11,7 +11,7 @@ using static nietras.SeparatedValues.SepDefaults;
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public partial class SepReader : SepReaderRowState
+public partial class SepReader : SepReaderState
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);

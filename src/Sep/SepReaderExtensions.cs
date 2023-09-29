@@ -88,12 +88,16 @@ public static class SepReaderExtensions
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
+        SepReader? sepReader = null;
         try
         {
-            return new SepReader(info, options, reader);
+            sepReader = new SepReader(info, options, reader);
+            sepReader.Initialize(options);
+            return sepReader;
         }
         catch (Exception)
         {
+            sepReader?.Dispose();
             reader.Dispose();
             throw;
         }

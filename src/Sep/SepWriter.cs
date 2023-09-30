@@ -113,6 +113,7 @@ public partial class SepWriter : IDisposable
         _newRowActive = false;
     }
 
+    public void Flush() => _writer.Flush();
 
     public override string ToString()
     {

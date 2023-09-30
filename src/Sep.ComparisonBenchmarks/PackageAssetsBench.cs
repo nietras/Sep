@@ -31,8 +31,8 @@ public abstract class PackageAssetsBench
         Rows = lineCount;
         _readers = new ReaderSpec[]
         {
-            ReaderSpec.FromString("String", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows)),
-            //ReaderSpec.FromBytes("Stream", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows)),
+            ReaderSpec.FromString("String", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows))),
+            //ReaderSpec.FromBytes("Stream", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows))),
         };
         Reader = _readers.First();
     }
@@ -245,30 +245,13 @@ public class AssetPackageAssetsBench : PackageAssetsBench
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 50_000;
+    const int DefaultLineCount = 100_000;
 #endif
 
     public AssetPackageAssetsBench() : this(false) { }
     public AssetPackageAssetsBench(bool quoteAroundSomeCols) : base("Asset", DefaultLineCount, quoteAroundSomeCols) { }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
-
-    [Benchmark()]
-    public void Sep_MT___()
-    {
-        using var reader = Sep.Reader(o => o with
-        {
-            HasHeader = false,
-#if USE_STRING_POOLING
-            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
-#endif
-        })
-        .From(Reader.CreateReader());
-
-        var assets = reader.ParallelEnumerate(
-            static r => PackageAsset.Read(r._state, static (r, i) => r.ToString(i)),
-            maxDegreeOfParallelism: 128).ToList();
-    }
 
     [Benchmark(Baseline = true)]
     public void Sep______()
@@ -289,6 +272,23 @@ public class AssetPackageAssetsBench : PackageAssetsBench
             var asset = PackageAsset.Read(reader, static (r, i) => r.ToString(i));
             assets.Add(asset);
         }
+    }
+
+    [Benchmark()]
+    public void Sep_MT___()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        var assets = reader.ParallelEnumerate(
+            static r => PackageAsset.Read(r._state, static (r, i) => r.ToString(i)),
+            maxDegreeOfParallelism: 128).ToList();
     }
 
     //[Benchmark]

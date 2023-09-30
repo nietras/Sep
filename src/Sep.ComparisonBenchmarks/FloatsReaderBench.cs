@@ -26,8 +26,8 @@ public abstract class FloatsReaderBench
         Rows = lineCount;
         _readers = new ReaderSpec[]
         {
-            ReaderSpec.FromString("String", T.GenerateText(Rows, FloatsCount)),
-            //ReaderSpec.FromBytes("Stream", T.GenerateBytes(Rows, FloatsCount)),
+            ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
+            //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
         };
         Reader = _readers.First();
     }
@@ -219,14 +219,14 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
 #if DEBUG
     const int DefaultLineCount = 1_000;
 #else
-    const int DefaultLineCount = 1_000_000;
+    const int DefaultLineCount = 25_000;
 #endif
 
     public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount) { }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
-    //[Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true)]
     public double Sep______()
     {
         using var reader = Sep.Reader().From(Reader.CreateReader());

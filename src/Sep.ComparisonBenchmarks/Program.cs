@@ -1,4 +1,7 @@
-﻿// Type 'Program' can be sealed because it has no subtypes in its containing assembly and is not externally visible
+﻿#if DEBUG
+#define USEMANUALCONFIG
+#endif
+// Type 'Program' can be sealed because it has no subtypes in its containing assembly and is not externally visible
 #pragma warning disable CA1852
 using System;
 using System.Collections.Generic;
@@ -17,10 +20,11 @@ using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using nietras.SeparatedValues.ComparisonBenchmarks;
-#if DEBUG
+#if USEMANUALCONFIG
 using BenchmarkDotNet.Jobs;
 using Perfolizer.Horology;
 #endif
+
 
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 
@@ -33,13 +37,15 @@ await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 // Use args as switch to run BDN or not e.g. BDN only run when using script
 if (args.Length > 0)
 {
+    var exporter = new CustomMarkdownExporter();
+
     var baseConfig = ManualConfig.CreateEmpty()
         .AddColumnProvider(DefaultColumnProviders.Instance)
-        .AddExporter(MarkdownExporter.GitHub)
+        .AddExporter(exporter)
         .AddLogger(ConsoleLogger.Default);
 
     var config =
-#if DEBUG
+#if USEMANUALCONFIG
         baseConfig
 #else
         (Debugger.IsAttached ? new DebugInProcessConfig() : DefaultConfig.Instance)
@@ -49,7 +55,7 @@ if (args.Length > 0)
         .AddColumn(MBPerSec())
         .AddColumn(RowsStatisticColumn.NSPerRow())
         .WithOption(ConfigOptions.JoinSummary, true)
-#if DEBUG
+#if USEMANUALCONFIG
         .AddJob(Job.InProcess.WithIterationTime(TimeInterval.FromMilliseconds(100)).WithMinIterationCount(2).WithMaxIterationCount(5))
 #endif
         ;
@@ -58,9 +64,9 @@ if (args.Length > 0)
 
     var nameToBenchTypesSet = new Dictionary<string, Type[]>()
     {
-        //{ nameof(PackageAssetsBench), new[] { /*typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench),*/ typeof(AssetPackageAssetsBench), } },
+        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), } },
         //{ nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
-        { nameof(FloatsReaderBench), new[] { /*typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench),*/ typeof(FloatsFloatsReaderBench), } },
+        { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)
     {
@@ -78,18 +84,8 @@ if (args.Length > 0)
             if (!Directory.Exists(directory)) { Directory.CreateDirectory(directory); }
             var filePath = Path.Combine(directory, $"{name}.md");
 
-            var exporter = MarkdownExporter.GitHub;
-
-            using var stream = new MemoryStream();
-            using var writer = new StreamWriter(stream);
-            using var logger = new StreamLogger(writer);
+            using var logger = new StreamLogger(filePath);
             exporter.ExportToLog(s, logger);
-            logger.Flush();
-            stream.Position = 0;
-            using var reader = new StreamReader(stream);
-            var text = reader.ReadToEnd();
-            text = text.Replace("**", "");
-            File.WriteAllText(filePath, text);
 
             var versions = GetVersions();
             File.WriteAllText(Path.Combine(directory, "Versions.txt"), versions);
@@ -131,7 +127,7 @@ else
     //log($"Ratio    {sep_ms / (double)sylvan_ms:F3}");
     //log($"Ratio MT {sep_mt_ms / (double)sylvan_ms:F3}");
     Thread.Sleep(300);
-    for (var i = 0; i < 1; i++)
+    for (var i = 0; i < 10; i++)
     {
         b.Sep_MT___();
     }
@@ -145,7 +141,7 @@ static IColumn MBPerSec() => new BytesStatisticColumn("MB/s",
 
 static long BytesFromReaderSpec(IReadOnlyList<ParameterInstance> parameters)
 {
-    return parameters.Select(p => p.Value as ReaderSpec).Where(r => r is not null).Single()!.Bytes;
+    return parameters.Select(p => p.Value as ReaderSpec).Where(r => r is not null).Single()!.Bytes.Value;
 }
 
 static string GetVersions() =>
@@ -157,3 +153,16 @@ static string GetFileVersion(Assembly assembly) =>
     FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion!;
 
 static string GetSourceDirectory([CallerFilePath] string filePath = "") => Path.GetDirectoryName(filePath)!;
+
+class CustomMarkdownExporter : MarkdownExporter
+{
+    public CustomMarkdownExporter()
+    {
+        Dialect = "GitHub";
+        UseCodeBlocks = true;
+        CodeBlockStart = "```";
+        StartOfGroupHighlightStrategy = MarkdownHighlightStrategy.None;
+        ColumnsStartWithSeparator = true;
+        EscapeHtml = true;
+    }
+}

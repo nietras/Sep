@@ -78,6 +78,14 @@ public class RowPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark()]
+    public void Sep2_____()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader) { }
+    }
+
+    //[Benchmark()]
     public void Sep_RowSt()
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false })
@@ -168,7 +176,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-    [Benchmark]
+    //[Benchmark]
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();

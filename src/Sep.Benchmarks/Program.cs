@@ -6,14 +6,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using BenchmarkDotNet.Columns;
-#pragma warning disable IDE0005
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using nietras.SeparatedValues.Benchmarks;
 using nietras.SeparatedValues.ComparisonBenchmarks;
-#pragma warning restore IDE0005
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 
 Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
@@ -46,8 +44,6 @@ else
     {
         b.Parse();
     }
-
-    //Runner.ParseAndFormatGenerated(log);
 }
 
 static IColumn MBPerSecFromCharsLength() => new BytesStatisticColumn("MB/s",

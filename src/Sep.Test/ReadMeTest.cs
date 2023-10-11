@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PublicApiGenerator;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -325,6 +326,22 @@ public class ReadMeTest
         };
         readmeLines = UpdateReadme(writerOptionsSourceLines, readmeLines, writerOptionsBlocksToUpdate,
             sourceStartLineOffset: 0, "}", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 4);
+
+        var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
+        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
+    }
+
+    [TestMethod]
+    public void ReadMeTest_PublicApi()
+    {
+        var publicApi = typeof(Sep).Assembly.GeneratePublicApi();
+        Trace.WriteLine(Environment.Version);
+        Trace.WriteLine(publicApi);
+
+        var readmeFilePath = s_readmeFilePath;
+        var readmeLines = File.ReadAllLines(readmeFilePath);
+        readmeLines = ReplaceReadmeLines(readmeLines, new[] { publicApi },
+            "## Public API Reference", "```", 1, "```", 0);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
         File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);

@@ -51,7 +51,7 @@ few MBs. 💾
 pragmatic approach towards this especially with regards to quoting and line
 ends. See section [RFC-4180](#rfc-4180).
 
-[Example](#Example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)
+[Example](#Example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
 
 ## Example
 ```csharp
@@ -210,6 +210,9 @@ repeated allocations for each row and get the best possible performance, while
 still defining a well structured and straightforward API that guides users to
 relevant functionality.  See [Why SepReader Is Not IEnumerable and LINQ
 Compatible](#why-sepreader-is-not-ienumerable-and-linq-compatible) for more.
+
+⚠ For a full overview of public types and methods see [Public API
+Reference](#public-api-reference).
 
 ### SepReader API
 `SepReader` API has the following structure (in pseudo-C# code):
@@ -1206,3 +1209,285 @@ Ask questions on GitHub and this section will be expanded. :)
 
 ## Links
  * [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
+
+## Public API Reference
+```
+[assembly: System.CLSCompliant(false)]
+[assembly: System.Reflection.AssemblyMetadata("IsTrimmable", "True")]
+[assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/nietras/Sep/")]
+[assembly: System.Resources.NeutralResourcesLanguage("en")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+namespace nietras.SeparatedValues
+{
+    public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
+    {
+        public Sep() { }
+        public Sep(char separator) { }
+        public char Separator { get; init; }
+        public static nietras.SeparatedValues.Sep? Auto { get; }
+        public static nietras.SeparatedValues.Sep Default { get; }
+        public static nietras.SeparatedValues.Sep New(char separator) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader() { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer() { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
+    }
+    public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepHeader header, int colIndex);
+    public static class SepDefaults
+    {
+        public static System.Globalization.CultureInfo CultureInfo { get; }
+        public static char Separator { get; }
+    }
+    public sealed class SepHeader
+    {
+        public SepHeader(string row, System.Collections.Generic.Dictionary<string, int> colNameToIndex) { }
+        public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
+        public bool IsEmpty { get; }
+        public static nietras.SeparatedValues.SepHeader Empty { get; }
+        public int IndexOf(string colName) { }
+        public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
+        public int[] IndicesOf(System.ReadOnlySpan<string> colNames) { }
+        public int[] IndicesOf(params string[] colNames) { }
+        public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
+        public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
+        public override string ToString() { }
+    }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public class SepReader : System.IDisposable
+    {
+        public nietras.SeparatedValues.SepReader.Row Current { get; }
+        public bool HasHeader { get; }
+        public bool HasRows { get; }
+        public nietras.SeparatedValues.SepHeader Header { get; }
+        public bool IsEmpty { get; }
+        public nietras.SeparatedValues.SepSpec Spec { get; }
+        public void Dispose() { }
+        protected virtual void Dispose(bool disposing) { }
+        public nietras.SeparatedValues.SepReader GetEnumerator() { }
+        public bool MoveNext() { }
+        public System.ReadOnlySpan<char> RowSpan() { }
+        public string ToString(int index) { }
+        public string ToStringRaw(int index) { }
+        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public readonly struct Col
+        {
+            public System.ReadOnlySpan<char> Span { get; }
+            public T Parse<T>()
+                where T : System.ISpanParsable<T> { }
+            public override string ToString() { }
+            public string ToStringRaw() { }
+            public T? TryParse<T>()
+                where T :  struct, System.ISpanParsable<T> { }
+            public bool TryParse<T>(out T value)
+                where T : System.ISpanParsable<T> { }
+        }
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public readonly struct Cols
+        {
+            public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
+            public int Length { get; }
+            public System.Span<T> Parse<T>()
+                where T : System.ISpanParsable<T> { }
+            public void Parse<T>(System.Span<T> span)
+                where T : System.ISpanParsable<T> { }
+            public T[] ParseToArray<T>()
+                where T : System.ISpanParsable<T> { }
+            public System.Span<T> Select<T>(method selector) { }
+            public System.Span<T> Select<T>(nietras.SeparatedValues.SepReader.ColFunc<T> selector) { }
+            public System.Span<string> ToStrings() { }
+            public string[] ToStringsArray() { }
+            public System.Span<T?> TryParse<T>()
+                where T :  struct, System.ISpanParsable<T> { }
+            public void TryParse<T>(System.Span<T?> span)
+                where T :  struct, System.ISpanParsable<T> { }
+        }
+        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
+        [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepReader.Row.DebugView))]
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public readonly struct Row
+        {
+            public int ColCount { get; }
+            public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
+            public nietras.SeparatedValues.SepReader.Col this[System.Index index] { get; }
+            public nietras.SeparatedValues.SepReader.Col this[string colName] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[System.Range range] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[System.ReadOnlySpan<int> indices] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[System.Collections.Generic.IReadOnlyList<int> indices] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[int[] indices] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[System.ReadOnlySpan<string> colNames] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
+            public nietras.SeparatedValues.SepReader.Cols this[string[] colNames] { get; }
+            public int LineNumberFrom { get; }
+            public int LineNumberToExcl { get; }
+            public int RowIndex { get; }
+            public System.ReadOnlySpan<char> Span { get; }
+            public override string ToString() { }
+        }
+        public delegate void ColAction(nietras.SeparatedValues.SepReader.Col col);
+        public delegate T ColFunc<T>(nietras.SeparatedValues.SepReader.Col col);
+        public delegate void ColsAction(nietras.SeparatedValues.SepReader.Cols col);
+        public delegate void RowAction(nietras.SeparatedValues.SepReader.Row row);
+        public delegate T RowFunc<T>(nietras.SeparatedValues.SepReader.Row row);
+    }
+    public static class SepReaderExtensions
+    {
+        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
+        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
+        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
+        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
+        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
+        public static nietras.SeparatedValues.SepReader FromFile(this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
+        public static nietras.SeparatedValues.SepReader FromText(this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep sep) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep? sep) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.SepSpec spec) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep? sep, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+    }
+    public readonly struct SepReaderOptions : System.IEquatable<nietras.SeparatedValues.SepReaderOptions>
+    {
+        public SepReaderOptions() { }
+        public SepReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public nietras.SeparatedValues.SepCreateToString CreateToString { get; init; }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool DisableColCountCheck { get; init; }
+        public bool DisableFastFloat { get; init; }
+        public bool HasHeader { get; init; }
+        public nietras.SeparatedValues.Sep? Sep { get; init; }
+    }
+    public static class SepReaderWriterExtensions
+    {
+        public static void CopyTo(this nietras.SeparatedValues.SepReader.Row readerRow, nietras.SeparatedValues.SepWriter.Row writerRow) { }
+        public static nietras.SeparatedValues.SepWriter.Row NewRow(this nietras.SeparatedValues.SepWriter writer, nietras.SeparatedValues.SepReader.Row rowToCopy) { }
+    }
+    public readonly struct SepSpec : System.IEquatable<nietras.SeparatedValues.SepSpec>
+    {
+        public SepSpec() { }
+        public SepSpec(nietras.SeparatedValues.Sep sep, System.Globalization.CultureInfo? cultureInfo) { }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public nietras.SeparatedValues.Sep Sep { get; init; }
+    }
+    public abstract class SepToString : System.IDisposable
+    {
+        protected SepToString() { }
+        public static nietras.SeparatedValues.SepCreateToString Direct { get; }
+        public void Dispose() { }
+        protected virtual void Dispose(bool disposing) { }
+        protected virtual void DisposeManagedResources() { }
+        public abstract string ToString(System.ReadOnlySpan<char> chars);
+        public static nietras.SeparatedValues.SepCreateToString OnePool(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+        public static nietras.SeparatedValues.SepCreateToString PoolPerCol(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+    }
+    public class SepWriter : System.IDisposable
+    {
+        public SepWriter(nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
+        public nietras.SeparatedValues.SepSpec Spec { get; }
+        public void Dispose() { }
+        protected virtual void Dispose(bool disposing) { }
+        public nietras.SeparatedValues.SepWriter.Row NewRow() { }
+        public override string ToString() { }
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public struct Row
+        {
+            public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
+            public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<int> indices] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<string> colNames] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
+            public void Dispose() { }
+        }
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public readonly struct Col
+        {
+            public void Format<T>(T value)
+                where T : System.ISpanFormattable { }
+            public void Set(System.ReadOnlySpan<char> span) { }
+            public void Set([System.Runtime.CompilerServices.InterpolatedStringHandlerArgument("")] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }
+            public void Set(System.IFormatProvider? provider, [System.Runtime.CompilerServices.InterpolatedStringHandlerArgument(new string?[]?[] {
+                    "",
+                    "provider"})] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }
+            [System.Runtime.CompilerServices.InterpolatedStringHandler]
+            public readonly struct FormatInterpolatedStringHandler
+            {
+                public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col) { }
+                public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col, System.IFormatProvider? provider) { }
+                public void AppendFormatted(System.ReadOnlySpan<char> value) { }
+                public void AppendFormatted(string? value) { }
+                public void AppendFormatted(System.ReadOnlySpan<char> value, int alignment = 0, string? format = null) { }
+                public void AppendFormatted(object? value, int alignment = 0, string? format = null) { }
+                public void AppendFormatted(string? value, int alignment = 0, string? format = null) { }
+                public void AppendFormatted<T>(T value) { }
+                public void AppendFormatted<T>(T value, int alignment) { }
+                public void AppendFormatted<T>(T value, string? format) { }
+                public void AppendFormatted<T>(T value, int alignment, string? format) { }
+                public void AppendLiteral(string value) { }
+            }
+        }
+        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
+            ".", true)]
+        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
+        [System.Runtime.CompilerServices.IsByRefLike]
+        public readonly struct Cols
+        {
+            public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
+            public int Length { get; }
+            public void Format<T>(System.Collections.Generic.IReadOnlyList<T> values)
+                where T : System.ISpanFormattable { }
+            public void Format<T>(System.ReadOnlySpan<T> values)
+                where T : System.ISpanFormattable { }
+            public void Format<T>(System.Span<T> values)
+                where T : System.ISpanFormattable { }
+            public void Format<T>(T[] values)
+                where T : System.ISpanFormattable { }
+            public void Format<T>(System.ReadOnlySpan<T> values, nietras.SeparatedValues.SepWriter.ColAction<T> format) { }
+            public void Set(System.Collections.Generic.IReadOnlyList<string> values) { }
+            public void Set(System.ReadOnlySpan<string> values) { }
+            public void Set(string[] values) { }
+            public void Set(nietras.SeparatedValues.SepReader.Cols cols) { }
+        }
+        public delegate void ColAction(nietras.SeparatedValues.SepWriter.Col col);
+        public delegate void ColAction<T>(nietras.SeparatedValues.SepWriter.Col col, T value);
+        public delegate void RowAction(nietras.SeparatedValues.SepWriter.Row row);
+    }
+    public static class SepWriterExtensions
+    {
+        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream) { }
+        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
+        public static nietras.SeparatedValues.SepWriter ToFile(this nietras.SeparatedValues.SepWriterOptions options, string filePath) { }
+        public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options) { }
+        public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options, int capacity) { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep) { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec) { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
+        public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
+    }
+    public readonly struct SepWriterOptions : System.IEquatable<nietras.SeparatedValues.SepWriterOptions>
+    {
+        public SepWriterOptions() { }
+        public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public nietras.SeparatedValues.Sep Sep { get; init; }
+    }
+}
+```

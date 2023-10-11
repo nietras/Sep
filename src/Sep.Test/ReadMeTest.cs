@@ -341,7 +341,7 @@ public class ReadMeTest
         var readmeFilePath = s_readmeFilePath;
         var readmeLines = File.ReadAllLines(readmeFilePath);
         readmeLines = ReplaceReadmeLines(readmeLines, new[] { publicApi },
-            "## Public API Reference", "```", 1, "```", 0);
+            "## Public API Reference", "```csharp", 1, "```", 0);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
         File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);

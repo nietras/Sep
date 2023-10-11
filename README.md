@@ -1211,7 +1211,7 @@ Ask questions on GitHub and this section will be expanded. :)
  * [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
 
 ## Public API Reference
-```
+```csharp
 [assembly: System.CLSCompliant(false)]
 [assembly: System.Reflection.AssemblyMetadata("IsTrimmable", "True")]
 [assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/nietras/Sep/")]

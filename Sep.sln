@@ -43,6 +43,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ci", "ci", "{655261D2-06EE-
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\bench.yml = .github\workflows\bench.yml
 		.github\workflows\comparison-bench.yml = .github\workflows\comparison-bench.yml
+		.github\dependabot.yml = .github\dependabot.yml
 		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
 	EndProjectSection
 EndProject

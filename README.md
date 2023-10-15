@@ -7,6 +7,7 @@
 [![Release](https://img.shields.io/github/v/release/nietras/Sep)](https://github.com/nietras/Sep/releases/)
 [![downloads](https://img.shields.io/nuget/dt/Sep)](https://www.nuget.org/packages/Sep)
 ![Size](https://img.shields.io/github/repo-size/nietras/Sep.svg)
+[![License](https://img.shields.io/github/license/nietras/Sep)](https://github.com/nietras/Sep/LICENSE)
 [![Blog](https://img.shields.io/badge/blog-nietras.com-4993DD)](https://nietras.com)
 
 

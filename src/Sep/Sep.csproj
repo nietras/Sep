@@ -21,7 +21,7 @@
     <PackageIconUrl>https://raw.github.com/nietras/Sep/main/Icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/nietras/Sep/</PackageProjectUrl>
     <PackageReleaseNotes>https://github.com/nietras/Sep/releases</PackageReleaseNotes>
-    <PackageLicenseExpression>MS-PL OR Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

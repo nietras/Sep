@@ -31,7 +31,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     public int PaddingLength => VecUI8.Count;
 
     [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    //[MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public int Parse(char[] chars, int charsIndex, int charsEnd,
                      int[] colEnds, ref int colEndsEnd,
                      scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)

@@ -1,10 +1,5 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using static System.Runtime.CompilerServices.Unsafe;
-using static nietras.SeparatedValues.SepDefaults;
-using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx2;
 using Vec = System.Runtime.Intrinsics.Vector256;
 using VecI16 = System.Runtime.Intrinsics.Vector256<short>;
@@ -31,7 +26,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     public int PaddingLength => VecUI8.Count;
 
     [SkipLocalsInit]
-    //[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public int Parse(char[] chars, int charsIndex, int charsEnd,
                      int[] colEnds, ref int colEndsEnd,
                      scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)

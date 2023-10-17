@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -249,22 +248,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
-    [Benchmark()]
-    public double Sep_MT___()
-    {
-        using var reader = Sep.Reader().From(Reader.CreateReader());
-
-        var groundTruthColNames = reader.Header.NamesStartingWith(T.GroundTruthColNamePrefix);
-        var resultColNames = groundTruthColNames.Select(n =>
-            n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.Ordinal))
-            .ToArray();
-
-        return reader.ParallelEnumerate(r => MeanSquaredError(
-                r[groundTruthColNames].Parse<float>(), r[resultColNames].Parse<float>()),
-            maxDegreeOfParallelism: Environment.ProcessorCount).Average();
-    }
-
-    //[Benchmark]
+    [Benchmark]
     public double Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -368,61 +352,6 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
-    //[Benchmark]
-    public double ReadLineP()
-    {
-        using var reader = Reader.CreateReader();
-
-        var line = reader.ReadLine();
-        var headerCols = line!.Split(';');
-        var colNameToIndex = Enumerable.Range(0, headerCols.Length).ToDictionary(i => headerCols[i], i => i);
-
-        var groundTruthColNames = new List<string>();
-        for (var i = 0; i < headerCols.Length; i++)
-        {
-            var colName = headerCols[i];
-            if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
-            {
-                groundTruthColNames.Add(colName);
-            }
-        }
-        var resultColNames = groundTruthColNames.Select(n =>
-            n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        return Enumerate(reader).AsParallel().AsOrdered().Select(ParseAndCompute).Average();
-
-        IEnumerable<string> Enumerate(TextReader reader)
-        {
-            string? line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                yield return line;
-            }
-        }
-
-        double ParseAndCompute(string line)
-        {
-            var cols = line.Split(';');
-            Span<float> gts = stackalloc float[groundTruthColNames.Count];
-            Span<float> res = stackalloc float[resultColNames.Length];
-            for (var i = 0; i < groundTruthColNames.Count; i++)
-            {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = float.Parse(cols[colIndex]);
-                gts[i] = value;
-            }
-            for (var i = 0; i < resultColNames.Length; i++)
-            {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = float.Parse(cols[colIndex]);
-                res[i] = value;
-            }
-
-            var error = MeanSquaredError(gts, res);
-            return error;
-        }
-    }
 #if SEPBENCHSLOWONES
     [Benchmark]
 #endif

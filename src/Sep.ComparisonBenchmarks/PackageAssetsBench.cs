@@ -77,27 +77,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
-    [Benchmark()]
-    public void Sep2_____()
-    {
-        using var reader = Sep.Reader(o => o with { HasHeader = false })
-                              .From(Reader.CreateReader());
-        foreach (var row in reader) { }
-    }
-
-    //[Benchmark()]
-    public void Sep_RowSt()
-    {
-        using var reader = Sep.Reader(o => o with { HasHeader = false })
-                              .From(Reader.CreateReader());
-        var state = new SepReaderState(reader);
-        foreach (var row in reader)
-        {
-            reader.CopyNewRowTo(state);
-        }
-    }
-
-    //[Benchmark]
+    [Benchmark]
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -176,7 +156,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-    //[Benchmark]
+    [Benchmark]
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -282,24 +262,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-    [Benchmark()]
-    public void Sep_MT___()
-    {
-        using var reader = Sep.Reader(o => o with
-        {
-            HasHeader = false,
-#if USE_STRING_POOLING
-            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
-#endif
-        })
-        .From(Reader.CreateReader());
-
-        var assets = reader.ParallelEnumerate(
-            static r => PackageAsset.Read(r._state, static (r, i) => r.ToString(i)),
-            maxDegreeOfParallelism: 128).ToList();
-    }
-
-    //[Benchmark]
+    [Benchmark]
     public void Sylvan___()
     {
         var assets = new List<PackageAsset>();

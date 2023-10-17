@@ -35,7 +35,7 @@
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
     <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
 
-    <!--<DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSLOWONES</DefineConstants>-->
+    <DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSLOWONES</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPASSERT</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>

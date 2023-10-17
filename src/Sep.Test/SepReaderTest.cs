@@ -419,7 +419,7 @@ public class SepReaderTest
     [TestMethod]
     public void SepReaderTest_ColsInitialLength()
     {
-        var initialColCountCapacity = SepReader._colEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
+        var initialColCountCapacity = SepReader.ColEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
         var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
@@ -430,7 +430,7 @@ public class SepReaderTest
     [TestMethod]
     public void SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
-        var initialColCountCapacity = SepReader._colEndsInitialLength;
+        var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.AreEqual(initialColCountCapacity, reader._colEnds.Length);

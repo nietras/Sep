@@ -82,7 +82,7 @@ public partial class SepReader : SepReaderState
 
         var paddingLength = _parser?.PaddingLength ?? 64;
 
-        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsInitialLength, paddingLength * 2));
+        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
     }
 
     internal void Initialize(SepReaderOptions options)

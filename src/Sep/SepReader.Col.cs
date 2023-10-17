@@ -39,6 +39,4 @@ public partial class SepReader
 
         internal string DebuggerDisplay => new(Span);
     }
-
-
 }

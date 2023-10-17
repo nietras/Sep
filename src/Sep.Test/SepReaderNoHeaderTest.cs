@@ -169,7 +169,7 @@ public class SepReaderNoHeaderTest
     [TestMethod]
     public void SepReaderNoHeaderTest_ColsInitialLength()
     {
-        var initialColCountCapacity = SepReader._colEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
+        var initialColCountCapacity = SepReader.ColEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
         var text = new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
@@ -180,7 +180,7 @@ public class SepReaderNoHeaderTest
     [TestMethod]
     public void SepReaderNoHeaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
-        var initialColCountCapacity = SepReader._colEndsInitialLength;
+        var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
         Assert.AreEqual(initialColCountCapacity * 2, reader._colEnds.Length);

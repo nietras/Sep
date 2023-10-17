@@ -25,7 +25,7 @@ public class SepReaderState : IDisposable
     internal int _charsParseStart = 0;
     internal int _charsRowStart = 0;
 
-    internal const int _colEndsInitialLength = 128;
+    internal const int ColEndsInitialLength = 128;
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1...] = Col ends e.g. [1] = first col end
     // Length = colCount + 1
@@ -37,7 +37,9 @@ public class SepReaderState : IDisposable
     internal int _rowLineNumberFrom = 0;
     internal int _lineNumber = 1;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
     internal SepArrayPoolAccessIndexed _arrayPool = null!;
+#pragma warning restore CA2213 // Disposable fields should be disposed
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
     internal SepToString[] _colToStrings = Array.Empty<SepToString>();

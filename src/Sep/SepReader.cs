@@ -11,7 +11,7 @@ using static nietras.SeparatedValues.SepDefaults;
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public partial class SepReader : SepReaderState
+public sealed partial class SepReader : SepReaderState
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -85,6 +85,21 @@ public partial class SepReader : SepReaderState
         _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
     }
 
+    public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
+    public SepHeader Header => _header;
+
+    public bool IsEmpty { get; private set; }
+    public SepSpec Spec => new(new(_separator), _cultureInfo);
+    public bool HasRows { get; private set; }
+
+    internal int CharsLength => _chars.Length;
+
+    public Row Current
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(this);
+    }
+
     internal void Initialize(SepReaderOptions options)
     {
         // Parse first row/header
@@ -142,18 +157,6 @@ public partial class SepReader : SepReaderState
             _colToStrings[colIndex] = options.CreateToString(_header, colIndex);
         }
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
-    }
-
-    public bool IsEmpty { get; private set; }
-    public SepSpec Spec => new(new(_separator), _cultureInfo);
-    public bool HasRows { get; private set; }
-
-    internal int CharsLength => _chars.Length;
-
-    public Row Current
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(this);
     }
 
     public SepReader GetEnumerator() => this;
@@ -448,7 +451,7 @@ public partial class SepReader : SepReaderState
         }
     }
 
-    protected override void DisposeManaged()
+    internal override void DisposeManaged()
     {
         _reader.Dispose();
         base.DisposeManaged();

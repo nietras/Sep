@@ -44,8 +44,9 @@ public class SepReaderState : IDisposable
     internal int _cacheIndex = 0;
     internal SepToString[] _colToStrings = Array.Empty<SepToString>();
 
-    public bool HasHeader { get; internal set; }
-    public SepHeader Header => _header;
+    internal bool _hasHeader;
+
+    internal SepReaderState() { }
 
     #region Row
     internal ReadOnlySpan<char> RowSpan()
@@ -323,7 +324,7 @@ public class SepReaderState : IDisposable
     }
     #endregion
 
-    protected virtual void DisposeManaged()
+    internal virtual void DisposeManaged()
     {
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEnds);

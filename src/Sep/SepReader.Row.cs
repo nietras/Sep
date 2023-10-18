@@ -140,7 +140,7 @@ public partial class SepReader
             {
                 var row = new Row(_state);
                 var cols = new ColDebugView[_state._colCount];
-                var maybeHeader = _state.HasHeader ? _state._header : null;
+                var maybeHeader = _state._hasHeader ? _state._header : null;
                 for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {
                     var colValue = row[colIndex].ToStringRaw();

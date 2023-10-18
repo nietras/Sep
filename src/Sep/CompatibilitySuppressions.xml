@@ -8,4 +8,11 @@
     <Right>lib/net7.0/Sep.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:nietras.SeparatedValues.SepReader.ToStringRaw(System.Int32)</Target>
+    <Left>lib/net7.0/Sep.dll</Left>
+    <Right>lib/net7.0/Sep.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

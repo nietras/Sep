@@ -15,6 +15,7 @@ public class SepReaderState : IDisposable
     readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
 
     internal SepHeader _header = null!;
+    internal bool _hasHeader;
     internal char _fastFloatDecimalSeparatorOrZero;
     internal CultureInfo? _cultureInfo;
     internal SepCreateToString _createToString = default!;
@@ -43,8 +44,6 @@ public class SepReaderState : IDisposable
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
     internal SepToString[] _colToStrings = Array.Empty<SepToString>();
-
-    internal bool _hasHeader;
 
     internal SepReaderState() { }
 

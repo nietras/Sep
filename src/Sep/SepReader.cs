@@ -85,12 +85,11 @@ public sealed partial class SepReader : SepReaderState
         _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
     }
 
-    public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
-    public SepHeader Header => _header;
-
     public bool IsEmpty { get; private set; }
     public SepSpec Spec => new(new(_separator), _cultureInfo);
+    public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
     public bool HasRows { get; private set; }
+    public SepHeader Header => _header;
 
     internal int CharsLength => _chars.Length;
 

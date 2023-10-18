@@ -46,6 +46,15 @@ public class SepReaderTest
     }
 
     [TestMethod]
+    public void SepReaderTest_ToString_ColIndex()
+    {
+        using var reader = Sep.Reader().FromText("A;B\nX;Y");
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual("X", reader.ToString(0));
+        Assert.AreEqual("Y", reader.ToString(1));
+    }
+
+    [TestMethod]
     public void SepReaderTest_Enumerate_Empty()
     {
         var text = string.Empty;

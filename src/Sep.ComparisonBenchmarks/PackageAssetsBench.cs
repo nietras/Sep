@@ -233,7 +233,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 100_000;
+    const int DefaultLineCount = 50_000;
 #endif
 
     public AssetPackageAssetsBench() : this(false) { }

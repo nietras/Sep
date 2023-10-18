@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 
@@ -84,16 +85,32 @@ public static class SepReaderExtensions
         return FromWithInfo(new(reader, display), options, reader);
     }
 
+    // TODO: Finalize and expose public with TryRowFunc too
+    internal static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(select);
+
+        foreach (var row in reader)
+        {
+            yield return select(row);
+        }
+    }
+
     internal static SepReader FromWithInfo(SepReader.Info info, SepReaderOptions options, TextReader reader)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
+        SepReader? sepReader = null;
         try
         {
-            return new SepReader(info, options, reader);
+            sepReader = new SepReader(info, options, reader);
+            sepReader.Initialize(options);
+            return sepReader;
         }
         catch (Exception)
         {
+            sepReader?.Dispose();
             reader.Dispose();
             throw;
         }

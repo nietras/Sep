@@ -25,8 +25,8 @@ public abstract class FloatsReaderBench
         Rows = lineCount;
         _readers = new ReaderSpec[]
         {
-            ReaderSpec.FromString("String", T.GenerateText(Rows, FloatsCount)),
-            //ReaderSpec.FromBytes("Stream", T.GenerateBytes(Rows, FloatsCount)),
+            ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
+            //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
         };
         Reader = _readers.First();
     }

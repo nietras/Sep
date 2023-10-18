@@ -31,8 +31,8 @@ public abstract class PackageAssetsBench
         Rows = lineCount;
         _readers = new ReaderSpec[]
         {
-            ReaderSpec.FromString("String", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows)),
-            //ReaderSpec.FromBytes("Stream", PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows)),
+            ReaderSpec.FromString("String", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows))),
+            //ReaderSpec.FromBytes("Stream", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows))),
         };
         Reader = _readers.First();
     }

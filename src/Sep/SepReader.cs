@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -12,7 +11,7 @@ using static nietras.SeparatedValues.SepDefaults;
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public partial class SepReader : IDisposable
+public sealed partial class SepReader : SepReaderState
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -20,25 +19,14 @@ public partial class SepReader : IDisposable
     const string TraceCondition = "SEPREADERTRACE";
     const string AssertCondition = "SEPREADERASSERT";
 
-    // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
-    // promote cache to member here.
-    readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
     readonly Info _info;
-    readonly SepReaderOptions _options;
-    readonly char _fastFloatDecimalSeparatorOrZero;
     char _separator;
-    readonly SepHeader _header;
     readonly TextReader _reader;
-    readonly CultureInfo? _cultureInfo;
     ISepParser? _parser;
-
-    int _rowIndex = -1;
-    int _rowLineNumberFrom = 0;
-    int _lineNumber = 1;
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
-    // force chars buffer management paths to be used.
+    // force buffer management paths to be used.
     internal const int CharsMinimumLength = 64;
 #else
     // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
@@ -48,38 +36,21 @@ public partial class SepReader : IDisposable
     internal const int _charsCheckDataAvailableWhenLessThanLength = 256;
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
-    char[] _chars;
-    int _charsDataStart = 0;
-    int _charsDataEnd = 0;
-    int _charsParseStart = 0;
-    int _charsRowStart = 0;
-
-    internal const int _colEndsMaximumLength = 1024;
-    // [0] = Previous row/col end e.g. one before row/first col start
-    // [1...] = Col ends e.g. [1] = first col end
-    // Length = colCount + 1
-    readonly int[] _colEnds;
-    readonly int _colCountExpected = -1;
-    int _colCount = 0;
 
     bool _rowAlreadyFound = false;
-
-    readonly SepArrayPoolAccessIndexed _arrayPool = new();
-    readonly (string colName, int colIndex)[] _colNameCache;
-    int _cacheIndex = 0;
-    readonly SepToString[] _colToStrings;
 
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
     {
         _info = info;
-        _options = options;
         _reader = reader;
-        _cultureInfo = _options.CultureInfo;
+        _cultureInfo = options.CultureInfo;
+        _createToString = options.CreateToString;
+        _arrayPool = new();
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
             System.Globalization.CultureInfo.InvariantCulture.NumberFormat.CurrencyDecimalSeparator;
         _fastFloatDecimalSeparatorOrZero =
-            decimalSeparator.Length == 1 && !_options.DisableFastFloat
+            decimalSeparator.Length == 1 && !options.DisableFastFloat
             ? decimalSeparator[0]
             : '\0';
 
@@ -111,8 +82,25 @@ public partial class SepReader : IDisposable
 
         var paddingLength = _parser?.PaddingLength ?? 64;
 
-        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(_colEndsMaximumLength, paddingLength * 2));
+        _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
+    }
 
+    public bool IsEmpty { get; private set; }
+    public SepSpec Spec => new(new(_separator), _cultureInfo);
+    public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
+    public bool HasRows { get; private set; }
+    public SepHeader Header => _header;
+
+    internal int CharsLength => _chars.Length;
+
+    public Row Current
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => new(this);
+    }
+
+    internal void Initialize(SepReaderOptions options)
+    {
         // Parse first row/header
         if (MoveNext())
         {
@@ -168,20 +156,6 @@ public partial class SepReader : IDisposable
             _colToStrings[colIndex] = options.CreateToString(_header, colIndex);
         }
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
-    }
-
-    public bool IsEmpty { get; }
-    public SepSpec Spec => new(new(_separator), _options.CultureInfo);
-    public bool HasHeader { get; }
-    public bool HasRows { get; }
-    public SepHeader Header => _header;
-
-    internal int CharsLength => _chars.Length;
-
-    public Row Current
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => new(this);
     }
 
     public SepReader GetEnumerator() => this;
@@ -253,6 +227,8 @@ public partial class SepReader : IDisposable
         return foundRow;
     }
 
+    public string ToString(int index) => ToStringDefault(index);
+
     bool EnsureInitializeAndReadData(bool endOfFile)
     {
         // Check how much data in buffer and read more to batch parsing in block
@@ -275,24 +251,37 @@ public partial class SepReader : IDisposable
 
         if (_parser != null && _charsParseStart < _charsDataEnd)
         {
-            if (_colCount > (_colEnds.Length - _parser.PaddingLength))
+            // + 1 - must be room for one more col always
+            if ((_colCount + 1) >= (_colEnds.Length - _parser.PaddingLength))
             {
-                SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
+                DoubleColsCapacityCopyState();
             }
         }
         else
         {
             if (nothingLeftToRead)
             {
-                if (_colCount >= _colEnds.Length)
+                // + 1 - must be room for one more col always
+                if ((_colCount + 1) >= _colEnds.Length)
                 {
-                    SepThrow.NotSupportedException_ColCountExceedsMaximumSupported(_colEnds.Length);
+                    DoubleColsCapacityCopyState();
                 }
                 // If nothing has been read, then at end of file.
                 endOfFile = true;
             }
         }
         return endOfFile;
+    }
+
+    void DoubleColsCapacityCopyState()
+    {
+        var previousColEnds = _colEnds;
+        _colEnds = ArrayPool<int>.Shared.Rent(_colEnds.Length * 2);
+        var length = _colCount + 1;
+        var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, length);
+        var newColEndsSpan = _colEnds.AsSpan().Slice(0, length);
+        previousColEndsSpan.CopyTo(newColEndsSpan);
+        ArrayPool<int>.Shared.Return(previousColEnds);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -463,38 +452,9 @@ public partial class SepReader : IDisposable
         }
     }
 
-    void DisposeManaged()
+    internal override void DisposeManaged()
     {
         _reader.Dispose();
-        ArrayPool<char>.Shared.Return(_chars);
-        ArrayPool<int>.Shared.Return(_colEnds);
-        _arrayPool.Dispose();
-        foreach (var toString in _colToStrings)
-        {
-            toString.Dispose();
-        }
+        base.DisposeManaged();
     }
-
-    #region Dispose
-    bool _disposed;
-    protected virtual void Dispose(bool disposing)
-    {
-        if (!_disposed)
-        {
-            if (disposing)
-            {
-                DisposeManaged();
-            }
-
-            _disposed = true;
-        }
-    }
-
-    public void Dispose()
-    {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-    #endregion Dispose
 }

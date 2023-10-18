@@ -12,19 +12,19 @@ public partial class SepReader
 
     public readonly ref struct Cols
     {
-        readonly SepReader _reader;
+        readonly SepReaderState _state;
         readonly ReadOnlySpan<int> _colIndices;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Cols(SepReader reader, ReadOnlySpan<int> indices)
+        internal Cols(SepReaderState state, ReadOnlySpan<int> indices)
         {
-            _reader = reader;
+            _state = state;
             _colIndices = indices;
         }
 
         public int Length => _colIndices.Length;
 
-        public Col this[int index] => new(_reader, _colIndices[index]);
+        public Col this[int index] => new(_state, _colIndices[index]);
 
         /// <summary>
         /// Get all selected cols as strings in an array.
@@ -35,7 +35,7 @@ public partial class SepReader
         /// cref="ISpanParsable{TSelf}"/>.
         /// </remarks>
         /// <returns>Newly allocated array of each col as a string.</returns>
-        public string[] ToStringsArray() => _reader.ToStringsArray(_colIndices);
+        public string[] ToStringsArray() => _state.ToStringsArray(_colIndices);
         /// <summary>
         /// Get all selected cols as strings in a span.
         /// </summary>
@@ -45,117 +45,27 @@ public partial class SepReader
         /// cref="ISpanParsable{TSelf}"/>.
         /// </remarks>
         /// <returns>Span with each col as a string.</returns>
-        public Span<string> ToStrings() => _reader.ToStrings(_colIndices);
+        public Span<string> ToStrings() => _state.ToStrings(_colIndices);
 
         public T[] ParseToArray<T>() where T : ISpanParsable<T> =>
-            _reader.ParseToArray<T>(_colIndices);
+            _state.ParseToArray<T>(_colIndices);
 
         public Span<T> Parse<T>() where T : ISpanParsable<T> =>
-            _reader.Parse<T>(_colIndices);
+            _state.Parse<T>(_colIndices);
 
         public void Parse<T>(Span<T> span) where T : ISpanParsable<T> =>
-            _reader.Parse<T>(_colIndices, span);
+            _state.Parse<T>(_colIndices, span);
 
         public Span<T?> TryParse<T>() where T : struct, ISpanParsable<T> =>
-            _reader.TryParse<T>(_colIndices);
+            _state.TryParse<T>(_colIndices);
 
         public void TryParse<T>(Span<T?> span) where T : struct, ISpanParsable<T> =>
-            _reader.TryParse<T>(_colIndices, span);
+            _state.TryParse<T>(_colIndices, span);
 
         public Span<T> Select<T>(ColFunc<T> selector) =>
-            _reader.Select<T>(_colIndices, selector);
+            _state.Select<T>(_colIndices, selector);
 
         public unsafe Span<T> Select<T>(delegate*<Col, T> selector) =>
-            _reader.Select<T>(_colIndices, selector);
-    }
-
-    string[] ToStringsArray(ReadOnlySpan<int> colIndices)
-    {
-        var values = new string[colIndices.Length];
-        ToStrings(colIndices, values);
-        return values;
-    }
-
-    Span<string> ToStrings(ReadOnlySpan<int> colIndices)
-    {
-        var span = _arrayPool.RentUniqueArrayAsSpan<string>(colIndices.Length);
-        ToStrings(colIndices, span);
-        return span;
-    }
-
-    void ToStrings(ReadOnlySpan<int> colIndices, Span<string> span)
-    {
-        for (var i = 0; i < span.Length; i++)
-        {
-            span[i] = ToString(colIndices[i]);
-        }
-    }
-
-    T[] ParseToArray<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
-    {
-        var values = new T[colIndices.Length];
-        Parse<T>(colIndices, values);
-        return values;
-    }
-
-    Span<T> Parse<T>(ReadOnlySpan<int> colIndices) where T : ISpanParsable<T>
-    {
-        var span = _arrayPool.RentUniqueArrayAsSpan<T>(colIndices.Length);
-        for (var i = 0; i < span.Length; i++)
-        {
-            span[i] = Parse<T>(colIndices[i]);
-        }
-        return span;
-    }
-
-    void Parse<T>(ReadOnlySpan<int> colIndices, Span<T> span) where T : ISpanParsable<T>
-    {
-        SepCheck.LengthSameAsCols(colIndices.Length, nameof(span), span.Length);
-        for (var i = 0; i < span.Length; i++)
-        {
-            span[i] = Parse<T>(colIndices[i]);
-        }
-    }
-
-    Span<T?> TryParse<T>(ReadOnlySpan<int> colIndices) where T : struct, ISpanParsable<T>
-    {
-        var span = _arrayPool.RentUniqueArrayAsSpan<T?>(colIndices.Length);
-        for (var i = 0; i < span.Length; i++)
-        {
-            span[i] = TryParse<T>(colIndices[i]);
-        }
-        return span;
-    }
-
-    void TryParse<T>(ReadOnlySpan<int> colIndices, Span<T?> span) where T : struct, ISpanParsable<T>
-    {
-        SepCheck.LengthSameAsCols(colIndices.Length, nameof(span), span.Length);
-        for (var i = 0; i < span.Length; i++)
-        {
-            span[i] = TryParse<T>(colIndices[i]);
-        }
-    }
-
-    Span<T> Select<T>(ReadOnlySpan<int> colIndices, ColFunc<T> selector)
-    {
-        ArgumentNullException.ThrowIfNull(selector);
-        var length = colIndices.Length;
-        var span = _arrayPool.RentUniqueArrayAsSpan<T>(length);
-        for (var i = 0; i < length; i++)
-        {
-            span[i] = selector(new(this, colIndices[i]));
-        }
-        return span;
-    }
-
-    unsafe Span<T> Select<T>(ReadOnlySpan<int> colIndices, delegate*<Col, T> selector)
-    {
-        var length = colIndices.Length;
-        var span = _arrayPool.RentUniqueArrayAsSpan<T>(length);
-        for (var i = 0; i < length; i++)
-        {
-            span[i] = selector(new(this, colIndices[i]));
-        }
-        return span;
+            _state.Select<T>(_colIndices, selector);
     }
 }

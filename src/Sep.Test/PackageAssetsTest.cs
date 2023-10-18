@@ -1,4 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -8,20 +12,68 @@ public class PackageAssetsTest
     [TestMethod]
     public void PackageAssetsTest_Read_NoQuotes()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(NoQuotes);
-        foreach (var row in reader)
-        {
-            Assert.AreEqual(25, row.ColCount);
-        }
+        VerifyRead(NoQuotes);
     }
 
     [TestMethod]
     public void PackageAssetsTest_Read_WithQuotes()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(WithQuotes);
+        VerifyRead(WithQuotes);
+    }
+
+    [TestMethod]
+    public void PackageAssetsTest_Enumerate_NoQuotes()
+    {
+        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select));
+    }
+
+    [TestMethod]
+    public void PackageAssetsTest_Enumerate_WithQuotes()
+    {
+        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select));
+    }
+
+    static void VerifyRead(string text)
+    {
+        var expected = ReadLineSplitAsList(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        var rowIndex = 0;
         foreach (var row in reader)
         {
-            Assert.AreEqual(25, row.ColCount);
+            var expectedCols = expected[rowIndex];
+            Assert.AreEqual(expectedCols.Length, row.ColCount);
+            CollectionAssert.AreEqual(expectedCols, row[0..row.ColCount].ToStringsArray());
+            ++rowIndex;
+        }
+        Assert.AreEqual(expected.Count, rowIndex);
+    }
+
+    static void VerifyEnumerate(string text, Func<SepReader, SepReader.RowFunc<string[]>, IEnumerable<string[]>> enumerate)
+    {
+        var expected = ReadLineSplitAsList(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
+        var rowIndex = 0;
+        foreach (var cols in rows)
+        {
+            var expectedCols = expected[rowIndex];
+            Assert.AreEqual(expectedCols.Length, cols.Length);
+            CollectionAssert.AreEqual(expectedCols, cols);
+            ++rowIndex;
+        }
+        Assert.AreEqual(expected.Count, rowIndex);
+    }
+
+    static List<string[]> ReadLineSplitAsList(string text, char separator = ',') =>
+        ReadLineSplit(text, separator).ToList();
+
+    static IEnumerable<string[]> ReadLineSplit(string text, char separator)
+    {
+        using var reader = new StringReader(text);
+        string? line;
+        while ((line = reader.ReadLine()) != null)
+        {
+            yield return line.Split(separator);
         }
     }
 

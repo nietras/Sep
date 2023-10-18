@@ -1221,7 +1221,7 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Benchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v7.0", FrameworkDisplayName=".NET 7.0")]
 namespace nietras.SeparatedValues
 {
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
@@ -1258,7 +1258,7 @@ namespace nietras.SeparatedValues
         public override string ToString() { }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public class SepReader : System.IDisposable
+    public sealed class SepReader : nietras.SeparatedValues.SepReaderState
     {
         public nietras.SeparatedValues.SepReader.Row Current { get; }
         public bool HasHeader { get; }
@@ -1266,13 +1266,9 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepHeader Header { get; }
         public bool IsEmpty { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
-        public void Dispose() { }
-        protected virtual void Dispose(bool disposing) { }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
         public bool MoveNext() { }
-        public System.ReadOnlySpan<char> RowSpan() { }
         public string ToString(int index) { }
-        public string ToStringRaw(int index) { }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
         [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
             ".", true)]
@@ -1371,6 +1367,10 @@ namespace nietras.SeparatedValues
         public bool HasHeader { get; init; }
         public nietras.SeparatedValues.Sep? Sep { get; init; }
     }
+    public class SepReaderState : System.IDisposable
+    {
+        public void Dispose() { }
+    }
     public static class SepReaderWriterExtensions
     {
         public static void CopyTo(this nietras.SeparatedValues.SepReader.Row readerRow, nietras.SeparatedValues.SepWriter.Row writerRow) { }
@@ -1400,6 +1400,7 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
+        public void Flush() { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public override string ToString() { }
         [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +

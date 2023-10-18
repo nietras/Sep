@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace nietras.SeparatedValues;
 
@@ -16,32 +15,32 @@ public partial class SepReader
     [DebuggerTypeProxy(typeof(DebugView))]
     public readonly ref struct Row
     {
-        internal readonly SepReader _reader;
+        internal readonly SepReaderState _state;
 
-        internal Row(SepReader reader) => _reader = reader;
+        internal Row(SepReaderState state) => _state = state;
 
-        public int RowIndex => _reader._rowIndex;
+        public int RowIndex => _state._rowIndex;
 
-        public int LineNumberFrom => _reader._rowLineNumberFrom;
-        public int LineNumberToExcl => _reader._lineNumber;
+        public int LineNumberFrom => _state._rowLineNumberFrom;
+        public int LineNumberToExcl => _state._lineNumber;
 
-        public int ColCount => _reader._colCount;
+        public int ColCount => _state._colCount;
 
-        public ReadOnlySpan<char> Span => _reader.RowSpan();
+        public ReadOnlySpan<char> Span => _state.RowSpan();
 
         public override string ToString() => new(Span);
 
-        public Col this[int index] => new(_reader, index);
+        public Col this[int index] => new(_state, index);
 
-        public Col this[Index index] => new(_reader, index.GetOffset(_reader._colCount));
+        public Col this[Index index] => new(_state, index.GetOffset(_state._colCount));
 
         public Col this[string colName]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                var colIndex = _reader.GetCachedColIndex(colName);
-                return new(_reader, colIndex);
+                var colIndex = _state.GetCachedColIndex(colName);
+                return new(_state, colIndex);
             }
         }
 
@@ -49,47 +48,47 @@ public partial class SepReader
         {
             get
             {
-                var (offset, length) = range.GetOffsetAndLength(_reader._colCount);
-                var colIndices = _reader._arrayPool.RentUniqueArrayAsSpan<int>(length);
+                var (offset, length) = range.GetOffsetAndLength(_state._colCount);
+                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(length);
                 for (var i = 0; i < colIndices.Length; i++)
                 {
                     colIndices[i] = i + offset;
                 }
-                return new(_reader, colIndices);
+                return new(_state, colIndices);
             }
         }
 
-        public Cols this[ReadOnlySpan<int> indices] => new(_reader, indices);
+        public Cols this[ReadOnlySpan<int> indices] => new(_state, indices);
 
         public Cols this[IReadOnlyList<int> indices]
         {
             get
             {
                 ArgumentNullException.ThrowIfNull(indices);
-                var colIndices = _reader._arrayPool.RentUniqueArrayAsSpan<int>(indices.Count);
+                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(indices.Count);
                 for (var i = 0; i < indices.Count; i++)
                 {
                     colIndices[i] = indices[i];
                 }
-                return new(_reader, colIndices);
+                return new(_state, colIndices);
             }
         }
 
         // Overload needed since otherwise ambiguous call for array between
         // ReadOnlySpan<> and IReadOnlyList<>
-        public Cols this[int[] indices] => new(_reader, indices);
+        public Cols this[int[] indices] => new(_state, indices);
 
         public Cols this[ReadOnlySpan<string> colNames]
         {
             get
             {
-                var colIndices = _reader._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Length);
+                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Length);
                 for (var i = 0; i < colNames.Length; i++)
                 {
                     var name = colNames[i];
-                    colIndices[i] = _reader.GetCachedColIndex(name);
+                    colIndices[i] = _state.GetCachedColIndex(name);
                 }
-                return new(_reader, colIndices);
+                return new(_state, colIndices);
             }
         }
 
@@ -98,13 +97,13 @@ public partial class SepReader
             get
             {
                 ArgumentNullException.ThrowIfNull(colNames);
-                var colIndices = _reader._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Count);
+                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Count);
                 for (var i = 0; i < colNames.Count; i++)
                 {
                     var name = colNames[i];
-                    colIndices[i] = _reader.GetCachedColIndex(name);
+                    colIndices[i] = _state.GetCachedColIndex(name);
                 }
-                return new(_reader, colIndices);
+                return new(_state, colIndices);
             }
         }
 
@@ -130,18 +129,18 @@ public partial class SepReader
 
         internal class DebugView
         {
-            readonly SepReader _reader;
+            readonly SepReaderState _state;
 
-            internal DebugView(Row row) => _reader = row._reader;
+            internal DebugView(Row row) => _state = row._state;
 
             [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
             internal ColDebugView[] Cols => GetCols();
 
             ColDebugView[] GetCols()
             {
-                var row = _reader.Current;
-                var cols = new ColDebugView[_reader._colCount];
-                var maybeHeader = _reader.HasHeader ? _reader._header : null;
+                var row = new Row(_state);
+                var cols = new ColDebugView[_state._colCount];
+                var maybeHeader = _state._hasHeader ? _state._header : null;
                 for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {
                     var colValue = row[colIndex].ToStringRaw();
@@ -168,41 +167,5 @@ public partial class SepReader
             internal string ColIndexName => ColName is not null
                 ? $"{ColIndex:D2}:'{ColName}'" : ColIndex.ToString("D2");
         }
-    }
-
-    public ReadOnlySpan<char> RowSpan()
-    {
-        if (_colCount > 0)
-        {
-            var colEnds = _colEnds;
-            var start = colEnds[0] + 1; // +1 since previous end
-            var end = colEnds[_colCount];
-            return new(_chars, start, end - start);
-        }
-        else
-        {
-            return default;
-        }
-    }
-
-    int GetCachedColIndex(string colName)
-    {
-        var colNameCache = _colNameCache;
-        var currentCacheIndex = _cacheIndex;
-        var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
-        ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
-        if (cacheable)
-        {
-            colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
-            var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
-            ++_cacheIndex;
-            if (ReferenceEquals(colName, cacheColumnName)) { return cacheColumnIndex; }
-        }
-        var columnIndex = _header.IndexOf(colName);
-        if (cacheable)
-        {
-            colNameCacheRef = (colName, columnIndex);
-        }
-        return columnIndex;
     }
 }

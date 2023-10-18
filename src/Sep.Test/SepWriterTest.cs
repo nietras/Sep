@@ -184,6 +184,20 @@ public class SepWriterTest
     }
 
     [TestMethod]
+    public void SepWriterTest_Flush()
+    {
+        using var stream = new MemoryStream();
+        using var writer = Sep.Writer().To(stream);
+        using (var row = writer.NewRow())
+        {
+            row["A"].Set("123");
+        }
+        Assert.AreEqual(0, stream.Position);
+        writer.Flush();
+        Assert.AreNotEqual(0, stream.Position);
+    }
+
+    [TestMethod]
     public void SepWriterTest_Extensions_ToText_Capacity()
     {
         using var writer = Sep.Writer().ToText(capacity: 1024);

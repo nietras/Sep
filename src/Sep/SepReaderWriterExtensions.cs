@@ -14,7 +14,7 @@ public static class SepReaderWriterExtensions
 
     public static void CopyTo(this SepReader.Row readerRow, SepWriter.Row writerRow)
     {
-        var colNames = readerRow._reader.Header.ColNames;
+        var colNames = readerRow._state._header.ColNames;
         for (var i = 0; i < colNames.Count; i++)
         {
             var colName = colNames[i];

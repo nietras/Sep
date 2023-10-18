@@ -228,6 +228,8 @@ public sealed partial class SepReader : SepReaderState
         return foundRow;
     }
 
+    public string ToString(int index) => ToStringDefault(index);
+
     bool EnsureInitializeAndReadData(bool endOfFile)
     {
         // Check how much data in buffer and read more to batch parsing in block

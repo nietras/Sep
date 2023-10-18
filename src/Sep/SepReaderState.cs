@@ -108,7 +108,7 @@ public class SepReaderState : IDisposable
         return col;
     }
 
-    public string ToString(int index)
+    internal string ToStringDefault(int index)
     {
         var span = GetColSpan(index);
         var s = TryGetStaticallyCachedString(span);
@@ -127,7 +127,7 @@ public class SepReaderState : IDisposable
         }
     }
 
-    public string ToStringRaw(int index)
+    internal string ToStringRaw(int index)
     {
         var span = GetColSpan(index);
         var s = TryGetStaticallyCachedString(span);
@@ -144,7 +144,7 @@ public class SepReaderState : IDisposable
         // case, check if type is T and use normal ToString
         if (typeof(T) == typeof(string))
         {
-            var s = ToString(index);
+            var s = ToStringDefault(index);
             return Unsafe.As<string, T>(ref s);
         }
         else
@@ -179,7 +179,7 @@ public class SepReaderState : IDisposable
         // case, check if type is T and use normal ToString
         if (typeof(T) == typeof(string))
         {
-            var s = ToString(index);
+            var s = ToStringDefault(index);
             value = Unsafe.As<string, T>(ref s);
             return true;
         }
@@ -251,7 +251,7 @@ public class SepReaderState : IDisposable
     {
         for (var i = 0; i < span.Length; i++)
         {
-            span[i] = ToString(colIndices[i]);
+            span[i] = ToStringDefault(colIndices[i]);
         }
     }
 

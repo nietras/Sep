@@ -1268,6 +1268,7 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
         public bool MoveNext() { }
+        public string ToString(int index) { }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
         [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
             ".", true)]
@@ -1369,8 +1370,6 @@ namespace nietras.SeparatedValues
     public class SepReaderState : System.IDisposable
     {
         public void Dispose() { }
-        public string ToString(int index) { }
-        public string ToStringRaw(int index) { }
     }
     public static class SepReaderWriterExtensions
     {

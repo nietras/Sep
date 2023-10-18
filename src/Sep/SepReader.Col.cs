@@ -22,7 +22,7 @@ public partial class SepReader
         public ReadOnlySpan<char> Span => _state.GetColSpan(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override string ToString() => _state.ToString(_colIndex);
+        public override string ToString() => _state.ToStringDefault(_colIndex);
 
         // Allow opt out of pooling and don't add yet another configuration option
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -190,6 +190,22 @@ public class SepReaderTest
         AssertEnumerate(text, expected);
     }
 
+    [TestMethod]
+    public void SepReaderTest_Info_Ctor()
+    {
+        var info = new SepReader.Info("A", I => "B");
+        Assert.IsNotNull(info.Source);
+        Assert.IsNotNull(info.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_Info_Props()
+    {
+        var info = new SepReader.Info() { Source = "A", DebuggerDisplay = I => "B" };
+        Assert.IsNotNull(info.Source);
+        Assert.IsNotNull(info.DebuggerDisplay);
+    }
+
     // TODO: Need test of quotes at end
 
     internal static IEnumerable<object[]> ColCountMismatchData => new object[][]

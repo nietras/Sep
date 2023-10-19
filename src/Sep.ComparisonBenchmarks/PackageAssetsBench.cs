@@ -77,7 +77,9 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -94,7 +96,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -107,7 +109,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -156,7 +158,9 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -179,7 +183,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -196,7 +200,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -262,7 +266,9 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public void Sylvan___()
     {
         var assets = new List<PackageAsset>();
@@ -291,7 +297,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -307,7 +313,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()

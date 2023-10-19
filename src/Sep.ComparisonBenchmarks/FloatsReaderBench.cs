@@ -66,7 +66,9 @@ public class RowFloatsReaderBench : FloatsReaderBench
         { }
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -85,7 +87,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -98,7 +100,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -146,7 +148,9 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         }
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public void Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -169,7 +173,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void ReadLine_()
@@ -186,7 +190,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -248,7 +252,9 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
+#if !SEPBENCHSEPONLY
     [Benchmark]
+#endif
     public double Sylvan___()
     {
         using var reader = Reader.CreateReader();
@@ -300,7 +306,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public double ReadLine_()
@@ -352,7 +358,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
-#if SEPBENCHSLOWONES
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public double CsvHelper()

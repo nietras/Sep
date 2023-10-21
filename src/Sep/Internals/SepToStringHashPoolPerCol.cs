@@ -6,24 +6,24 @@ namespace nietras.SeparatedValues;
 
 sealed class SepToStringHashPoolPerCol : SepToString
 {
-    readonly SepStringHashPool[] _colStringHashPools;
+    readonly SepStringHashPool[] _pools;
 
     public SepToStringHashPoolPerCol(int colCount,
         int maximumStringLength, int initialCapacity, int maximumCapacity)
     {
-        _colStringHashPools = new SepStringHashPool[colCount];
+        _pools = new SepStringHashPool[colCount];
         for (var i = 0; i < colCount; i++)
         {
-            _colStringHashPools[i] = new(maximumStringLength, initialCapacity, maximumCapacity);
+            _pools[i] = new(maximumStringLength, initialCapacity, maximumCapacity);
         }
     }
 
     public override string ToString(ReadOnlySpan<char> colSpan, int colIndex)
     {
-        if (colIndex < _colStringHashPools.Length)
+        if (colIndex < _pools.Length)
         {
-            var spanToString = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_colStringHashPools), colIndex);
-            return spanToString.ToString(colSpan);
+            var pool = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_pools), colIndex);
+            return pool.ToString(colSpan);
         }
         else
         {
@@ -33,7 +33,7 @@ sealed class SepToStringHashPoolPerCol : SepToString
 
     internal override void DisposeManaged()
     {
-        foreach (var pool in _colStringHashPools)
+        foreach (var pool in _pools)
         {
             pool.Dispose();
         }

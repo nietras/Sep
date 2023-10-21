@@ -5,13 +5,13 @@ namespace nietras.SeparatedValues;
 public abstract class SepToString : IDisposable
 {
     public static SepCreateToString Direct { get; } =
-        static (header) => SepToStringDirect.Instance;
+        static (maybeHeader, colCount) => SepToStringDirect.Instance;
 
     public static SepCreateToString PoolPerCol(
         int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
         int initialCapacity = SepStringHashPool.InitialCapacityDefault,
         int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
-        header => new SepToStringHashPoolPerCol(header.ColNames.Count,
+        (maybeHeader, colCount) => new SepToStringHashPoolPerCol(colCount,
             maximumStringLength, initialCapacity, maximumCapacity);
 
     public static SepCreateToString OnePool(
@@ -20,7 +20,7 @@ public abstract class SepToString : IDisposable
         int maximumCapacity = SepStringHashPool.MaximumCapacityDefault)
     {
         var s = new SepToStringHashPoolSingle(maximumStringLength, initialCapacity, maximumCapacity);
-        return header => s;
+        return (maybeHeader, colCount) => s;
     }
 
     public abstract string ToString(ReadOnlySpan<char> colSpan, int colIndex);
@@ -63,5 +63,6 @@ public abstract class SepToString : IDisposable
     #endregion
 }
 
-// Signature to allow customizing per col or similar
-public delegate SepToString SepCreateToString(SepHeader header);
+// Signature to allow customizing per col or similar.
+// Note that if source has no header this will be null.
+public delegate SepToString SepCreateToString(SepHeader? maybeHeader, int colCount);

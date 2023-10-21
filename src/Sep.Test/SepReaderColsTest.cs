@@ -44,6 +44,23 @@ public class SepReaderColsTest
     }
 
     [TestMethod]
+    public void SepReaderColsTest_Indexer_OutOfRange_Throws()
+    {
+        Run((cols, range) =>
+        {
+            try
+            {
+                var col = cols[cols.Length + 1];
+                Assert.Fail("Indexer should throw for out of range index.");
+            }
+            catch (IndexOutOfRangeException e)
+            {
+                Assert.IsNotNull(e);
+            }
+        });
+    }
+
+    [TestMethod]
     public void SepReaderColsTest_ToStringsArray()
     {
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.ToStringsArray()));

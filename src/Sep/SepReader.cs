@@ -150,7 +150,7 @@ public sealed partial class SepReader : SepReaderState
 
         _colNameCache = new (string colName, int colIndex)[_colCountExpected];
 
-        _colToString = options.CreateToString(_header);
+        _toString = options.CreateToString(_header);
 
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
     }

@@ -43,7 +43,9 @@ public class SepReaderState : IDisposable
 #pragma warning restore CA2213 // Disposable fields should be disposed
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
-    internal SepToString[] _colToStrings = Array.Empty<SepToString>();
+#pragma warning disable CA2213 // Disposable fields should be disposed
+    internal SepToString _colToString = null!;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
     internal SepReaderState() { }
 
@@ -115,15 +117,7 @@ public class SepReaderState : IDisposable
         {
             return s;
         }
-        if (index < _colToStrings.Length)
-        {
-            var spanToString = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_colToStrings), index);
-            return spanToString.ToString(span);
-        }
-        else
-        {
-            return new(span);
-        }
+        return _colToString.ToString(span, index);
     }
 
     internal string ToStringRaw(int index)
@@ -328,10 +322,7 @@ public class SepReaderState : IDisposable
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEnds);
         _arrayPool.Dispose();
-        foreach (var toString in _colToStrings)
-        {
-            toString.Dispose();
-        }
+        _colToString?.Dispose();
     }
 
     #region Dispose

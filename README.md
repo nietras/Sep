@@ -1237,7 +1237,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
-    public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepHeader header, int colIndex);
+    public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepHeader header);
     public static class SepDefaults
     {
         public static System.Globalization.CultureInfo CultureInfo { get; }
@@ -1389,8 +1389,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepCreateToString Direct { get; }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
-        protected virtual void DisposeManagedResources() { }
-        public abstract string ToString(System.ReadOnlySpan<char> chars);
+        public abstract string ToString(System.ReadOnlySpan<char> colSpan, int colIndex);
         public static nietras.SeparatedValues.SepCreateToString OnePool(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
         public static nietras.SeparatedValues.SepCreateToString PoolPerCol(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
     }

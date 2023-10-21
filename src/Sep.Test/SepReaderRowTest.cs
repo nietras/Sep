@@ -140,20 +140,52 @@ public class SepReaderRowTest
             SepReaderRowTest_Row_Indexer_Multiple(ref row);
         }
     }
+
+    [TestMethod]
+    public void SepReaderRowTest_Row_Indexer_Multiple_Range()
+    {
+        var row = _enumerator.Current;
+        SepReaderRowTest_Row_Indexer_Multiple_Range(ref row);
+    }
+
     static void SepReaderRowTest_Row_Indexer_Multiple(ref SepReader.Row row)
     {
-        var indices = new int[2] { 1, 2 };
-        var names = indices.Select(i => _colNames[i]).ToArray();
-        var expected = indices.Select(i => _colValues[i]).ToArray();
+        var indicesSet = new int[][]
+        {
+            new[]{ 0 },
+            new[]{ 0, 1 },
+            new[]{ 0, 2 },
+            new[]{ 1, 3 },
+            new[]{ 1, 2, 3 },
+        };
+        foreach (var indices in indicesSet)
+        {
+            var names = indices.Select(i => _colNames[i]).ToArray();
+            var expected = indices.Select(i => _colValues[i]).ToArray();
 
-        AssertCols(expected, row[1..3]);
-        AssertCols(expected, row[indices.AsSpan()]);
-        AssertCols(expected, row[(IReadOnlyList<int>)indices]);
-        AssertCols(expected, row[indices]);
+            AssertCols(expected, row[indices.AsSpan()]);
+            AssertCols(expected, row[(IReadOnlyList<int>)indices]);
+            AssertCols(expected, row[indices]);
 
-        AssertCols(expected, row[names.AsSpan()]);
-        AssertCols(expected, row[(IReadOnlyList<string>)names]);
-        AssertCols(expected, row[names]);
+            AssertCols(expected, row[names.AsSpan()]);
+            AssertCols(expected, row[(IReadOnlyList<string>)names]);
+            AssertCols(expected, row[names]);
+        }
+    }
+
+    static void SepReaderRowTest_Row_Indexer_Multiple_Range(ref SepReader.Row row)
+    {
+        var ranges = new Range[]
+        {
+            0..0,
+            1..2,
+            1..3,
+            0.._cols,
+        };
+        foreach (var range in ranges)
+        {
+            AssertCols(_colValues[range], row[range]);
+        }
     }
 
     [TestMethod]
@@ -221,5 +253,9 @@ public class SepReaderRowTest
         {
             Assert.AreEqual(expected[i], cols[i].ToString(), i.ToString());
         }
+        CollectionAssert.AreEqual(expected.ToArray(), cols.ToStringsArray());
+#if NET8_0_OR_GREATER
+        CollectionAssert.AreEqual(expected.ToArray(), cols.ParseToArray<string>());
+#endif
     }
 }

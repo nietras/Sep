@@ -225,7 +225,7 @@ public class SepReaderState : IDisposable
     }
     #endregion
 
-    #region Cols
+    #region Cols Indices
     internal string[] ToStringsArray(ReadOnlySpan<int> colIndices)
     {
         var values = new string[colIndices.Length];
@@ -312,6 +312,95 @@ public class SepReaderState : IDisposable
         for (var i = 0; i < length; i++)
         {
             span[i] = selector(new(this, colIndices[i]));
+        }
+        return span;
+    }
+    #endregion
+    #region Cols Range
+    internal string[] ToStringsArray(int colStart, int colCount)
+    {
+        var values = new string[colCount];
+        ToStrings(colStart, values);
+        return values;
+    }
+
+    internal Span<string> ToStrings(int colStart, int colCount)
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<string>(colCount);
+        ToStrings(colStart, span);
+        return span;
+    }
+
+    internal void ToStrings(int colStart, Span<string> span)
+    {
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = ToStringDefault(i + colStart);
+        }
+    }
+
+    internal T[] ParseToArray<T>(int colStart, int colCount) where T : ISpanParsable<T>
+    {
+        var values = new T[colCount];
+        Parse<T>(colStart, colCount, values);
+        return values;
+    }
+
+    internal Span<T> Parse<T>(int colStart, int colCount) where T : ISpanParsable<T>
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<T>(colCount);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = Parse<T>(i + colStart);
+        }
+        return span;
+    }
+
+    internal void Parse<T>(int colStart, int colCount, Span<T> span) where T : ISpanParsable<T>
+    {
+        SepCheck.LengthSameAsCols(colCount, nameof(span), span.Length);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = Parse<T>(i + colStart);
+        }
+    }
+
+    internal Span<T?> TryParse<T>(int colStart, int colCount) where T : struct, ISpanParsable<T>
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<T?>(colCount);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = TryParse<T>(i + colStart);
+        }
+        return span;
+    }
+
+    internal void TryParse<T>(int colStart, int colCount, Span<T?> span) where T : struct, ISpanParsable<T>
+    {
+        SepCheck.LengthSameAsCols(colCount, nameof(span), span.Length);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = TryParse<T>(i + colStart);
+        }
+    }
+
+    internal Span<T> Select<T>(int colStart, int colCount, ColFunc<T> selector)
+    {
+        ArgumentNullException.ThrowIfNull(selector);
+        var span = _arrayPool.RentUniqueArrayAsSpan<T>(colCount);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = selector(new(this, i + colStart));
+        }
+        return span;
+    }
+
+    internal unsafe Span<T> Select<T>(int colStart, int colCount, delegate*<Col, T> selector)
+    {
+        var span = _arrayPool.RentUniqueArrayAsSpan<T>(colCount);
+        for (var i = 0; i < span.Length; i++)
+        {
+            span[i] = selector(new(this, i + colStart));
         }
         return span;
     }

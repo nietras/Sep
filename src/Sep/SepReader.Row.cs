@@ -49,12 +49,7 @@ public partial class SepReader
             get
             {
                 var (offset, length) = range.GetOffsetAndLength(_state._colCount);
-                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(length);
-                for (var i = 0; i < colIndices.Length; i++)
-                {
-                    colIndices[i] = i + offset;
-                }
-                return new(_state, colIndices);
+                return new(_state, offset, length);
             }
         }
 
@@ -65,6 +60,8 @@ public partial class SepReader
             get
             {
                 ArgumentNullException.ThrowIfNull(indices);
+                if (indices.Count == 0) { return new(_state, default); }
+
                 var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(indices.Count);
                 for (var i = 0; i < indices.Count; i++)
                 {
@@ -82,13 +79,43 @@ public partial class SepReader
         {
             get
             {
-                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Length);
-                for (var i = 0; i < colNames.Length; i++)
+                var colCount = colNames.Length;
+                if (colCount == 0) { return new(_state, default); }
+
+                // Optimize for a continuous range of columns by checking if
+                // indices are consecutive. Otherwise, fall back to array of
+                // indices.
+
+                var colStart = _state.GetCachedColIndex(colNames[0]);
+                var i = 1;
+                for (; i < colCount; i++)
                 {
                     var name = colNames[i];
-                    colIndices[i] = _state.GetCachedColIndex(name);
+                    var colIndex = _state.GetCachedColIndex(name);
+                    if (colIndex != (colStart + i))
+                    {
+                        break;
+                    }
                 }
-                return new(_state, colIndices);
+                if (i == colCount)
+                {
+                    return new(_state, colStart, colCount);
+                }
+                else
+                {
+
+                    var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Length);
+                    for (var j = 0; j < i; j++)
+                    {
+                        colIndices[j] = colStart + j;
+                    }
+                    for (; i < colNames.Length; i++)
+                    {
+                        var name = colNames[i];
+                        colIndices[i] = _state.GetCachedColIndex(name);
+                    }
+                    return new(_state, colIndices);
+                }
             }
         }
 
@@ -97,13 +124,43 @@ public partial class SepReader
             get
             {
                 ArgumentNullException.ThrowIfNull(colNames);
-                var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Count);
-                for (var i = 0; i < colNames.Count; i++)
+                var colCount = colNames.Count;
+                if (colCount == 0) { return new(_state, default); }
+
+                // Optimize for a continuous range of columns by checking if
+                // indices are consecutive. Otherwise, fall back to array of
+                // indices.
+
+                var colStart = _state.GetCachedColIndex(colNames[0]);
+                var i = 1;
+                for (; i < colCount; i++)
                 {
                     var name = colNames[i];
-                    colIndices[i] = _state.GetCachedColIndex(name);
+                    var colIndex = _state.GetCachedColIndex(name);
+                    if (colIndex != (colStart + i))
+                    {
+                        break;
+                    }
                 }
-                return new(_state, colIndices);
+                if (i == colCount)
+                {
+                    return new(_state, colStart, colCount);
+                }
+                else
+                {
+
+                    var colIndices = _state._arrayPool.RentUniqueArrayAsSpan<int>(colNames.Count);
+                    for (var j = 0; j < i; j++)
+                    {
+                        colIndices[j] = colStart + j;
+                    }
+                    for (; i < colNames.Count; i++)
+                    {
+                        var name = colNames[i];
+                        colIndices[i] = _state.GetCachedColIndex(name);
+                    }
+                    return new(_state, colIndices);
+                }
             }
         }
 

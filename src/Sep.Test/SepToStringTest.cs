@@ -50,10 +50,12 @@ public class SepToStringTest
         var chars = new char[] { 'a' };
         var str00 = pool0.ToString(chars, colIndex: 0);
         var str01 = pool0.ToString(chars, colIndex: 0);
-        var str10 = pool1.ToString(chars, colIndex: 1);
+        var str02 = pool0.ToString(chars, colIndex: 1);
+        var str10 = pool1.ToString(chars, colIndex: 0);
 
         Assert.AreNotSame(pool1, pool0);
         Assert.AreSame(str01, str00);
+        Assert.AreNotSame(str02, str00);
         Assert.AreNotSame(str10, str00);
     }
 }

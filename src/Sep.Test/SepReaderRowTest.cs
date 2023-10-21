@@ -163,7 +163,6 @@ public class SepReaderRowTest
             var names = indices.Select(i => _colNames[i]).ToArray();
             var expected = indices.Select(i => _colValues[i]).ToArray();
 
-            AssertCols(_colValues[1..3], row[1..3]);
             AssertCols(expected, row[indices.AsSpan()]);
             AssertCols(expected, row[(IReadOnlyList<int>)indices]);
             AssertCols(expected, row[indices]);
@@ -179,6 +178,7 @@ public class SepReaderRowTest
         var ranges = new Range[]
         {
             0..0,
+            1..2,
             1..3,
             0.._cols,
         };

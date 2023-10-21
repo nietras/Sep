@@ -31,6 +31,19 @@ public class SepReaderColsTest
     }
 
     [TestMethod]
+    public void SepReaderColsTest_Indexer()
+    {
+        Run((cols, range) =>
+        {
+            var expectedTexts = _colTexts[range];
+            for (var i = 0; i < expectedTexts.Length; i++)
+            {
+                Assert.AreEqual(expectedTexts[i], cols[i].ToString());
+            }
+        });
+    }
+
+    [TestMethod]
     public void SepReaderColsTest_ToStringsArray()
     {
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.ToStringsArray()));

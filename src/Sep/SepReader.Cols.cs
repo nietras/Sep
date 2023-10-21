@@ -100,15 +100,15 @@ public partial class SepReader
 
         bool IsIndices() => _colStartIfRange < 0;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         int GetRangeIndex(int index)
         {
             Debug.Assert(_colStartIfRange >= 0);
-            if ((uint)index < (uint)_colIndices.Length)
+            if ((uint)index >= (uint)_colIndices.Length)
             {
-                return index + _colStartIfRange;
+                SepThrow.IndexOutOfRangeException();
             }
-            SepThrow.IndexOutOfRangeException();
-            return 0;
+            return index + _colStartIfRange;
         }
     }
 }

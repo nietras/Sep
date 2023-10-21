@@ -4,12 +4,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
-public class SepToStringHashPoolTest
+public class SepStringHashPoolTest
 {
     [TestMethod]
-    public void SepToStringHashPoolTest_Basic()
+    public void SepStringHashPoolTest_Basic()
     {
-        using var pool = new SepToStringHashPool(32);
+        using var pool = new SepStringHashPool(32);
         var data = new char[] { 'a', 'b', 'c', 'd' };
 
         var str0 = pool.ToString(data.AsSpan(0, 4));
@@ -23,10 +23,10 @@ public class SepToStringHashPoolTest
     }
 
     [TestMethod]
-    public void SepToStringHashPoolTest_EdgeCases()
+    public void SepStringHashPoolTest_EdgeCases()
     {
         var maximumStringLength = 2;
-        using var pool = new SepToStringHashPool(maximumStringLength);
+        using var pool = new SepStringHashPool(maximumStringLength);
 
         Assert.AreSame(string.Empty, pool.ToString(new Span<char>()));
         var chars = new char[maximumStringLength + 1];
@@ -36,9 +36,9 @@ public class SepToStringHashPoolTest
     }
 
     [TestMethod]
-    public void SepToStringHashPoolTest_Resize()
+    public void SepStringHashPoolTest_Resize()
     {
-        using var pool = new SepToStringHashPool(initialCapacity: 16);
+        using var pool = new SepStringHashPool(initialCapacity: 16);
         const int length = 256;
         var strings = new string[length];
 
@@ -64,10 +64,10 @@ public class SepToStringHashPoolTest
     }
 
     [TestMethod]
-    public void SepToStringHashPoolTest_MaximumCapacity()
+    public void SepStringHashPoolTest_MaximumCapacity()
     {
         var maximumCapacity = 16;
-        using var pool = new SepToStringHashPool(initialCapacity: maximumCapacity, maximumCapacity: maximumCapacity);
+        using var pool = new SepStringHashPool(initialCapacity: maximumCapacity, maximumCapacity: maximumCapacity);
 
         for (var i = 0; i < maximumCapacity; i++)
         {
@@ -88,10 +88,10 @@ public class SepToStringHashPoolTest
     }
 
     [TestMethod]
-    public void SepToStringHashPoolTest_InitialCapacityGreaterThanMaximumCapacity_Throws()
+    public void SepStringHashPoolTest_InitialCapacityGreaterThanMaximumCapacity_Throws()
     {
         var e = Assert.ThrowsException<ArgumentException>(() =>
-            new SepToStringHashPool(initialCapacity: 9, maximumCapacity: 8));
+            new SepStringHashPool(initialCapacity: 9, maximumCapacity: 8));
         Assert.AreEqual("initialCapacity:9 must be less than or equal to maximumCapacity:8", e.Message);
     }
 

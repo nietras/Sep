@@ -14,7 +14,7 @@ namespace nietras.SeparatedValues;
 // Based on https://github.com/MarkPflug/Sylvan/blob/main/source/Sylvan.Common/StringPool.cs
 // MIT License, Copyright(c) 2022 Mark Pflug
 // Highly optimized and greatly-simplified HashSet<string> that only allows additions.
-sealed class SepToStringHashPool : SepToString
+sealed class SepStringHashPool : IDisposable
 {
     internal const int InitialCapacityDefault = 64;
     internal const int MaximumCapacityDefault = 4096;
@@ -50,7 +50,7 @@ sealed class SepToStringHashPool : SepToString
     /// The <paramref name="maximumStringLength"/> prevents pooling strings beyond a certain length. 
     /// Longer strings are typically less likely to be duplicated, and carry extra cost for identifying uniqueness.
     /// </remarks>
-    public SepToStringHashPool(int maximumStringLength = MaximumStringLengthDefault,
+    public SepStringHashPool(int maximumStringLength = MaximumStringLengthDefault,
         int initialCapacity = InitialCapacityDefault, int maximumCapacity = MaximumCapacityDefault)
     {
         if (initialCapacity > maximumCapacity)
@@ -72,7 +72,7 @@ sealed class SepToStringHashPool : SepToString
 
     public int Count => _count;
 
-    public override string ToString(ReadOnlySpan<char> chars)
+    public string ToString(ReadOnlySpan<char> chars)
     {
         var length = chars.Length;
 
@@ -227,7 +227,7 @@ sealed class SepToStringHashPool : SepToString
     }
 #endif
 
-    protected override void DisposeManagedResources()
+    void DisposeManaged()
     {
 #if SEPSTRINGPOOL_USE_ARRAYPOOL
         ArrayPool<int>.Shared.Return(_buckets);
@@ -236,4 +236,38 @@ sealed class SepToStringHashPool : SepToString
         _buckets = default!;
         _entries = default!;
     }
+
+    #region Dispose
+    public void Dispose()
+    {
+        Dispose(true);
+    }
+
+    // Dispose(bool disposing) executes in two distinct scenarios.
+    // If disposing equals true, the method has been called directly
+    // or indirectly by a user's code. Managed and unmanaged resources
+    // can be disposed.
+    // If disposing equals false, the method has been called by the 
+    // runtime from inside the finalizer and you should not reference 
+    // other objects. Only unmanaged resources can be disposed.
+    void Dispose(bool disposing)
+    {
+        // Dispose only if we have not already disposed.
+        if (!_disposed)
+        {
+            // If disposing equals true, dispose all managed and unmanaged resources.
+            // I.e. dispose managed resources only if true, unmanaged always.
+            if (disposing)
+            {
+                DisposeManaged();
+            }
+
+            // Call the appropriate methods to clean up unmanaged resources here.
+            // If disposing is false, only the following code is executed.
+        }
+        _disposed = true;
+    }
+
+    volatile bool _disposed = false;
+    #endregion
 }

@@ -4,6 +4,7 @@ namespace nietras.SeparatedValues;
 
 sealed class SepToStringDirect : SepToString
 {
+    SepToStringDirect() { }
     public static SepToStringDirect Instance { get; } = new();
-    public override string ToString(ReadOnlySpan<char> chars) => new(chars);
+    public override string ToString(ReadOnlySpan<char> colSpan, int colIndex) => new(colSpan);
 }

@@ -96,7 +96,7 @@ else
 {
     //var b = new ColsPackageAssetsBench();
     //var b = new RowFloatsReaderBench();
-    var b = new FloatsFloatsReaderBench();
+    var b = new AssetPackageAssetsBench();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {

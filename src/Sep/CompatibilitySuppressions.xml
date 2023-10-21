@@ -15,4 +15,25 @@
     <Right>lib/net7.0/Sep.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:nietras.SeparatedValues.SepToString.DisposeManagedResources</Target>
+    <Left>lib/net7.0/Sep.dll</Left>
+    <Right>lib/net7.0/Sep.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:nietras.SeparatedValues.SepToString.ToString(System.ReadOnlySpan{System.Char})</Target>
+    <Left>lib/net7.0/Sep.dll</Left>
+    <Right>lib/net7.0/Sep.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0005</DiagnosticId>
+    <Target>M:nietras.SeparatedValues.SepToString.ToString(System.ReadOnlySpan{System.Char},System.Int32)</Target>
+    <Left>lib/net7.0/Sep.dll</Left>
+    <Right>lib/net7.0/Sep.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

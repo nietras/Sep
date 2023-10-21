@@ -5,36 +5,33 @@ namespace nietras.SeparatedValues;
 public abstract class SepToString : IDisposable
 {
     public static SepCreateToString Direct { get; } =
-        static (header, colIndex) => SepToStringDirect.Instance;
+        static (maybeHeader, colCount) => SepToStringDirect.Instance;
 
     public static SepCreateToString PoolPerCol(
-        int maximumStringLength = SepToStringHashPool.MaximumStringLengthDefault,
-        int initialCapacity = SepToStringHashPool.InitialCapacityDefault,
-        int maximumCapacity = SepToStringHashPool.MaximumCapacityDefault) =>
-        (header, colIndex) => new SepToStringHashPool(maximumStringLength, initialCapacity, maximumCapacity);
+        int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
+        int initialCapacity = SepStringHashPool.InitialCapacityDefault,
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolPerCol(colCount,
+            maximumStringLength, initialCapacity, maximumCapacity);
 
     public static SepCreateToString OnePool(
-        int maximumStringLength = SepToStringHashPool.MaximumStringLengthDefault,
-        int initialCapacity = SepToStringHashPool.InitialCapacityDefault,
-        int maximumCapacity = SepToStringHashPool.MaximumCapacityDefault)
+        int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
+        int initialCapacity = SepStringHashPool.InitialCapacityDefault,
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault)
     {
-        // Issue with code analysis
-#pragma warning disable CA2000 // Dispose objects before losing scope
-        var s = new SepToStringHashPool(maximumStringLength, initialCapacity, maximumCapacity);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-        return (header, colIndex) => s;
+        var s = new SepToStringHashPoolSingle(maximumStringLength, initialCapacity, maximumCapacity);
+        return (maybeHeader, colCount) => s;
     }
 
-    public abstract string ToString(ReadOnlySpan<char> chars);
+    public abstract string ToString(ReadOnlySpan<char> colSpan, int colIndex);
 
-    protected virtual void DisposeManagedResources() { }
+    internal virtual void DisposeManaged() { }
 
     #region Dispose
-#pragma warning disable CA1816 // Dispose methods should call SuppressFinalize
     public void Dispose()
-#pragma warning restore CA1816 // Dispose methods should call SuppressFinalize
     {
         Dispose(true);
+        GC.SuppressFinalize(this);
     }
 
     // Dispose(bool disposing) executes in two distinct scenarios.
@@ -53,7 +50,7 @@ public abstract class SepToString : IDisposable
             // I.e. dispose managed resources only if true, unmanaged always.
             if (disposing)
             {
-                DisposeManagedResources();
+                DisposeManaged();
             }
 
             // Call the appropriate methods to clean up unmanaged resources here.
@@ -66,5 +63,6 @@ public abstract class SepToString : IDisposable
     #endregion
 }
 
-// Signature to allow customizing per col
-public delegate SepToString SepCreateToString(SepHeader header, int colIndex);
+// Signature to allow customizing per col or similar.
+// Note that if source has no header this will be null.
+public delegate SepToString SepCreateToString(SepHeader? maybeHeader, int colCount);

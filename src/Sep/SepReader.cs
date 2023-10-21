@@ -145,16 +145,14 @@ public sealed partial class SepReader : SepReaderState
             _separator = Sep.Default.Separator;
         }
 
+        _colNameCache = new (string colName, int colIndex)[_colCountExpected];
+
+        // Header may be null here
+        _toString = options.CreateToString(_header, _colCountExpected);
+
         // Use empty header if no header
         _header ??= SepHeader.Empty;
 
-        _colNameCache = new (string colName, int colIndex)[_colCountExpected];
-
-        _colToStrings = new SepToString[_colCountExpected];
-        for (var colIndex = 0; colIndex < _colToStrings.Length; colIndex++)
-        {
-            _colToStrings[colIndex] = options.CreateToString(_header, colIndex);
-        }
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
     }
 

@@ -36,9 +36,9 @@ static class SepThrow
     }
 
     [DoesNotReturn]
-    internal static void ArgumentException_LengthSameAsCols(string name, int length, int expectedLength)
+    internal static void ArgumentException_CountOrLengthSameAsCols(string name, int count, int expectedCount)
     {
-        throw new ArgumentException($"'{name}':{length} must have length {expectedLength} matching columns selected");
+        throw new ArgumentException($"'{name}':{count} must have length/count {expectedCount} matching columns selected");
     }
 
     [DoesNotReturn]

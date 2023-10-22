@@ -118,7 +118,7 @@ public class SepReaderColsTest
             }
             catch (ArgumentException e)
             {
-                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Count} matching columns selected", e.Message);
+                Assert.AreEqual($"'span':{colValues.Length} must have length/count {cols.Count} matching columns selected", e.Message);
             }
         });
     }
@@ -154,7 +154,7 @@ public class SepReaderColsTest
             }
             catch (ArgumentException e)
             {
-                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Count} matching columns selected", e.Message);
+                Assert.AreEqual($"'span':{colValues.Length} must have length/count {cols.Count} matching columns selected", e.Message);
             }
         });
     }

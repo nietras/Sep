@@ -24,7 +24,7 @@ public partial class SepWriter
 
         public void Set(SepReader.Cols cols)
         {
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(cols), cols.Count);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(cols), cols.Count);
             for (var i = 0; i < cols.Count; i++)
             {
                 new Col(_cols[i]).Set(cols[i].Span);
@@ -34,7 +34,7 @@ public partial class SepWriter
         public void Set(IReadOnlyList<string> values)
         {
             ArgumentNullException.ThrowIfNull(values);
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(values), values.Count);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Count);
             for (var i = 0; i < values.Count; i++)
             {
                 new Col(_cols[i]).Set(values[i]);
@@ -47,7 +47,7 @@ public partial class SepWriter
 
         public void Set(ReadOnlySpan<string> values)
         {
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(values), values.Length);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Length);
             for (var i = 0; i < values.Length; i++)
             {
                 new Col(_cols[i]).Set(values[i]);
@@ -57,7 +57,7 @@ public partial class SepWriter
         public void Format<T>(IReadOnlyList<T> values) where T : ISpanFormattable
         {
             ArgumentNullException.ThrowIfNull(values);
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(values), values.Count);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Count);
             for (var i = 0; i < values.Count; i++)
             {
                 new Col(_cols[i]).Format(values[i]);
@@ -73,7 +73,7 @@ public partial class SepWriter
 
         public void Format<T>(ReadOnlySpan<T> values) where T : ISpanFormattable
         {
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(values), values.Length);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Length);
             for (var i = 0; i < values.Length; i++)
             {
                 new Col(_cols[i]).Format(values[i]);
@@ -85,7 +85,7 @@ public partial class SepWriter
         public void Format<T>(ReadOnlySpan<T> values, ColAction<T> format)
         {
             ArgumentNullException.ThrowIfNull(format);
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(values), values.Length);
+            SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Length);
             for (var i = 0; i < values.Length; i++)
             {
                 format(new(_cols[i]), values[i]);

@@ -18,14 +18,14 @@ public partial class SepWriter
             _cols = cols;
         }
 
-        public int Length => _cols.Length;
+        public int Count => _cols.Length;
 
         public Col this[int colIndex] => new(_cols[colIndex]);
 
         public void Set(SepReader.Cols cols)
         {
-            SepCheck.LengthSameAsCols(_cols.Length, nameof(cols), cols.Length);
-            for (var i = 0; i < cols.Length; i++)
+            SepCheck.LengthSameAsCols(_cols.Length, nameof(cols), cols.Count);
+            for (var i = 0; i < cols.Count; i++)
             {
                 new Col(_cols[i]).Set(cols[i].Span);
             }

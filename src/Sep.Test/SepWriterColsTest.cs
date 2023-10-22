@@ -26,7 +26,7 @@ public class SepWriterColsTest
     {
         using var writer = CreateWriter();
         using var row = writer.NewRow();
-        Assert.AreEqual(_colNames.Length, row[_colNames].Length);
+        Assert.AreEqual(_colNames.Length, row[_colNames].Count);
     }
 
     [TestMethod]

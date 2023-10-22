@@ -27,7 +27,7 @@ public class SepReaderColsTest
     [TestMethod]
     public void SepReaderColsTest_Length()
     {
-        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(_colsCount).Length, cols.Length));
+        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(_colsCount).Length, cols.Count));
     }
 
     [TestMethod]
@@ -50,7 +50,7 @@ public class SepReaderColsTest
         {
             try
             {
-                var col = cols[cols.Length + 1];
+                var col = cols[cols.Count + 1];
                 Assert.Fail("Indexer should throw for out of range index.");
             }
             catch (IndexOutOfRangeException e)
@@ -99,7 +99,7 @@ public class SepReaderColsTest
     {
         Run((cols, range) =>
         {
-            Span<int> colValues = stackalloc int[cols.Length];
+            Span<int> colValues = stackalloc int[cols.Count];
             cols.Parse(colValues);
             CollectionAssert.AreEqual(_colValues[range], colValues.ToArray());
         });
@@ -110,7 +110,7 @@ public class SepReaderColsTest
     {
         Run((cols, range) =>
         {
-            Span<int> colValues = stackalloc int[cols.Length + 1];
+            Span<int> colValues = stackalloc int[cols.Count + 1];
             try
             {
                 cols.Parse(colValues);
@@ -118,7 +118,7 @@ public class SepReaderColsTest
             }
             catch (ArgumentException e)
             {
-                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Length} matching columns selected", e.Message);
+                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Count} matching columns selected", e.Message);
             }
         });
     }
@@ -134,7 +134,7 @@ public class SepReaderColsTest
     {
         Run((cols, range) =>
         {
-            Span<int?> colValues = stackalloc int?[cols.Length];
+            Span<int?> colValues = stackalloc int?[cols.Count];
             cols.TryParse(colValues);
             CollectionAssert.AreEqual(_colValues[range], colValues.ToArray());
         });
@@ -145,8 +145,8 @@ public class SepReaderColsTest
     {
         Run((cols, range) =>
         {
-            if (cols.Length <= 0) { return; }
-            Span<int?> colValues = stackalloc int?[cols.Length - 1];
+            if (cols.Count <= 0) { return; }
+            Span<int?> colValues = stackalloc int?[cols.Count - 1];
             try
             {
                 cols.TryParse(colValues);
@@ -154,7 +154,7 @@ public class SepReaderColsTest
             }
             catch (ArgumentException e)
             {
-                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Length} matching columns selected", e.Message);
+                Assert.AreEqual($"'span':{colValues.Length} must have length {cols.Count} matching columns selected", e.Message);
             }
         });
     }

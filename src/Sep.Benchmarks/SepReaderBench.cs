@@ -178,7 +178,7 @@ public class SepReaderBench
         {
             var row = _enumerator.Current;
             var cols = row[_colIndeces!];
-            for (var i = 0; i < cols.Length; i++)
+            for (var i = 0; i < cols.Count; i++)
             {
                 var v = cols[i].Parse<double>();
             }
@@ -192,7 +192,7 @@ public class SepReaderBench
         {
             var row = _enumerator.Current;
             var cols = row[_colNames];
-            for (var i = 0; i < cols.Length; i++)
+            for (var i = 0; i < cols.Count; i++)
             {
                 var v = cols[i].Parse<double>();
             }

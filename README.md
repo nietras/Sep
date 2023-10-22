@@ -1292,8 +1292,8 @@ namespace nietras.SeparatedValues
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Cols
         {
+            public int Count { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
-            public int Length { get; }
             public System.Span<T> Parse<T>()
                 where T : System.ISpanParsable<T> { }
             public void Parse<T>(System.Span<T> span)
@@ -1452,8 +1452,8 @@ namespace nietras.SeparatedValues
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Cols
         {
+            public int Count { get; }
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
-            public int Length { get; }
             public void Format<T>(System.Collections.Generic.IReadOnlyList<T> values)
                 where T : System.ISpanFormattable { }
             public void Format<T>(System.ReadOnlySpan<T> values)

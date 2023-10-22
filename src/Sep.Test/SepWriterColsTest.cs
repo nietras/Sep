@@ -26,7 +26,7 @@ public class SepWriterColsTest
     {
         using var writer = CreateWriter();
         using var row = writer.NewRow();
-        Assert.AreEqual(_colNames.Length, row[_colNames].Length);
+        Assert.AreEqual(_colNames.Length, row[_colNames].Count);
     }
 
     [TestMethod]
@@ -84,7 +84,7 @@ public class SepWriterColsTest
             }
             catch (ArgumentException e)
             {
-                Assert.AreEqual("'cols':1 must have length 3 matching columns selected", e.Message);
+                Assert.AreEqual("'cols':1 must have length/count 3 matching columns selected", e.Message);
             }
             try
             {
@@ -199,7 +199,7 @@ public class SepWriterColsTest
         }
         catch (ArgumentException e)
         {
-            Assert.AreEqual("'values':2 must have length 3 matching columns selected", e.Message);
+            Assert.AreEqual("'values':2 must have length/count 3 matching columns selected", e.Message);
         }
     }
 
@@ -216,7 +216,7 @@ public class SepWriterColsTest
         }
         catch (ArgumentException e)
         {
-            Assert.AreEqual("'values':2 must have length 3 matching columns selected", e.Message);
+            Assert.AreEqual("'values':2 must have length/count 3 matching columns selected", e.Message);
         }
     }
 
@@ -233,7 +233,7 @@ public class SepWriterColsTest
         }
         catch (ArgumentException e)
         {
-            Assert.AreEqual("'values':0 must have length 3 matching columns selected", e.Message);
+            Assert.AreEqual("'values':0 must have length/count 3 matching columns selected", e.Message);
         }
     }
 
@@ -267,7 +267,7 @@ public class SepWriterColsTest
         }
         catch (ArgumentException e)
         {
-            Assert.AreEqual("'values':2 must have length 3 matching columns selected", e.Message);
+            Assert.AreEqual("'values':2 must have length/count 3 matching columns selected", e.Message);
         }
     }
 
@@ -300,7 +300,7 @@ public class SepWriterColsTest
         }
         catch (ArgumentException e)
         {
-            Assert.AreEqual("'values':4 must have length 3 matching columns selected", e.Message);
+            Assert.AreEqual("'values':4 must have length/count 3 matching columns selected", e.Message);
         }
     }
 

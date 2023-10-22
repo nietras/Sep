@@ -6,11 +6,11 @@ internal class SepCheck
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     //[ExcludeFromCodeCoverage] // Block after throw will never be covered
-    internal static void LengthSameAsCols(int expectedLength, string name, int actualLength)
+    internal static void CountOrLengthSameAsCols(int expectedLength, string name, int actualLength)
     {
         if (expectedLength != actualLength)
         {
-            SepThrow.ArgumentException_LengthSameAsCols(name, actualLength, expectedLength);
+            SepThrow.ArgumentException_CountOrLengthSameAsCols(name, actualLength, expectedLength);
         }
     }
 }

@@ -248,7 +248,7 @@ public class SepReaderRowTest
 
     static void AssertCols(ReadOnlySpan<string> expected, in SepReader.Cols cols)
     {
-        Assert.AreEqual(expected.Length, cols.Length);
+        Assert.AreEqual(expected.Length, cols.Count);
         for (var i = 0; i < expected.Length; i++)
         {
             Assert.AreEqual(expected[i], cols[i].ToString(), i.ToString());

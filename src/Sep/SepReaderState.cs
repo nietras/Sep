@@ -267,7 +267,7 @@ public class SepReaderState : IDisposable
 
     internal void Parse<T>(ReadOnlySpan<int> colIndices, Span<T> span) where T : ISpanParsable<T>
     {
-        SepCheck.LengthSameAsCols(colIndices.Length, nameof(span), span.Length);
+        SepCheck.CountOrLengthSameAsCols(colIndices.Length, nameof(span), span.Length);
         for (var i = 0; i < span.Length; i++)
         {
             span[i] = Parse<T>(colIndices[i]);
@@ -286,7 +286,7 @@ public class SepReaderState : IDisposable
 
     internal void TryParse<T>(ReadOnlySpan<int> colIndices, Span<T?> span) where T : struct, ISpanParsable<T>
     {
-        SepCheck.LengthSameAsCols(colIndices.Length, nameof(span), span.Length);
+        SepCheck.CountOrLengthSameAsCols(colIndices.Length, nameof(span), span.Length);
         for (var i = 0; i < span.Length; i++)
         {
             span[i] = TryParse<T>(colIndices[i]);
@@ -358,7 +358,7 @@ public class SepReaderState : IDisposable
 
     internal void Parse<T>(int colStart, int colCount, Span<T> span) where T : ISpanParsable<T>
     {
-        SepCheck.LengthSameAsCols(colCount, nameof(span), span.Length);
+        SepCheck.CountOrLengthSameAsCols(colCount, nameof(span), span.Length);
         for (var i = 0; i < span.Length; i++)
         {
             span[i] = Parse<T>(i + colStart);
@@ -377,7 +377,7 @@ public class SepReaderState : IDisposable
 
     internal void TryParse<T>(int colStart, int colCount, Span<T?> span) where T : struct, ISpanParsable<T>
     {
-        SepCheck.LengthSameAsCols(colCount, nameof(span), span.Length);
+        SepCheck.CountOrLengthSameAsCols(colCount, nameof(span), span.Length);
         for (var i = 0; i < span.Length; i++)
         {
             span[i] = TryParse<T>(i + colStart);

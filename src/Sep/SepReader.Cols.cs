@@ -34,7 +34,7 @@ public partial class SepReader
             _colStartIfRange = colStart;
         }
 
-        public int Length => _colIndices.Length;
+        public int Count => _colIndices.Length;
 
         public Col this[int index]
         {

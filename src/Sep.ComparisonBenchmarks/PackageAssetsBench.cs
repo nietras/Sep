@@ -4,10 +4,12 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using Ben.Collections.Specialized;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;
 using CsvHelper.Configuration;
+using RecordParser.Extensions;
 using Sylvan.Data.Csv;
 
 namespace nietras.SeparatedValues.ComparisonBenchmarks;
@@ -334,5 +336,36 @@ public class AssetPackageAssetsBench : PackageAssetsBench
             var asset = PackageAsset.Read(csvParser, static (p, i) => p[i]);
             assets.Add(asset);
         }
+    }
+
+    [Benchmark]
+    public void RecPrs_MT()
+    {
+        using var streamReader = Reader.CreateReader();
+
+        var options = new VariableLengthReaderRawOptions
+        {
+            HasHeader = false,
+            ContainsQuotedFields = false,
+            Trim = false,
+
+            ColumnCount = 25,
+            Separator = ",",
+#if USE_STRING_POOLING
+            StringPoolFactory = () => new InternPool().Intern,
+#endif
+            ParallelismOptions = new()
+            {
+                Enabled = true,
+                EnsureOriginalOrdering = true,
+            },
+        };
+
+        var items = streamReader.ReadRecordsRaw(options, getField =>
+        {
+            return PackageAsset.Read(options, (_, colIndex) => getField(colIndex));
+        });
+
+        var assets = items.ToList();
     }
 }

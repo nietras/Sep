@@ -123,6 +123,81 @@ static class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ref int ParseAnyCharsMaskCount(nuint mask, char separator,
+        scoped ref char charsRef, int charsIndex,
+        scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
+        ref int colEndsRef, scoped ref int lineNumber)
+    {
+        do
+        {
+            var relativeIndex = BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1);
+
+            colEndsRef = ref ParseAnyCharCount(ref charsRef,
+                charsIndex, relativeIndex, separator,
+                ref rowLineEndingOffset, ref quoteCount,
+                ref colEndsRef, ref lineNumber);
+        }
+        while (mask != 0 && (rowLineEndingOffset == 0));
+        return ref colEndsRef;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ref int ParseAnyCharCount(
+        scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
+        scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
+        ref int colEndsRef, scoped ref int lineNumber)
+    {
+        var c = Add(ref charsRef, relativeIndex);
+        if ((quoteCount & 1) != 0)
+        {
+            if (c == CarriageReturn)
+            {
+                // If next char is a line feed, don't count it in line number,
+                // but let that happen on the line feed when handled next.
+                var oneCharAhead = Add(ref charsRef, relativeIndex + 1);
+                if (oneCharAhead != LineFeed)
+                {
+                    ++lineNumber;
+                }
+                goto RETURN;
+            }
+            if (c == LineFeed)
+            {
+                ++lineNumber;
+                goto RETURN;
+            }
+            if (c != Quote) goto RETURN;
+        }
+        if (c == separator) goto ADDCOLEND;
+        if (c == CarriageReturn)
+        {
+            // If \r=CR, we should always be able to look 1 ahead, and if char not valid should not be \n=LF
+            var oneCharAhead = Add(ref charsRef, relativeIndex + 1);
+            if (oneCharAhead == LineFeed)
+            { ++rowLineEndingOffset; }
+            goto NEWLINE;
+        }
+        if (c == LineFeed) { goto NEWLINE; }
+        if (c == Quote)
+        {
+            ++quoteCount;
+            goto RETURN;
+        }
+    NEWLINE:
+        ++lineNumber;
+        ++rowLineEndingOffset;
+    ADDCOLEND:
+        // Pre-increment colEndsRef since [0] reserved for row start
+        colEndsRef = ref Add(ref colEndsRef, 1);
+        colEndsRef = charsIndex + relativeIndex;
+        // At col end or new line reset quote count
+        quoteCount = 0;
+    RETURN:
+        return ref colEndsRef;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
         ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)

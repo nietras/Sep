@@ -19,7 +19,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal nuint _quoting = 0;
+    internal nuint _quoteCount = 0;
 
     public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
     {
@@ -41,7 +41,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
         var separator = (char)_separator;
 
-        var quoting = _quoting;
+        //var quoting = _quoting;
+        nuint quoteCount = _quoteCount;
         var rowLineEndingOffset = _rowLineEndingOffset;
         var lineNumber = _lineNumber;
 
@@ -88,7 +89,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 var separatorsMask = (uint)ISA.MoveMask(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
-                var testMask = specialCharMask + quoting;
+                var testMask = specialCharMask + quoteCount;
                 if (separatorsMask == testMask)
                 {
                     colEndsRefCurrent = ref ParseSeparatorsMask(separatorsMask, charsIndex,
@@ -107,9 +108,9 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                     else
                     {
-                        colEndsRefCurrent = ref ParseAnyCharsMask(specialCharMask,
+                        colEndsRefCurrent = ref ParseAnyCharsMaskCount(specialCharMask,
                             separator, ref charsRef, charsIndex,
-                            ref rowLineEndingOffset, ref quoting,
+                            ref rowLineEndingOffset, ref quoteCount,
                             ref colEndsRefCurrent, ref lineNumber);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
@@ -136,7 +137,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
-        _quoting = quoting;
+        _quoteCount = quoteCount;
         _rowLineEndingOffset = rowLineEndingOffset;
         _lineNumber = lineNumber;
 

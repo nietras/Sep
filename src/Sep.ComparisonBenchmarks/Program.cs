@@ -34,7 +34,9 @@ Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 
 UnescapeCompare.CompareUnescape();
+#if DEBUG
 return;
+#endif
 
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 

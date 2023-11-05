@@ -19,6 +19,7 @@ using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
+using nietras.SeparatedValues.Benchmarks;
 using nietras.SeparatedValues.ComparisonBenchmarks;
 #if USEMANUALCONFIG
 using BenchmarkDotNet.Jobs;
@@ -31,6 +32,9 @@ using Perfolizer.Horology;
 Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 
 log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
+
+UnescapeCompare.CompareUnescape();
+return;
 
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 

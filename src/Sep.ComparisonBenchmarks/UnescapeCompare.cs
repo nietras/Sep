@@ -28,10 +28,15 @@ public static class UnescapeCompare
             new("a\"a\"a"),
             new(" \"\" "),
             new(" \"a\" "),
-            // Invalid - only occur at end of file
-            // Uneven quote count only possible at end of file
+            new("\"\" "),
+            new("\"a\" "),
+            new(" \"\""),
+            new(" \"a\""),
+            new("\"a\"\"\"a"),
+
             new("\"a\"\"\"a\""),
             new("\"\"\""),
+            new("a\"\"\"a"),
         };
         var runners = new Dictionary<string, Func<UnescapeTest, string>>()
         {

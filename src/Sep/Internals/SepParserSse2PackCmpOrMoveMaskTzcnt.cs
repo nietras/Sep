@@ -11,7 +11,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector128<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParser
+sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParserOld
 {
     readonly byte _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);

@@ -1,6 +1,6 @@
 ﻿namespace nietras.SeparatedValues;
 
-interface ISepParser
+interface ISepParserOld
 {
     int PaddingLength { get; }
     int Parse(char[] chars, int charsIndex, int charsEnd,

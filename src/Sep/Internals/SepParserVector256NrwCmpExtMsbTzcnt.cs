@@ -11,7 +11,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
+sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParserOld
 {
     readonly byte _separator;
     readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));

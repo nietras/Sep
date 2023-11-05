@@ -49,7 +49,7 @@ public class SepParserTest
     public void SepParserTest_Properties(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
         Assert.IsTrue(parser.PaddingLength >= 0);
     }
 
@@ -58,7 +58,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Sequence(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
 
         var charsEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         var rowLineEndingOffset = 0;
@@ -76,7 +76,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Short(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
 
         var charsEnd = FillChars("ˉ_;___;ˉˉ\n");
         var rowLineEndingOffset = 0;
@@ -98,7 +98,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Long(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
 
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ\";\";ˉˉ#ˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉˉ\";\r\n\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉ\rˉ");
         var expectedSet = new Expected[]
@@ -120,7 +120,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Long_SeparatorsOnly(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
         var charsEnd = FillChars(";ˉ;ˉ;;ˉ;ˉ;;ˉˉ#ˉˉˉˉˉ;ˉˉˉˉ;ˉˉ;;ˉ;ˉ" + "ˉ;ˉˉˉ;ˉˉ,ˉ;ˉ.ˉ;ˉ;ˉˉˉ;");
         var expectedSet = new Expected[]
         {
@@ -134,7 +134,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Long_At_ParseStart(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ\"ˉ\";ˉˉ#ˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var expectedSet = new Expected[]
         {
@@ -152,7 +152,7 @@ public class SepParserTest
     public void SepParserTest_Parse_Long_ColEndsAlmostFilled(object parserObject)
     {
         Contract.Assume(parserObject is not null);
-        var parser = (ISepParser)parserObject;
+        var parser = (ISepParserOld)parserObject;
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var paddingOffset = (parser.PaddingLength > 0 ? parser.PaddingLength : 1);
         _colEndsFrom = _colEnds.Length - paddingOffset;
@@ -175,7 +175,7 @@ public class SepParserTest
 
     record struct Expected(int[] ColEnds, int NextStart, int RowLineEndingOffset, int LineNumber);
 
-    void AssertParserOutput(ISepParser parser, int charsStart, int charsEnd, Expected[] expectedSet)
+    void AssertParserOutput(ISepParserOld parser, int charsStart, int charsEnd, Expected[] expectedSet)
     {
         var lineNumber = 3;
         foreach (var (expected, expectedNextStart, expectedRowLineEndingOffset, expectedLineNumber) in expectedSet)

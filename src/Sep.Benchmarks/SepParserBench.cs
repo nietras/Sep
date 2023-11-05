@@ -24,7 +24,7 @@ public class SepParserBench
 
     readonly ParserSpec[] _parsers;
     readonly FillerSpec[] _fillers;
-    ISepParser? _parser;
+    ISepParserOld? _parser;
     readonly int _parserPaddingLengthMax = 32;
     char[]? _chars;
     int _charsEnd;
@@ -37,7 +37,7 @@ public class SepParserBench
             new ParserSpec(p.Key.Name.Replace("SepParser", "").Replace("SepParserVector", ""), p.Value)).ToArray();
 #pragma warning restore CA1307 // Specify StringComparison for clarity
         _parserPaddingLengthMax = Math.Max(_parserPaddingLengthMax,
-            _parsers.Select(p => ((ISepParser)p.CreateParser(Sep.Default)).PaddingLength).Max());
+            _parsers.Select(p => ((ISepParserOld)p.CreateParser(Sep.Default)).PaddingLength).Max());
 #if false //DEBUG
         _fillers = new FillerSpec[]
         {
@@ -72,7 +72,7 @@ public class SepParserBench
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _parser = (ISepParser)Parser.CreateParser(new(Filler.Separator));
+        _parser = (ISepParserOld)Parser.CreateParser(new(Filler.Separator));
         var text = Filler.Text;
         _chars = new char[text.Length + _parser.PaddingLength];
         text.AsSpan().CopyTo(_chars.AsSpan().Slice(0, text.Length));

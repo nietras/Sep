@@ -22,7 +22,7 @@ public sealed partial class SepReader : SepReaderState
     readonly Info _info;
     char _separator;
     readonly TextReader _reader;
-    ISepParser? _parser;
+    ISepParserOld? _parser;
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to

@@ -9,7 +9,7 @@ namespace nietras.SeparatedValues;
 static class SepParserFactory
 {
     [ExcludeFromCodeCoverage]
-    internal static ISepParser CreateBest(Sep sep)
+    internal static ISepParserOld CreateBest(Sep sep)
     {
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
@@ -25,12 +25,12 @@ static class SepParserFactory
         return new SepParserIndexOfAny(sep);
     }
 
-    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateAcceleratedFactories()
+    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParserOld>> CreateAcceleratedFactories()
         => CreateFactories(createUnaccelerated: false);
 
-    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateFactories(bool createUnaccelerated = true)
+    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParserOld>> CreateFactories(bool createUnaccelerated = true)
     {
-        var parsers = new Dictionary<Type, Func<Sep, ISepParser>>();
+        var parsers = new Dictionary<Type, Func<Sep, ISepParserOld>>();
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
@@ -51,8 +51,8 @@ static class SepParserFactory
         return parsers;
     }
 
-    static void Add<TParser>(Dictionary<Type, Func<Sep, ISepParser>> parsers, Func<Sep, TParser> create)
-        where TParser : ISepParser
+    static void Add<TParser>(Dictionary<Type, Func<Sep, ISepParserOld>> parsers, Func<Sep, TParser> create)
+        where TParser : ISepParserOld
     {
         parsers.Add(typeof(TParser), sep => create(sep));
     }

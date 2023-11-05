@@ -6,7 +6,7 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserIndexOfAny : ISepParser
+sealed class SepParserIndexOfAny : ISepParserOld
 {
     readonly char _separator;
     readonly char[] _specialChars;

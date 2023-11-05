@@ -20,29 +20,40 @@ public static class UnescapeCompare
         {
             new("a"),
             new("\"\""),
+            new("\"\"\"\""),
+            new("\"\"\"\"\"\""),
             new("\"a\""),
             new("\"a\"\"a\""),
-            new("\"a\"a\"a\""),
+            new("\"a\"\"a\"\"a\""),
 
+            // No start quote
             new("a\"\"a"),
             new("a\"a\"a"),
             new(" \"\" "),
             new(" \"a\" "),
-            new("\"\" "),
-            new("\"a\" "),
             new(" \"\""),
             new(" \"a\""),
+            new("a\"\"\"a"),
+
+            new("\"a\"a\"a\""),
+            new("\"\" "),
+            new("\"a\" "),
             new("\"a\"\"\"a"),
 
             new("\"a\"\"\"a\""),
+            new("\"\"a\""),
+            new("\"a\"a\""),
+            new("\"\"a\"a\"\""),
+
             new("\"\"\""),
-            new("a\"\"\"a"),
+            new("\"\"\"\"\""),
         };
         var runners = new Dictionary<string, Func<UnescapeTest, string>>()
         {
             { nameof(CsvHelper), t => UnescapeCsvHelper(ConfigurationFunctions.BadDataFound, t.ColText) },
             { nameof(CsvHelper) + "¹", t => UnescapeCsvHelper(null, t.ColText) },
             { nameof(Sylvan), t => UnescapeSylvan(t.ColText) },
+            { nameof(Sep), t => UnescapeSep(t.ColText) },
         };
         var sb = new StringBuilder();
         sb.Append($"| Input |");
@@ -112,5 +123,12 @@ public static class UnescapeCompare
         using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
         SepAssert.Assert(csvReader.Read());
         return csvReader.GetString(0);
+    }
+
+    static string UnescapeSep(string colText)
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(colText);
+        SepAssert.Assert(reader.MoveNext());
+        return reader.Current[0].ToString();
     }
 }

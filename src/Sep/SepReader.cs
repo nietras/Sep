@@ -22,7 +22,7 @@ public sealed partial class SepReader : SepReaderState
     readonly Info _info;
     char _separator;
     readonly TextReader _reader;
-    ISepParserOld? _parser;
+    ISepParser? _parser;
 
 #if DEBUG
     // To increase probability of detecting bugs start with short length to
@@ -83,6 +83,7 @@ public sealed partial class SepReader : SepReaderState
         var paddingLength = _parser?.PaddingLength ?? 64;
 
         _colEnds = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
+        _colQuoteCounts = ArrayPool<int>.Shared.Rent(_colEnds.Length);
     }
 
     public bool IsEmpty { get; private set; }
@@ -171,6 +172,7 @@ public sealed partial class SepReader : SepReaderState
 #if DEBUG
         Array.Fill(_colEnds, -42);
 #endif
+        _colQuoteCounts.AsSpan(0, _colCount).Clear();
         _cacheIndex = 0;
         _arrayPool.Reset();
         _charsDataStart = _charsRowStart;
@@ -182,8 +184,12 @@ public sealed partial class SepReader : SepReaderState
         CheckPoint($"{nameof(_parser.Parse)} BEFORE");
 
         var rowLineEndingOffset = 0;
-        _charsParseStart = _parser?.Parse(_chars, _charsParseStart, _charsDataEnd,
-            _colEnds, ref _colCount, ref rowLineEndingOffset, ref _lineNumber) ?? _charsParseStart;
+        if (_parser is not null)
+        {
+            //_charsParseStart = _parser.Parse(_chars, _charsParseStart, _charsDataEnd,
+            //    _colEnds, _colQuoteCounts, ref _colCount, ref rowLineEndingOffset, ref _lineNumber);
+            rowLineEndingOffset = _parser.Parse(this);
+        }
     MAYBEROW:
         if (rowLineEndingOffset != 0)
         {
@@ -274,12 +280,20 @@ public sealed partial class SepReader : SepReaderState
     void DoubleColsCapacityCopyState()
     {
         var previousColEnds = _colEnds;
+        var previousColQuoteCounts = _colQuoteCounts;
         _colEnds = ArrayPool<int>.Shared.Rent(_colEnds.Length * 2);
+        _colQuoteCounts = ArrayPool<int>.Shared.Rent(_colEnds.Length);
         var length = _colCount + 1;
+
         var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, length);
         var newColEndsSpan = _colEnds.AsSpan().Slice(0, length);
         previousColEndsSpan.CopyTo(newColEndsSpan);
         ArrayPool<int>.Shared.Return(previousColEnds);
+
+        var previousColQuoteCountsSpan = previousColQuoteCounts.AsSpan().Slice(0, length);
+        var newColQuoteCountsSpan = _colQuoteCounts.AsSpan().Slice(0, length);
+        previousColQuoteCountsSpan.CopyTo(newColQuoteCountsSpan);
+        ArrayPool<int>.Shared.Return(previousColQuoteCounts);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

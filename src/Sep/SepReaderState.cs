@@ -31,6 +31,7 @@ public class SepReaderState : IDisposable
     // [1...] = Col ends e.g. [1] = first col end
     // Length = colCount + 1
     internal int[] _colEnds = Array.Empty<int>();
+    internal int[] _colQuoteCounts = Array.Empty<int>();
     internal int _colCountExpected = -1;
     internal int _colCount = 0;
 
@@ -410,6 +411,7 @@ public class SepReaderState : IDisposable
     {
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEnds);
+        ArrayPool<int>.Shared.Return(_colQuoteCounts);
         _arrayPool.Dispose();
         _toString?.Dispose();
     }

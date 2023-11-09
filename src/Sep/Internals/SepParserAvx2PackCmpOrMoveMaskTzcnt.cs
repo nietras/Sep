@@ -74,8 +74,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParserOld
         ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
         ref var colEndsRefCurrent = ref Add(ref colEndsRef, colEndsEnd);
         ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - VecUI8.Count);
-        ref var colQuoteCountsRef = ref MemoryMarshal.GetArrayDataReference(colQuoteCounts);
-        ref var colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, colEndsEnd);
+        //ref var colQuoteCountsRef = ref MemoryMarshal.GetArrayDataReference(colQuoteCounts);
+        //ref var colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, colEndsEnd);
 
         // Use instance fields to force values into registers
         var nls = _nls; //Vec.Create(LineFeedByte);
@@ -128,13 +128,13 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParserOld
                     }
                     else
                     {
-                        var offset = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-                        colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, offset);
+                        //var offset = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
+                        //colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, offset);
 
                         colEndsRefCurrent = ref ParseAnyCharsMaskCount(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
-                            ref colEndsRefCurrent, ref colQuoteCountsRefCurrent, ref lineNumber);
+                            ref colEndsRefCurrent, /*ref colQuoteCountsRefCurrent,*/ ref lineNumber);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
                         {

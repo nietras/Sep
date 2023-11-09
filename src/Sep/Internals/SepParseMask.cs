@@ -126,7 +126,7 @@ static class SepParseMask
     internal static ref int ParseAnyCharsMaskCount(nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref int colEndsRef, ref int colQuoteCountsRef, scoped ref int lineNumber)
+        ref int colEndsRef, /*ref int colQuoteCountsRef,*/ scoped ref int lineNumber)
     {
         do
         {
@@ -136,7 +136,7 @@ static class SepParseMask
             colEndsRef = ref ParseAnyCharCount(ref charsRef,
                 charsIndex, relativeIndex, separator,
                 ref rowLineEndingOffset, ref quoteCount,
-                ref colEndsRef, ref colQuoteCountsRef, ref lineNumber);
+                ref colEndsRef, /*ref colQuoteCountsRef,*/ ref lineNumber);
         }
         while (mask != 0 && (rowLineEndingOffset == 0));
         return ref colEndsRef;
@@ -146,7 +146,7 @@ static class SepParseMask
     internal static ref int ParseAnyCharCount(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref int colEndsRef, ref int colQuoteCountsRef, scoped ref int lineNumber)
+        ref int colEndsRef, /*ref int colQuoteCountsRef,*/ scoped ref int lineNumber)
     {
         var c = Add(ref charsRef, relativeIndex);
         if ((quoteCount & 1) != 0)
@@ -192,8 +192,8 @@ static class SepParseMask
         colEndsRef = ref Add(ref colEndsRef, 1);
         colEndsRef = charsIndex + relativeIndex;
         // At col end or new line reset quote count
-        colQuoteCountsRef = ref Add(ref colQuoteCountsRef, 1);
-        colQuoteCountsRef = (int)quoteCount;
+        //colQuoteCountsRef = ref Add(ref colQuoteCountsRef, 1);
+        //colQuoteCountsRef = (int)quoteCount;
         quoteCount = 0;
     RETURN:
         return ref colEndsRef;

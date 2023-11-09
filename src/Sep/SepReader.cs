@@ -184,8 +184,6 @@ public sealed partial class SepReader : SepReaderState
         var rowLineEndingOffset = 0;
         if (_parser is not null)
         {
-            //_charsParseStart = _parser.Parse(_chars, _charsParseStart, _charsDataEnd,
-            //    _colEnds, _colQuoteCounts, ref _colCount, ref rowLineEndingOffset, ref _lineNumber);
             rowLineEndingOffset = _parser.Parse(this);
         }
     MAYBEROW:

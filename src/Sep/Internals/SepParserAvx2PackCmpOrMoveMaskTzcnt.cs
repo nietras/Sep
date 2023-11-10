@@ -68,8 +68,6 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
         ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
         ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - VecUI8.Count);
-        //ref var colQuoteCountsRef = ref MemoryMarshal.GetArrayDataReference(colQuoteCounts);
-        //ref var colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, colEndsEnd);
 
         // Use instance fields to force values into registers
         var nls = _nls; //Vec.Create(LineFeedByte);
@@ -122,13 +120,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                     else
                     {
-                        //var offset = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
-                        //colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, offset);
-
                         colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
-                            ref colInfosRefCurrent, /*ref colQuoteCountsRefCurrent,*/ ref lineNumber);
+                            ref colInfosRefCurrent, ref lineNumber);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
                         {

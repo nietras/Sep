@@ -12,7 +12,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParserOld
+sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParser
 {
     readonly byte _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -47,18 +47,11 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParserOld
         var separator = (char)_separator;
         var quoteCount = _quoteCount;
 
-        //char[] chars, int charsIndex, int charsEnd,
-        //int[] colEnds, ref int colEndsEnd,
-        //scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber
-        //
-        //_charsParseStart = _parser.Parse(_chars, _charsParseStart, _charsDataEnd,
-        //    _colEnds, _colQuoteCounts, ref _colCount, ref rowLineEndingOffset, ref _lineNumber);
-        //var colsEndIndex = colEndsEnd;
+        var quoteCoint = _quoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
         var colEnds = s._colEnds;
-        var colQuoteCounts = s._colQuoteCounts;
         var colEndsEnd = s._colCount;
         var lineNumber = s._lineNumber;
 
@@ -161,13 +154,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser//, ISepParserOld
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoteCount = quoteCount;
-        //colEndsEnd = colsEndIndex;
         s._colCount = colEndsEnd;
-        //_rowLineEndingOffset = rowLineEndingOffset;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;
 
-        //return charsIndex;
         return rowLineEndingOffset;
     }
 

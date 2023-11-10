@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using BenchmarkDotNet.Attributes;
@@ -24,11 +25,9 @@ public class SepParserBench
 
     readonly ParserSpec[] _parsers;
     readonly FillerSpec[] _fillers;
-    ISepParserOld? _parser;
+    ISepParser? _parser;
     readonly int _parserPaddingLengthMax = 32;
-    char[]? _chars;
-    int _charsEnd;
-    int[]? _colEnds;
+    SepReaderState? _state;
 
     public SepParserBench()
     {
@@ -37,7 +36,7 @@ public class SepParserBench
             new ParserSpec(p.Key.Name.Replace("SepParser", "").Replace("SepParserVector", ""), p.Value)).ToArray();
 #pragma warning restore CA1307 // Specify StringComparison for clarity
         _parserPaddingLengthMax = Math.Max(_parserPaddingLengthMax,
-            _parsers.Select(p => ((ISepParserOld)p.CreateParser(Sep.Default)).PaddingLength).Max());
+            _parsers.Select(p => ((ISepParser)p.CreateParser(Sep.Default)).PaddingLength).Max());
 #if false //DEBUG
         _fillers = new FillerSpec[]
         {
@@ -72,28 +71,27 @@ public class SepParserBench
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _parser = (ISepParserOld)Parser.CreateParser(new(Filler.Separator));
+        _parser = (ISepParser)Parser.CreateParser(new(Filler.Separator));
         var text = Filler.Text;
-        _chars = new char[text.Length + _parser.PaddingLength];
-        text.AsSpan().CopyTo(_chars.AsSpan().Slice(0, text.Length));
-        _charsEnd = text.Length;
-        _colEnds = new int[_chars.Length];
+        _state = new SepReaderState();
+        _state._chars = ArrayPool<char>.Shared.Rent(text.Length + _parser.PaddingLength);
+        text.AsSpan().CopyTo(_state._chars.AsSpan().Slice(0, text.Length));
+        _state._charsDataEnd = text.Length;
+        _state._colEnds = ArrayPool<int>.Shared.Rent(SepReaderState.ColEndsInitialLength);
     }
 
     [Benchmark(Baseline = true)]
     public void Parse()
     {
-        var rowLineEndingOffset = 0;
-        var lineNumber = 0;
-        var colEndsTo = 0;
-        var nextStart = _parser!.Parse(_chars!, charsIndex: 0, charsEnd: _charsEnd,
-                                       colEnds: _colEnds!, colEndsEnd: ref colEndsTo,
-                                       ref rowLineEndingOffset, lineNumber: ref lineNumber);
+        _state!._colCount = 0;
+        _state!._lineNumber = 0;
+        _state!._charsParseStart = 0;
+        _parser!.Parse(_state!);
     }
 
     //[Benchmark]
     public void Copy()
     {
-        Filler.Text.CopyTo(_chars.AsSpan(0, _charsEnd));
+        Filler.Text.CopyTo(_state!._chars.AsSpan(0, _state._charsDataEnd));
     }
 }

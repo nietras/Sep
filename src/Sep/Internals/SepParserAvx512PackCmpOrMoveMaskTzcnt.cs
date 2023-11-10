@@ -13,7 +13,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParserOld
+sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly byte _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -34,9 +34,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParserOld
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int Parse(char[] chars, int charsIndex, int charsEnd,
-                     int[] colEnds, ref int colEndsEnd,
-                     scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)
+    public int Parse(SepReaderState s)
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
@@ -44,8 +42,14 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParserOld
         var separator = (char)_separator;
 
         var quoting = _quoting;
-        var rowLineEndingOffset = _rowLineEndingOffset;
-        var lineNumber = _lineNumber;
+        var chars = s._chars;
+        var charsIndex = s._charsParseStart;
+        var charsEnd = s._charsDataEnd;
+        var colEnds = s._colEnds;
+        var colEndsEnd = s._colCount;
+        var lineNumber = s._lineNumber;
+
+        var rowLineEndingOffset = 0;
 
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
         colEnds.CheckPadding(colEndsEnd, PaddingLength);
@@ -140,10 +144,11 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParserOld
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;
-        _rowLineEndingOffset = rowLineEndingOffset;
-        _lineNumber = lineNumber;
+        s._colCount = colEndsEnd;
+        s._lineNumber = lineNumber;
+        s._charsParseStart = charsIndex;
 
-        return charsIndex;
+        return rowLineEndingOffset;
     }
 }
 #endif

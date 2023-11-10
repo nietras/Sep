@@ -27,7 +27,7 @@ static class SepParserFactory
     }
 
     [ExcludeFromCodeCoverage]
-    internal static ISepParserOld CreateBestOld(Sep sep)
+    internal static ISepParser CreateBestOld(Sep sep)
     {
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
@@ -43,12 +43,12 @@ static class SepParserFactory
         return new SepParserIndexOfAny(sep);
     }
 
-    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParserOld>> CreateAcceleratedFactories()
+    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateAcceleratedFactories()
         => CreateFactories(createUnaccelerated: false);
 
-    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParserOld>> CreateFactories(bool createUnaccelerated = true)
+    internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateFactories(bool createUnaccelerated = true)
     {
-        var parsers = new Dictionary<Type, Func<Sep, ISepParserOld>>();
+        var parsers = new Dictionary<Type, Func<Sep, ISepParser>>();
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
@@ -69,8 +69,8 @@ static class SepParserFactory
         return parsers;
     }
 
-    static void Add<TParser>(Dictionary<Type, Func<Sep, ISepParserOld>> parsers, Func<Sep, TParser> create)
-        where TParser : ISepParserOld
+    static void Add<TParser>(Dictionary<Type, Func<Sep, ISepParser>> parsers, Func<Sep, TParser> create)
+        where TParser : ISepParser
     {
         parsers.Add(typeof(TParser), sep => create(sep));
     }

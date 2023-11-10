@@ -6,7 +6,7 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserIndexOfAny : ISepParserOld
+sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
@@ -22,15 +22,19 @@ sealed class SepParserIndexOfAny : ISepParserOld
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int Parse(char[] chars, int charsIndex, int charsEnd,
-                     int[] colEnds, ref int colEndsEnd,
-                     scoped ref int _rowLineEndingOffset, scoped ref int _lineNumber)
+    public int Parse(SepReaderState s)
     {
         var separator = _separator;
 
         var quoting = _quoting;
-        var rowLineEndingOffset = _rowLineEndingOffset;
-        var lineNumber = _lineNumber;
+        var chars = s._chars;
+        var charsIndex = s._charsParseStart;
+        var charsEnd = s._charsDataEnd;
+        var colEnds = s._colEnds;
+        var colEndsEnd = s._colCount;
+        var lineNumber = s._lineNumber;
+
+        var rowLineEndingOffset = 0;
 
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
         colEnds.CheckPadding(colEndsEnd, PaddingLength);
@@ -78,15 +82,17 @@ sealed class SepParserIndexOfAny : ISepParserOld
                 charsIndex = charsEnd;
             }
         }
+
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoting = quoting;
-        _rowLineEndingOffset = rowLineEndingOffset;
-        _lineNumber = lineNumber;
+        s._colCount = colEndsEnd;
+        s._lineNumber = lineNumber;
+        s._charsParseStart = charsIndex;
 
-        return charsIndex;
+        return rowLineEndingOffset;
     }
 }

@@ -40,14 +40,12 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int Parse<T>(SepReaderState s)
     {
-
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
         var separator = (char)_separator;
         var quoteCount = _quoteCount;
 
-        var quoteCoint = _quoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -124,7 +122,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                         //var offset = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
                         //colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, offset);
 
-                        colEndsRefCurrent = ref ParseAnyCharsMaskCount(specialCharMask,
+                        colEndsRefCurrent = ref ParseAnyCharsMask(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
                             ref colEndsRefCurrent, /*ref colQuoteCountsRefCurrent,*/ ref lineNumber);
@@ -172,7 +170,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
     //    var separator = (char)_separator;
 
-    //    //var quoting = _quoting;
+    //    //var quoting = _quoteCount;
     //    nuint quoteCount = _quoteCount;
     //    var rowLineEndingOffset = _rowLineEndingOffset;
     //    var lineNumber = _lineNumber;

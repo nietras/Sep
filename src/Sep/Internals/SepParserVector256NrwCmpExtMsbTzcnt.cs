@@ -19,7 +19,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal nuint _quoting = 0;
+    internal nuint _quoteCount = 0;
 
     public unsafe SepParserVector256NrwCmpExtMsbTzcnt(Sep sep)
     {
@@ -39,7 +39,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
 
         var separator = (char)_separator;
 
-        var quoting = _quoting;
+        var quoting = _quoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -141,7 +141,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
-        _quoting = quoting;
+        _quoteCount = quoting;
         s._colCount = colEndsEnd;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;

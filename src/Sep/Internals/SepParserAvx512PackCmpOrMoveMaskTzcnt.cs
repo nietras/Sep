@@ -20,7 +20,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal nuint _quoting = 0;
+    internal nuint _quoteCount = 0;
 
     public unsafe SepParserAvx512PackCmpOrMoveMaskTzcnt(Sep sep)
     {
@@ -41,7 +41,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 
         var separator = (char)_separator;
 
-        var quoting = _quoting;
+        var quoting = _quoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -95,7 +95,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 var separatorsMask = (nuint)Vec.ExtractMostSignificantBits(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quoting flags to mask as hack to skip if quoting.
-                var testMask = specialCharMask + quoting;
+                var testMask = specialCharMask + (nuint)quoting;
                 if (separatorsMask == testMask)
                 {
                     colEndsRefCurrent = ref ParseSeparatorsMask(separatorsMask, charsIndex,
@@ -143,7 +143,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
-        _quoting = quoting;
+        _quoteCount = quoting;
         s._colCount = colEndsEnd;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;

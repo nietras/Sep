@@ -10,7 +10,7 @@ sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
-    nuint _quoting = 0;
+    internal nuint _quoteCount = 0;
 
     public unsafe SepParserIndexOfAny(Sep sep)
     {
@@ -26,7 +26,7 @@ sealed class SepParserIndexOfAny : ISepParser
     {
         var separator = _separator;
 
-        var quoting = _quoting;
+        var quoting = _quoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -88,7 +88,7 @@ sealed class SepParserIndexOfAny : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
-        _quoting = quoting;
+        _quoteCount = quoting;
         s._colCount = colEndsEnd;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;

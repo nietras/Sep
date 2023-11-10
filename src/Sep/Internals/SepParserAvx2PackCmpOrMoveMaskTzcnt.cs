@@ -64,15 +64,16 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
         var rowLineEndingOffset = 0;
 
+        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
+
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        colInfos.CheckPadding(colCount, PaddingLength);
+        SepArrayExtensions.CheckPadding(colInfosLength, colCount, PaddingLength);
 
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
         ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
 
         ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
         ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
         ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - VecUI8.Count);
 

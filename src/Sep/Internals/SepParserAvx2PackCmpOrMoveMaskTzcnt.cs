@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
-using static nietras.SeparatedValues.SepParseMask;
+using static nietras.SeparatedValues.SepParseMaskGeneric;
 using ISA = System.Runtime.Intrinsics.X86.Avx2;
 using Vec = System.Runtime.Intrinsics.Vector256;
 using VecI16 = System.Runtime.Intrinsics.Vector256<short>;
@@ -34,11 +34,13 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public int Parse(SepReaderState s)
     {
-        return Parse<int>(s);
+        return Parse<int, SepColEndMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int Parse<T>(SepReaderState s)
+    int Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+        where TColInfo : unmanaged
+        where TColInfoMethods : unmanaged, ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
@@ -49,22 +51,23 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
-        var colEnds = s._colEnds;
-        var colEndsEnd = s._colCount;
+        var colInfos = s._colEnds;
+        var colCount = s._colCount;
         var lineNumber = s._lineNumber;
 
         var rowLineEndingOffset = 0;
 
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        colEnds.CheckPadding(colEndsEnd, PaddingLength);
+        colInfos.CheckPadding(colCount, PaddingLength);
 
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
         ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
 
-        ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
-        ref var colEndsRefCurrent = ref Add(ref colEndsRef, colEndsEnd);
-        ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - VecUI8.Count);
+        ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
+        ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
+        ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - VecUI8.Count);
         //ref var colQuoteCountsRef = ref MemoryMarshal.GetArrayDataReference(colQuoteCounts);
         //ref var colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, colEndsEnd);
 
@@ -103,18 +106,18 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 var testMask = specialCharMask + quoteCount;
                 if (separatorsMask == testMask)
                 {
-                    colEndsRefCurrent = ref ParseSeparatorsMask(separatorsMask, charsIndex,
-                        ref colEndsRefCurrent);
+                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(separatorsMask, charsIndex,
+                        ref colInfosRefCurrent);
                 }
                 else
                 {
                     var separatorLineEndingsMask = (uint)ISA.MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
-                        colEndsRefCurrent = ref ParseSeparatorsLineEndingsMasks(
+                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colEndsRefCurrent, ref rowLineEndingOffset, ref lineNumber);
+                            ref colInfosRefCurrent, ref rowLineEndingOffset, ref lineNumber);
                         break;
                     }
                     else
@@ -122,22 +125,22 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                         //var offset = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
                         //colQuoteCountsRefCurrent = ref Add(ref colQuoteCountsRef, offset);
 
-                        colEndsRefCurrent = ref ParseAnyCharsMask(specialCharMask,
+                        colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
-                            ref colEndsRefCurrent, /*ref colQuoteCountsRefCurrent,*/ ref lineNumber);
+                            ref colInfosRefCurrent, /*ref colQuoteCountsRefCurrent,*/ ref lineNumber);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
                         {
                             // Must be a col end and last is then dataIndex
-                            charsIndex = colEndsRefCurrent + rowLineEndingOffset;
+                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
                             break;
                         }
                     }
                 }
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next VecUI8.Count.
-                if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
+                if (IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
                 {
                     // Move data index so next find starts correctly
                     charsIndex += VecUI8.Count;
@@ -147,12 +150,12 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         }
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
-        colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
+        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) >> 2);
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoteCount = quoteCount;
-        s._colCount = colEndsEnd;
+        s._colCount = colCount;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;
 

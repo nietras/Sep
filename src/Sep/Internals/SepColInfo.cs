@@ -2,17 +2,20 @@
 
 record struct SepColInfo(int ColEnd, int QuoteCount);
 
-interface ISepColInfoCreate<TColInfo>
+interface ISepColInfoMethods<TColInfo>
 {
-    TColInfo Create(int colEnd, int quoteCount);
+    static abstract TColInfo Create(int colEnd, int quoteCount);
+    static abstract int GetColEnd(TColInfo colInfo);
 }
 
-readonly struct SepColInfoCreate : ISepColInfoCreate<SepColInfo>
+readonly struct SepColInfoMethods : ISepColInfoMethods<SepColInfo>
 {
-    public readonly SepColInfo Create(int colEnd, int quoteCount) => new(colEnd, quoteCount);
+    public static SepColInfo Create(int colEnd, int quoteCount) => new(colEnd, quoteCount);
+    public static int GetColEnd(SepColInfo colInfo) => colInfo.ColEnd;
 }
 
-readonly struct SepColEndCreate : ISepColInfoCreate<int>
+readonly struct SepColEndMethods : ISepColInfoMethods<int>
 {
-    public readonly int Create(int colEnd, int quoteCount) => colEnd;
+    public static int Create(int colEnd, int quoteCount) => colEnd;
+    public static int GetColEnd(int colEnd) => colEnd;
 }

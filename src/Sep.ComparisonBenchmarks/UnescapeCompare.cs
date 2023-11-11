@@ -12,19 +12,19 @@ namespace nietras.SeparatedValues.Benchmarks;
 
 public static class UnescapeCompare
 {
-    record UnescapeTest(string ColText, bool IsValid = true);
+    record UnescapeTest(string ColText, bool IsValid = false);
 
     public static void CompareUnescape()
     {
         var tests = new UnescapeTest[]
         {
-            new("a"),
-            new("\"\""),
-            new("\"\"\"\""),
-            new("\"\"\"\"\"\""),
-            new("\"a\""),
-            new("\"a\"\"a\""),
-            new("\"a\"\"a\"\"a\""),
+            new("a", IsValid: true),
+            new("\"\"", IsValid: true),
+            new("\"\"\"\"", IsValid: true),
+            new("\"\"\"\"\"\"", IsValid: true),
+            new("\"a\"", IsValid: true),
+            new("\"a\"\"a\"", IsValid: true),
+            new("\"a\"\"a\"\"a\"", IsValid: true),
 
             // No start quote
             new("a\"\"a"),
@@ -56,14 +56,17 @@ public static class UnescapeCompare
             { nameof(Sep) + "²", t => UnescapeSep(t.ColText) },
         };
         var sb = new StringBuilder();
+        var outputCsharp = false;
         sb.Append($"| Input |");
-        sb.Append($" Input (C#) |");
+        if (outputCsharp) { sb.Append($" Input (C#) |"); }
+        sb.Append($" Valid |");
         foreach (var (name, _) in runners)
         {
             sb.Append($" {name} |");
         }
         sb.AppendLine();
         sb.Append($"|-|");
+        if (outputCsharp) { sb.Append($"-|"); }
         sb.Append($"-|");
         foreach (var (_, _) in runners)
         {
@@ -74,7 +77,9 @@ public static class UnescapeCompare
         {
             sb.Append($"| `{test.ColText.Replace(" ", "·")}` |");
             var csharpColText = test.ColText.Replace(" ", "·").Replace("\"", "\\\"");
-            sb.Append($" `{csharpColText}` |");
+            if (outputCsharp) { sb.Append($" `{csharpColText}` |"); }
+            sb.Append($" {test.IsValid} |");
+
             var csharpColTextResult = UnescapeSep(test.ColText).Replace("\"", "\\\"");
             Trace.WriteLine($"new object[] {{ \"{test.ColText.Replace("\"", "\\\"")}\", \"{csharpColTextResult}\" }},");
 

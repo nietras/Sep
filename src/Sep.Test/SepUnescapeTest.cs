@@ -13,7 +13,7 @@ public class SepUnescapeTest
     // First char must always be quote since that is checked outside this scope
     internal static IEnumerable<object[]> UnescapeData => new object[][]
     {
-        new object[] { "\"\"", ""  },
+        new object[] { "\"\"", "" },
         new object[] { "\"\"\"\"", "\"" },
         new object[] { "\"\"\"\"\"\"", "\"\"" },
         new object[] { "\"a\"", "a" },
@@ -22,7 +22,11 @@ public class SepUnescapeTest
         new object[] { "\"a\"a\"a\"", "aa\"a" },
         new object[] { "\"\" ", " " },
         new object[] { "\"a\" ", "a " },
-        new object[] { "\"\" ", " " },
+        new object[] { "\"a\"\"\"a", "a\"a" },
+        new object[] { "\"a\"\"\"a\"", "a\"a\"" },
+        new object[] { "\"\"a\"", "a\"" },
+        new object[] { "\"a\"a\"", "aa\"" },
+        new object[] { "\"\"a\"a\"\"", "a\"a\"" },
         new object[] { "\"\"\"", "\"" },
     };
 

@@ -53,7 +53,7 @@ public static class UnescapeCompare
             { nameof(CsvHelper), t => UnescapeCsvHelper(ConfigurationFunctions.BadDataFound, t.ColText) },
             { nameof(CsvHelper) + "¹", t => UnescapeCsvHelper(null, t.ColText) },
             { nameof(Sylvan), t => UnescapeSylvan(t.ColText) },
-            { nameof(Sep), t => UnescapeSep(t.ColText) },
+            { nameof(Sep) + "²", t => UnescapeSep(t.ColText) },
         };
         var sb = new StringBuilder();
         sb.Append($"| Input |");
@@ -73,7 +73,11 @@ public static class UnescapeCompare
         foreach (var test in tests)
         {
             sb.Append($"| `{test.ColText.Replace(" ", "·")}` |");
-            sb.Append($" `{test.ColText.Replace(" ", "·").Replace("\"", "\\\"")}` |");
+            var csharpColText = test.ColText.Replace(" ", "·").Replace("\"", "\\\"");
+            sb.Append($" `{csharpColText}` |");
+            var csharpColTextResult = UnescapeSep(test.ColText).Replace("\"", "\\\"");
+            Trace.WriteLine($"new object[] {{ \"{test.ColText.Replace("\"", "\\\"")}\", \"{csharpColTextResult}\" }},");
+
             foreach (var (_, action) in runners)
             {
                 try
@@ -97,7 +101,10 @@ public static class UnescapeCompare
         sb.AppendLine();
         sb.AppendLine($"`·` (middle dot) is whitespace to make this visible");
         sb.AppendLine();
-        sb.AppendLine($"¹ CsvHelper BadDataFound = null");
+        sb.AppendLine($"¹ CsvHelper with `BadDataFound = null`");
+        sb.AppendLine();
+        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.EnableUnquoteUnescape)} = true`");
+
         var text = sb.ToString();
         Trace.WriteLine(text);
         File.WriteAllText("UnescapeCompare.md", text, Encoding.UTF8);

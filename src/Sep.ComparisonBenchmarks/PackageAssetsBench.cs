@@ -77,6 +77,14 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
+    [Benchmark]
+    public void Sep_Unquote()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader) { }
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
@@ -159,7 +167,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark()]
-    public void Sep_Unquo()
+    public void Sep_Unquote()
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true })
                               .From(Reader.CreateReader());
@@ -281,7 +289,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark]
-    public void Sep_Unquo()
+    public void Sep_Unquote()
     {
         var assets = new List<PackageAsset>();
 

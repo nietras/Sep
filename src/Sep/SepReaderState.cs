@@ -150,7 +150,7 @@ public class SepReaderState : IDisposable
             else
             {
                 // Unquote and unescape fully and in-place
-                var unescapedLength = SepUnescape.UnescapeInplace(ref colRef, colLength);
+                var unescapedLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
                 colInfo.QuoteCount = -unescapedLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }

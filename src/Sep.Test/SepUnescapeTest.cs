@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -27,25 +28,16 @@ public class SepUnescapeTest
 
     [DataTestMethod]
     [DynamicData(nameof(UnescapeData))]
-    public void SepUnescapeTest_RemoveEverySecondQuoteInPlace(string chars, string expected)
+    public void SepUnescapeTest_UnescapeInPlace(string chars, string expected)
     {
+        Contract.Assume(chars != null);
         var src = new string(chars);
-        var unescapedLength = SepUnescape.UnescapeInplace(
+
+        var unescapedLength = SepUnescape.UnescapeInPlace(
             ref MemoryMarshal.GetReference<char>(chars),
-            chars!.Length);
+            chars.Length);
+
         var actual = new string(chars.AsSpan(0, unescapedLength));
         Assert.AreEqual(expected, actual, src);
-    }
-
-    [DataRow(0, 0, 0, 0)]
-    [DataRow(0, 1, 0, 1)]
-    [DataTestMethod]
-    public void SepUnescapeTest_Toggle(int toggle, int quote,
-        int expectedOffset, int expectedToggle)
-    {
-        var offset = toggle & quote;
-        toggle ^= quote;
-        //Assert.AreEqual(expectedOffset, offset, nameof(offset));
-        //Assert.AreEqual(expectedToggle, toggle, nameof(toggle));
     }
 }

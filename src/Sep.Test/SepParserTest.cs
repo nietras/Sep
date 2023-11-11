@@ -19,7 +19,7 @@ public class SepParserTest
         _chars = new char[1024];
         _state._chars = _chars;
         _colEnds = new int[1024];
-        _state._colEnds = _colEnds;
+        _state._colEndsOrColInfos = _colEnds;
     }
 
     static IEnumerable<object[]> Parsers => SepParserFactory.CreateFactories()

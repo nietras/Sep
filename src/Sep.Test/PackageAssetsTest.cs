@@ -10,53 +10,61 @@ namespace nietras.SeparatedValues.Test;
 public class PackageAssetsTest
 {
     [TestMethod]
-    public void PackageAssetsTest_Read_NoQuotes()
-    {
-        VerifyRead(NoQuotes);
-    }
+    public void PackageAssetsTest_Read_NoQuotes() => VerifyRead(NoQuotes);
 
     [TestMethod]
-    public void PackageAssetsTest_Read_WithQuotes()
-    {
-        VerifyRead(WithQuotes);
-    }
+    public void PackageAssetsTest_Read_NoQuotes_Unescape() => VerifyRead(NoQuotes, unescape: true);
 
     [TestMethod]
-    public void PackageAssetsTest_Enumerate_NoQuotes()
-    {
+    public void PackageAssetsTest_Read_WithQuotes() => VerifyRead(WithQuotes);
+
+    [TestMethod]
+    public void PackageAssetsTest_Read_WithQuotes_Unescape() => VerifyRead(WithQuotes, unescape: true);
+
+    [TestMethod]
+    public void PackageAssetsTest_Enumerate_NoQuotes() =>
         VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select));
-    }
 
     [TestMethod]
-    public void PackageAssetsTest_Enumerate_WithQuotes()
-    {
-        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select));
-    }
+    public void PackageAssetsTest_Enumerate_NoQuotes_Unescape() =>
+        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    static void VerifyRead(string text)
+    [TestMethod]
+    public void PackageAssetsTest_Enumerate_WithQuotes() =>
+        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select));
+
+    [TestMethod]
+    public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
+        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
+
+    static void VerifyRead(string text, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = unescape }).FromText(text);
         var rowIndex = 0;
         foreach (var row in reader)
         {
             var expectedCols = expected[rowIndex];
+            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
             Assert.AreEqual(expectedCols.Length, row.ColCount);
-            CollectionAssert.AreEqual(expectedCols, row[0..row.ColCount].ToStringsArray());
+            CollectionAssert.AreEqual(expectedCols, row[..].ToStringsArray());
             ++rowIndex;
         }
         Assert.AreEqual(expected.Count, rowIndex);
     }
 
-    static void VerifyEnumerate(string text, Func<SepReader, SepReader.RowFunc<string[]>, IEnumerable<string[]>> enumerate)
+    static void VerifyEnumerate(string text,
+        Func<SepReader, SepReader.RowFunc<string[]>, IEnumerable<string[]>> enumerate,
+        bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = unescape }).FromText(text);
         var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
         var rowIndex = 0;
         foreach (var cols in rows)
         {
             var expectedCols = expected[rowIndex];
+            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
             Assert.AreEqual(expectedCols.Length, cols.Length);
             CollectionAssert.AreEqual(expectedCols, cols);
             ++rowIndex;
@@ -76,6 +84,9 @@ public class PackageAssetsTest
             yield return line.Split(separator);
         }
     }
+
+    static string[] UnescapeColsByTrim(string[] expectedCols) =>
+        expectedCols.Select(c => c.Trim('"')).ToArray();
 
     const string NoQuotes = @"75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,RuntimeAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,CompileLibAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0

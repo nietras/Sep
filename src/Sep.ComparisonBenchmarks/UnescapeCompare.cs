@@ -57,12 +57,14 @@ public static class UnescapeCompare
         };
         var sb = new StringBuilder();
         sb.Append($"| Input |");
+        sb.Append($" Input (C#) |");
         foreach (var (name, _) in runners)
         {
             sb.Append($" {name} |");
         }
         sb.AppendLine();
         sb.Append($"|-|");
+        sb.Append($"-|");
         foreach (var (_, _) in runners)
         {
             sb.Append($"-|");
@@ -71,6 +73,7 @@ public static class UnescapeCompare
         foreach (var test in tests)
         {
             sb.Append($"| `{test.ColText.Replace(" ", "·")}` |");
+            sb.Append($" `{test.ColText.Replace(" ", "·").Replace("\"", "\\\"")}` |");
             foreach (var (_, action) in runners)
             {
                 try
@@ -127,7 +130,7 @@ public static class UnescapeCompare
 
     static string UnescapeSep(string colText)
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(colText);
+        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true }).FromText(colText);
         SepAssert.Assert(reader.MoveNext());
         return reader.Current[0].ToString();
     }

@@ -1,6 +1,9 @@
 ﻿namespace nietras.SeparatedValues;
 
-record struct SepColInfo(int ColEnd, int QuoteCount);
+record struct SepColInfo(int ColEnd, int QuoteCount)
+{
+    public override string ToString() => $"({ColEnd}, {QuoteCount})";
+}
 
 interface ISepColInfoMethods<TColInfo>
 {

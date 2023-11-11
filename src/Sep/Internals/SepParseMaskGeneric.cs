@@ -93,7 +93,7 @@ static class SepParseMaskGeneric
     ADDCOLEND:
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRef = ref Add(ref colInfosRef, 1);
-        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
+        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
         quoteCount = 0;
     RETURN:
         return ref colInfosRef;

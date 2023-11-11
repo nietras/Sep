@@ -94,6 +94,27 @@ public class SepReaderColTest
     }
 #endif
 
+    internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData;
+
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeData))]
+    public void SepReaderColTest_Unescape_Test(string chars, string expected)
+    {
+        var src = new string(chars);
+
+        var actual = UnescapeSep(chars);
+
+        Assert.AreEqual(expected, actual, src);
+
+        static string UnescapeSep(string colText)
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true }).FromText(colText);
+            SepAssert.Assert(reader.MoveNext());
+            return reader.Current[0].ToString();
+        }
+    }
+
+
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)
     {
         Func<SepReaderOptions, SepReaderOptions> defaultConfigure = static c => c;

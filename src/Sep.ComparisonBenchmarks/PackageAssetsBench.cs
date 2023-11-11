@@ -158,6 +158,20 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
+    [Benchmark()]
+    public void Sep_Unquo()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
@@ -253,6 +267,28 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        foreach (var row in reader)
+        {
+            var asset = PackageAsset.Read(reader, static (r, i) => r.ToString(i));
+            assets.Add(asset);
+        }
+    }
+
+    [Benchmark]
+    public void Sep_Unquo()
+    {
+        var assets = new List<PackageAsset>();
+
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+            EnableUnquoteUnescape = true,
 #if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
 #endif

@@ -19,6 +19,7 @@ sealed class SepParserIndexOfAny : ISepParser
     }
 
     public int PaddingLength => 0;
+    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -48,7 +49,7 @@ sealed class SepParserIndexOfAny : ISepParser
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
-        var colInfos = s._colEnds;
+        var colInfos = s._colEndsOrColInfos;
         var colCount = s._colCount;
         var lineNumber = s._lineNumber;
 
@@ -104,7 +105,7 @@ sealed class SepParserIndexOfAny : ISepParser
         }
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
-        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) >> 2);
+        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / SizeOf<TColInfo>());
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 

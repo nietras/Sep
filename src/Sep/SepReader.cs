@@ -181,17 +181,17 @@ public sealed partial class SepReader : SepReaderState
 
         var endOfFile = false;
     LOOP:
-        CheckPoint($"{nameof(_parser.Parse)} BEFORE");
+        CheckPoint($"{nameof(_parser.ParseColEnds)} BEFORE");
 
         var rowLineEndingOffset = 0;
         if (_parser is not null)
         {
-            rowLineEndingOffset = _parser.Parse(this);
+            rowLineEndingOffset = _parser.ParseColEnds(this);
         }
     MAYBEROW:
         if (rowLineEndingOffset != 0)
         {
-            CheckPoint($"{nameof(_parser.Parse)} AFTER - RETURN TRUE");
+            CheckPoint($"{nameof(_parser.ParseColEnds)} AFTER - RETURN TRUE");
             if (_colCountExpected >= 0 && _colCount != _colCountExpected)
             {
                 // Capture row start and move next to be able to continue even
@@ -206,12 +206,12 @@ public sealed partial class SepReader : SepReaderState
         }
         else if (endOfFile)
         {
-            CheckPoint($"{nameof(_parser.Parse)} AFTER - ENDOFFILE");
+            CheckPoint($"{nameof(_parser.ParseColEnds)} AFTER - ENDOFFILE");
             foundRow = false;
             goto RETURN;
         }
 
-        CheckPoint($"{nameof(_parser.Parse)} AFTER");
+        CheckPoint($"{nameof(_parser.ParseColEnds)} AFTER");
 
         endOfFile = EnsureInitializeAndReadData(endOfFile);
         if (endOfFile && _charsRowStart < _charsDataEnd && _charsParseStart == _charsDataEnd)

@@ -38,11 +38,11 @@ else
 {
     var b = new SepParserBench();
     b.GlobalSetup();
-    b.Parse();
+    b.ParseColEnds();
     Thread.Sleep(200);
     for (var i = 0; i < 200000000; i++)
     {
-        b.Parse();
+        b.ParseColEnds();
     }
 }
 

@@ -34,7 +34,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int Parse(SepReaderState s)
+    public int ParseColEnds(SepReaderState s)
     {
         return Parse<int, SepColEndMethods>(s);
     }

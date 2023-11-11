@@ -3,5 +3,6 @@
 interface ISepParser
 {
     int PaddingLength { get; }
-    int Parse(SepReaderState s);
+    int ParseColEnds(SepReaderState s);
+    int ParseColInfos(SepReaderState s);
 }

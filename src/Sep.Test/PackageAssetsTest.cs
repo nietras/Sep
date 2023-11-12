@@ -40,7 +40,7 @@ public class PackageAssetsTest
     static void VerifyRead(string text, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
         var rowIndex = 0;
         foreach (var row in reader)
         {
@@ -58,7 +58,7 @@ public class PackageAssetsTest
         bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
         var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
         var rowIndex = 0;
         foreach (var cols in rows)

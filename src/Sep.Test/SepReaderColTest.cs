@@ -108,7 +108,7 @@ public class SepReaderColTest
 
         static string UnescapeSep(string colText)
         {
-            using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true }).FromText(colText);
+            using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(colText);
             SepAssert.Assert(reader.MoveNext());
             return reader.Current[0].ToString();
         }

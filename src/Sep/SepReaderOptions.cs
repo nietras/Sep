@@ -45,15 +45,15 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public bool DisableColCountCheck { get; init; } = false;
     /// <summary>
-    /// Enable unquote/unescape of quotes.
+    /// Unescape (and unquote) quotes on column access.
     /// </summary>
     /// <remarks>
-    /// When enabled, if a column starts with a quote then the two outermost
+    /// When true, if a column starts with a quote then the two outermost
     /// quotes are removed and every second inner quote is removed. Note that
     /// unquote/unescape happens in-place, which means the <see
     /// cref="SepReader.Row.Span" /> will be modified and contain "garbage"
     /// state after unescaped cols before next col. This is for efficiency to
     /// avoid allocating secondary memory for unescaped columns.
     /// </remarks>
-    public bool EnableUnquoteUnescape { get; init; } = false;
+    public bool Unescape { get; init; } = false;
 }

@@ -80,7 +80,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
     [Benchmark]
     public void Sep_Unquote()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true })
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true })
                               .From(Reader.CreateReader());
         foreach (var row in reader) { }
     }
@@ -169,7 +169,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     [Benchmark()]
     public void Sep_Unquote()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true })
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true })
                               .From(Reader.CreateReader());
         foreach (var row in reader)
         {
@@ -296,7 +296,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
-            EnableUnquoteUnescape = true,
+            Unescape = true,
 #if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
 #endif

@@ -41,7 +41,7 @@ public sealed partial class SepReader : SepReaderState
     bool _rowAlreadyFound = false;
 
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
-        : base(colUnquoteUnescape: options.EnableUnquoteUnescape)
+        : base(colUnquoteUnescape: options.Unescape)
     {
         _info = info;
         _reader = reader;

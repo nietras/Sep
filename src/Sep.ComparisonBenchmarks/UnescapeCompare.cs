@@ -108,7 +108,7 @@ public static class UnescapeCompare
         sb.AppendLine();
         sb.AppendLine($"¹ CsvHelper with `BadDataFound = null`");
         sb.AppendLine();
-        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.EnableUnquoteUnescape)} = true`");
+        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.Unescape)} = true`");
 
         var text = sb.ToString();
         Trace.WriteLine(text);
@@ -142,7 +142,7 @@ public static class UnescapeCompare
 
     static string UnescapeSep(string colText)
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false, EnableUnquoteUnescape = true }).FromText(colText);
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(colText);
         SepAssert.Assert(reader.MoveNext());
         return reader.Current[0].ToString();
     }

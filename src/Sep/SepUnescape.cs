@@ -31,6 +31,7 @@ static class SepUnescape
         return (int)(ByteOffset(ref charRefStart, ref unescapedCharRef) / sizeof(char));
     }
 
+    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int UnescapeInPlace(ref char charRef, int length)
     {
         nint unescapedLength = 0;

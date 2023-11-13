@@ -94,11 +94,37 @@ public class SepReaderColTest
     }
 #endif
 
-    internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData;
+    internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
+        {
+            new object[] { "a\"\"a", "a\"\"a" },
+            new object[] { "a\"a\"a", "a\"a\"a" },
+            new object[] { "·\"\"·", "·\"\"·" },
+            new object[] { "·\"a\"·", "·\"a\"·" },
+            new object[] { "·\"\"", "·\"\"" },
+            new object[] { "·\"a\"", "·\"a\"" },
+            new object[] { "a\"\"\"a", "a\"\"\"a" },
+        });
 
     [DataTestMethod]
     [DynamicData(nameof(UnescapeData))]
-    public void SepReaderColTest_Unescape_Test(string chars, string expected)
+    public void SepReaderColTest_Unescape_Header_Test(string chars, string expected)
+    {
+        var src = new string(chars);
+
+        var actual = UnescapeSep(chars);
+
+        Assert.AreEqual(expected, actual, src);
+
+        static string UnescapeSep(string colText)
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = true, Unescape = true }).FromText(colText);
+            return reader.Header.ColNames[0];
+        }
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeData))]
+    public void SepReaderColTest_Unescape_Col_Test(string chars, string expected)
     {
         var src = new string(chars);
 
@@ -109,11 +135,10 @@ public class SepReaderColTest
         static string UnescapeSep(string colText)
         {
             using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(colText);
-            SepAssert.Assert(reader.MoveNext());
+            Assert.IsTrue(reader.MoveNext());
             return reader.Current[0].ToString();
         }
     }
-
 
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)
     {

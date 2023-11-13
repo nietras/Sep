@@ -50,7 +50,7 @@ static class SepUnescape
         return (int)unescapedLength;
     }
 
-    internal static int AfterFirstQuoteRemoveEverySecondQuoteInPlace(ref char charRef, int length)
+    internal static int UnescapeInPlaceQuoteCountBoolUNVALIDATED(ref char charRef, int length)
     {
         // After first quote
         var quoteCount = 0;
@@ -70,7 +70,7 @@ static class SepUnescape
         return unescapedLength;
     }
 
-    internal static int AfterFirstQuoteRemoveEverySecondQuoteInPlaceBool(ref char charRef, int length)
+    internal static int UnescapeInPlaceEvenBoolUNVALIDATED(ref char charRef, int length)
     {
         // After first quote, so quote 0, hence even
         var evenQuote = false;

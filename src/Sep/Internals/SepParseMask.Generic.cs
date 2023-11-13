@@ -5,7 +5,7 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-static class SepParseMaskGeneric
+static partial class SepParseMask
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref TColInfo ParseSeparatorsMask<TColInfo, TColInfoMethods>(nuint mask, int charsIndex, ref TColInfo colInfosRef)

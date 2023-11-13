@@ -79,7 +79,7 @@ sealed class SepParserIndexOfAny : ISepParser
                 A.Assert(charsIndex < charsEnd, $"{nameof(charsIndex)} >= {nameof(charsEnd)}");
 
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
-                colInfosRefCurrent = ref SepParseMaskGeneric.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
+                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
                     separator, ref rowLineEndingOffset, ref quoteCount, ref colInfosRefCurrent, ref lineNumber);
                 charsIndex += relativeIndex + 1;
 

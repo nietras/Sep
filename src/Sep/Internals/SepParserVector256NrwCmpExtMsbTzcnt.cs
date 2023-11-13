@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
-using static nietras.SeparatedValues.SepParseMaskGeneric;
+using static nietras.SeparatedValues.SepParseMask;
 using Vec = System.Runtime.Intrinsics.Vector256;
 using VecUI16 = System.Runtime.Intrinsics.Vector256<ushort>;
 using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;

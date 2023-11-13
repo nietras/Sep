@@ -2,11 +2,11 @@
 
 namespace nietras.SeparatedValues;
 
-static class SepParseMask
+static partial class SepParseMask
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsMask(nuint mask, int charsIndex, ref int colEndsRef)
-        => ref SepParseMaskGeneric.ParseSeparatorsMask<int, SepColEndMethods>(
+        => ref SepParseMask.ParseSeparatorsMask<int, SepColEndMethods>(
             mask, charsIndex, ref colEndsRef);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -14,7 +14,7 @@ static class SepParseMask
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
         ref int colEndsRef, scoped ref int lineNumber)
-        => ref SepParseMaskGeneric.ParseAnyCharsMask<int, SepColEndMethods>(
+        => ref SepParseMask.ParseAnyCharsMask<int, SepColEndMethods>(
             mask, separator, ref charsRef, charsIndex,
             ref rowLineEndingOffset, ref quoteCount,
             ref colEndsRef, ref lineNumber);
@@ -24,7 +24,7 @@ static class SepParseMask
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
         ref int colEndsRef, scoped ref int lineNumber)
-        => ref SepParseMaskGeneric.ParseAnyChar<int, SepColEndMethods>(
+        => ref SepParseMask.ParseAnyChar<int, SepColEndMethods>(
             ref charsRef, charsIndex, relativeIndex, separator,
             ref rowLineEndingOffset, ref quoteCount,
             ref colEndsRef, ref lineNumber);
@@ -33,7 +33,7 @@ static class SepParseMask
     internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
         ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
-        => ref SepParseMaskGeneric.ParseSeparatorsLineEndingsMasks<int, SepColEndMethods>(
+        => ref SepParseMask.ParseSeparatorsLineEndingsMasks<int, SepColEndMethods>(
             separatorsMask, separatorsLineEndingsMask, ref charsRef, ref charsIndex, separator,
             ref colEndsRefCurrent, ref rowLineEndingOffset, ref lineNumber);
 
@@ -42,7 +42,7 @@ static class SepParseMask
     internal static ref int ParseLineEndingMask(nuint lineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex,
         ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
-        => ref SepParseMaskGeneric.ParseLineEndingMask<int, SepColEndMethods>(
+        => ref SepParseMask.ParseLineEndingMask<int, SepColEndMethods>(
             lineEndingsMask, ref charsRef, ref charsIndex,
             ref colEndsRefCurrent, ref rowLineEndingOffset, ref lineNumber);
 }

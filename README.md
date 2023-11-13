@@ -29,8 +29,9 @@ and similar from [.NET 7+ and C#
 11+](https://nietras.com/2022/11/26/dotnet-and-csharp-versions/) for a modern
 and highly efficient implementation.
 * **🔎 Minimal** - a succinct yet expressive API with few options and no hidden
-changes to input or output. What you read/write is what you get. This means
-there is no "automatic" escaping/unescaping of quotes, for example.
+changes to input or output. What you read/write is what you get. E.g. by default
+there is no "automatic" escaping/unescaping of quotes. For automatic unescaping
+of quotes see [SepReaderOptions](#sepreaderoptions).
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for

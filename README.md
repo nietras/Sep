@@ -285,15 +285,16 @@ public bool DisableFastFloat { get; init; } = false;
 /// </summary>
 public bool DisableColCountCheck { get; init; } = false;
 /// <summary>
-/// Unescape (and unquote) quotes on column access.
+/// Unescape quotes on column access.
 /// </summary>
 /// <remarks>
-/// When true, if a column starts with a quote then the two outermost
-/// quotes are removed and every second inner quote is removed. Note that
+/// When true, if a column starts with a quote then the two outermost quotes
+/// are removed and every second inner quote is removed. Note that
 /// unquote/unescape happens in-place, which means the <see
 /// cref="SepReader.Row.Span" /> will be modified and contain "garbage"
 /// state after unescaped cols before next col. This is for efficiency to
-/// avoid allocating secondary memory for unescaped columns.
+/// avoid allocating secondary memory for unescaped columns. Header
+/// columns/names will also be unescaped.
 /// </remarks>
 public bool Unescape { get; init; } = false;
 ```

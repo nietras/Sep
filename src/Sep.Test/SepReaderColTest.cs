@@ -111,15 +111,10 @@ public class SepReaderColTest
     {
         var src = new string(chars);
 
-        var actual = UnescapeSep(chars);
+        using var reader = Sep.Reader(o => o with { HasHeader = true, Unescape = true }).FromText(src);
+        var actual = reader.Header.ColNames[0];
 
         Assert.AreEqual(expected, actual, src);
-
-        static string UnescapeSep(string colText)
-        {
-            using var reader = Sep.Reader(o => o with { HasHeader = true, Unescape = true }).FromText(colText);
-            return reader.Header.ColNames[0];
-        }
     }
 
     [DataTestMethod]
@@ -127,16 +122,13 @@ public class SepReaderColTest
     public void SepReaderColTest_Unescape_Col_Test(string chars, string expected)
     {
         var src = new string(chars);
-
-        var actual = UnescapeSep(chars);
-
-        Assert.AreEqual(expected, actual, src);
-
-        static string UnescapeSep(string colText)
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(src);
+        // Ensure repeated access works
+        for (var i = 0; i < 4; i++)
         {
-            using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(colText);
-            Assert.IsTrue(reader.MoveNext());
-            return reader.Current[0].ToString();
+            var actual = reader.Current[0].ToString();
+
+            Assert.AreEqual(expected, actual, src);
         }
     }
 

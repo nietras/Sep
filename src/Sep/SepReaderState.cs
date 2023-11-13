@@ -126,30 +126,31 @@ public class SepReaderState : IDisposable
             ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
             var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
             ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
-            var (colEnd, quoteCountOrUnquotedColLength) = colInfo;
+            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
             var colLength = colEnd - colStart;
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            // Unquote and unescape if quotes found, negative quote count and
-            // col has already been unquoted/unescaped and th count is instead
-            // the new col length
-            if (quoteCountOrUnquotedColLength == 0 || colRef != SepDefaults.Quote)
+            // Unescape if quotes found, negative and col has already been
+            // unescaped and the count is instead the new col length.
+            if (quoteCountOrNegativeUnescapedLength == 0 ||
+                (quoteCountOrNegativeUnescapedLength > 0 && colRef != SepDefaults.Quote))
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
-            // From now on it is known the first char in col is a quote
-            // Optimize for common case of outermost quotes only
-            else if (quoteCountOrUnquotedColLength == 2 && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
+            // From now on it is known the first char in col is a quote if not
+            // already escaped. Optimize for common case of outermost quotes.
+            else if (quoteCountOrNegativeUnescapedLength == 2 &&
+                     Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref colRef, 1), colLength - 2);
             }
-            else if (quoteCountOrUnquotedColLength < 0)
+            else if (quoteCountOrNegativeUnescapedLength < 0)
             {
-                var unquotedColLength = -quoteCountOrUnquotedColLength;
-                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unquotedColLength);
+                var unescapedLength = -quoteCountOrNegativeUnescapedLength;
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
             else
             {
-                // Unquote and unescape fully and in-place
+                // Unescape fully and in-place
                 var unescapedLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
                 colInfo.QuoteCount = -unescapedLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);

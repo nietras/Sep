@@ -18,6 +18,10 @@ static class SepUnescape
             nint increment = quoteCount & 1 | notQuote;
             unescapedLength += increment;
         }
+        for (var i = unescapedLength; i < length; i++)
+        {
+            Add(ref charRef, i) = SepDefaults.Quote;
+        }
         return (int)unescapedLength;
     }
 

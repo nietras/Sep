@@ -42,7 +42,12 @@ static class SepUnescape
             nint increment = quoteCount & 1 | notQuote;
             unescapedCharRef = ref Add(ref unescapedCharRef, increment);
         }
-        return (int)(ByteOffset(ref charRefStart, ref unescapedCharRef) / sizeof(char));
+        var unescapedLength = ByteOffset(ref charRefStart, ref unescapedCharRef) / sizeof(char);
+        for (var i = unescapedLength; i < length; i++)
+        {
+            Add(ref charRef, i) = SepDefaults.Quote;
+        }
+        return (int)unescapedLength;
     }
 
     internal static int AfterFirstQuoteRemoveEverySecondQuoteInPlace(ref char charRef, int length)
@@ -58,6 +63,10 @@ static class SepUnescape
             unescapedLength += (quoteCount & 1) == 0 ? 1 : 0;
             Add(ref charRef, unescapedLength) = c;
         }
+        for (var i = unescapedLength; i < length; i++)
+        {
+            Add(ref charRef, i) = SepDefaults.Quote;
+        }
         return unescapedLength;
     }
 
@@ -72,6 +81,10 @@ static class SepUnescape
             evenQuote ^= c == SepDefaults.Quote;
             unescapedLength += evenQuote ? 1 : 0;
             Add(ref charRef, unescapedLength) = c;
+        }
+        for (var i = unescapedLength; i < length; i++)
+        {
+            Add(ref charRef, i) = SepDefaults.Quote;
         }
         return unescapedLength;
     }

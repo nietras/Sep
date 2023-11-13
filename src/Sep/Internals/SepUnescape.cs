@@ -4,12 +4,22 @@ namespace nietras.SeparatedValues;
 
 static class SepUnescape
 {
-    //A | B | A XOR B
-    //--------------
-    //0 | 0 |    0
-    //0 | 1 |    1
-    //1 | 0 |    1
-    //1 | 1 |    0
+    internal static int UnescapeInPlace(ref char charRef, int length)
+    {
+        nint unescapedLength = 0;
+        nint quoteCount = 1; // We start just past first quote
+        for (var i = 1; i < length; i++)
+        {
+            var c = Add(ref charRef, i);
+            Add(ref charRef, unescapedLength) = c;
+            nint quote = c == SepDefaults.Quote ? 1 : 0;
+            nint notQuote = quote ^ 1;
+            quoteCount += quote;
+            nint increment = quoteCount & 1 | notQuote;
+            unescapedLength += increment;
+        }
+        return (int)unescapedLength;
+    }
 
     internal static int UnescapeInPlaceRefs(ref char charRef, int length)
     {
@@ -29,24 +39,6 @@ static class SepUnescape
             unescapedCharRef = ref Add(ref unescapedCharRef, increment);
         }
         return (int)(ByteOffset(ref charRefStart, ref unescapedCharRef) / sizeof(char));
-    }
-
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int UnescapeInPlace(ref char charRef, int length)
-    {
-        nint unescapedLength = 0;
-        nint quoteCount = 1; // We start just past first quote
-        for (var i = 1; i < length; i++)
-        {
-            var c = Add(ref charRef, i);
-            Add(ref charRef, unescapedLength) = c;
-            nint quote = c == SepDefaults.Quote ? 1 : 0;
-            nint notQuote = quote ^ 1;
-            quoteCount += quote;
-            nint increment = quoteCount & 1 | notQuote;
-            unescapedLength += increment;
-        }
-        return (int)unescapedLength;
     }
 
     internal static int AfterFirstQuoteRemoveEverySecondQuoteInPlace(ref char charRef, int length)

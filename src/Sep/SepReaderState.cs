@@ -51,25 +51,25 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
 
-    internal Span<T> GetColsEntireSpanAs<T>() where T : unmanaged
-        => MemoryMarshal.CreateSpan(ref GetColsRefAs<T>(), _colEndsOrColInfos.Length / (Unsafe.SizeOf<T>() / sizeof(int)));
-
-    internal ref T GetColsRefAs<T>() where T : unmanaged
-    {
-        A.Assert(Unsafe.SizeOf<T>() % sizeof(int) == 0);
-        ref var colEndsOrColInfosRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-        return ref Unsafe.As<int, T>(ref colEndsOrColInfosRef);
-    }
-
     #region Row
     internal ReadOnlySpan<char> RowSpan()
     {
         if (_colCount > 0)
         {
-            var colEnds = _colEndsOrColInfos;
-            var start = colEnds[0] + 1; // +1 since previous end
-            var end = colEnds[_colCount];
-            return new(_chars, start, end - start);
+            if (_colUnquoteUnescape == 0)
+            {
+                var colEnds = _colEndsOrColInfos;
+                var start = colEnds[0] + 1; // +1 since previous end
+                var end = colEnds[_colCount];
+                return new(_chars, start, end - start);
+            }
+            else
+            {
+                ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+                var start = colInfos.ColEnd + 1; // +1 since previous end
+                var end = Unsafe.Add(ref colInfos, _colCount).ColEnd;
+                return new(_chars, start, end - start);
+            }
         }
         else
         {
@@ -454,6 +454,25 @@ public class SepReaderState : IDisposable
         return span;
     }
     #endregion
+
+    internal Span<T> GetColsEntireSpanAs<T>() where T : unmanaged =>
+        MemoryMarshal.CreateSpan(ref GetColsRefAs<T>(), GetColInfosLength<T>());
+
+    internal int GetColInfosLength() =>
+        _colEndsOrColInfos.Length / GetIntegersPerColInfo();
+
+    internal int GetColInfosLength<T>() where T : unmanaged =>
+        _colEndsOrColInfos.Length / (Unsafe.SizeOf<T>() / sizeof(int));
+
+    internal int GetIntegersPerColInfo() =>
+        _colUnquoteUnescape == 0 ? 1 : Unsafe.SizeOf<SepColInfo>() / sizeof(int);
+
+    internal ref T GetColsRefAs<T>() where T : unmanaged
+    {
+        A.Assert(Unsafe.SizeOf<T>() % sizeof(int) == 0);
+        ref var colEndsOrColInfosRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
+        return ref Unsafe.As<int, T>(ref colEndsOrColInfosRef);
+    }
 
     internal virtual void DisposeManaged()
     {

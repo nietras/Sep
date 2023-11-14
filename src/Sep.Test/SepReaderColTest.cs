@@ -119,16 +119,21 @@ public class SepReaderColTest
 
     [DataTestMethod]
     [DynamicData(nameof(UnescapeData))]
-    public void SepReaderColTest_Unescape_Col_Test(string chars, string expected)
+    public void SepReaderColTest_Unescape_Col_Test(string chars, string expectedCol)
     {
         var src = new string(chars);
         using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(src);
         // Ensure repeated access works
         for (var i = 0; i < 4; i++)
         {
-            var actual = reader.Current[0].ToString();
+            var row = reader.Current;
 
-            Assert.AreEqual(expected, actual, src);
+            var actualCol = row[0].ToString();
+            Assert.AreEqual(expectedCol, actualCol, src);
+
+            // Ensure row can be gotten and that expectedCol is contained
+            var rowText = row.Span.ToString();
+            Assert.IsTrue(rowText.Contains(expectedCol));
         }
     }
 

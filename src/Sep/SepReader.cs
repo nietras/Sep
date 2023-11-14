@@ -266,9 +266,9 @@ public sealed partial class SepReader : SepReaderState
         if (_parser != null && _charsParseStart < _charsDataEnd)
         {
             // + 1 - must be room for one more col always
-            if ((_colCount + 1) >= (_colEndsOrColInfos.Length - _parser.PaddingLength))
+            if ((_colCount + 1) >= (GetColInfosLength() - _parser.PaddingLength))
             {
-                DoubleColsCapacityCopyState();
+                DoubleColInfosCapacityCopyState();
             }
         }
         else
@@ -276,9 +276,9 @@ public sealed partial class SepReader : SepReaderState
             if (nothingLeftToRead)
             {
                 // + 1 - must be room for one more col always
-                if ((_colCount + 1) >= _colEndsOrColInfos.Length)
+                if ((_colCount + 1) >= GetColInfosLength())
                 {
-                    DoubleColsCapacityCopyState();
+                    DoubleColInfosCapacityCopyState();
                 }
                 // If nothing has been read, then at end of file.
                 endOfFile = true;
@@ -287,16 +287,16 @@ public sealed partial class SepReader : SepReaderState
         return endOfFile;
     }
 
-    void DoubleColsCapacityCopyState()
+    void DoubleColInfosCapacityCopyState()
     {
         var previousColEnds = _colEndsOrColInfos;
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(_colEndsOrColInfos.Length * 2);
 
-        var factor = _colUnquoteUnescape == 0 ? 1 : Unsafe.SizeOf<SepColInfo>() / sizeof(int);
-        var length = (_colCount + 1) * factor;
+        var factor = GetIntegersPerColInfo();
+        var lengthInIntegers = (_colCount + 1) * factor;
 
-        var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, length);
-        var newColEndsSpan = _colEndsOrColInfos.AsSpan().Slice(0, length);
+        var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, lengthInIntegers);
+        var newColEndsSpan = _colEndsOrColInfos.AsSpan().Slice(0, lengthInIntegers);
         previousColEndsSpan.CopyTo(newColEndsSpan);
         ArrayPool<int>.Shared.Return(previousColEnds);
     }

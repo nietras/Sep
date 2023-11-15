@@ -29,9 +29,8 @@ public class SepReaderState : IDisposable
 
     internal const int ColEndsInitialLength = 128;
     // [0] = Previous row/col end e.g. one before row/first col start
-    // [1...] = Col ends e.g. [1] = first col end
+    // [1...] = Col ends/infos e.g. [1] = first col end/info
     // Length = colCount + 1
-    // TODO: Rename to colEndsOrColInfos
     internal int[] _colEndsOrColInfos = Array.Empty<int>();
     internal int _colCountExpected = -1;
     internal int _colCount = 0;

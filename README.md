@@ -303,8 +303,9 @@ public bool Unescape { get; init; } = false;
 ```
 
 #### Unescaping
-While great has been taken to ensure Sep unescaping of quotes is both correct
-and fast, there is always the question of how does one respond to invalid input.
+While great care has been taken to ensure Sep unescaping of quotes is both
+correct and fast, there is always the question of how does one respond to
+invalid input.
 
 The below table tries to summarize the behavior of Sep vs CsvHelper and Sylvan.
 Note that all do the same for valid input. There are differences for how invalid

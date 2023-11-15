@@ -1,4 +1,5 @@
-﻿using static System.Runtime.CompilerServices.Unsafe;
+﻿using System.Diagnostics.CodeAnalysis;
+using static System.Runtime.CompilerServices.Unsafe;
 
 namespace nietras.SeparatedValues;
 
@@ -25,6 +26,7 @@ static class SepUnescape
         return (int)unescapedLength;
     }
 
+    [ExcludeFromCodeCoverage] // Trial
     internal static int UnescapeInPlaceRefs(ref char charRef, int length)
     {
         nint quoteCount = 1; // We start just past first quote
@@ -50,6 +52,7 @@ static class SepUnescape
         return (int)unescapedLength;
     }
 
+    [ExcludeFromCodeCoverage] // Trial
     internal static int UnescapeInPlaceQuoteCountBoolUNVALIDATED(ref char charRef, int length)
     {
         // After first quote
@@ -70,6 +73,7 @@ static class SepUnescape
         return unescapedLength;
     }
 
+    [ExcludeFromCodeCoverage] // Trial
     internal static int UnescapeInPlaceEvenBoolUNVALIDATED(ref char charRef, int length)
     {
         // After first quote, so quote 0, hence even

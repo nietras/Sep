@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -455,14 +456,15 @@ public class SepReaderState : IDisposable
     }
     #endregion
 
+    [ExcludeFromCodeCoverage]
     internal Span<T> GetColsEntireSpanAs<T>() where T : unmanaged =>
         MemoryMarshal.CreateSpan(ref GetColsRefAs<T>(), GetColInfosLength<T>());
+    [ExcludeFromCodeCoverage]
+    internal int GetColInfosLength<T>() where T : unmanaged =>
+        _colEndsOrColInfos.Length / (Unsafe.SizeOf<T>() / sizeof(int));
 
     internal int GetColInfosLength() =>
         _colEndsOrColInfos.Length / GetIntegersPerColInfo();
-
-    internal int GetColInfosLength<T>() where T : unmanaged =>
-        _colEndsOrColInfos.Length / (Unsafe.SizeOf<T>() / sizeof(int));
 
     internal int GetIntegersPerColInfo() =>
         _colUnquoteUnescape == 0 ? 1 : Unsafe.SizeOf<SepColInfo>() / sizeof(int);

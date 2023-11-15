@@ -52,6 +52,7 @@ public class SepParserTest
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
         Assert.IsTrue(parser.PaddingLength >= 0);
+        Assert.IsTrue(parser.QuoteCount == 0);
     }
 
     [TestMethod]

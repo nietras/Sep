@@ -108,7 +108,7 @@ public static class UnescapeCompare
         sb.AppendLine();
         sb.AppendLine($"¹ CsvHelper with `BadDataFound = null`");
         sb.AppendLine();
-        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.Unescape)} = true`");
+        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.Unescape)} = true` in `{nameof(SepReaderOptions)}`");
 
         var text = sb.ToString();
         Trace.WriteLine(text);

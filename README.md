@@ -31,7 +31,7 @@ and highly efficient implementation.
 * **🔎 Minimal** - a succinct yet expressive API with few options and no hidden
 changes to input or output. What you read/write is what you get. E.g. by default
 there is no "automatic" escaping/unescaping of quotes. For automatic unescaping
-of quotes see [SepReaderOptions](#sepreaderoptions).
+of quotes see [SepReaderOptions](#sepreaderoptions) and [Unescaping](#unescaping).
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
@@ -40,6 +40,8 @@ with [detailed benchmarks](#comparison-benchmarks) to prove it.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.
+* **✅ Thoroughly tested** with great code coverage and special focus on testing 
+  edge cases including randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing).
 * **🌐 Cross-platform** - works on any platform, any architecture supported by
  .NET. 100% managed and written in beautiful modern C#.
 * **✂️ Trimmable and AOT/NativeAOT compatible** - no problematic reflection or
@@ -299,6 +301,49 @@ public bool DisableColCountCheck { get; init; } = false;
 /// </remarks>
 public bool Unescape { get; init; } = false;
 ```
+
+#### Unescaping
+While great has been taken to ensure Sep unescaping of quotes is both correct
+and fast, there is always the question of how does one respond to invalid input.
+
+The below table tries to summarize the behavior of Sep vs CsvHelper and Sylvan.
+Note that all do the same for valid input. There are differences for how invalid
+input is handled. For Sep the design choice has been based on not wanting to
+throw exceptions and to use a principle that is both reasonably fast and simple.
+
+| Input | Valid | CsvHelper | CsvHelper¹ | Sylvan | Sep² |
+|-|-|-|-|-|-|
+| `a` | True | `a` | `a` | `a` | `a` |
+| `""` | True | | | | |
+| `""""` | True | `"` | `"` | `"` | `"` |
+| `""""""` | True | `""` | `""` | `""` | `""` |
+| `"a"` | True | `a` | `a` | `a` | `a` |
+| `"a""a"` | True | `a"a` | `a"a` | `a"a` | `a"a` |
+| `"a""a""a"` | True | `a"a"a` | `a"a"a` | `a"a"a` | `a"a"a` |
+| `a""a` | False | EXCEPTION | `a""a` | `a""a` | `a""a` |
+| `a"a"a` | False | EXCEPTION | `a"a"a` | `a"a"a` | `a"a"a` |
+| `·""·` | False | EXCEPTION | `·""·` | `·""·` | `·""·` |
+| `·"a"·` | False | EXCEPTION | `·"a"·` | `·"a"·` | `·"a"·` |
+| `·""` | False | EXCEPTION | `·""` | `·""` | `·""` |
+| `·"a"` | False | EXCEPTION | `·"a"` | `·"a"` | `·"a"` |
+| `a"""a` | False | EXCEPTION | `a"""a` | `a"""a` | `a"""a` |
+| `"a"a"a"` | False | EXCEPTION | `aa"a"` | `a"a"a` | `aa"a` |
+| `""·` | False | EXCEPTION | `·` | `"` | `·` |
+| `"a"·` | False | EXCEPTION | `a·` | `a"` | `a·` |
+| `"a"""a` | False | EXCEPTION | `aa` | EXCEPTION | `a"a` |
+| `"a"""a"` | False | EXCEPTION | `aa"` | `a"a<NULL>` | `a"a"` |
+| `""a"` | False | EXCEPTION | `a"` | `"a` | `a"` |
+| `"a"a"` | False | EXCEPTION | `aa"` | `a"a` | `aa"` |
+| `""a"a""` | False | EXCEPTION | `a"a""` | `"a"a"` | `a"a"` |
+| `"""` | False | | | EXCEPTION | `"` |
+| `"""""` | False | `"` | `"` | EXCEPTION | `""` |
+
+`·` (middle dot) is whitespace to make this visible
+
+¹ CsvHelper with `BadDataFound = null`
+
+² Sep with `Unescape = true` in `SepReaderOptions`
+
 
 #### SepReader Debuggability
 Debuggability is an important part of any library and while this is still a work

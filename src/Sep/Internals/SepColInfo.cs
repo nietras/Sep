@@ -11,13 +11,13 @@ interface ISepColInfoMethods<TColInfo>
     static abstract int GetColEnd(TColInfo colInfo);
 }
 
-readonly struct SepColInfoMethods : ISepColInfoMethods<SepColInfo>
+abstract class SepColInfoMethods : ISepColInfoMethods<SepColInfo>
 {
     public static SepColInfo Create(int colEnd, int quoteCount) => new(colEnd, quoteCount);
     public static int GetColEnd(SepColInfo colInfo) => colInfo.ColEnd;
 }
 
-readonly struct SepColEndMethods : ISepColInfoMethods<int>
+abstract class SepColEndMethods : ISepColInfoMethods<int>
 {
     public static int Create(int colEnd, int quoteCount) => colEnd;
     public static int GetColEnd(int colEnd) => colEnd;

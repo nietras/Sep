@@ -50,7 +50,7 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     int Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
-        where TColInfoMethods : unmanaged, ISepColInfoMethods<TColInfo>
+        where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.

@@ -15,13 +15,13 @@ public class SepReaderFuzzTest
     readonly record struct TestCol(string Raw, string Expected, string ExpectedInRow);
     readonly record struct TestRow(string Raw, string Expected, TestCol[] Cols);
 
-    [DataRow(false, 500, 32, false, 16)]
-    [DataRow(true, 500, 32, false, 16)]
+    [DataRow(false, 500, 20, false, 16)]
+    [DataRow(true, 500, 20, false, 16)]
 #if !DEBUG
-    [DataRow(false, 500, 32, true, 16)]
-    [DataRow(true, 500, 32, true, 16)]
-    [DataRow(false, 5000, 100, false, 64)]
-    [DataRow(true, 5000, 100, false, 64)]
+    [DataRow(false, 500, 40, true, 16)]
+    [DataRow(true, 500, 40, true, 16)]
+    [DataRow(false, 5000, 40, false, 64)]
+    [DataRow(true, 5000, 40, false, 64)]
 #endif
     [DataTestMethod]
     public void SepReaderFuzzTest_Fuzz(bool unescape, int rowCount, int maxColCount, bool colCountSame, int maxColLength)
@@ -82,7 +82,7 @@ public class SepReaderFuzzTest
                     sb.Append(Separator);
                 }
             }
-            var newLine = random.Next(0, 3) switch { 0 => "\r\n", 1 => "\n", 2 => "\r", _ => Environment.NewLine };
+            var newLine = RandomNewLine(random);
             // Avoid a new line that does not end up actually being a new line
             newLine = newLine == "\n" && previousNewLine == "\r" ? "\r\n" : newLine;
             sb.Append(newLine);
@@ -173,11 +173,14 @@ public class SepReaderFuzzTest
     static char GenerateRandomChar(Random random, int quoteCount)
     {
         // Generate random specific chars based on hard-coded probabilities
+        var quoting = (quoteCount & 1) == 1;
         var p = random.NextDouble();
-        return p switch
+        return (quoting, p) switch
         {
-            < 0.2 => SepDefaults.Quote,
-            < 0.4 => (quoteCount & 1) == 1 ? Separator : '-',
+            (_, < 0.2) => SepDefaults.Quote,
+            (true, < 0.4) => Separator,
+            (true, < 0.5) => '\r',
+            (true, < 0.6) => '\n',
 #if DEBUG
             _ => 'a',
 #else
@@ -185,5 +188,10 @@ public class SepReaderFuzzTest
             _ => (char)random.Next(Math.Max(Separator, SepDefaults.Quote) + 1, 256 * 2),
 #endif
         };
+    }
+
+    static string RandomNewLine(Random random)
+    {
+        return random.Next(0, 3) switch { 0 => "\r\n", 1 => "\n", 2 => "\r", _ => Environment.NewLine };
     }
 }

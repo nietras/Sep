@@ -10,7 +10,7 @@ sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
-    internal nuint _quoteCount = 0;
+    nuint _quoteCount = 0;
 
     public unsafe SepParserIndexOfAny(Sep sep)
     {

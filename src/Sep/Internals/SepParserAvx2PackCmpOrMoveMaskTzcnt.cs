@@ -19,7 +19,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
-    internal nuint _quoteCount = 0;
+    nuint _quoteCount = 0;
 
     public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
     {

@@ -1,5 +1,6 @@
 ﻿#if NET8_0_OR_GREATER
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -13,6 +14,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
 
 namespace nietras.SeparatedValues;
 
+[ExcludeFromCodeCoverage]
 sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly byte _separator;

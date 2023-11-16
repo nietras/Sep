@@ -40,8 +40,8 @@ with [detailed benchmarks](#comparison-benchmarks) to prove it.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.
-* **✅ Thoroughly tested** with great code coverage and focus on testing 
-  edge cases incl. randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing).
+* **✅ Thorough tests** - great code coverage and focus on edge case testing
+  incl. randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing).
 * **🌐 Cross-platform** - works on any platform, any architecture supported by
  .NET. 100% managed and written in beautiful modern C#.
 * **✂️ Trimmable and AOT/NativeAOT compatible** - no problematic reflection or

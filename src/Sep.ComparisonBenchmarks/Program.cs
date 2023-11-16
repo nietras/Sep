@@ -19,7 +19,6 @@ using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
-using nietras.SeparatedValues.Benchmarks;
 using nietras.SeparatedValues.ComparisonBenchmarks;
 #if USEMANUALCONFIG
 using BenchmarkDotNet.Jobs;

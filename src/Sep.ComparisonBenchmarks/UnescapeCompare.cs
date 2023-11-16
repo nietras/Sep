@@ -8,7 +8,7 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Sylvan.Data.Csv;
 
-namespace nietras.SeparatedValues.Benchmarks;
+namespace nietras.SeparatedValues.ComparisonBenchmarks;
 
 public static class UnescapeCompare
 {

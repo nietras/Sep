@@ -11,15 +11,20 @@ public class SepParserTest
 {
     // TODO: Add randomized long tests using baseline naive parser implementation
     readonly SepReaderState _state = new();
+    readonly SepReaderState _stateUnescape = new(colUnquoteUnescape: true);
     readonly char[] _chars;
     readonly int[] _colEnds;
 
     public SepParserTest()
     {
         _chars = new char[1024];
-        _state._chars = _chars;
         _colEnds = new int[1024];
-        _state._colEnds = _colEnds;
+
+        _state._chars = _chars;
+        _state._colEndsOrColInfos = _colEnds;
+
+        _stateUnescape._chars = _chars;
+        _stateUnescape._colEndsOrColInfos = _colEnds;
     }
 
     static IEnumerable<object[]> Parsers => SepParserFactory.CreateFactories()
@@ -52,11 +57,12 @@ public class SepParserTest
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
         Assert.IsTrue(parser.PaddingLength >= 0);
+        Assert.IsTrue(parser.QuoteCount == 0);
     }
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Sequence(object parserObject)
+    public void SepParserTest_ParseColEnds_Sequence(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -64,14 +70,29 @@ public class SepParserTest
         _state._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         _state._lineNumber = 3;
 
-        var rowLineEndingOffset = parser.Parse(_state);
+        var rowLineEndingOffset = parser.ParseColEnds(_state);
 
         // No assert, test is mainly for debugging SIMD code easily
     }
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Short(object parserObject)
+    public void SepParserTest_ParseColInfos_Sequence(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        var parser = (ISepParser)parserObject;
+
+        _stateUnescape._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
+        _stateUnescape._lineNumber = 3;
+
+        var rowLineEndingOffset = parser.ParseColInfos(_stateUnescape);
+
+        // No assert, test is mainly for debugging SIMD code easily
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
+    public void SepParserTest_ParseColEnds_Short(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -80,7 +101,7 @@ public class SepParserTest
         _state._charsDataEnd = charsEnd;
         _state._lineNumber = 3;
 
-        var rowLineEndingOffset = parser.Parse(_state);
+        var rowLineEndingOffset = parser.ParseColEnds(_state);
 
         var expected = new int[] { 2, 6, 9 };
         AreEqual(expected, _colEnds, 0, _state._colCount);
@@ -91,7 +112,7 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Long(object parserObject)
+    public void SepParserTest_ParseColEnds_Long(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -113,7 +134,7 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Long_SeparatorsOnly(object parserObject)
+    public void SepParserTest_ParseColEnds_Long_SeparatorsOnly(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -127,7 +148,7 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Long_At_ParseStart(object parserObject)
+    public void SepParserTest_ParseColEnds_Long_At_ParseStart(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -145,7 +166,7 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Parse_Long_ColEndsAlmostFilled(object parserObject)
+    public void SepParserTest_ParseColEnds_Long_ColEndsAlmostFilled(object parserObject)
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
@@ -178,7 +199,7 @@ public class SepParserTest
         _state._lineNumber = 3;
         foreach (var (expected, expectedNextStart, expectedRowLineEndingOffset, expectedLineNumber) in expectedSet)
         {
-            var rowLineEndingOffset = parser.Parse(_state);
+            var rowLineEndingOffset = parser.ParseColEnds(_state);
 
             AreEqual(expected, _colEnds, colEndsFrom, _state._colCount);
             Assert.AreEqual(expectedNextStart, _state._charsParseStart, nameof(_state._charsParseStart));

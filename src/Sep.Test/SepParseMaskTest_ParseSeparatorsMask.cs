@@ -29,7 +29,6 @@ public partial class SepParseMaskTest
     static IEnumerable<object[]> Methods => new object[][]
     {
         new object[] { new ParseSeparatorsMaskMethod(SepParseMask.ParseSeparatorsMask) },
-        new object[] { new ParseSeparatorsMaskMethod(SepParseMask.ParseSeparatorsMaskLong) },
     };
 
     [TestMethod]

@@ -10,7 +10,7 @@ sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
-    nuint _quoting = 0;
+    nuint _quoteCount = 0;
 
     public unsafe SepParserIndexOfAny(Sep sep)
     {
@@ -19,33 +19,54 @@ sealed class SepParserIndexOfAny : ISepParser
     }
 
     public int PaddingLength => 0;
+    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int Parse(SepReaderState s)
+    public int ParseColEnds(SepReaderState s)
     {
-        var separator = _separator;
+        return Parse<int, SepColEndMethods>(s);
+    }
 
-        var quoting = _quoting;
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public int ParseColInfos(SepReaderState s)
+    {
+        return Parse<SepColInfo, SepColInfoMethods>(s);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    int Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+        where TColInfo : unmanaged
+        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    {
+        // Method should **not** call other non-inlined methods, since this
+        // impacts code-generation severely.
+
+        var separator = (char)_separator;
+        var quoteCount = _quoteCount;
+
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
-        var colEnds = s._colEnds;
-        var colEndsEnd = s._colCount;
+        var colInfos = s._colEndsOrColInfos;
+        var colCount = s._colCount;
         var lineNumber = s._lineNumber;
 
         var rowLineEndingOffset = 0;
 
+        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
+
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        colEnds.CheckPadding(colEndsEnd, PaddingLength);
+        SepArrayExtensions.CheckPadding(colInfosLength, colCount, PaddingLength);
 
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
         ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
-        ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(colEnds);
-        ref var colEndsRefCurrent = ref Add(ref colEndsRef, colEndsEnd);
-        ref var colEndsRefStop = ref Add(ref colEndsRef, colEnds.Length - 2);
+        ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
+        ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - 2);
 
         var span = chars.AsSpan(0, charsEnd);
         var specialCharsSpan = _specialChars.AsSpan();
@@ -58,21 +79,21 @@ sealed class SepParserIndexOfAny : ISepParser
                 A.Assert(charsIndex < charsEnd, $"{nameof(charsIndex)} >= {nameof(charsEnd)}");
 
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
-                colEndsRefCurrent = ref SepParseMask.ParseAnyChar(ref charsCurrentRef, charsIndex, relativeIndex,
-                    separator, ref rowLineEndingOffset, ref quoting, ref colEndsRefCurrent, ref lineNumber);
+                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
+                    separator, ref rowLineEndingOffset, ref quoteCount, ref colInfosRefCurrent, ref lineNumber);
                 charsIndex += relativeIndex + 1;
 
                 // Used both to indicate row ended and if need to step +2 due to '\r\n'
                 if (rowLineEndingOffset != 0)
                 {
                     // Must be a col end and last is then dataIndex
-                    charsIndex = colEndsRefCurrent + rowLineEndingOffset;
+                    charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
                     break;
                 }
 
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next.
-                if (IsAddressLessThan(ref colEndsRefStop, ref colEndsRefCurrent))
+                if (IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
                 {
                     break;
                 }
@@ -84,12 +105,12 @@ sealed class SepParserIndexOfAny : ISepParser
         }
 
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
-        colEndsEnd = (int)(ByteOffset(ref colEndsRef, ref colEndsRefCurrent) >> 2);
+        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / SizeOf<TColInfo>());
         // Step is VecUI8.Count so may go past end, ensure limited
         charsIndex = Math.Min(charsEnd, charsIndex);
 
-        _quoting = quoting;
-        s._colCount = colEndsEnd;
+        _quoteCount = quoteCount;
+        s._colCount = colCount;
         s._lineNumber = lineNumber;
         s._charsParseStart = charsIndex;
 

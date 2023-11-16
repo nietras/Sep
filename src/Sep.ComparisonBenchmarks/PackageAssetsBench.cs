@@ -77,6 +77,14 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
+    [Benchmark]
+    public void Sep_Unescape()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader) { }
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
@@ -148,6 +156,20 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     public void Sep______()
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
+    [Benchmark()]
+    public void Sep_Unescape()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true })
                               .From(Reader.CreateReader());
         foreach (var row in reader)
         {
@@ -253,6 +275,28 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        foreach (var row in reader)
+        {
+            var asset = PackageAsset.Read(reader, static (r, i) => r.ToString(i));
+            assets.Add(asset);
+        }
+    }
+
+    [Benchmark]
+    public void Sep_Unescape()
+    {
+        var assets = new List<PackageAsset>();
+
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+            Unescape = true,
 #if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
 #endif

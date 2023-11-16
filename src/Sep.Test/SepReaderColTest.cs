@@ -94,6 +94,49 @@ public class SepReaderColTest
     }
 #endif
 
+    internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
+        {
+            new object[] { "a\"\"a", "a\"\"a" },
+            new object[] { "a\"a\"a", "a\"a\"a" },
+            new object[] { "·\"\"·", "·\"\"·" },
+            new object[] { "·\"a\"·", "·\"a\"·" },
+            new object[] { "·\"\"", "·\"\"" },
+            new object[] { "·\"a\"", "·\"a\"" },
+            new object[] { "a\"\"\"a", "a\"\"\"a" },
+        });
+
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeData))]
+    public void SepReaderColTest_Unescape_Header_Test(string chars, string expected)
+    {
+        var src = new string(chars);
+
+        using var reader = Sep.Reader(o => o with { HasHeader = true, Unescape = true }).FromText(src);
+        var actual = reader.Header.ColNames[0];
+
+        Assert.AreEqual(expected, actual, src);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeData))]
+    public void SepReaderColTest_Unescape_Col_Test(string chars, string expectedCol)
+    {
+        var src = new string(chars);
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(src);
+        // Ensure repeated access works
+        for (var i = 0; i < 4; i++)
+        {
+            var row = reader.Current;
+
+            var actualCol = row[0].ToString();
+            Assert.AreEqual(expectedCol, actualCol, src);
+
+            // Ensure row can be gotten and that expectedCol is contained
+            var rowText = row.Span.ToString();
+            Assert.IsTrue(rowText.Contains(expectedCol));
+        }
+    }
+
     static void Run(SepReader.ColAction action, string colValue = ColText, Func<SepReaderOptions, SepReaderOptions>? configure = null)
     {
         Func<SepReaderOptions, SepReaderOptions> defaultConfigure = static c => c;

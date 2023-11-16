@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -28,11 +29,12 @@ public class SepReaderState : IDisposable
 
     internal const int ColEndsInitialLength = 128;
     // [0] = Previous row/col end e.g. one before row/first col start
-    // [1...] = Col ends e.g. [1] = first col end
+    // [1...] = Col ends/infos e.g. [1] = first col end/info
     // Length = colCount + 1
-    internal int[] _colEnds = Array.Empty<int>();
+    internal int[] _colEndsOrColInfos = Array.Empty<int>();
     internal int _colCountExpected = -1;
     internal int _colCount = 0;
+    readonly internal uint _colUnquoteUnescape = 0;
 
     internal int _rowIndex = -1;
     internal int _rowLineNumberFrom = 0;
@@ -47,17 +49,27 @@ public class SepReaderState : IDisposable
     internal SepToString _toString = null!;
 #pragma warning restore CA2213 // Disposable fields should be disposed
 
-    internal SepReaderState() { }
+    internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
 
     #region Row
     internal ReadOnlySpan<char> RowSpan()
     {
         if (_colCount > 0)
         {
-            var colEnds = _colEnds;
-            var start = colEnds[0] + 1; // +1 since previous end
-            var end = colEnds[_colCount];
-            return new(_chars, start, end - start);
+            if (_colUnquoteUnescape == 0)
+            {
+                var colEnds = _colEndsOrColInfos;
+                var start = colEnds[0] + 1; // +1 since previous end
+                var end = colEnds[_colCount];
+                return new(_chars, start, end - start);
+            }
+            else
+            {
+                ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+                var start = colInfos.ColEnd + 1; // +1 since previous end
+                var end = Unsafe.Add(ref colInfos, _colCount).ColEnd;
+                return new(_chars, start, end - start);
+            }
         }
         else
         {
@@ -92,21 +104,58 @@ public class SepReaderState : IDisposable
     internal ReadOnlySpan<char> GetColSpan(int index)
     {
         if ((uint)index >= (uint)_colCount) { SepThrow.IndexOutOfRangeException(); }
+        if (_colUnquoteUnescape == 0)
+        {
+            // Using array indexing is slightly faster despite more code 🤔
+            var colEnds = _colEndsOrColInfos;
+            var colStart = colEnds[index] + 1; // +1 since previous end
+            var colEnd = colEnds[index + 1];
+            // Above bounds checked is faster than below 🤔
+            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEnds);
+            //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
+            //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
 
-        // Using array indexing is slightly faster despite more code 🤔
-        var colEnds = _colEnds;
-        var colStart = colEnds[index] + 1; // +1 since previous end
-        var colEnd = colEnds[index + 1];
-        // Above bounds checked is faster than below 🤔
-        //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEnds);
-        //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
-        //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
-
-        var colLength = colEnd - colStart;
-        // Much better code generation given col span always inside buffer
-        ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-        var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
-        return col;
+            var colLength = colEnd - colStart;
+            // Much better code generation given col span always inside buffer
+            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+            return col;
+        }
+        else // Unquote/Unescape
+        {
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
+            var colLength = colEnd - colStart;
+            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            // Unescape if quotes found, negative and col has already been
+            // unescaped and the count is instead the new col length.
+            if (quoteCountOrNegativeUnescapedLength == 0 ||
+                (quoteCountOrNegativeUnescapedLength > 0 && colRef != SepDefaults.Quote))
+            {
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+            }
+            // From now on it is known the first char in col is a quote if not
+            // already escaped. Optimize for common case of outermost quotes.
+            else if (quoteCountOrNegativeUnescapedLength == 2 &&
+                     Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
+            {
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref colRef, 1), colLength - 2);
+            }
+            else if (quoteCountOrNegativeUnescapedLength < 0)
+            {
+                var unescapedLength = -quoteCountOrNegativeUnescapedLength;
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
+            }
+            else
+            {
+                // Unescape fully and in-place
+                var unescapedLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
+                colInfo.QuoteCount = -unescapedLength;
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
+            }
+        }
     }
 
     internal string ToStringDefault(int index)
@@ -406,10 +455,30 @@ public class SepReaderState : IDisposable
     }
     #endregion
 
+    [ExcludeFromCodeCoverage]
+    internal Span<T> GetColsEntireSpanAs<T>() where T : unmanaged =>
+        MemoryMarshal.CreateSpan(ref GetColsRefAs<T>(), GetColInfosLength<T>());
+    [ExcludeFromCodeCoverage]
+    internal int GetColInfosLength<T>() where T : unmanaged =>
+        _colEndsOrColInfos.Length / (Unsafe.SizeOf<T>() / sizeof(int));
+
+    internal int GetColInfosLength() =>
+        _colEndsOrColInfos.Length / GetIntegersPerColInfo();
+
+    internal int GetIntegersPerColInfo() =>
+        _colUnquoteUnescape == 0 ? 1 : Unsafe.SizeOf<SepColInfo>() / sizeof(int);
+
+    internal ref T GetColsRefAs<T>() where T : unmanaged
+    {
+        A.Assert(Unsafe.SizeOf<T>() % sizeof(int) == 0);
+        ref var colEndsOrColInfosRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
+        return ref Unsafe.As<int, T>(ref colEndsOrColInfosRef);
+    }
+
     internal virtual void DisposeManaged()
     {
         ArrayPool<char>.Shared.Return(_chars);
-        ArrayPool<int>.Shared.Return(_colEnds);
+        ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
         _arrayPool.Dispose();
         _toString?.Dispose();
     }

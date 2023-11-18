@@ -174,7 +174,7 @@ public class SepReaderColsTest
     [TestMethod]
     public void SepReaderColsTest_Select_ToStringRaw()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringRaw()).ToArray()));
+        Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringDirect()).ToArray()));
     }
 
     static string ToString(SepReader.Col col) => col.ToString();

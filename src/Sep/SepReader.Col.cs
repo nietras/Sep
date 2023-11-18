@@ -26,7 +26,7 @@ public partial class SepReader
 
         // Allow opt out of pooling and don't add yet another configuration option
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal string ToStringRaw() => _state.ToStringRaw(_colIndex);
+        internal string ToStringDirect() => _state.ToStringDirect(_colIndex);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Parse<T>() where T : ISpanParsable<T> => _state.Parse<T>(_colIndex);

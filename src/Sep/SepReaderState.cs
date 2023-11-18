@@ -169,7 +169,7 @@ public class SepReaderState : IDisposable
         return _toString.ToString(span, index);
     }
 
-    internal string ToStringRaw(int index)
+    internal string ToStringDirect(int index)
     {
         var span = GetColSpan(index);
         var s = TryGetStaticallyCachedString(span);

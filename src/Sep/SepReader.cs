@@ -113,7 +113,7 @@ public sealed partial class SepReader : SepReaderState
                 var colNameToIndex = new Dictionary<string, int>(_colCount);
                 for (var colIndex = 0; colIndex < _colCount; colIndex++)
                 {
-                    var colName = ToStringRaw(colIndex);
+                    var colName = ToStringDirect(colIndex);
                     colNameToIndex.Add(colName, colIndex);
                 }
                 var headerRow = new string(RowSpan());

@@ -1258,7 +1258,6 @@ namespace nietras.SeparatedValues
             public T Parse<T>()
                 where T : System.ISpanParsable<T> { }
             public override string ToString() { }
-            public string ToStringRaw() { }
             public T? TryParse<T>()
                 where T :  struct, System.ISpanParsable<T> { }
             public bool TryParse<T>(out T value)

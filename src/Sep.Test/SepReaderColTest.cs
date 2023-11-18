@@ -40,7 +40,7 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public void SepReaderColTest_ToStringRaw()
+    public void SepReaderColTest_ToStringDirect()
     {
         Run(col => Assert.AreEqual(ColText, col.ToStringDirect()));
         Run(col => Assert.AreSame(string.Empty, col.ToString()), "");

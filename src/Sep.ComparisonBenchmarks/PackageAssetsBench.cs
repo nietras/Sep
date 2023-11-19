@@ -310,6 +310,24 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
+    [Benchmark()]
+    public void Sep_MT___()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+            Unescape = true,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, (s, i) => s.ToStringDefault(i)),
+                maxDegreeOfParallelism: Environment.ProcessorCount)
+              .ToList();
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif

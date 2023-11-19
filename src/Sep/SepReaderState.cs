@@ -51,6 +51,81 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
 
+    internal SepReaderState(SepReader other)
+    {
+        InitializeFrom(other);
+        InitializeFromWithNewCacheState(other);
+    }
+
+    internal SepReaderState CloneWithSharedCache()
+    {
+        var clone = new SepReaderState();
+        clone.InitializeFrom(this);
+        clone._arrayPool = _arrayPool;
+        clone._colNameCache = _colNameCache;
+        clone._toString = _toString;
+        return clone;
+    }
+
+    void InitializeFrom(SepReaderState other)
+    {
+        _header = other._header;
+        _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
+        System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
+        _cultureInfo = other._cultureInfo;
+        _createToString = other._createToString;
+
+        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
+        _colCountExpected = other._colCountExpected;
+    }
+
+    void InitializeFromWithNewCacheState(SepReaderState other)
+    {
+        _arrayPool = new();
+        _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        _toString = _createToString(_header, _colCountExpected);
+    }
+
+    internal void CopyNewRowTo(SepReaderState other)
+    {
+        other._cacheIndex = 0;
+        other._arrayPool.Reset();
+
+        other._colCount = _colCount;
+
+        other._rowIndex = _rowIndex;
+        other._rowLineNumberFrom = _rowLineNumberFrom;
+        other._lineNumber = _lineNumber;
+
+        var rowSpan = RowSpan();
+        ref var otherChars = ref other._chars;
+        if (rowSpan.Length > otherChars.Length)
+        {
+            if (otherChars.Length > 0)
+            { ArrayPool<char>.Shared.Return(otherChars); }
+            otherChars = ArrayPool<char>.Shared.Rent(rowSpan.Length);
+        }
+        rowSpan.CopyTo(otherChars);
+        other._charsDataEnd = rowSpan.Length;
+
+        // Copy starts at 0 index so need to fix up col ends
+        var colCount = _colCount;
+        if (colCount > 0)
+        {
+            var thisColEnds = _colEndsOrColInfos;
+            var start = thisColEnds[0] + 1; // +1 since previous end
+            var otherColEnds = other._colEndsOrColInfos;
+            for (var col = 0; col <= colCount; col++)
+            {
+                otherColEnds[col] = thisColEnds[col] - start;
+            }
+            // Assume colEnds length is divisible by Vector128<int>.Length
+            // and vectorize col ends fix up if need be
+        }
+    }
+
+    internal void ResetSharedCache() => _arrayPool.Reset();
+
     #region Row
     internal ReadOnlySpan<char> RowSpan()
     {
@@ -111,7 +186,7 @@ public class SepReaderState : IDisposable
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
             // Above bounds checked is faster than below 🤔
-            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEnds);
+            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
             //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
             //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
 

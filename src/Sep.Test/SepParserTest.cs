@@ -13,18 +13,18 @@ public class SepParserTest
     readonly SepReaderState _state = new();
     readonly SepReaderState _stateUnescape = new(colUnquoteUnescape: true);
     readonly char[] _chars;
-    readonly int[] _colEnds;
+    readonly int[] _colEndsOrColInfos;
 
     public SepParserTest()
     {
         _chars = new char[1024];
-        _colEnds = new int[1024];
+        _colEndsOrColInfos = new int[1024];
 
         _state._chars = _chars;
-        _state._colEndsOrColInfos = _colEnds;
+        _state._colEndsOrColInfos = _colEndsOrColInfos;
 
         _stateUnescape._chars = _chars;
-        _stateUnescape._colEndsOrColInfos = _colEnds;
+        _stateUnescape._colEndsOrColInfos = _colEndsOrColInfos;
     }
 
     static IEnumerable<object[]> Parsers => SepParserFactory.CreateFactories()
@@ -104,7 +104,7 @@ public class SepParserTest
         var rowLineEndingOffset = parser.ParseColEnds(_state);
 
         var expected = new int[] { 2, 6, 9 };
-        AreEqual(expected, _colEnds, 0, _state._colCount);
+        AreEqual(expected, _colEndsOrColInfos, 0, _state._colCount);
         Assert.AreEqual(charsEnd, _state._charsParseStart);
         Assert.AreEqual(1, rowLineEndingOffset);
         Assert.AreEqual(4, _state._lineNumber);
@@ -172,7 +172,7 @@ public class SepParserTest
         var parser = (ISepParser)parserObject;
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ" + "\"ˉ\";ˉˉ#ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var paddingOffset = (parser.PaddingLength > 0 ? parser.PaddingLength : 1);
-        _state._colCount = _colEnds.Length - paddingOffset;
+        _state._colCount = _colEndsOrColInfos.Length - paddingOffset;
         var charsStart = 7;
         var ends = new[] { 10, 46 }.Where(i => i < (charsStart + paddingOffset)).ToArray();
         var nextStart = charsStart + paddingOffset;
@@ -201,7 +201,7 @@ public class SepParserTest
         {
             var rowLineEndingOffset = parser.ParseColEnds(_state);
 
-            AreEqual(expected, _colEnds, colEndsFrom, _state._colCount);
+            AreEqual(expected, _colEndsOrColInfos, colEndsFrom, _state._colCount);
             Assert.AreEqual(expectedNextStart, _state._charsParseStart, nameof(_state._charsParseStart));
             Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset, nameof(rowLineEndingOffset));
             Assert.AreEqual(expectedLineNumber, _state._lineNumber, nameof(_state._lineNumber));

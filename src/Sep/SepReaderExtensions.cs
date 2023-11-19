@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 
@@ -83,18 +82,6 @@ public static class SepReaderExtensions
     {
         Func<SepReader.Info, string> display = static info => $"TextReader='{info.Source}'";
         return FromWithInfo(new(reader, display), options, reader);
-    }
-
-    // TODO: Finalize and expose public with TryRowFunc too
-    internal static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(select);
-
-        foreach (var row in reader)
-        {
-            yield return select(row);
-        }
     }
 
     internal static SepReader FromWithInfo(SepReader.Info info, SepReaderOptions options, TextReader reader)

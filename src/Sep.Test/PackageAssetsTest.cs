@@ -37,6 +37,25 @@ public class PackageAssetsTest
     public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
         VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
 
+    [TestMethod]
+    public void PackageAssetsTest_ParallelEnumerate_NoQuotes()
+    {
+#if DEBUG
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerate(text, (reader, select) => reader
+            .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
+    }
+
+    [TestMethod]
+    public void PackageAssetsTest_ParallelEnumerate_WithQuotes()
+    {
+        VerifyEnumerate(WithQuotes, (reader, select) => reader
+            .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
+    }
+
     static void VerifyRead(string text, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);

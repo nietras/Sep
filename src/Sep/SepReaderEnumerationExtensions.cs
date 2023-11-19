@@ -11,6 +11,7 @@ public static class SepReaderEnumerationExtensions
 {
     static readonly Action<string> Log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 
+    // TODO: Finalize and expose public with TryRowFunc too
     public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
         ArgumentNullException.ThrowIfNull(reader);

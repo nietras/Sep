@@ -105,6 +105,7 @@ else
     //var b = new ColsPackageAssetsBench();
     //var b = new RowFloatsReaderBench();
     var b = new AssetPackageAssetsBench();
+    b.Sep_MT___();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {

@@ -316,7 +316,6 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
-            Unescape = true,
 #if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
 #endif

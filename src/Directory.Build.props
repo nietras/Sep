@@ -38,9 +38,9 @@
     <!--<DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSEPONLY</DefineConstants>-->
     <DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPBENCHSLOWONES</DefineConstants>
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPASSERT</DefineConstants>
-    <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>
+    <!--<DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>-->
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>
-    <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERTRACE</DefineConstants>
+    <!--<DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERTRACE</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 
 namespace nietras.SeparatedValues;
@@ -29,10 +30,63 @@ public static class SepReaderEnumerationExtensions
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         if (!reader.HasRows) { return Array.Empty<T>(); }
+        return ParallelEnumerateAsParallel(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalBusyLooping(reader, select, maxDegreeOfParallelism);
-        return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
+        //return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalManyRowStates(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalOneWorkItemPerRow(reader, select, maxDegreeOfParallelism);
+    }
+
+    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader,
+        SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
+    {
+        maxDegreeOfParallelism *= 16;
+        var states = new BlockingCollection<SepReaderState>();
+        return EnumerateStates(reader, states).AsParallel().AsOrdered()
+            .Select(s =>
+            {
+                var result = select(new(s));
+                states.Add(s);
+                Trace.WriteLine("Add");
+                return result;
+            });
+
+        IEnumerable<SepReaderState> EnumerateStates(SepReader reader, BlockingCollection<SepReaderState> states)
+        {
+            var createdCount = 0;
+            using (states)
+            {
+                for (var i = 0; i < maxDegreeOfParallelism; i++)
+                {
+                    var state = new SepReaderState(reader);
+                    states.Add(state);
+                    ++createdCount;
+                }
+
+                foreach (var row in reader)
+                {
+                    if (!states.TryTake(out var state))
+                    {
+                        state = new SepReaderState(reader);
+                        ++createdCount;
+                    }
+
+                    reader.CopyNewRowTo(state);
+                    Trace.WriteLine("Yield");
+                    yield return state;
+                }
+
+                for (var i = 0; i < createdCount; i++)
+                {
+                    //if (states.TryTake(out var state))
+                    var state = states.Take();
+                    {
+                        state.Dispose();
+                    }
+                    Trace.WriteLine("Dispose");
+                }
+            }
+        }
     }
 
     class KeepDequeueThreadPoolWorkItem<T> : IThreadPoolWorkItem

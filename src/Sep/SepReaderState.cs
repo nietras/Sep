@@ -52,6 +52,7 @@ public class SepReaderState : IDisposable
     internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
 
     internal SepReaderState(SepReader other)
+        : this(other._colUnquoteUnescape != 0)
     {
         InitializeFrom(other);
         InitializeFromWithNewCacheState(other);

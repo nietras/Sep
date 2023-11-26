@@ -40,21 +40,25 @@ public static class SepReaderEnumerationExtensions
     static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader,
         SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
     {
-        maxDegreeOfParallelism *= 16;
+        //maxDegreeOfParallelism *= 16;
         var states = new BlockingCollection<SepReaderState>();
-        return EnumerateStates(reader, states).AsParallel().AsOrdered()
+        return EnumerateStates(reader, states)
+            .AsParallel()
+            //.WithDegreeOfParallelism(maxDegreeOfParallelism)
+            //.WithMergeOptions(ParallelMergeOptions.NotBuffered)
+            .AsOrdered()
             .Select(s =>
             {
                 var result = select(new(s));
                 states.Add(s);
-                Trace.WriteLine("Add");
+                //Trace.WriteLine("Add");
                 return result;
             });
 
         IEnumerable<SepReaderState> EnumerateStates(SepReader reader, BlockingCollection<SepReaderState> states)
         {
             var createdCount = 0;
-            using (states)
+            //using (states)
             {
                 for (var i = 0; i < maxDegreeOfParallelism; i++)
                 {
@@ -72,18 +76,18 @@ public static class SepReaderEnumerationExtensions
                     }
 
                     reader.CopyNewRowTo(state);
-                    Trace.WriteLine("Yield");
+                    //Trace.WriteLine("Yield");
                     yield return state;
                 }
 
                 for (var i = 0; i < createdCount; i++)
                 {
                     //if (states.TryTake(out var state))
-                    var state = states.Take();
-                    {
-                        state.Dispose();
-                    }
-                    Trace.WriteLine("Dispose");
+                    //var state = states.Take();
+                    //{
+                    //    state.Dispose();
+                    //}
+                    //Trace.WriteLine("Dispose");
                 }
             }
         }

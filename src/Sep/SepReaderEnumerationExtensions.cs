@@ -30,10 +30,13 @@ public static class SepReaderEnumerationExtensions
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         if (!reader.HasRows) { return Array.Empty<T>(); }
-        return ParallelEnumerateAsParallel(reader, select, maxDegreeOfParallelism);
+        //return ParallelEnumerateAsParallel(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalBusyLooping(reader, select, maxDegreeOfParallelism);
-        //return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
+        // Fastest at the moment but still slower than single threaded
+        return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
+        // Extremely slow
         //return ParallelEnumerateInternalManyRowStates(reader, select, maxDegreeOfParallelism);
+        // Appears not to work
         //return ParallelEnumerateInternalOneWorkItemPerRow(reader, select, maxDegreeOfParallelism);
     }
 
@@ -230,7 +233,7 @@ public static class SepReaderEnumerationExtensions
             }
 
             ThreadPool.GetAvailableThreads(out var workerThreads, out var _);
-            Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex} ThreadPool {workerThreads}");
+            //Log?.Invoke($"Workers {workers.Count} ThreadPoolQueue {queueCount} Wait {waitCount} Rows {reader._rowIndex} ThreadPool {workerThreads}");
         }
         finally
         {

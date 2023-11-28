@@ -72,7 +72,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
-        ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
+        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
+        //ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
 
         ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
         ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
@@ -84,9 +85,11 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         var qts = _qts; //Vec.Create(QuoteByte);
         var sps = _sps; //Vec.Create(_separator);
 
-        for (; charsIndex < charsEnd; charsIndex += VecUI8.Count,
-             charsRef = ref Add(ref charsRef, VecUI8.Count))
+        for (; charsIndex < charsEnd; charsIndex += VecUI8.Count
+             //, charsRef = ref Add(ref charsRef, VecUI8.Count)
+             )
         {
+            ref var charsRef = ref Add(ref charsOriginRef, charsIndex);
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));

@@ -62,8 +62,8 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
         var colInfos = s._colEndsOrColInfos;
-        var colCount = s._colCount;
-        var lineNumber = s._lineNumber;
+        var colCount = s._parsedRowColCount;
+        var lineNumber = s._parseLineNumber;
 
         var rowLineEndingOffset = 0;
 
@@ -162,8 +162,8 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoteCount = quoteCount;
-        s._colCount = colCount;
-        s._lineNumber = lineNumber;
+        s._parsedRowColCount = colCount;
+        s._parseLineNumber = lineNumber;
         s._charsParseStart = charsIndex;
 
         return rowLineEndingOffset;

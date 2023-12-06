@@ -21,10 +21,10 @@ public partial class SepReader
 
         public int RowIndex => _state._rowIndex;
 
-        public int LineNumberFrom => _state._rowLineNumberFrom;
-        public int LineNumberToExcl => _state._lineNumber;
+        public int LineNumberFrom => _state._parsedRowLineNumberFrom;
+        public int LineNumberToExcl => _state._parsedRowLineNumberTo;
 
-        public int ColCount => _state._colCount;
+        public int ColCount => _state._parsedRowColCount;
 
         public ReadOnlySpan<char> Span => _state.RowSpan();
 
@@ -32,7 +32,7 @@ public partial class SepReader
 
         public Col this[int index] => new(_state, index);
 
-        public Col this[Index index] => new(_state, index.GetOffset(_state._colCount));
+        public Col this[Index index] => new(_state, index.GetOffset(_state._parsedRowColCount));
 
         public Col this[string colName]
         {
@@ -48,7 +48,7 @@ public partial class SepReader
         {
             get
             {
-                var (offset, length) = range.GetOffsetAndLength(_state._colCount);
+                var (offset, length) = range.GetOffsetAndLength(_state._parsedRowColCount);
                 return new(_state, offset, length);
             }
         }
@@ -196,7 +196,7 @@ public partial class SepReader
             ColDebugView[] GetCols()
             {
                 var row = new Row(_state);
-                var cols = new ColDebugView[_state._colCount];
+                var cols = new ColDebugView[_state._parsedRowColCount];
                 var maybeHeader = _state._hasHeader ? _state._header : null;
                 for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {

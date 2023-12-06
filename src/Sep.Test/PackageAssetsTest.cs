@@ -40,11 +40,11 @@ public class PackageAssetsTest
     [TestMethod]
     public void PackageAssetsTest_ParallelEnumerate_NoQuotes()
     {
-//#if DEBUG
-//        var text = NoQuotes;
-//#else
+        //#if DEBUG
+        //        var text = NoQuotes;
+        //#else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
-//#endif
+        //#endif
         VerifyEnumerate(text, (reader, select) => reader
             .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
     }

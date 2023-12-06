@@ -73,7 +73,6 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
         ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
-        //ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
 
         ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
         ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
@@ -85,11 +84,16 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         var qts = _qts; //Vec.Create(QuoteByte);
         var sps = _sps; //Vec.Create(_separator);
 
-        for (; charsIndex < charsEnd; charsIndex += VecUI8.Count
-             //, charsRef = ref Add(ref charsRef, VecUI8.Count)
-             )
+        //PROLOG:
+        //ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
+        charsIndex -= VecUI8.Count;
+        ref var charsRef = ref Add(ref charsOriginRef, charsIndex);
+    LOOP:
+        charsIndex += VecUI8.Count;
+        if (charsIndex < charsEnd)
         {
-            ref var charsRef = ref Add(ref charsOriginRef, charsIndex);
+            //ref var charsRef = ref Add(ref charsOriginRef, charsIndex);
+            charsRef = ref Add(ref charsRef, VecUI8.Count);
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
@@ -128,7 +132,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
                             ref colInfosRefCurrent, ref rowLineEndingOffset, ref lineNumber);
-                        break;
+
+                        // TODO: Next row
+
+                        goto EPILOG;
                     }
                     else
                     {
@@ -141,7 +148,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                         {
                             // Must be a col end and last is then dataIndex
                             charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
-                            break;
+
+                            // TODO: Next row
+
+                            goto EPILOG;
                         }
                     }
                 }
@@ -151,11 +161,12 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 {
                     // Move data index so next find starts correctly
                     charsIndex += VecUI8.Count;
-                    break;
+                    goto EPILOG;
                 }
             }
+            goto LOOP;
         }
-
+    EPILOG:
         // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
         colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / SizeOf<TColInfo>());
         // Step is VecUI8.Count so may go past end, ensure limited

@@ -13,6 +13,7 @@
     <!--<Optimize>true</Optimize>
     <Configuration>Release</Configuration>-->
     <IsPackable>false</IsPackable>
+    <TieredCompilation>false</TieredCompilation>
   </PropertyGroup>
 
   <ItemGroup>

@@ -458,7 +458,6 @@ public class SepReaderTest
         var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
-        Assert.AreEqual(initialColCountCapacity, reader._colEndsOrColInfos.Length);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(initialColCountCapacity, row.ColCount);

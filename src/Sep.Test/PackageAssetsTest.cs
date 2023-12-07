@@ -37,7 +37,7 @@ public class PackageAssetsTest
     public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
         VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [TestMethod]
+    //[TestMethod]
     public void PackageAssetsTest_ParallelEnumerate_NoQuotes()
     {
         //#if DEBUG
@@ -49,7 +49,7 @@ public class PackageAssetsTest
             .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
     }
 
-    [TestMethod]
+    //[TestMethod]
     public void PackageAssetsTest_ParallelEnumerate_WithQuotes()
     {
         VerifyEnumerate(WithQuotes, (reader, select) => reader

@@ -8,7 +8,7 @@ using static nietras.SeparatedValues.SepReader;
 
 namespace nietras.SeparatedValues;
 
-internal readonly record struct RowInfo(int LineNumberFrom, int LineNumberTo, int ColCount);
+internal readonly record struct SepRowInfo(int LineNumberTo, int ColCount);
 
 // Cannot be nested due to CS0146: Circular base type dependency
 public class SepReaderState : IDisposable
@@ -34,7 +34,6 @@ public class SepReaderState : IDisposable
     internal int _currentRowCharsStartIndex = 0;
     internal int _currentRowColEndsOrInfosStartIndex = 0;
     internal int _currentRowColCount = 0;
-    internal int _currentRowLineNumberFrom = 1;
 
     readonly internal uint _colUnquoteUnescape = 0;
     internal int _colCountExpected = -1;
@@ -55,7 +54,7 @@ public class SepReaderState : IDisposable
 #else
     internal const int ParsedRowsInitialLength = 256;
 #endif
-    internal RowInfo[] _parsedRows = ArrayPool<RowInfo>.Shared.Rent(ParsedRowsInitialLength);
+    internal SepRowInfo[] _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(ParsedRowsInitialLength);
     internal int _parsedRowsCount = 0;
 
     internal int _parsedRowIndex = 0;
@@ -630,7 +629,7 @@ public class SepReaderState : IDisposable
     {
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
-        ArrayPool<RowInfo>.Shared.Return(_parsedRows);
+        ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
         _arrayPool.Dispose();
         _toString?.Dispose();
     }

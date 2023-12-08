@@ -207,7 +207,7 @@ public class SepParserTest
             Assert.AreEqual(expectedLineNumber, _state._parseLineNumber, nameof(_state._parseLineNumber));
             if (rowLineEndingOffset > 0)
             {
-                Assert.AreEqual(new RowInfo(_state._parsedRowLineNumberFrom, expectedLineNumber, expected.Length),
+                Assert.AreEqual(new SepRowInfo(expectedLineNumber, expected.Length),
                                 _state._parsedRows[_state._parsedRowsCount - 1], nameof(_state._parsedRows));
                 _state._parsedRowColCount = 0;
             }

@@ -166,9 +166,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             goto LOOPSTEP;
         NEWROW:
             var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
-            s._parsedRows[s._parsedRowsCount] = new(s._currentRowLineNumberFrom, lineNumber, colCount);
+            s._parsedRows[s._parsedRowsCount] = new(lineNumber, colCount);
             ++s._parsedRowsCount;
-            s._currentRowLineNumberFrom = lineNumber;
 
             // Next row start (one before)
             colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);

@@ -182,7 +182,7 @@ public sealed partial class SepReader : SepReaderState
             var colCount = info.ColCount;
             _parsedRowColEndsOrInfosOffset += _parsedRowColCount + 1; // +1 since one more for start col
             _parsedRowColCount = colCount;
-            _parsedRowLineNumberFrom = info.LineNumberFrom;
+            _parsedRowLineNumberFrom = _parsedRowLineNumberTo;
             _parsedRowLineNumberTo = info.LineNumberTo;
 
             ++_parsedRowIndex;
@@ -257,7 +257,6 @@ public sealed partial class SepReader : SepReaderState
             _colEndsOrColInfos[1] = 0;
         }
 
-        _currentRowLineNumberFrom = _parsedRowLineNumberTo;
         _charsDataStart = 0;
 
         // Reset
@@ -302,7 +301,7 @@ public sealed partial class SepReader : SepReaderState
                     new(_charsDataEnd, _parser?.QuoteCount ?? 0);
             }
             ++_parseLineNumber;
-            _parsedRows[_parsedRowsCount] = new(_currentRowLineNumberFrom, _parseLineNumber, _currentRowColCount);
+            _parsedRows[_parsedRowsCount] = new(_parseLineNumber, _currentRowColCount);
             ++_parsedRowsCount;
 
             _currentRowColCount = 0;
@@ -388,12 +387,12 @@ public sealed partial class SepReader : SepReaderState
     void DoubleParsedRowsCapacityCopyState()
     {
         var previous = _parsedRows;
-        _parsedRows = ArrayPool<RowInfo>.Shared.Rent(_parsedRows.Length * 2);
+        _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(_parsedRows.Length * 2);
 
         var previousSpan = previous.AsSpan().Slice(0, _parsedRowsCount);
         var newSpan = _parsedRows.AsSpan().Slice(0, _parsedRowsCount);
         previousSpan.CopyTo(newSpan);
-        ArrayPool<RowInfo>.Shared.Return(previous);
+        ArrayPool<SepRowInfo>.Shared.Return(previous);
         //Console.WriteLine($"ParsedRowsCount = {_parsedRowsCount} Length = {_parsedRows.Length}");
     }
 

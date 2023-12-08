@@ -171,38 +171,21 @@ public sealed partial class SepReader : SepReaderState
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        _cacheIndex = 0;
-        _arrayPool.Reset();
-        ++_rowIndex;
-
-    NEXTROW:
-        if (_parsedRowIndex < _parsedRowsCount)
+        do
         {
-            ref readonly var info = ref _parsedRows[_parsedRowIndex];
-            var colCount = info.ColCount;
-            _parsedRowColEndsOrInfosOffset += _parsedRowColCount + 1; // +1 since one more for start col
-            _parsedRowColCount = colCount;
-            _parsedRowLineNumberFrom = _parsedRowLineNumberTo;
-            _parsedRowLineNumberTo = info.LineNumberTo;
-
-            ++_parsedRowIndex;
-            if (_colCountExpected >= 0 && colCount != _colCountExpected)
+            if (MoveNextAlreadyParsed())
             {
-                ThrowInvalidDataExceptionColCountMismatch(_colCountExpected);
+                return true;
             }
-            return true;
-        }
-        var moreRows = ParseNewRows();
-        if (moreRows)
-        {
-            //Console.WriteLine($"ParsedRows {_parsedRowsCount} ColInfos {_currentRowColEndsOrInfosStartIndex + _currentRowColCount} Chars {_charsParseStart} {_charsDataEnd} ");
-            goto NEXTROW;
-        }
+        } while (ParseNewRows());
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool HasParsedRows() => _parsedRowIndex < _parsedRowsCount;
+
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    bool ParseNewRows()
+    internal bool ParseNewRows()
     {
         _parsedRowsCount = 0;
         _parsedRowIndex = 0;
@@ -394,28 +377,6 @@ public sealed partial class SepReader : SepReaderState
         previousSpan.CopyTo(newSpan);
         ArrayPool<SepRowInfo>.Shared.Return(previous);
         //Console.WriteLine($"ParsedRowsCount = {_parsedRowsCount} Length = {_parsedRows.Length}");
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected)
-    {
-        var (rowStart, rowEnd) = RowStartEnd();
-        ThrowInvalidDataExceptionColCountMismatch(colCountExpected, rowStart, rowEnd);
-    }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int rowStart, int rowEnd)
-    {
-        AssertState(rowStart, rowEnd);
-        var row = new string(_chars, rowStart, rowEnd - rowStart);
-        SepThrow.InvalidDataException_ColCountMismatch(_parsedRowColCount, _rowIndex, _parsedRowLineNumberFrom, _parsedRowLineNumberTo, row,
-            colCountExpected, _header.ToString());
-
-        [ExcludeFromCodeCoverage]
-        void AssertState(int rowStart, int rowEnd)
-        {
-            A.Assert(_charsDataStart <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range {_charsDataStart} <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
-            A.Assert(rowEnd >= rowStart, $"Row end before row start {rowEnd} >= {rowStart}");
-        }
     }
 
     bool CheckCharsAvailableDataMaybeRead(int paddingLength)

@@ -30,14 +30,75 @@ public static class SepReaderEnumerationExtensions
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         if (!reader.HasRows) { return Array.Empty<T>(); }
-        //return ParallelEnumerateAsParallel(reader, select, maxDegreeOfParallelism);
+        return ParallelEnumerateAsParallelManyRows(reader, select, maxDegreeOfParallelism);
         //return ParallelEnumerateInternalBusyLooping(reader, select, maxDegreeOfParallelism);
         // Fastest at the moment but still slower than single threaded
-        return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
+        //return ParallelEnumerateInternalRowStatesGroupPerWorker(reader, select, maxDegreeOfParallelism);
         // Extremely slow
         //return ParallelEnumerateInternalManyRowStates(reader, select, maxDegreeOfParallelism);
         // Appears not to work
         //return ParallelEnumerateInternalOneWorkItemPerRow(reader, select, maxDegreeOfParallelism);
+    }
+
+    static IEnumerable<T> ParallelEnumerateAsParallelManyRows<T>(this SepReader reader,
+        SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
+    {
+        //maxDegreeOfParallelism *= 16;
+        var states = new BlockingCollection<SepReaderState>();
+        return EnumerateStates(reader, states)
+            //.AsParallel()
+            //.WithDegreeOfParallelism(maxDegreeOfParallelism)
+            //.WithMergeOptions(ParallelMergeOptions.NotBuffered)
+            //.AsOrdered()
+            .SelectMany(EnumerateParsedRows);
+
+        IEnumerable<SepReaderState> EnumerateStates(SepReader reader, BlockingCollection<SepReaderState> states)
+        {
+            var createdCount = 0;
+            //using (states)
+            {
+                for (var i = 0; i < maxDegreeOfParallelism; i++)
+                {
+                    var state = new SepReaderState(reader);
+                    states.Add(state);
+                    ++createdCount;
+                }
+                do
+                {
+                    if (!states.TryTake(out var state))
+                    {
+                        state = new SepReaderState(reader);
+                        ++createdCount;
+                    }
+                    if (reader.HasParsedRows())
+                    {
+                        reader.CopyParsedRowsTo(state);
+                        yield return state;
+                    }
+                } while (reader.ParseNewRows());
+
+                for (var i = 0; i < createdCount; i++)
+                {
+                    //if (states.TryTake(out var state))
+                    //var state = states.Take();
+                    //{
+                    //    state.Dispose();
+                    //}
+                    //Trace.WriteLine("Dispose");
+                }
+            }
+        }
+
+        IEnumerable<T> EnumerateParsedRows(SepReaderState s)
+        {
+            while (s.MoveNextAlreadyParsed())
+            {
+                var result = select(new(s));
+                yield return result;
+            }
+            //Trace.WriteLine("Add");
+            states.Add(s);
+        }
     }
 
     static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader,

@@ -44,7 +44,7 @@ public class SepReaderRowTest
         // enumerator.Current should not be called if MoveNext false,
         // but here state is asserted anyway.
         var row = enumerator.Current;
-        Assert.AreEqual(1, row.RowIndex);
+        Assert.AreEqual(-1, row.RowIndex);
         Assert.AreEqual(1, row.LineNumberFrom);
         Assert.AreEqual(1, row.LineNumberToExcl);
         Assert.AreEqual(string.Empty, row.ToString());

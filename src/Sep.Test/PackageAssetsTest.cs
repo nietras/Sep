@@ -37,22 +37,27 @@ public class PackageAssetsTest
     public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
         VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    //[TestMethod]
+    [TestMethod]
     public void PackageAssetsTest_ParallelEnumerate_NoQuotes()
     {
-        //#if DEBUG
-        //        var text = NoQuotes;
-        //#else
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
-        //#endif
+#endif
         VerifyEnumerate(text, (reader, select) => reader
             .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
     }
 
-    //[TestMethod]
+    [TestMethod]
     public void PackageAssetsTest_ParallelEnumerate_WithQuotes()
     {
-        VerifyEnumerate(WithQuotes, (reader, select) => reader
+#if SEPREADERTRACE
+                var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
+#endif
+        VerifyEnumerate(text, (reader, select) => reader
             .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
     }
 
@@ -236,5 +241,6 @@ bdfcfee8-0f34-45b2-9bc2-7075284de5f4,2020-11-28T01:45:42.1469270+00:00,""AspNetC
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""net461"","""","""","""","""","""",""lib/net461/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""net461"","".NETFramework"",""4.6.1.0"","""","""",""0.0.0.0""
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""net5.0"","""","""","""","""","""",""lib/net5.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""net5.0"","".NETCoreApp"",""5.0.0.0"","""","""",""0.0.0.0""
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netcoreapp3.1"","""","""","""","""","""",""lib/netcoreapp3.1/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netcoreapp3.1"","".NETCoreApp"",""3.1.0.0"","""","""",""0.0.0.0""
-f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netstandard2.0"","""","""","""","""","""",""lib/netstandard2.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netstandard2.0"","".NETStandard"",""2.0.0.0"","""","""",""0.0.0.0""";
+f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netstandard2.0"","""","""","""","""","""",""lib/netstandard2.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netstandard2.0"","".NETStandard"",""2.0.0.0"","""","""",""0.0.0.0""
+";
 }

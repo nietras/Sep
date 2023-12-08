@@ -111,6 +111,65 @@ public class SepReaderState : IDisposable
         _toString = _createToString(_header, _colCountExpected);
     }
 
+
+    internal void CopyParsedRowsTo(SepReaderState other)
+    {
+        A.Assert(_parsedRowIndex == 0);
+        A.Assert(_parsedRowIndex <= _parsedRowsCount);
+
+        other._parsedRowIndex = _parsedRowIndex;
+        other._parsedRowsCount = _parsedRowsCount;
+        // Below is perhaps not needed
+        other._parsedRowColCount = _parsedRowColCount;
+        other._parsedRowColEndsOrInfosOffset = _parsedRowColEndsOrInfosOffset;
+        other._parsedRowLineNumberFrom = _parsedRowLineNumberFrom;
+        other._parsedRowLineNumberTo = _parsedRowLineNumberTo;
+
+        other._parseLineNumber = _parseLineNumber;
+
+        other._charsDataStart = _charsDataStart;
+        other._charsDataEnd = _charsDataEnd;
+        other._charsParseStart = _charsParseStart;
+
+        other._currentRowCharsStartIndex = _currentRowCharsStartIndex;
+        other._currentRowColEndsOrInfosStartIndex = _currentRowColEndsOrInfosStartIndex;
+        other._currentRowColCount = _currentRowColCount;
+
+        // Swap buffers
+        (other._chars, _chars) = (_chars, other._chars);
+        (other._colEndsOrColInfos, _colEndsOrColInfos) = (_colEndsOrColInfos, other._colEndsOrColInfos);
+        (other._parsedRows, _parsedRows) = (_parsedRows, other._parsedRows);
+
+        // Ensure buffers on this are still allocated correctly after swap
+        EnsureArrayFromPoolHasMinimumLength(ref _chars, other._chars.Length);
+        EnsureArrayFromPoolHasMinimumLength(ref _colEndsOrColInfos, other._colEndsOrColInfos.Length);
+        EnsureArrayFromPoolHasMinimumLength(ref _parsedRows, other._parsedRows.Length);
+
+        // Copy data for perhaps incomplete row after parsed rows
+        Array.Copy(other._chars, _currentRowCharsStartIndex, _chars, _currentRowCharsStartIndex, _charsDataEnd - _currentRowCharsStartIndex);
+        var intsPerColInfo = GetIntegersPerColInfo();
+        var colInfosStart = _currentRowColEndsOrInfosStartIndex * intsPerColInfo;
+        var colInfosCount = (_currentRowColCount + 1) * intsPerColInfo;
+        Array.Copy(other._colEndsOrColInfos, colInfosStart, _colEndsOrColInfos, colInfosStart, colInfosCount);
+
+        // Ensure state
+        _rowIndex += _parsedRowsCount;
+        _parsedRowIndex = 0;
+        _parsedRowsCount = 0;
+    }
+
+    static void EnsureArrayFromPoolHasMinimumLength<T>(ref T[] array, int minimumLength)
+    {
+        if (minimumLength > array.Length)
+        {
+            if (array.Length > 0) { ArrayPool<T>.Shared.Return(array); }
+            array = ArrayPool<T>.Shared.Rent(minimumLength);
+        }
+#if DEBUG
+        Array.Clear(array);
+#endif
+    }
+
     internal void CopyNewRowTo(SepReaderState other)
     {
         other._cacheIndex = 0;
@@ -159,6 +218,56 @@ public class SepReaderState : IDisposable
     }
 
     internal void ResetSharedCache() => _arrayPool.Reset();
+
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool MoveNextAlreadyParsed()
+    {
+        if (_parsedRowIndex < _parsedRowsCount)
+        {
+            _cacheIndex = 0;
+            _arrayPool.Reset();
+            ++_rowIndex;
+
+            ref readonly var info = ref _parsedRows[_parsedRowIndex];
+            var colCount = info.ColCount;
+            _parsedRowColEndsOrInfosOffset += _parsedRowColCount + 1; // +1 since one more for start col
+            _parsedRowColCount = colCount;
+            _parsedRowLineNumberFrom = _parsedRowLineNumberTo;
+            _parsedRowLineNumberTo = info.LineNumberTo;
+
+            ++_parsedRowIndex;
+            if (_colCountExpected >= 0 && colCount != _colCountExpected)
+            {
+                ThrowInvalidDataExceptionColCountMismatch(_colCountExpected);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected)
+    {
+        var (rowStart, rowEnd) = RowStartEnd();
+        ThrowInvalidDataExceptionColCountMismatch(colCountExpected, rowStart, rowEnd);
+    }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int rowStart, int rowEnd)
+    {
+        AssertState(rowStart, rowEnd);
+        var row = new string(_chars, rowStart, rowEnd - rowStart);
+        SepThrow.InvalidDataException_ColCountMismatch(_parsedRowColCount, _rowIndex, _parsedRowLineNumberFrom, _parsedRowLineNumberTo, row,
+            colCountExpected, _header.ToString());
+
+        [ExcludeFromCodeCoverage]
+        void AssertState(int rowStart, int rowEnd)
+        {
+            A.Assert(_charsDataStart <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range {_charsDataStart} <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
+            A.Assert(rowEnd >= rowStart, $"Row end before row start {rowEnd} >= {rowStart}");
+        }
+    }
+
 
     #region Row
     internal ReadOnlySpan<char> RowSpan()

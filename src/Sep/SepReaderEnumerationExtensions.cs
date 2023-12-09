@@ -43,24 +43,23 @@ public static class SepReaderEnumerationExtensions
     static IEnumerable<T> ParallelEnumerateAsParallelManyRows<T>(this SepReader reader,
         SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
     {
-        //maxDegreeOfParallelism *= 16;
-        var states = new ConcurrentStack<SepReaderState>();
+        var statesStack = new ConcurrentStack<SepReaderState>();
         try
         {
-            foreach (var result in EnumerateStates(reader, states)
-                .AsParallel()
-                .AsOrdered()
-                .WithDegreeOfParallelism(maxDegreeOfParallelism)
-                //.WithMergeOptions(ParallelMergeOptions.NotBuffered)
-                .SelectMany(EnumerateParsedRows))
+            var states = EnumerateStates(reader, statesStack);
+            var results = states.AsParallel()
+                                .AsOrdered()
+                                .WithDegreeOfParallelism(maxDegreeOfParallelism)
+                                .SelectMany(EnumerateParsedRows);
+            foreach (var result in results)
             {
                 yield return result;
             }
         }
         finally
         {
-            //Console.WriteLine($"States count {states.Count}");
-            foreach (var state in states)
+            //SepTrace.WriteLine($"States count {states.Count}");
+            foreach (var state in statesStack)
             {
                 state.Dispose();
             }
@@ -68,39 +67,18 @@ public static class SepReaderEnumerationExtensions
 
         IEnumerable<SepReaderState> EnumerateStates(SepReader reader, ConcurrentStack<SepReaderState> states)
         {
-            var createdCount = 0;
-            //using (states)
+            do
             {
-                //for (var i = 0; i < maxDegreeOfParallelism / 4; i++)
-                //{
-                //    var state = new SepReaderState(reader);
-                //    states.Push(state);
-                //    ++createdCount;
-                //}
-                do
+                if (!states.TryPop(out var state))
                 {
-                    if (!states.TryPop(out var state))
-                    {
-                        state = new SepReaderState(reader);
-                        ++createdCount;
-                    }
-                    if (reader.HasParsedRows())
-                    {
-                        reader.CopyParsedRowsTo(state);
-                        yield return state;
-                    }
-                } while (reader.ParseNewRows());
-
-                for (var i = 0; i < createdCount; i++)
-                {
-                    //if (states.TryTake(out var state))
-                    //var state = states.Take();
-                    //{
-                    //    state.Dispose();
-                    //}
-                    //Trace.WriteLine("Dispose");
+                    state = new SepReaderState(reader);
                 }
-            }
+                if (reader.HasParsedRows())
+                {
+                    reader.CopyParsedRowsTo(state);
+                    yield return state;
+                }
+            } while (reader.ParseNewRows());
         }
 
         IEnumerable<T> EnumerateParsedRows(SepReaderState s)
@@ -110,8 +88,8 @@ public static class SepReaderEnumerationExtensions
                 var result = select(new(s));
                 yield return result;
             }
-            //Console.WriteLine($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
-            states.Push(s);
+            //SepTrace.WriteLine($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            statesStack.Push(s);
         }
     }
 

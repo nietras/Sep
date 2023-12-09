@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace nietras.SeparatedValues;
 
@@ -39,6 +40,7 @@ sealed class SepStringHashPool : IDisposable
 #if SEPSTRINGPOOL_CACHE_LAST
     uint _lastHashCode = SepHash.Default(string.Empty);
     string _lastString = string.Empty;
+    readonly ThreadLocal<(uint, string)> _last = new(() => (SepHash.Default(string.Empty), string.Empty));
 #endif
     /// <summary>
     /// Simple string pool based on a very simple, fast, but poor hash.
@@ -163,6 +165,13 @@ sealed class SepStringHashPool : IDisposable
 
         var hashCode = SepHash.Default(chars);
 
+#if SEPSTRINGPOOL_CACHE_LAST
+        var (lastHashCode, lastString) = _last.Value;
+        if (lastHashCode == hashCode && MemoryExtensions.SequenceEqual(chars, lastString))
+        {
+            return lastString;
+        }
+#endif
         lock (this)
         {
             ref var bucket = ref GetBucket(hashCode);
@@ -177,6 +186,9 @@ sealed class SepStringHashPool : IDisposable
                 ref var e = ref Unsafe.Add(ref entriesRef, i);
                 if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
                 {
+#if SEPSTRINGPOOL_CACHE_LAST
+                    _last.Value = (hashCode, e.String);
+#endif
                     return e.String;
                 }
 
@@ -192,6 +204,9 @@ sealed class SepStringHashPool : IDisposable
 
             string stringValue = new(chars);
 
+#if SEPSTRINGPOOL_CACHE_LAST
+            _last.Value = (hashCode, stringValue);
+#endif
             var index = _count;
             if (index == entriesLength)
             {
@@ -288,6 +303,9 @@ sealed class SepStringHashPool : IDisposable
 #if SEPSTRINGPOOL_USE_ARRAYPOOL
         ArrayPool<int>.Shared.Return(_buckets);
         ArrayPool<Entry>.Shared.Return(_entries);
+#endif
+#if SEPSTRINGPOOL_CACHE_LAST
+        _last.Dispose();
 #endif
         _buckets = default!;
         _entries = default!;

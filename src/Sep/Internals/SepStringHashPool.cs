@@ -72,18 +72,12 @@ sealed class SepStringHashPool : IDisposable
 
     public int Count => _count;
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public string ToString(ReadOnlySpan<char> chars)
     {
         var length = chars.Length;
-
-        if (length == 0)
-        {
-            return string.Empty;
-        }
-        if (length > _maximumStringLength)
-        {
-            return new(chars);
-        }
+        if (length == 0) { return string.Empty; }
+        if (length > _maximumStringLength) { return new(chars); }
 
         var hashCode = SepHash.Default(chars);
 
@@ -158,6 +152,68 @@ sealed class SepStringHashPool : IDisposable
         _count = index + 1;
 
         return stringValue;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal string ToStringThreadSafe(ReadOnlySpan<char> chars)
+    {
+        var length = chars.Length;
+        if (length == 0) { return string.Empty; }
+        if (length > _maximumStringLength) { return new(chars); }
+
+        var hashCode = SepHash.Default(chars);
+
+        lock (this)
+        {
+            ref var bucket = ref GetBucket(hashCode);
+            var entries = _entries;
+            ref var entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
+            var entriesLength = (uint)entries.Length;
+
+            var i = bucket - 1;
+            uint collisionCount = 0;
+            while ((uint)i < entriesLength)
+            {
+                ref var e = ref Unsafe.Add(ref entriesRef, i);
+                if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
+                {
+                    return e.String;
+                }
+
+                i = e.Next;
+
+                if (++collisionCount > CollisionLimit)
+                {
+                    // protects against malicious inputs
+                    // too many collisions give up and create the string.
+                    return new(chars);
+                }
+            }
+
+            string stringValue = new(chars);
+
+            var index = _count;
+            if (index == entriesLength)
+            {
+                if (index >= _maximumCapacity)
+                {
+                    return stringValue;
+                }
+                entries = Resize();
+                entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
+                bucket = ref GetBucket(hashCode);
+            }
+
+            ref var entry = ref Unsafe.Add(ref entriesRef, index);
+            entry.HashCode = hashCode;
+            entry.Next = bucket - 1;
+            entry.String = stringValue;
+
+            bucket = index + 1; // bucket is an int ref
+            _count = index + 1;
+
+            return stringValue;
+        }
     }
 
     Entry[] Resize()

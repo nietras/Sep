@@ -14,6 +14,13 @@ public abstract class SepToString : IDisposable
         (maybeHeader, colCount) => new SepToStringHashPoolPerCol(colCount,
             maximumStringLength, initialCapacity, maximumCapacity);
 
+    public static SepCreateToString PoolPerColThreadSafe(
+        int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
+        int initialCapacity = SepStringHashPool.InitialCapacityDefault,
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolPerColThreadSafe(colCount,
+            maximumStringLength, initialCapacity, maximumCapacity);
+
     public static SepCreateToString OnePool(
         int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
         int initialCapacity = SepStringHashPool.InitialCapacityDefault,
@@ -22,6 +29,8 @@ public abstract class SepToString : IDisposable
         var s = new SepToStringHashPoolSingle(maximumStringLength, initialCapacity, maximumCapacity);
         return (maybeHeader, colCount) => s;
     }
+
+    public virtual bool IsThreadSafe => false;
 
     public abstract string ToString(ReadOnlySpan<char> colSpan, int colIndex);
 

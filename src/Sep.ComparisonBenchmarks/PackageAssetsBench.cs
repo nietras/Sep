@@ -259,7 +259,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
 #if DEBUG
     const int DefaultLineCount = 10_000;
 #else
-    const int DefaultLineCount = 50_000;
+    const int DefaultLineCount = 1_000_000;
 #endif
 
     public AssetPackageAssetsBench() : this(false) { }
@@ -317,7 +317,8 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         {
             HasHeader = false,
 #if USE_STRING_POOLING
-            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+            //CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+            CreateToString = SepToString.PoolPerColThreadSafe(maximumStringLength: 128),
 #endif
         })
         .From(Reader.CreateReader());

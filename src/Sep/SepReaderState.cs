@@ -108,9 +108,9 @@ public class SepReaderState : IDisposable
     {
         _arrayPool = new();
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
-        _toString = _createToString(_header, _colCountExpected);
+        // Only duplicate toString if not thread safe
+        _toString = other._toString.IsThreadSafe ? other._toString : _createToString(_header, _colCountExpected);
     }
-
 
     internal void CopyParsedRowsTo(SepReaderState other)
     {
@@ -139,6 +139,8 @@ public class SepReaderState : IDisposable
         (other._chars, _chars) = (_chars, other._chars);
         (other._colEndsOrColInfos, _colEndsOrColInfos) = (_colEndsOrColInfos, other._colEndsOrColInfos);
         (other._parsedRows, _parsedRows) = (_parsedRows, other._parsedRows);
+        // Try swap tostring instance to avoid allocations
+        (other._toString, _toString) = (_toString, other._toString);
 
         // Ensure buffers on this are still allocated correctly after swap
         EnsureArrayFromPoolHasMinimumLength(ref _chars, other._chars.Length);

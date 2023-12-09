@@ -44,28 +44,42 @@ public static class SepReaderEnumerationExtensions
         SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
     {
         //maxDegreeOfParallelism *= 16;
-        var states = new BlockingCollection<SepReaderState>();
-        return EnumerateStates(reader, states)
-            //.AsParallel()
-            //.WithDegreeOfParallelism(maxDegreeOfParallelism)
-            //.WithMergeOptions(ParallelMergeOptions.NotBuffered)
-            //.AsOrdered()
-            .SelectMany(EnumerateParsedRows);
+        var states = new ConcurrentStack<SepReaderState>();
+        try
+        {
+            foreach (var result in EnumerateStates(reader, states)
+                .AsParallel()
+                .AsOrdered()
+                .WithDegreeOfParallelism(maxDegreeOfParallelism)
+                //.WithMergeOptions(ParallelMergeOptions.NotBuffered)
+                .SelectMany(EnumerateParsedRows))
+            {
+                yield return result;
+            }
+        }
+        finally
+        {
+            //Console.WriteLine($"States count {states.Count}");
+            foreach (var state in states)
+            {
+                state.Dispose();
+            }
+        }
 
-        IEnumerable<SepReaderState> EnumerateStates(SepReader reader, BlockingCollection<SepReaderState> states)
+        IEnumerable<SepReaderState> EnumerateStates(SepReader reader, ConcurrentStack<SepReaderState> states)
         {
             var createdCount = 0;
             //using (states)
             {
-                for (var i = 0; i < maxDegreeOfParallelism; i++)
-                {
-                    var state = new SepReaderState(reader);
-                    states.Add(state);
-                    ++createdCount;
-                }
+                //for (var i = 0; i < maxDegreeOfParallelism / 4; i++)
+                //{
+                //    var state = new SepReaderState(reader);
+                //    states.Push(state);
+                //    ++createdCount;
+                //}
                 do
                 {
-                    if (!states.TryTake(out var state))
+                    if (!states.TryPop(out var state))
                     {
                         state = new SepReaderState(reader);
                         ++createdCount;
@@ -96,8 +110,8 @@ public static class SepReaderEnumerationExtensions
                 var result = select(new(s));
                 yield return result;
             }
-            //Trace.WriteLine("Add");
-            states.Add(s);
+            //Console.WriteLine($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            states.Push(s);
         }
     }
 

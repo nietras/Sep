@@ -66,28 +66,29 @@ var text = """
            CSV;✅;2;2.2;0.2;1.5
            """;
 
-using var reader = Sep.Reader().FromText(text);   // Infers separator 'Sep' from header
-using var writer = reader.Spec.Writer().ToText(); // Writer defined from reader 'Spec'
-                                                  // Use .FromFile(...)/ToFile(...) for files
+using SepReader reader = Sep.Reader().FromText(text);   // Infers separator 'Sep' from header
+using SepWriter writer = reader.Spec.Writer().ToText(); // Writer defined from reader 'Spec'
+                                                        // Use .FromFile(...)/ToFile(...) for files
 var idx = reader.Header.IndexOf("B");
 var nms = new[] { "E", "F" };
 
-foreach (var readRow in reader)           // Read one row at a time
+foreach (SepReader.Row readRow in reader)           // Read one row at a time
 {
-    var a = readRow["A"].Span;            // Column as ReadOnlySpan<char>
-    var b = readRow[idx].ToString();      // Column to string (might be pooled)
-    var c = readRow["C"].Parse<int>();    // Parse any T : ISpanParsable<T>
-    var d = readRow["D"].Parse<float>();  // Parse float/double fast via csFastFloat
-    var s = readRow[nms].Parse<double>(); // Parse multiple columns as Span<T>
-                                          // - Sep handles array allocation and reuse
-    foreach (ref var v in s) { v *= 10; }
+    ReadOnlySpan<char> a = readRow["A"].Span;       // Column as ReadOnlySpan<char>
+    string b = readRow[idx].ToString();             // Column to string (might be pooled)
+    int c = readRow["C"].Parse<int>();              // Parse any T : ISpanParsable<T>
+    float d = readRow["D"].Parse<float>();          // Parse float/double fast via csFastFloat
+    Span<double> ef = readRow[nms].Parse<double>(); // Parse multiple columns as Span<T>
+                                                    // - Sep handles array allocation and reuse
+    
+    foreach (ref double v in ef) { v *= 10; }       // Modify ef values in-place
 
-    using var writeRow = writer.NewRow(); // Start new row. Row written on Dispose.
-    writeRow["A"].Set(a);                 // Set by ReadOnlySpan<char>
-    writeRow["B"].Set(b);                 // Set by string
-    writeRow["C"].Set($"{c * 2}");        // Set via InterpolatedStringHandler, no allocs
-    writeRow["D"].Format(d / 2);          // Format any T : ISpanFormattable
-    writeRow[nms].Format(s);              // Format multiple columns directly
+    using var writeRow = writer.NewRow();           // Start new row. Row written on Dispose.
+    writeRow["A"].Set(a);                           // Set by ReadOnlySpan<char>
+    writeRow["B"].Set(b);                           // Set by string
+    writeRow["C"].Set($"{c * 2}");                  // Set via InterpolatedStringHandler, no allocs
+    writeRow["D"].Format(d / 2);                    // Format any T : ISpanFormattable
+    writeRow[nms].Format(ef);                       // Format multiple columns directly
     // Columns are added on first access as ordered, header written when first row written
 }
 

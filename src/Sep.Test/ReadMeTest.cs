@@ -8,6 +8,9 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PublicApiGenerator;
 
+// Only parallize on class level to avoid multiple writes to README file
+[assembly: Parallelize(Workers = 0, Scope = ExecutionScope.ClassLevel)]
+
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]

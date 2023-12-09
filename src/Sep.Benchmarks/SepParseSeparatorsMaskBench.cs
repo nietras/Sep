@@ -53,11 +53,4 @@ public unsafe class SepParseSeparatorsMaskBench
         return ref SepParseMask.ParseSeparatorsMask(
             _maskValue, _dataIndex, ref *_colEnds);
     }
-
-    [Benchmark]
-    public unsafe ref int ParseSeparatorsMaskLong()
-    {
-        return ref SepParseMask.ParseSeparatorsMaskLong(
-            _maskValue, _dataIndex, ref *_colEnds);
-    }
 }

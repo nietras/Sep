@@ -200,7 +200,7 @@ public partial class SepReader
                 var maybeHeader = _state._hasHeader ? _state._header : null;
                 for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {
-                    var colValue = row[colIndex].ToStringRaw();
+                    var colValue = row[colIndex].ToStringDirect();
                     cols[colIndex] = new(colIndex, maybeHeader?.ColNames[colIndex], colValue);
                 }
                 return cols;

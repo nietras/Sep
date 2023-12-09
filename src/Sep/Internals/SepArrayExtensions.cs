@@ -91,9 +91,15 @@ static class SepArrayExtensions
     [ExcludeFromCodeCoverage]
     internal static void CheckPadding<T>(this T[] array, int end, int minimumPaddingLength)
     {
-        var paddingLength = (array.Length - end);
-        A.Assert(paddingLength >= minimumPaddingLength,
-                     $"Padding length {paddingLength} less than minimum {minimumPaddingLength}");
+        CheckPadding(array.Length, end, minimumPaddingLength);
     }
 
+    [Conditional("DEBUG")]
+    [ExcludeFromCodeCoverage]
+    internal static void CheckPadding(int length, int end, int minimumPaddingLength)
+    {
+        var paddingLength = (length - end);
+        A.Assert(paddingLength >= minimumPaddingLength,
+                 $"Padding length {paddingLength} less than minimum {minimumPaddingLength}");
+    }
 }

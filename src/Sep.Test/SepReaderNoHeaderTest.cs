@@ -183,7 +183,7 @@ public class SepReaderNoHeaderTest
         var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-        Assert.AreEqual(initialColCountCapacity * 2, reader._colEnds.Length);
+        Assert.AreEqual(initialColCountCapacity * 2, reader._colEndsOrColInfos.Length);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(initialColCountCapacity, row.ColCount);

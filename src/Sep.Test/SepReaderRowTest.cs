@@ -21,10 +21,6 @@ public class SepReaderRowTest
     static readonly string[] _colValues = new string[_cols] { _colValue0, _colValue1, _colValue2, _colValue3 };
     static readonly string _headerText = string.Join(';', _colNames);
     static readonly string _rowText = string.Join(';', _colValues);
-    //static readonly string _text = $"""
-    //                                {_headerText}
-    //                                {_rowText}
-    //                                """;
     static readonly string _text = $"{_headerText}\r{_rowText}\r";
 
     readonly SepReader _reader = Sep.Reader().FromText(_text);
@@ -37,10 +33,12 @@ public class SepReaderRowTest
         _enumerator = enumerator;
     }
 
-    [TestMethod]
-    public void SepReaderRowTest_EmptyString_Properties()
+    [DataRow(false)]
+    [DataRow(true)]
+    [DataTestMethod]
+    public void SepReaderRowTest_EmptyString_Properties(bool unescape)
     {
-        using var reader = Sep.Reader().FromText("");
+        using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("");
         using var enumerator = reader.GetEnumerator();
         Assert.IsFalse(enumerator.MoveNext());
         // enumerator.Current should not be called if MoveNext false,
@@ -53,10 +51,12 @@ public class SepReaderRowTest
         Assert.AreEqual(0, row.Span.Length);
     }
 
-    [TestMethod]
-    public void SepReaderRowTest_EmptyRow_Properties()
+    [DataRow(false)]
+    [DataRow(true)]
+    [DataTestMethod]
+    public void SepReaderRowTest_EmptyRow_Properties(bool unescape)
     {
-        using var reader = Sep.Reader().FromText("\n\n");
+        using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("\n\n");
         using var enumerator = reader.GetEnumerator();
         Assert.IsTrue(enumerator.MoveNext());
         var row = enumerator.Current;
@@ -67,10 +67,15 @@ public class SepReaderRowTest
         Assert.AreEqual(0, row.Span.Length);
     }
 
-    [TestMethod]
-    public void SepReaderRowTest_Row_Properties()
+    [DataRow(false)]
+    [DataRow(true)]
+    [DataTestMethod]
+    public void SepReaderRowTest_Row_Properties(bool unescape)
     {
-        var row = _enumerator.Current;
+        using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText(_text);
+        using var enumerator = reader.GetEnumerator();
+        Assert.IsTrue(enumerator.MoveNext());
+        var row = enumerator.Current;
         Assert.AreEqual(1, row.RowIndex);
         Assert.AreEqual(2, row.LineNumberFrom);
         Assert.AreEqual(3, row.LineNumberToExcl);

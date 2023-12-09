@@ -9,23 +9,6 @@ static class FloatsTestData
     const int RandomSeed = 42;
     public const string GroundTruthColNamePrefix = "GT_";
     public const string ResultColNamePrefix = "RE_";
-    const string SetColName = "Set";
-    const string FileNameColName = "FileName";
-    const string DataSplitColName = "DataSplit";
-    static readonly string[] Sets = new[]
-    {
-        "SetAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-        "SetBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
-        "SetCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
-        "SetDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
-    };
-    static readonly string[] DataSplits = new[]
-    {
-        "Train",
-        "Validation",
-        "Test",
-    };
-    static readonly string[] FileNames = GenerateFileNames(new Random(17), 2_000);
 
     internal static string GenerateText(int rows, int featuresCount)
     {
@@ -64,9 +47,6 @@ static class FloatsTestData
         for (var r = 0; r < rows; r++)
         {
             using var row = writer.NewRow();
-            row[SetColName].Set(Sets[random.Next(0, Sets.Length)]);
-            row[FileNameColName].Set(FileNames[random.Next(0, FileNames.Length)]);
-            row[DataSplitColName].Set(DataSplits[random.Next(0, DataSplits.Length)]);
             //row[groundTruthColNames].Set(floatsColValues[(r * 2) % floatsColValues.Length]);
             //row[resultColNames].Set(floatsColValues[(r * 2 + 1) % floatsColValues.Length]);
             row[groundTruthColNames].Format(Fill(random, values));
@@ -76,17 +56,6 @@ static class FloatsTestData
         var a = Stopwatch.GetTimestamp();
         var ms = ((a - b) * 1000.0) / Stopwatch.Frequency;
         Console.WriteLine($"// {nameof(Fill)} test data {ms,7:F3} ms");
-    }
-
-    static string[] GenerateFileNames(Random random, int count)
-    {
-        var fileNames = new string[count];
-        for (var i = 0; i < fileNames.Length; i++)
-        {
-            var fileName = $"{new string((char)('a' + random.Next(0, 'z' - 'a')), random.Next(16, 128))}.png";
-            fileNames[i] = fileName;
-        }
-        return fileNames;
     }
 
     static string[][] GenerateFloatsColValues(Random random, int count, int floatsCount)

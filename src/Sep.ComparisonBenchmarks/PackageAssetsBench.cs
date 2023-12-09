@@ -311,13 +311,12 @@ public class AssetPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark()]
-    public void Sep_MT___()
+    public void Sep__MT__()
     {
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
 #if USE_STRING_POOLING
-            //CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
             CreateToString = SepToString.PoolPerColThreadSafe(maximumStringLength: 128),
 #endif
         })

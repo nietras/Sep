@@ -105,12 +105,13 @@ else
     //var b = new ColsPackageAssetsBench();
     //var b = new RowFloatsReaderBench();
     var b = new AssetPackageAssetsBench();
-    b.Sep_MT___();
+    //var b = new FloatsFloatsReaderBench();
+    b.Sep__MT__();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {
         //b.Sylvan___();
-        b.Sep_MT___();
+        b.Sep__MT__();
         //b.CsvHelper();
         //b.ReadLineP();
         //b.ReadLine_();
@@ -123,7 +124,7 @@ else
     //var sylvan_ms = sw.ElapsedMilliseconds;
     //Thread.Sleep(300);
     sw.Restart();
-    b.Sep_MT___();
+    b.Sep__MT__();
     var sep_ms = sw.ElapsedMilliseconds;
     log($"Sep    {sep_ms:D4}");
     Thread.Sleep(300);
@@ -131,7 +132,7 @@ else
     Thread.Sleep(300);
     for (var i = 0; i < 20; i++)
     {
-        b.Sep_MT___();
+        b.Sep__MT__();
     }
 }
 

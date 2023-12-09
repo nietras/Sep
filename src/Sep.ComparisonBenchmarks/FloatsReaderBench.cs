@@ -253,7 +253,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     }
 
     [Benchmark()]
-    public double Sep_MT___()
+    public double Sep__MT__()
     {
         using var reader = Sep.Reader().From(Reader.CreateReader());
 

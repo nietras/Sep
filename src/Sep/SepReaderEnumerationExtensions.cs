@@ -2,15 +2,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace nietras.SeparatedValues;
 
 public static class SepReaderEnumerationExtensions
 {
-    static readonly Action<string> Log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
-
+#if SEPTRACEPARALLEL
+    static readonly Action<string> Log = t => { Console.WriteLine(t); T.WriteLine(t); };
+#endif
     // TODO: Finalize and expose public with TryRowFunc too
     public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
@@ -51,7 +51,9 @@ public static class SepReaderEnumerationExtensions
         }
         finally
         {
-            //Log($"States count {states.Count}");
+#if SEPTRACEPARALLEL
+            Log($"States stack count {statesStack.Count}");
+#endif
             foreach (var state in statesStack)
             {
                 state.Dispose();
@@ -81,7 +83,9 @@ public static class SepReaderEnumerationExtensions
                 var result = select(new(s));
                 yield return result;
             }
-            //Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+#if SEPTRACEPARALLEL
+            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+#endif
             statesStack.Push(s);
         }
     }

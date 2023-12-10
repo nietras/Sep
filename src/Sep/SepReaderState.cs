@@ -29,11 +29,10 @@ public class SepReaderState : IDisposable
 
     internal int _charsParseStart = 0;
 
-    internal int _parseLineNumber = 1;
-
-    internal int _currentRowCharsStartIndex = 0;
-    internal int _currentRowColEndsOrInfosStartIndex = 0;
-    internal int _currentRowColCount = 0;
+    internal int _parsingLineNumber = 1;
+    internal int _parsingRowCharsStartIndex = 0;
+    internal int _parsingRowColEndsOrInfosStartIndex = 0;
+    internal int _parsingRowColCount = 0;
 
     readonly internal uint _colUnquoteUnescape = 0;
     internal int _colCountExpected = -1;
@@ -47,7 +46,6 @@ public class SepReaderState : IDisposable
     // [1..ColCount] = Col ends/infos e.g. [1] = first col end/info
     // Length = Sum of All Rows (ColCount + 1) and Current Row
     internal int[] _colEndsOrColInfos = Array.Empty<int>();
-    internal int _colEndsOrColInfosTotalCount = 0;
 
 #if DEBUG
     internal const int ParsedRowsInitialLength = 64;
@@ -56,13 +54,12 @@ public class SepReaderState : IDisposable
 #endif
     internal SepRowInfo[] _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(ParsedRowsInitialLength);
     internal int _parsedRowsCount = 0;
-
     internal int _parsedRowIndex = 0;
 
-    internal int _parsedRowColCount = -1; // Must be minus one for start
-    internal int _parsedRowColEndsOrInfosOffset = 0;
-    internal int _parsedRowLineNumberFrom = 1;
-    internal int _parsedRowLineNumberTo = 1;
+    internal int _currentRowColCount = -1; // Must be minus one for start
+    internal int _currentRowColEndsOrInfosOffset = 0;
+    internal int _currentRowLineNumberFrom = 1;
+    internal int _currentRowLineNumberTo = 1;
 
     internal int _rowIndex = -1;
 
@@ -120,20 +117,20 @@ public class SepReaderState : IDisposable
         other._parsedRowIndex = _parsedRowIndex;
         other._parsedRowsCount = _parsedRowsCount;
         // Below is perhaps not needed
-        other._parsedRowColCount = _parsedRowColCount;
-        other._parsedRowColEndsOrInfosOffset = _parsedRowColEndsOrInfosOffset;
-        other._parsedRowLineNumberFrom = _parsedRowLineNumberFrom;
-        other._parsedRowLineNumberTo = _parsedRowLineNumberTo;
+        other._currentRowColCount = _currentRowColCount;
+        other._currentRowColEndsOrInfosOffset = _currentRowColEndsOrInfosOffset;
+        other._currentRowLineNumberFrom = _currentRowLineNumberFrom;
+        other._currentRowLineNumberTo = _currentRowLineNumberTo;
 
-        other._parseLineNumber = _parseLineNumber;
+        other._parsingLineNumber = _parsingLineNumber;
 
         other._charsDataStart = _charsDataStart;
         other._charsDataEnd = _charsDataEnd;
         other._charsParseStart = _charsParseStart;
 
-        other._currentRowCharsStartIndex = _currentRowCharsStartIndex;
-        other._currentRowColEndsOrInfosStartIndex = _currentRowColEndsOrInfosStartIndex;
-        other._currentRowColCount = _currentRowColCount;
+        other._parsingRowCharsStartIndex = _parsingRowCharsStartIndex;
+        other._parsingRowColEndsOrInfosStartIndex = _parsingRowColEndsOrInfosStartIndex;
+        other._parsingRowColCount = _parsingRowColCount;
 
         // Swap buffers
         (other._chars, _chars) = (_chars, other._chars);
@@ -148,10 +145,10 @@ public class SepReaderState : IDisposable
         EnsureArrayFromPoolHasMinimumLength(ref _parsedRows, other._parsedRows.Length);
 
         // Copy data for perhaps incomplete row after parsed rows
-        Array.Copy(other._chars, _currentRowCharsStartIndex, _chars, _currentRowCharsStartIndex, _charsDataEnd - _currentRowCharsStartIndex);
+        Array.Copy(other._chars, _parsingRowCharsStartIndex, _chars, _parsingRowCharsStartIndex, _charsDataEnd - _parsingRowCharsStartIndex);
         var intsPerColInfo = GetIntegersPerColInfo();
-        var colInfosStart = _currentRowColEndsOrInfosStartIndex * intsPerColInfo;
-        var colInfosCount = (_currentRowColCount + 1) * intsPerColInfo;
+        var colInfosStart = _parsingRowColEndsOrInfosStartIndex * intsPerColInfo;
+        var colInfosCount = (_parsingRowColCount + 1) * intsPerColInfo;
         Array.Copy(other._colEndsOrColInfos, colInfosStart, _colEndsOrColInfos, colInfosStart, colInfosCount);
 
         // Ensure state
@@ -177,13 +174,13 @@ public class SepReaderState : IDisposable
         other._cacheIndex = 0;
         other._arrayPool.Reset();
 
-        other._parsedRowColCount = _parsedRowColCount;
-        other._parsedRowColEndsOrInfosOffset = _parsedRowColEndsOrInfosOffset;
-        other._parsedRowLineNumberFrom = _parsedRowLineNumberFrom;
-        other._parsedRowLineNumberTo = _parsedRowLineNumberTo;
+        other._currentRowColCount = _currentRowColCount;
+        other._currentRowColEndsOrInfosOffset = _currentRowColEndsOrInfosOffset;
+        other._currentRowLineNumberFrom = _currentRowLineNumberFrom;
+        other._currentRowLineNumberTo = _currentRowLineNumberTo;
 
         other._rowIndex = _rowIndex;
-        other._parseLineNumber = _parseLineNumber;
+        other._parsingLineNumber = _parsingLineNumber;
 
         var rowSpan = RowSpan();
         ref var otherChars = ref other._chars;
@@ -199,7 +196,7 @@ public class SepReaderState : IDisposable
         if (_colUnquoteUnescape == 0)
         {
             // Copy starts at 0 index so need to fix up col ends
-            var colCount = _parsedRowColCount;
+            var colCount = _currentRowColCount;
             if (colCount > 0)
             {
                 var thisColEnds = _colEndsOrColInfos;
@@ -233,10 +230,10 @@ public class SepReaderState : IDisposable
 
             ref readonly var info = ref _parsedRows[_parsedRowIndex];
             var colCount = info.ColCount;
-            _parsedRowColEndsOrInfosOffset += _parsedRowColCount + 1; // +1 since one more for start col
-            _parsedRowColCount = colCount;
-            _parsedRowLineNumberFrom = _parsedRowLineNumberTo;
-            _parsedRowLineNumberTo = info.LineNumberTo;
+            _currentRowColEndsOrInfosOffset += _currentRowColCount + 1; // +1 since one more for start col
+            _currentRowColCount = colCount;
+            _currentRowLineNumberFrom = _currentRowLineNumberTo;
+            _currentRowLineNumberTo = info.LineNumberTo;
 
             ++_parsedRowIndex;
             if (_colCountExpected >= 0 && colCount != _colCountExpected)
@@ -259,7 +256,7 @@ public class SepReaderState : IDisposable
     {
         AssertState(rowStart, rowEnd);
         var row = new string(_chars, rowStart, rowEnd - rowStart);
-        SepThrow.InvalidDataException_ColCountMismatch(_parsedRowColCount, _rowIndex, _parsedRowLineNumberFrom, _parsedRowLineNumberTo, row,
+        SepThrow.InvalidDataException_ColCountMismatch(_currentRowColCount, _rowIndex, _currentRowLineNumberFrom, _currentRowLineNumberTo, row,
             colCountExpected, _header.ToString());
 
         [ExcludeFromCodeCoverage]
@@ -303,21 +300,21 @@ public class SepReaderState : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal (int start, int end) RowStartEnd()
     {
-        if (_parsedRowColCount > 0)
+        if (_currentRowColCount > 0)
         {
             if (_colUnquoteUnescape == 0)
             {
                 var colEnds = _colEndsOrColInfos;
-                var start = colEnds[_parsedRowColEndsOrInfosOffset] + 1; // +1 since previous end
-                var end = colEnds[_parsedRowColEndsOrInfosOffset + _parsedRowColCount];
+                var start = colEnds[_currentRowColEndsOrInfosOffset] + 1; // +1 since previous end
+                var end = colEnds[_currentRowColEndsOrInfosOffset + _currentRowColCount];
                 return new(start, end);
             }
             else
             {
                 ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
-                colInfos = ref Unsafe.Add(ref colInfos, _parsedRowColEndsOrInfosOffset);
+                colInfos = ref Unsafe.Add(ref colInfos, _currentRowColEndsOrInfosOffset);
                 var start = colInfos.ColEnd + 1; // +1 since previous end
-                var end = Unsafe.Add(ref colInfos, _parsedRowColCount).ColEnd;
+                var end = Unsafe.Add(ref colInfos, _currentRowColCount).ColEnd;
                 return new(start, end);
             }
         }
@@ -353,9 +350,9 @@ public class SepReaderState : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ReadOnlySpan<char> GetColSpan(int index)
     {
-        if ((uint)index >= (uint)_parsedRowColCount) { SepThrow.IndexOutOfRangeException(); }
-        A.Assert(_parsedRowColEndsOrInfosOffset >= 0);
-        index += _parsedRowColEndsOrInfosOffset;
+        if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
+        A.Assert(_currentRowColEndsOrInfosOffset >= 0);
+        index += _currentRowColEndsOrInfosOffset;
         if (_colUnquoteUnescape == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔

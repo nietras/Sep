@@ -66,21 +66,21 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
-        var lineNumber = s._parseLineNumber;
+        var lineNumber = s._parsingLineNumber;
         var colInfos = s._colEndsOrColInfos;
 
         var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
 
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, s._currentRowColCount + s._currentRowColEndsOrInfosStartIndex, PaddingLength);
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
 
         ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._currentRowColEndsOrInfosStartIndex);
-        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._currentRowColCount + s._currentRowColEndsOrInfosStartIndex);
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosLength - VecUI8.Count);
 
         charsIndex -= VecUI8.Count;
@@ -162,8 +162,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
             // Update for next row
             colInfosRef = ref colInfosRefCurrent;
-            s._currentRowColEndsOrInfosStartIndex += colCount + 1;
-            s._currentRowCharsStartIndex = charsIndex;
+            s._parsingRowColEndsOrInfosStartIndex += colCount + 1;
+            s._parsingRowCharsStartIndex = charsIndex;
             // Space for more rows?
             if (s._parsedRowsCount < s._parsedRows.Length)
             {
@@ -172,8 +172,8 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         }
         // Update instance state from enregistered
         _quoteCount = quoteCount;
-        s._currentRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
-        s._parseLineNumber = lineNumber;
+        s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+        s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }

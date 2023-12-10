@@ -125,7 +125,7 @@ public sealed partial class SepReader : SepReaderState
 
                 // Check if more data available and hence minimum 1 row after header
                 // What if \n after \r after header only? Where \n lingering after MoveNext?
-                HasRows = _parsedRowsCount > 1 || _charsDataEnd > _charsParseStart || _currentRowColCount > 0;
+                HasRows = _parsedRowsCount > 1 || _charsDataEnd > _charsParseStart || _parsingRowColCount > 0;
                 if (!HasRows)
                 {
                     HasRows = !CheckCharsAvailableDataMaybeRead(_charsPaddingLength);
@@ -136,8 +136,8 @@ public sealed partial class SepReader : SepReaderState
                 // Move back one as no header (since MoveNext called twice then)
                 --_rowIndex;
                 --_parsedRowIndex;
-                _parsedRowColEndsOrInfosOffset = 0;
-                _parsedRowColCount = -1;
+                _currentRowColEndsOrInfosOffset = 0;
+                _currentRowColCount = -1;
                 A.Assert(_rowIndex == -1);
                 A.Assert(_parsedRowIndex == 0);
                 HasHeader = false;
@@ -189,14 +189,14 @@ public sealed partial class SepReader : SepReaderState
     {
         _parsedRowsCount = 0;
         _parsedRowIndex = 0;
-        _parsedRowColCount = -1;
-        _parsedRowColEndsOrInfosOffset = 0;
+        _currentRowColCount = -1;
+        _currentRowColEndsOrInfosOffset = 0;
 
         // Move data to start if there is a current row in progress? Or data in buffer?
-        if (_currentRowCharsStartIndex > 0)
+        if (_parsingRowCharsStartIndex > 0)
         {
             A.Assert(_parser != null);
-            var offset = _chars.MoveDataToStart(ref _currentRowCharsStartIndex, ref _charsDataEnd, _parser.PaddingLength);
+            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, _parser.PaddingLength);
 
             // Adjust parse start
             A.Assert(_charsParseStart >= offset);
@@ -206,30 +206,30 @@ public sealed partial class SepReader : SepReaderState
             if (_colUnquoteUnescape == 0)
             {
                 ref var colEndsRef = ref GetColsRefAs<int>();
-                for (var i = 0; i <= _currentRowColCount; i++)
+                for (var i = 0; i <= _parsingRowColCount; i++)
                 {
-                    ref var colEnd = ref Unsafe.Add(ref colEndsRef, i + _currentRowColEndsOrInfosStartIndex);
+                    ref var colEnd = ref Unsafe.Add(ref colEndsRef, i + _parsingRowColEndsOrInfosStartIndex);
                     colEnd -= offset;
                 }
             }
             else
             {
                 ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-                for (var i = 0; i <= _currentRowColCount; i++)
+                for (var i = 0; i <= _parsingRowColCount; i++)
                 {
-                    ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _currentRowColEndsOrInfosStartIndex);
+                    ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _parsingRowColEndsOrInfosStartIndex);
                     colInfo.ColEnd -= offset;
                 }
             }
         }
-        if (_currentRowColEndsOrInfosStartIndex > 0)
+        if (_parsingRowColEndsOrInfosStartIndex > 0)
         {
             var intsPerColInfo = GetIntegersPerColInfo();
             var colInfosSpan = _colEndsOrColInfos.AsSpan();
-            var length = (_currentRowColCount + 1) * intsPerColInfo;
-            colInfosSpan.Slice(_currentRowColEndsOrInfosStartIndex * intsPerColInfo, length)
+            var length = (_parsingRowColCount + 1) * intsPerColInfo;
+            colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length)
                 .CopyTo(colInfosSpan.Slice(0, length));
-            _currentRowColEndsOrInfosStartIndex = 0;
+            _parsingRowColEndsOrInfosStartIndex = 0;
         }
 
         // Ensure start conditions
@@ -244,7 +244,7 @@ public sealed partial class SepReader : SepReaderState
 
         // Reset
 #if DEBUG
-        _colEndsOrColInfos.AsSpan().Slice((_currentRowColEndsOrInfosStartIndex + _currentRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
+        _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
 #endif
 
         var endOfFile = false;
@@ -269,10 +269,10 @@ public sealed partial class SepReader : SepReaderState
         if (_parsedRowsCount > 0) { return true; }
 
         endOfFile = EnsureInitializeAndReadData(endOfFile);
-        if (endOfFile && _currentRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
+        if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
         {
-            ++_currentRowColCount;
-            var colInfoIndex = _currentRowColEndsOrInfosStartIndex + _currentRowColCount;
+            ++_parsingRowColCount;
+            var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
             if (_colUnquoteUnescape == 0)
             {
                 _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
@@ -282,13 +282,13 @@ public sealed partial class SepReader : SepReaderState
                 Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
                     new(_charsDataEnd, _parser?.QuoteCount ?? 0);
             }
-            ++_parseLineNumber;
-            _parsedRows[_parsedRowsCount] = new(_parseLineNumber, _currentRowColCount);
+            ++_parsingLineNumber;
+            _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
             ++_parsedRowsCount;
 
-            _currentRowColCount = 0;
-            _currentRowColEndsOrInfosStartIndex = colInfoIndex + 1;
-            _currentRowCharsStartIndex = _charsDataEnd;
+            _parsingRowColCount = 0;
+            _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
+            _parsingRowCharsStartIndex = _charsDataEnd;
             goto RETURN;
         }
         if (_parsedRowsCount <= 0) { goto LOOP; }
@@ -321,7 +321,7 @@ public sealed partial class SepReader : SepReaderState
         if (_parser != null && _charsParseStart < _charsDataEnd)
         {
             // + 1 - must be room for one more col always
-            if ((_currentRowColEndsOrInfosStartIndex + _currentRowColCount + 1) >= (GetColInfosLength() - _parser.PaddingLength))
+            if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) >= (GetColInfosLength() - _parser.PaddingLength))
             {
                 DoubleColInfosCapacityCopyState();
             }
@@ -331,7 +331,7 @@ public sealed partial class SepReader : SepReaderState
             if (nothingLeftToRead)
             {
                 // + 1 - must be room for one more col always
-                if ((_currentRowColEndsOrInfosStartIndex + _currentRowColCount + 1) >= GetColInfosLength())
+                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) >= GetColInfosLength())
                 {
                     DoubleColInfosCapacityCopyState();
                 }
@@ -357,7 +357,7 @@ public sealed partial class SepReader : SepReaderState
         var factor = GetIntegersPerColInfo();
         A.Assert(factor > 0);
         // + 1 since one more for start col
-        var lengthInIntegers = (_currentRowColEndsOrInfosStartIndex + _currentRowColCount + 1) * factor;
+        var lengthInIntegers = (_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * factor;
 
         var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, lengthInIntegers);
         var newColEndsSpan = _colEndsOrColInfos.AsSpan().Slice(0, lengthInIntegers);
@@ -432,13 +432,13 @@ public sealed partial class SepReader : SepReaderState
         A.Assert(_charsParseStart >= offset);
         _charsParseStart -= offset;
         // Adjust row start
-        A.Assert(_currentRowCharsStartIndex >= offset);
-        _currentRowCharsStartIndex -= offset;
+        A.Assert(_parsingRowCharsStartIndex >= offset);
+        _parsingRowCharsStartIndex -= offset;
         // Adjust found cols, note includes _colCount since +1
         if (_colUnquoteUnescape == 0)
         {
             ref var colEndsRef = ref GetColsRefAs<int>();
-            for (var i = 0; i <= _parsedRowColCount; i++)
+            for (var i = 0; i <= _currentRowColCount; i++)
             {
                 ref var colEnd = ref Unsafe.Add(ref colEndsRef, i);
                 colEnd -= offset;
@@ -447,7 +447,7 @@ public sealed partial class SepReader : SepReaderState
         else
         {
             ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-            for (var i = 0; i <= _parsedRowColCount; i++)
+            for (var i = 0; i <= _currentRowColCount; i++)
             {
                 ref var colInfo = ref Unsafe.Add(ref colInfosRef, i);
                 colInfo.ColEnd -= offset;
@@ -506,12 +506,12 @@ public sealed partial class SepReader : SepReaderState
         if (_colUnquoteUnescape == 0)
         {
             var colEnds = GetColsEntireSpanAs<int>();
-            T.WriteLine($"{nameof(colEnds),-10}:{colEnds.Length,5} [{0,4},{_parsedRowColCount,4}] {string.Join(',', colEnds[0..Math.Min(_parsedRowColCount, colEnds.Length)].ToArray())}");
+            T.WriteLine($"{nameof(colEnds),-10}:{colEnds.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colEnds[0..Math.Min(_currentRowColCount, colEnds.Length)].ToArray())}");
         }
         else
         {
             var colInfos = GetColsEntireSpanAs<SepColInfo>();
-            T.WriteLine($"{nameof(colInfos),-10}:{colInfos.Length,5} [{0,4},{_parsedRowColCount,4}] {string.Join(',', colInfos[0..Math.Min(_parsedRowColCount, colInfos.Length)].ToArray())}");
+            T.WriteLine($"{nameof(colInfos),-10}:{colInfos.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colInfos[0..Math.Min(_currentRowColCount, colInfos.Length)].ToArray())}");
         }
 
         [ExcludeFromCodeCoverage]
@@ -533,32 +533,32 @@ public sealed partial class SepReader : SepReaderState
         A.Assert(0 <= _charsDataStart && _charsDataStart <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _charsDataEnd && _charsDataEnd <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(_charsDataStart <= _charsDataEnd, $"{name}", filePath, lineNumber);
-        A.Assert(_charsDataStart <= _currentRowCharsStartIndex && _currentRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
+        A.Assert(_charsDataStart <= _parsingRowCharsStartIndex && _parsingRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
 
         if (_colUnquoteUnescape == 0)
         {
             var colEnds = GetColsEntireSpanAs<int>();
             A.Assert(colEnds.Length > 0, $"{name}", filePath, lineNumber);
-            A.Assert(0 <= _parsedRowColCount && _parsedRowColCount <= colEnds.Length, $"{name}", filePath, lineNumber);
-            for (var i = 0; i < _parsedRowColCount; i++)
+            A.Assert(0 <= _currentRowColCount && _currentRowColCount <= colEnds.Length, $"{name}", filePath, lineNumber);
+            for (var i = 0; i < _currentRowColCount; i++)
             {
                 var colEnd = colEnds[i];
                 // colEnds are one before, so first may be before data starts
                 colEnd += i == 0 ? 1 : 0;
-                A.Assert(_currentRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
+                A.Assert(_parsingRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
             }
         }
         else
         {
             var colInfos = GetColsEntireSpanAs<SepColInfo>();
             A.Assert(colInfos.Length > 0, $"{name}", filePath, lineNumber);
-            A.Assert(0 <= _parsedRowColCount && _parsedRowColCount <= colInfos.Length, $"{name}", filePath, lineNumber);
-            for (var i = 0; i < _parsedRowColCount; i++)
+            A.Assert(0 <= _currentRowColCount && _currentRowColCount <= colInfos.Length, $"{name}", filePath, lineNumber);
+            for (var i = 0; i < _currentRowColCount; i++)
             {
                 var (colEnd, _) = colInfos[i];
                 // colEnds are one before, so first may be before data starts
                 colEnd += i == 0 ? 1 : 0;
-                A.Assert(_currentRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
+                A.Assert(_parsingRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
                 if (i > 0)
                 {
                     var colStart = colInfos[i - 1].ColEnd + 1;

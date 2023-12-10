@@ -83,8 +83,8 @@ public class SepParserBench
     [Benchmark(Baseline = true)]
     public void ParseColEnds()
     {
-        _state!._parsedRowColCount = 0;
-        _state!._parseLineNumber = 0;
+        _state!._currentRowColCount = 0;
+        _state!._parsingLineNumber = 0;
         _state!._charsParseStart = 0;
         _parser!.ParseColEnds(_state!);
     }

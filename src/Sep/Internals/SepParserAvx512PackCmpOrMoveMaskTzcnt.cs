@@ -64,8 +64,8 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
         var colInfos = s._colEndsOrColInfos;
-        var colCount = s._parsedRowColCount;
-        var lineNumber = s._parseLineNumber;
+        var colCount = s._parsingRowColCount;
+        var lineNumber = s._parsingLineNumber;
 
         var rowLineEndingOffset = 0;
 
@@ -164,8 +164,8 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
         charsIndex = Math.Min(charsEnd, charsIndex);
 
         _quoteCount = quoteCount;
-        s._parsedRowColCount = colCount;
-        s._parseLineNumber = lineNumber;
+        s._parsingRowColCount = colCount;
+        s._parsingLineNumber = lineNumber;
         s._charsParseStart = charsIndex;
 
         return rowLineEndingOffset;

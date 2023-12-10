@@ -23,16 +23,16 @@ sealed class SepParserIndexOfAny : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s)
     {
-        return Parse<int, SepColEndMethods>(s);
+        Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s)
     {
-        return Parse<SepColInfo, SepColInfoMethods>(s);
+        Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

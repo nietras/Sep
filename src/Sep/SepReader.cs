@@ -253,9 +253,8 @@ public sealed partial class SepReader : SepReaderState
 
         if (_parser is not null)
         {
-            var _ = _colUnquoteUnescape == 0
-                ? _parser.ParseColEnds(this)
-                : _parser.ParseColInfos(this);
+            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
+            else { _parser.ParseColInfos(this); }
         }
 
         CheckPoint($"{nameof(_parser)} AFTER");

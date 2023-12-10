@@ -33,18 +33,16 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s)
     {
         Parse<int, SepColEndMethods>(s);
-        return 0;
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s)
     {
         Parse<SepColInfo, SepColInfoMethods>(s);
-        return 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -73,7 +71,6 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         //var colInfosCurrentIndex = ; // colInfosStartIndex;
         var lineNumber = s._parseLineNumber;
 
-        var rowLineEndingOffset = 0;
 
         var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
 
@@ -144,11 +141,12 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref rowLineEndingOffset, ref lineNumber);
+                            ref colInfosRefCurrent, ref lineNumber);
                         goto NEWROW;
                     }
                     else
                     {
+                        var rowLineEndingOffset = 0;
                         colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
@@ -176,8 +174,6 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             colInfosRef = ref colInfosRefCurrent;
             s._currentRowColEndsOrInfosStartIndex += colCount + 1;
             s._currentRowCharsStartIndex = charsIndex;
-
-            rowLineEndingOffset = 0;
 
             if (s._parsedRowsCount >= (s._parsedRows.Length - VecUI8.Count))
             {

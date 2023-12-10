@@ -47,7 +47,7 @@ public partial class SepParseMaskTest
         ref var end = ref ParseSeparatorsLineEndingsMasks(
             separatorsMask, separatorsMask | lineEndingsMask,
             ref MemoryMarshal.GetReference<char>(chars), ref charsIndex, Separator,
-            ref start, ref rowLineEndingOffset, ref lineNumber);
+            ref start, ref lineNumber);
 
         AssertParseState(expected, colEnds, ref start, ref end,
             expectedRowLineEndingOffset, rowLineEndingOffset,

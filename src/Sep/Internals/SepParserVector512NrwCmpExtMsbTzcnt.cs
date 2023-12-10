@@ -35,16 +35,16 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s)
     {
-        return Parse<int, SepColEndMethods>(s);
+        Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s)
     {
-        return Parse<SepColInfo, SepColInfoMethods>(s);
+        Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,7 +127,7 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref rowLineEndingOffset, ref lineNumber);
+                            ref colInfosRefCurrent, ref lineNumber);
                         break;
                     }
                     else

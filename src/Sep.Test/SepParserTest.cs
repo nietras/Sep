@@ -70,7 +70,7 @@ public class SepParserTest
         _state._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         _state._parseLineNumber = 3;
 
-        var rowLineEndingOffset = parser.ParseColEnds(_state);
+        parser.ParseColEnds(_state);
 
         // No assert, test is mainly for debugging SIMD code easily
     }
@@ -85,7 +85,7 @@ public class SepParserTest
         _stateUnescape._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         _stateUnescape._parseLineNumber = 3;
 
-        var rowLineEndingOffset = parser.ParseColInfos(_stateUnescape);
+        parser.ParseColInfos(_stateUnescape);
 
         // No assert, test is mainly for debugging SIMD code easily
     }
@@ -101,12 +101,12 @@ public class SepParserTest
         _state._charsDataEnd = charsEnd;
         _state._parseLineNumber = 3;
 
-        var rowLineEndingOffset = parser.ParseColEnds(_state);
+        parser.ParseColEnds(_state);
 
         var expected = new int[] { 2, 6, 9 };
         AreEqual(expected, _colEndsOrColInfos, 0, _state._parsedRowColCount);
         Assert.AreEqual(charsEnd, _state._charsParseStart);
-        Assert.AreEqual(1, rowLineEndingOffset);
+        //Assert.AreEqual(1, rowLineEndingOffset);
         Assert.AreEqual(4, _state._parseLineNumber);
     }
 
@@ -193,19 +193,20 @@ public class SepParserTest
 
     void AssertParserOutput(ISepParser parser, int charsStart, int charsEnd, Expected[] expectedSet)
     {
+        var parsedRowColCountPrevious = _state._parsedRowColCount;
         var colEndsFrom = _state._parsedRowColCount;
         _state._charsParseStart = charsStart;
         _state._charsDataEnd = charsEnd;
         _state._parseLineNumber = 3;
         foreach (var (expected, expectedNextStart, expectedRowLineEndingOffset, expectedLineNumber) in expectedSet)
         {
-            var rowLineEndingOffset = parser.ParseColEnds(_state);
+            parser.ParseColEnds(_state);
 
             AreEqual(expected, _colEndsOrColInfos, colEndsFrom, _state._parsedRowColCount);
             Assert.AreEqual(expectedNextStart, _state._charsParseStart, nameof(_state._charsParseStart));
-            Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset, nameof(rowLineEndingOffset));
+            //Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset, nameof(rowLineEndingOffset));
             Assert.AreEqual(expectedLineNumber, _state._parseLineNumber, nameof(_state._parseLineNumber));
-            if (rowLineEndingOffset > 0)
+            if (_state._parsedRowColCount > parsedRowColCountPrevious)
             {
                 Assert.AreEqual(new SepRowInfo(expectedLineNumber, expected.Length),
                                 _state._parsedRows[_state._parsedRowsCount - 1], nameof(_state._parsedRows));
@@ -213,6 +214,7 @@ public class SepParserTest
             }
 
             charsStart = _state._charsParseStart;
+            parsedRowColCountPrevious = _state._parsedRowColCount;
             colEndsFrom = _state._parsedRowColCount;
         }
     }

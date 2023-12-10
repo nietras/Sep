@@ -25,10 +25,10 @@ static partial class SepParseMask
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
-        ref int colEndsRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
+        ref int colEndsRefCurrent, scoped ref int lineNumber)
         => ref ParseSeparatorsLineEndingsMasks<int, SepColEndMethods>(
             separatorsMask, separatorsLineEndingsMask, ref charsRef, ref charsIndex, separator,
-            ref colEndsRefCurrent, ref rowLineEndingOffset, ref lineNumber);
+            ref colEndsRefCurrent, ref lineNumber);
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -129,9 +129,10 @@ static partial class SepParseMask
     internal static ref TColInfo ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
         nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
-        ref TColInfo colInfosRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
+        ref TColInfo colInfosRefCurrent, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
+        var rowLineEndingOffset = 0;
         if (separatorsMask == 0)
         {
             colInfosRefCurrent = ref ParseLineEndingMask<TColInfo, TColInfoMethods>(

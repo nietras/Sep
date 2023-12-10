@@ -40,7 +40,7 @@ public class SepReaderState : IDisposable
 #if DEBUG
     internal const int ColEndsInitialLength = 128;
 #else
-    internal const int ColEndsInitialLength = 4 * 1024;
+    internal const int ColEndsInitialLength = 8 * 1024;
 #endif
     // Multiple rows of format
     // [0] = Previous row/col end e.g. one before row/first col start

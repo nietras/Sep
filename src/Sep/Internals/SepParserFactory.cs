@@ -17,7 +17,7 @@ static class SepParserFactory
         //        { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
         //#endif
         if (Avx2.IsSupported) { return new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep); }
-        //if (Sse2.IsSupported) { return new SepParserSse2PackCmpOrMoveMaskTzcnt(sep); }
+        if (Sse2.IsSupported) { return new SepParserSse2PackCmpOrMoveMaskTzcnt(sep); }
         //if (Vector256.IsHardwareAccelerated) { return new SepParserVector256NrwCmpExtMsbTzcnt(sep); }
         //if (Vector128.IsHardwareAccelerated) { return new SepParserVector128NrwCmpExtMsbTzcnt(sep); }
         //if (Vector64.IsHardwareAccelerated) { return new SepParserVector64NrwCmpExtMsbTzcnt(sep); }
@@ -39,8 +39,8 @@ static class SepParserFactory
         //#endif
         if (Avx2.IsSupported)
         { Add(parsers, static sep => new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep)); }
-        //if (Sse2.IsSupported)
-        //{ Add(parsers, static sep => new SepParserSse2PackCmpOrMoveMaskTzcnt(sep)); }
+        if (Sse2.IsSupported)
+        { Add(parsers, static sep => new SepParserSse2PackCmpOrMoveMaskTzcnt(sep)); }
         //if (createUnaccelerated || Vector256.IsHardwareAccelerated)
         //{ Add(parsers, static sep => new SepParserVector256NrwCmpExtMsbTzcnt(sep)); }
         //if (createUnaccelerated || Vector128.IsHardwareAccelerated)

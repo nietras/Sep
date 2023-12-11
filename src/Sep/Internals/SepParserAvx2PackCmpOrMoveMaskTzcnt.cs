@@ -14,12 +14,12 @@ namespace nietras.SeparatedValues;
 
 sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 {
+    readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
-    readonly char _separator;
 
     public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
     {

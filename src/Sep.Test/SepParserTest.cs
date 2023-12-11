@@ -5,7 +5,6 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Mono.CompilerServices.SymbolWriter;
 
 namespace nietras.SeparatedValues.Test;
 

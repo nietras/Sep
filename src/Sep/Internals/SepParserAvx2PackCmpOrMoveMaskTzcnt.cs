@@ -110,10 +110,10 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = (nuint)(uint)ISA.MoveMask(specialChars);
+            var specialCharMask = MoveMask(specialChars);
             if (specialCharMask != 0u)
             {
-                var separatorsMask = (nuint)(uint)ISA.MoveMask(spsEq);
+                var separatorsMask = MoveMask(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quote count to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoteCount;
@@ -124,7 +124,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = (nuint)(uint)ISA.MoveMask(lineEndingsSeparators);
+                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
@@ -177,4 +177,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static nuint MoveMask(VecUI8 v) => (uint)ISA.MoveMask(v);
 }

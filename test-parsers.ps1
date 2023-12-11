@@ -27,5 +27,5 @@ Try {
         #dotnet test --nologo -c Release --collect:"XPlat Code Coverage" -- RunConfiguration.TargetPlatform=x64 /Parallel 
     }
 } Finally {
-    Remove-item env:SEPFORCEPARSER
+    Remove-Item env:SEPFORCEPARSER
 }

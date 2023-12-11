@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
 namespace nietras.SeparatedValues;
@@ -13,8 +14,8 @@ static class SepParserFactory
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { return new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep); }
-        //        if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
-        //        { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
+        if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
+        { return new SepParserVector512NrwCmpExtMsbTzcnt(sep); }
 #endif
         if (Avx2.IsSupported) { return new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep); }
         if (Sse2.IsSupported) { return new SepParserSse2PackCmpOrMoveMaskTzcnt(sep); }
@@ -34,8 +35,8 @@ static class SepParserFactory
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
-        //        if (Environment.Is64BitProcess)
-        //        { Add(parsers, static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
+        if (Environment.Is64BitProcess)
+        { Add(parsers, static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
 #endif
         if (Avx2.IsSupported)
         { Add(parsers, static sep => new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep)); }

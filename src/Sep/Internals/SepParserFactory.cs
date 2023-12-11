@@ -22,8 +22,8 @@ static class SepParserFactory
         if (Vector256.IsHardwareAccelerated) { return new SepParserVector256NrwCmpExtMsbTzcnt(sep); }
         if (Vector128.IsHardwareAccelerated) { return new SepParserVector128NrwCmpExtMsbTzcnt(sep); }
         if (Vector64.IsHardwareAccelerated) { return new SepParserVector64NrwCmpExtMsbTzcnt(sep); }
-        //return new SepParserIndexOfAny(sep);
-        throw new NotImplementedException();
+        return new SepParserIndexOfAny(sep);
+        //throw new NotImplementedException();
     }
 
     internal static IReadOnlyDictionary<Type, Func<Sep, ISepParser>> CreateAcceleratedFactories()
@@ -48,7 +48,7 @@ static class SepParserFactory
         { Add(parsers, static sep => new SepParserVector128NrwCmpExtMsbTzcnt(sep)); }
         if (createUnaccelerated || Vector64.IsHardwareAccelerated)
         { Add(parsers, static sep => new SepParserVector64NrwCmpExtMsbTzcnt(sep)); }
-        //Add(parsers, static sep => new SepParserIndexOfAny(sep));
+        Add(parsers, static sep => new SepParserIndexOfAny(sep));
         return parsers;
     }
 

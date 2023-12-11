@@ -275,7 +275,6 @@ public class ReadMeTest
                 var benchmarkTable = GetBenchmarkTable(contents);
                 var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
                 all += readmeContents;
-                Trace.WriteLine(section);
             }
             readmeLines = ReplaceReadmeLines(readmeLines, new[] { all }, readmeBefore, prefix, 0, readmeEndLine, 0);
         }
@@ -338,8 +337,6 @@ public class ReadMeTest
     public void ReadMeTest_PublicApi()
     {
         var publicApi = typeof(Sep).Assembly.GeneratePublicApi();
-        Trace.WriteLine(Environment.Version);
-        Trace.WriteLine(publicApi);
 
         var readmeFilePath = s_readmeFilePath;
         var readmeLines = File.ReadAllLines(readmeFilePath);

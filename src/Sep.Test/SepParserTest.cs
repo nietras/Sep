@@ -29,7 +29,7 @@ public class SepParserTest
         _stateUnescape._colEndsOrColInfos = _colEndsOrColInfos;
     }
 
-    static IEnumerable<object[]> Parsers => SepParserFactory.CreateFactories()
+    static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
         .Select(f => new object[] { f.Value(Sep.Default) });
 
     [TestMethod]
@@ -39,18 +39,19 @@ public class SepParserTest
     }
 
     [TestMethod]
-    public void SepParserTest_CreateFactories()
+    public void SepParserTest_AcceleratedFactories()
     {
-        var factories = SepParserFactory.CreateFactories();
+        var factories = SepParserFactory.AcceleratedFactories;
         Assert.IsTrue(factories.Count > 0);
     }
 
     [TestMethod]
-    public void SepParserTest_CreateAcceleratedFactories()
+    public void SepParserTest_AvailableFactories()
     {
-        var factories = SepParserFactory.CreateAcceleratedFactories();
+        var factories = SepParserFactory.AvailableFactories;
         Assert.IsTrue(factories.Count > 0);
     }
+
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]

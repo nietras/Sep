@@ -135,7 +135,6 @@ public class SepReaderWriterTest
         ArgumentNullException.ThrowIfNull(text);
         foreach (var assertCopyColumns in _assertCopyColumns)
         {
-            Trace.WriteLine($"{assertCopyColumns.Key} of text length {text.Length}");
             assertCopyColumns.Value(text);
         }
     }

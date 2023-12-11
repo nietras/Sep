@@ -179,5 +179,5 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static nuint MoveMask(VecUI8 v) => (nuint)Vec.ExtractMostSignificantBits(v);
+    static nuint MoveMask(VecUI8 v) => Vec.ExtractMostSignificantBits(v);
 }

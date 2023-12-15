@@ -13,13 +13,10 @@ public static class SepReaderEnumerationExtensions
     static readonly Action<string> Log = t => { Console.WriteLine(t); T.WriteLine(t); };
 #endif
 
-    // TODO: Finalize and expose public with TryRowFunc too
-
     public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
-
         foreach (var row in reader)
         {
             yield return select(row);
@@ -30,7 +27,6 @@ public static class SepReaderEnumerationExtensions
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);
-
         foreach (var row in reader)
         {
             if (trySelect(row, out var value))
@@ -87,9 +83,9 @@ public static class SepReaderEnumerationExtensions
                 array[index] = select(new(s));
                 ++index;
             }
-            //#if SEPTRACEPARALLEL
-            //            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
-            //#endif
+#if SEPTRACEPARALLEL
+                        Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+#endif
             statesStack.Push(s);
             return (array, index);
         }
@@ -129,9 +125,9 @@ public static class SepReaderEnumerationExtensions
                     ++index;
                 }
             }
-            //#if SEPTRACEPARALLEL
-            //            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
-            //#endif
+#if SEPTRACEPARALLEL
+                        Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+#endif
             statesStack.Push(s);
             return (array, index);
         }

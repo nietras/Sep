@@ -1,5 +1,6 @@
 ﻿//#define SEPTRACEPARALLEL
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,14 +41,32 @@ public static class SepReaderEnumerationExtensions
         try
         {
             var states = EnumerateStates(reader, statesStack);
-            var results = states.AsParallel()
-                                .AsOrdered()
-                                .WithDegreeOfParallelism(maxDegreeOfParallelism)
-                                .SelectMany(EnumerateParsedRows);
-            foreach (var result in results)
+            var parallel = states.AsParallel()
+                                 .AsOrdered()
+                                 .WithDegreeOfParallelism(maxDegreeOfParallelism);
+            // Pooled has better perf and much fewer allocations
+            //const bool pooled = true;
+            //if (pooled)
+            //{
+            var batches = parallel.Select(GetParsedRowsPooled);
+            foreach (var batch in batches)
             {
-                yield return result;
+                var (results, count) = batch;
+                for (var i = 0; i < count; i++)
+                {
+                    yield return results[i];
+                }
+                ArrayPool<T>.Shared.Return(results);
             }
+            //}
+            //else
+            //{
+            //    var results = parallel.SelectMany(EnumerateParsedRows);
+            //    foreach (var result in results)
+            //    {
+            //        yield return result;
+            //    }
+            //}
         }
         finally
         {
@@ -76,17 +95,30 @@ public static class SepReaderEnumerationExtensions
             } while (reader.ParseNewRows());
         }
 
-        IEnumerable<T> EnumerateParsedRows(SepReaderState s)
+        (T[] Array, int Count) GetParsedRowsPooled(SepReaderState s)
         {
+            var array = ArrayPool<T>.Shared.Rent(s._parsedRowsCount);
+            var index = 0;
             while (s.MoveNextAlreadyParsed())
             {
-                var result = select(new(s));
-                yield return result;
+                array[index] = select(new(s));
+                ++index;
             }
-#if SEPTRACEPARALLEL
-            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
-#endif
             statesStack.Push(s);
+            return (array, index);
         }
+
+        //        IEnumerable<T> EnumerateParsedRows(SepReaderState s)
+        //        {
+        //            while (s.MoveNextAlreadyParsed())
+        //            {
+        //                var result = select(new(s));
+        //                yield return result;
+        //            }
+        //#if SEPTRACEPARALLEL
+        //            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+        //#endif
+        //            statesStack.Push(s);
+        //        }
     }
 }

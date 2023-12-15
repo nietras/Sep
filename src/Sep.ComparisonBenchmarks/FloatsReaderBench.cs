@@ -263,8 +263,8 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             .ToArray();
 
         return reader.ParallelEnumerate(r => MeanSquaredError(
-                r[groundTruthColNames].Parse<float>(), r[resultColNames].Parse<float>()),
-            maxDegreeOfParallelism: Environment.ProcessorCount).Average();
+                        r[groundTruthColNames].Parse<float>(), r[resultColNames].Parse<float>()))
+                     .Average();
     }
 
 #if !SEPBENCHSEPONLY

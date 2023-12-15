@@ -45,8 +45,7 @@ public class PackageAssetsTest
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
 #endif
-        VerifyEnumerate(text, (reader, select) => reader
-            .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
+        VerifyEnumerate(text, (reader, select) => reader.ParallelEnumerate(select));
     }
 
     [TestMethod]
@@ -57,8 +56,7 @@ public class PackageAssetsTest
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
 #endif
-        VerifyEnumerate(text, (reader, select) => reader
-            .ParallelEnumerate(select, maxDegreeOfParallelism: Environment.ProcessorCount));
+        VerifyEnumerate(text, (reader, select) => reader.ParallelEnumerate(select));
     }
 
     static void VerifyRead(string text, bool unescape = false)

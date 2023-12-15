@@ -317,13 +317,13 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         {
             HasHeader = false,
 #if USE_STRING_POOLING
-            CreateToString = SepToString.PoolPerColThreadSafe(maximumStringLength: 128),
+            //CreateToString = SepToString.PoolPerColThreadSafe(maximumStringLength: 128),
+            CreateToString = SepToString.PoolPerColThreadSafeFixedCapacity(maximumStringLength: 128),
 #endif
         })
         .From(Reader.CreateReader());
 
-        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, (s, i) => s.ToStringDefault(i)),
-                maxDegreeOfParallelism: Environment.ProcessorCount)
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, (s, i) => s.ToStringDefault(i)))
               .ToList();
     }
 

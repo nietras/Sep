@@ -25,17 +25,16 @@ public static class SepReaderEnumerationExtensions
     }
 
     // TODO: Add SepReaderParallelOptions
-    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
-        if (maxDegreeOfParallelism <= 1) { return Enumerate(reader, select); }
+        //if (maxDegreeOfParallelism <= 1) { return Enumerate(reader, select); }
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         if (!reader.HasRows) { return Array.Empty<T>(); }
-        return ParallelEnumerateAsParallelManyRows(reader, select, maxDegreeOfParallelism);
+        return ParallelEnumerateAsParallel(reader, select);
     }
 
-    static IEnumerable<T> ParallelEnumerateAsParallelManyRows<T>(this SepReader reader,
-        SepReader.RowFunc<T> select, int maxDegreeOfParallelism)
+    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
         var statesStack = new ConcurrentStack<SepReaderState>();
         try
@@ -43,7 +42,8 @@ public static class SepReaderEnumerationExtensions
             var states = EnumerateStates(reader, statesStack);
             var parallel = states.AsParallel()
                                  .AsOrdered()
-                                 .WithDegreeOfParallelism(maxDegreeOfParallelism);
+                                 //.WithDegreeOfParallelism(maxDegreeOfParallelism)
+                                 ;
             // Pooled has better perf and much fewer allocations
             //const bool pooled = true;
             //if (pooled)

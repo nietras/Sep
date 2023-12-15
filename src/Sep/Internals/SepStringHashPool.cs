@@ -99,7 +99,8 @@ sealed class SepStringHashPool : IDisposable
 
         var i = bucket - 1;
         uint collisionCount = 0;
-        while ((uint)i < entriesLength)
+        var count = _count;
+        while ((uint)i < count)
         {
             ref var e = ref Unsafe.Add(ref entriesRef, i);
             if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
@@ -130,7 +131,7 @@ sealed class SepStringHashPool : IDisposable
         lastHashCode = hashCode;
         lastString = stringValue;
 #endif
-        var index = _count;
+        var index = count;
         if (index == entriesLength)
         {
             if (index >= _maximumCapacity)

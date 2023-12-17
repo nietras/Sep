@@ -4,7 +4,7 @@ using System.IO;
 
 namespace nietras.SeparatedValues;
 
-public static class SepReaderExtensions
+public static partial class SepReaderExtensions
 {
     static readonly FileStreamOptions s_streamReaderOptions = new()
     {

@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace nietras.SeparatedValues;
 
-public static class SepReaderEnumerationExtensions
+public static partial class SepReaderExtensions
 {
 #if SEPTRACEPARALLEL
     static readonly Action<string> Log = t => { Console.WriteLine(t); T.WriteLine(t); };
@@ -84,7 +84,7 @@ public static class SepReaderEnumerationExtensions
                 ++index;
             }
 #if SEPTRACEPARALLEL
-                        Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
 #endif
             statesStack.Push(s);
             return (array, index);
@@ -126,7 +126,7 @@ public static class SepReaderEnumerationExtensions
                 }
             }
 #if SEPTRACEPARALLEL
-                        Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
 #endif
             statesStack.Push(s);
             return (array, index);

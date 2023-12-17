@@ -317,7 +317,23 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         {
             HasHeader = false,
 #if USE_STRING_POOLING
-            //CreateToString = SepToString.PoolPerColThreadSafe(maximumStringLength: 128),
+            CreateToString = SepToString.PoolPerColThreadSafeFixedCapacity(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, (s, i) => s.ToStringDefault(i)))
+              .ToList();
+    }
+
+    [Benchmark()]
+    public void Sep__MT_Unescape()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+            Unescape = true,
+#if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerColThreadSafeFixedCapacity(maximumStringLength: 128),
 #endif
         })

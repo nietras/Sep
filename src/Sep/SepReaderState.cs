@@ -203,28 +203,6 @@ public class SepReaderState : IDisposable
     {
         var (start, end) = RowStartEnd();
         return new(_chars, start, end - start);
-        //if (_parsedRowColCount > 0)
-        //{
-        //    //if (_colUnquoteUnescape == 0)
-        //    //{
-        //    //    var colEnds = _colEndsOrColInfos;
-        //    //    var start = colEnds[_parsedRowColEndsOrInfosOffset] + 1; // +1 since previous end
-        //    //    var end = colEnds[_parsedRowColEndsOrInfosOffset + _parsedRowColCount];
-        //    //    return new(_chars, start, end - start);
-        //    //}
-        //    //else
-        //    //{
-        //    //    ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
-        //    //    colInfos = ref Unsafe.Add(ref colInfos, _parsedRowColEndsOrInfosOffset);
-        //    //    var start = colInfos.ColEnd + 1; // +1 since previous end
-        //    //    var end = Unsafe.Add(ref colInfos, _parsedRowColCount).ColEnd;
-        //    //    return new(_chars, start, end - start);
-        //    //}
-        //}
-        //else
-        //{
-        //    return default;
-        //}
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

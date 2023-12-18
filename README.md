@@ -1316,9 +1316,12 @@ namespace nietras.SeparatedValues
         public delegate void ColsAction(nietras.SeparatedValues.SepReader.Cols col);
         public delegate void RowAction(nietras.SeparatedValues.SepReader.Row row);
         public delegate T RowFunc<T>(nietras.SeparatedValues.SepReader.Row row);
+        public delegate bool RowTryFunc<T>(nietras.SeparatedValues.SepReader.Row row, out T value);
     }
     public static class SepReaderExtensions
     {
+        public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
+        public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
@@ -1326,6 +1329,8 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
         public static nietras.SeparatedValues.SepReader FromFile(this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
         public static nietras.SeparatedValues.SepReader FromText(this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
+        public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep sep) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep? sep) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.SepSpec spec) { }
@@ -1364,12 +1369,15 @@ namespace nietras.SeparatedValues
     public abstract class SepToString : System.IDisposable
     {
         protected SepToString() { }
+        public virtual bool IsThreadSafe { get; }
         public static nietras.SeparatedValues.SepCreateToString Direct { get; }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
         public abstract string ToString(System.ReadOnlySpan<char> colSpan, int colIndex);
         public static nietras.SeparatedValues.SepCreateToString OnePool(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
         public static nietras.SeparatedValues.SepCreateToString PoolPerCol(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+        public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafe(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+        public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafeFixedCapacity(int maximumStringLength = 32, int capacity = 2048) { }
     }
     public class SepWriter : System.IDisposable
     {

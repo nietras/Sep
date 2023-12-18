@@ -30,11 +30,9 @@ public abstract class SepToString : IDisposable
     public static SepCreateToString OnePool(
         int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
         int initialCapacity = SepStringHashPool.InitialCapacityDefault,
-        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault)
-    {
-        var s = new SepToStringHashPoolSingle(maximumStringLength, initialCapacity, maximumCapacity);
-        return (maybeHeader, colCount) => s;
-    }
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolSingle(maximumStringLength,
+            initialCapacity, maximumCapacity);
 
     public virtual bool IsThreadSafe => false;
 

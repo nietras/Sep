@@ -34,9 +34,9 @@ public class SepToStringTest
         var str01 = pool0.ToString(chars, colIndex: 0);
         var str10 = pool1.ToString(chars, colIndex: 1);
 
-        Assert.AreSame(pool1, pool0);
+        Assert.AreNotSame(pool1, pool0);
         Assert.AreSame(str01, str00);
-        Assert.AreSame(str10, str00);
+        Assert.AreNotSame(str10, str00);
     }
 
     [TestMethod]

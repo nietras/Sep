@@ -9,60 +9,79 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class PackageAssetsTest
 {
-    [TestMethod]
-    public void PackageAssetsTest_Read_NoQuotes() => VerifyRead(NoQuotes);
+    internal static IEnumerable<object[]> ToStrings => new object[][]
+    {
+        new[]{ SepToString.Direct },
+        new[]{ SepToString.OnePool() },
+        new[]{ SepToString.PoolPerCol() },
+        new[]{ SepToString.PoolPerColThreadSafe() },
+        new[]{ SepToString.PoolPerColThreadSafeFixedCapacity() },
+    };
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_NoQuotes_Unescape() => VerifyRead(NoQuotes, unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_NoQuotes(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString);
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_WithQuotes() => VerifyRead(WithQuotes);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_NoQuotes_Unescape(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString, unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_WithQuotes_Unescape() => VerifyRead(WithQuotes, unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_WithQuotes(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_NoQuotes() =>
-        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select));
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_WithQuotes_Unescape(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString, unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_NoQuotes_Unescape() =>
-        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_NoQuotes(SepCreateToString createToString) =>
+        VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_WithQuotes() =>
-        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select));
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_NoQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
-        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_WithQuotes(SepCreateToString createToString) =>
+        VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [TestMethod]
-    public void PackageAssetsTest_ParallelEnumerate_NoQuotes()
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_WithQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_NoQuotes(SepCreateToString createToString)
     {
 #if SEPREADERTRACE
         var text = NoQuotes;
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
 #endif
-        VerifyEnumerate(text, (reader, select) => reader.ParallelEnumerate(select));
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
-    [TestMethod]
-    public void PackageAssetsTest_ParallelEnumerate_WithQuotes()
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_WithQuotes(SepCreateToString createToString)
     {
 #if SEPREADERTRACE
                 var text = NoQuotes;
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
 #endif
-        VerifyEnumerate(text, (reader, select) => reader.ParallelEnumerate(select));
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
-    static void VerifyRead(string text, bool unescape = false)
+    static void VerifyRead(string text, SepCreateToString createToString, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
         var rowIndex = 0;
         foreach (var row in reader)
         {
@@ -75,12 +94,12 @@ public class PackageAssetsTest
         Assert.AreEqual(expected.Count, rowIndex);
     }
 
-    static void VerifyEnumerate(string text,
+    static void VerifyEnumerate(string text, SepCreateToString createToString,
         Func<SepReader, SepReader.RowFunc<string[]>, IEnumerable<string[]>> enumerate,
         bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
         var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
         var rowIndex = 0;
         foreach (var cols in rows)

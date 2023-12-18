@@ -1,5 +1,4 @@
-﻿// Caching last in ThreadLocal appears to be worse for this thread safe pool.
-//#define SEPSTRINGPOOL_CACHE_LAST
+﻿#define SEPSTRINGPOOL_CACHE_LAST
 using System;
 using System.Buffers;
 #if SEPSTRINGPOOLUSAGE
@@ -14,7 +13,10 @@ using System.Threading;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
+// Based on https://github.com/MarkPflug/Sylvan/blob/main/source/Sylvan.Common/StringPool.cs
+// MIT License, Copyright(c) 2022 Mark Pflug
+// Highly optimized and greatly-simplified HashSet<string> that only allows additions.
+sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 {
     internal const int CapacityDefault = 2048;
     internal const int MaximumStringLengthDefault = 32;
@@ -49,7 +51,7 @@ sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
     /// The <paramref name="maximumStringLength"/> prevents pooling strings beyond a certain length. 
     /// Longer strings are typically less likely to be duplicated, and carry extra cost for identifying uniqueness.
     /// </remarks>
-    public SepStringHashPoolThreadSafeFixedCapacity(int maximumStringLength = MaximumStringLengthDefault,
+    public SepStringHashPoolFixedCapacity(int maximumStringLength = MaximumStringLengthDefault,
         int capacity = CapacityDefault)
     {
         _maximumStringLength = maximumStringLength;
@@ -62,7 +64,7 @@ sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
     public int Count => _count;
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public string ToStringThreadSafe(ReadOnlySpan<char> chars)
+    public string ToString(ReadOnlySpan<char> chars)
     {
         var length = chars.Length;
         if (length == 0) { return string.Empty; }
@@ -73,6 +75,79 @@ sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
 #if SEPSTRINGPOOL_CACHE_LAST
         ref var lastHashCode = ref _lastHashCode;
         ref var lastString = ref _lastString;
+        if (lastHashCode == hashCode && MemoryExtensions.SequenceEqual(chars, lastString))
+        {
+            return lastString;
+        }
+#endif
+        ref var bucket = ref GetBucket(hashCode);
+
+        var entries = _entries;
+        ref var entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
+        var entriesLength = (uint)entries.Length;
+
+        var i = bucket - 1;
+        uint collisionCount = 0;
+        var count = _count;
+        while ((uint)i < count)
+        {
+            ref var e = ref Unsafe.Add(ref entriesRef, i);
+            if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
+            {
+#if SEPSTRINGPOOLUSAGE
+                e.Count++;
+#endif
+#if SEPSTRINGPOOL_CACHE_LAST
+                lastHashCode = hashCode;
+                lastString = e.String;
+#endif
+                return e.String;
+            }
+
+            i = e.Next;
+
+            if (++collisionCount > CollisionLimit)
+            {
+                // protects against malicious inputs
+                // too many collisions give up and create the string.
+                return new(chars);
+            }
+        }
+
+        string stringValue = new(chars);
+
+#if SEPSTRINGPOOL_CACHE_LAST
+        lastHashCode = hashCode;
+        lastString = stringValue;
+#endif
+        var index = count;
+        if (index < entriesLength)
+        {
+            ref var entry = ref Unsafe.Add(ref entriesRef, index);
+            entry.HashCode = hashCode;
+#if SEPSTRINGPOOLUSAGE
+        entry.Count = 1;
+#endif
+            entry.Next = bucket - 1;
+            entry.String = stringValue;
+
+            bucket = index + 1; // bucket is an int ref
+            _count = index + 1;
+        }
+        return stringValue;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public string ToStringThreadSafe(ReadOnlySpan<char> chars)
+    {
+        var length = chars.Length;
+        if (length == 0) { return string.Empty; }
+        if (length > _maximumStringLength) { return new(chars); }
+
+        var hashCode = SepHash.Default(chars);
+
+#if SEPSTRINGPOOL_CACHE_LAST
+        var (lastHashCode, lastString) = _last.Value;
         if (lastHashCode == hashCode && MemoryExtensions.SequenceEqual(chars, lastString))
         {
             return lastString;
@@ -95,8 +170,7 @@ sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
                 e.Count++;
 #endif
 #if SEPSTRINGPOOL_CACHE_LAST
-                lastHashCode = hashCode;
-                lastString = e.String;
+                _last.Value = (hashCode, e.String);
 #endif
                 return e.String;
             }
@@ -129,7 +203,7 @@ sealed class SepStringHashPoolThreadSafeFixedCapacity : IDisposable
                     ref var entry = ref Unsafe.Add(ref entriesRef, index);
                     entry.HashCode = hashCode;
 #if SEPSTRINGPOOLUSAGE
-        entry.Count = 1;
+                    entry.Count = 1;
 #endif
                     entry.Next = bucket - 1;
                     entry.String = stringValue;

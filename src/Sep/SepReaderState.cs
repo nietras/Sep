@@ -48,11 +48,11 @@ public class SepReaderState : IDisposable
     internal int[] _colEndsOrColInfos = Array.Empty<int>();
 
 #if DEBUG
-    internal const int ParsedRowsInitialLength = 64;
+    internal const int ParsedRowsLength = 3;
 #else
-    internal const int ParsedRowsInitialLength = 256;
+    internal const int ParsedRowsLength = 512;
 #endif
-    internal SepRowInfo[] _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(ParsedRowsInitialLength);
+    internal SepRowInfo[] _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(ParsedRowsLength);
     internal int _parsedRowsCount = 0;
     internal int _parsedRowIndex = 0;
 
@@ -75,22 +75,6 @@ public class SepReaderState : IDisposable
     internal SepReaderState(SepReader other)
         : this(other._colUnquoteUnescape != 0)
     {
-        InitializeFrom(other);
-        InitializeFromWithNewCacheState(other);
-    }
-
-    internal SepReaderState CloneWithSharedCache()
-    {
-        var clone = new SepReaderState();
-        clone.InitializeFrom(this);
-        clone._arrayPool = _arrayPool;
-        clone._colNameCache = _colNameCache;
-        clone._toString = _toString;
-        return clone;
-    }
-
-    void InitializeFrom(SepReaderState other)
-    {
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
@@ -99,10 +83,6 @@ public class SepReaderState : IDisposable
 
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
         _colCountExpected = other._colCountExpected;
-    }
-
-    void InitializeFromWithNewCacheState(SepReaderState other)
-    {
         _arrayPool = new();
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
         // Only duplicate toString if not thread safe
@@ -168,56 +148,6 @@ public class SepReaderState : IDisposable
         Array.Clear(array);
 #endif
     }
-
-    internal void CopyNewRowTo(SepReaderState other)
-    {
-        other._cacheIndex = 0;
-        other._arrayPool.Reset();
-
-        other._currentRowColCount = _currentRowColCount;
-        other._currentRowColEndsOrInfosOffset = _currentRowColEndsOrInfosOffset;
-        other._currentRowLineNumberFrom = _currentRowLineNumberFrom;
-        other._currentRowLineNumberTo = _currentRowLineNumberTo;
-
-        other._rowIndex = _rowIndex;
-        other._parsingLineNumber = _parsingLineNumber;
-
-        var rowSpan = RowSpan();
-        ref var otherChars = ref other._chars;
-        if (rowSpan.Length > otherChars.Length)
-        {
-            if (otherChars.Length > 0)
-            { ArrayPool<char>.Shared.Return(otherChars); }
-            otherChars = ArrayPool<char>.Shared.Rent(rowSpan.Length);
-        }
-        rowSpan.CopyTo(otherChars);
-        other._charsDataEnd = rowSpan.Length;
-
-        if (_colUnquoteUnescape == 0)
-        {
-            // Copy starts at 0 index so need to fix up col ends
-            var colCount = _currentRowColCount;
-            if (colCount > 0)
-            {
-                var thisColEnds = _colEndsOrColInfos;
-                var start = thisColEnds[0] + 1; // +1 since previous end
-                var otherColEnds = other._colEndsOrColInfos;
-                for (var col = 0; col <= colCount; col++)
-                {
-                    otherColEnds[col] = thisColEnds[col] - start;
-                }
-                // Assume colEnds length is divisible by Vector128<int>.Length
-                // and vectorize col ends fix up if need be
-            }
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    internal void ResetSharedCache() => _arrayPool.Reset();
-
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool MoveNextAlreadyParsed()
@@ -623,6 +553,7 @@ public class SepReaderState : IDisposable
         return span;
     }
     #endregion
+
     #region Cols Range
     internal string[] ToStringsArray(int colStart, int colCount)
     {

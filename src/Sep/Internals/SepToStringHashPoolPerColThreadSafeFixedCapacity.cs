@@ -6,12 +6,12 @@ namespace nietras.SeparatedValues;
 
 sealed class SepToStringHashPoolPerColThreadSafeFixedCapacity : SepToString
 {
-    readonly SepStringHashPoolThreadSafeFixedCapacity[] _pools;
+    readonly SepStringHashPoolFixedCapacity[] _pools;
 
     public SepToStringHashPoolPerColThreadSafeFixedCapacity(int colCount,
         int maximumStringLength, int capacity)
     {
-        _pools = new SepStringHashPoolThreadSafeFixedCapacity[colCount];
+        _pools = new SepStringHashPoolFixedCapacity[colCount];
         for (var i = 0; i < colCount; i++)
         {
             _pools[i] = new(maximumStringLength, capacity);

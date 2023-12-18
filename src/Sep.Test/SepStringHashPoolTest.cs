@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -6,38 +8,76 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepStringHashPoolTest
 {
-    [TestMethod]
-    public void SepStringHashPoolTest_Basic()
+    internal delegate string ToStringDelegate(ISepStringHashPool pool, ReadOnlySpan<char> chars);
+
+    internal static IEnumerable<object[]> ToStrings => new object[][]
     {
-        using var pool = new SepStringHashPool(32);
-        var data = new char[] { 'a', 'b', 'c', 'd' };
+        new ToStringDelegate[] { new((pool, chars) => pool.ToString(chars)) },
+        new ToStringDelegate[] { new((pool, chars) => pool.ToStringThreadSafe(chars)) },
+    };
 
-        var str0 = pool.ToString(data.AsSpan(0, 4));
-        Assert.IsNotNull(str0);
-        Assert.AreEqual("abcd", str0);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void SepStringHashPoolTest_Basic(object toStringObject)
+    {
+        Contract.Assume(toStringObject != null);
+        var toString = (ToStringDelegate)toStringObject;
 
-        var str1 = pool.ToString(data.AsSpan(0, 4));
-        Assert.AreSame(str0, str1);
+        var maximumStringLength = 32;
+        var createPools = new Func<ISepStringHashPool>[] {
+            () => new SepStringHashPool(maximumStringLength),
+            () => new SepStringHashPoolFixedCapacity(maximumStringLength),
+        };
 
-        Assert.AreEqual(1, pool.Count);
+        foreach (var createPool in createPools)
+        {
+            using var pool = createPool();
+
+            var data = new char[] { 'a', 'b', 'c', 'd' };
+
+            var str0 = toString(pool, data.AsSpan(0, 4));
+            Assert.IsNotNull(str0);
+            Assert.AreEqual("abcd", str0);
+
+            var str1 = toString(pool, data.AsSpan(0, 4));
+            Assert.AreSame(str0, str1);
+
+            Assert.AreEqual(1, pool.Count);
+        }
     }
 
-    [TestMethod]
-    public void SepStringHashPoolTest_EdgeCases()
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void SepStringHashPoolTest_EdgeCases(object toStringObject)
     {
+        Contract.Assume(toStringObject != null);
+        var toString = (ToStringDelegate)toStringObject;
+
         var maximumStringLength = 2;
-        using var pool = new SepStringHashPool(maximumStringLength);
+        var createPools = new Func<ISepStringHashPool>[] {
+            () => new SepStringHashPool(maximumStringLength),
+            () => new SepStringHashPoolFixedCapacity(maximumStringLength),
+        };
 
-        Assert.AreSame(string.Empty, pool.ToString(new Span<char>()));
-        var chars = new char[maximumStringLength + 1];
-        var str0 = pool.ToString(chars);
-        var str1 = pool.ToString(chars);
-        Assert.AreNotSame(str0, str1);
+        foreach (var createPool in createPools)
+        {
+            using var pool = createPool();
+
+            Assert.AreSame(string.Empty, toString(pool, new Span<char>()));
+            var chars = new char[maximumStringLength + 1];
+            var str0 = toString(pool, chars);
+            var str1 = toString(pool, chars);
+            Assert.AreNotSame(str0, str1);
+        }
     }
 
-    [TestMethod]
-    public void SepStringHashPoolTest_Resize()
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void SepStringHashPoolTest_Resize(object toStringObject)
     {
+        Contract.Assume(toStringObject != null);
+        var toString = (ToStringDelegate)toStringObject;
+
         using var pool = new SepStringHashPool(initialCapacity: 16);
         const int length = 256;
         var strings = new string[length];
@@ -46,7 +86,7 @@ public class SepStringHashPoolTest
         {
             var c = ToChar(i);
             var span = new Span<char>(ref c);
-            var str = pool.ToString(span);
+            var str = toString(pool, span);
             strings[i] = str;
             Assert.AreEqual(c.ToString(), str);
         }
@@ -55,35 +95,57 @@ public class SepStringHashPoolTest
         {
             var c = ToChar(i);
             var span = new Span<char>(ref c);
-            var str = pool.ToString(span);
+            var str = toString(pool, span);
             Assert.AreSame(strings[i], str);
         }
 
         Assert.AreEqual(length, pool.Count);
-
     }
 
-    [TestMethod]
-    public void SepStringHashPoolTest_MaximumCapacity()
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void SepStringHashPoolTest_MaximumCapacity(object toStringObject)
     {
-        var maximumCapacity = 16;
-        using var pool = new SepStringHashPool(initialCapacity: maximumCapacity, maximumCapacity: maximumCapacity);
+        Contract.Assume(toStringObject != null);
+        var toString = (ToStringDelegate)toStringObject;
 
-        for (var i = 0; i < maximumCapacity; i++)
+        var maximumCapacity = 16;
+        var createPools = new Func<ISepStringHashPool>[] {
+            () => new SepStringHashPool(initialCapacity: maximumCapacity, maximumCapacity: maximumCapacity),
+            () => new SepStringHashPoolFixedCapacity(capacity: maximumCapacity),
+        };
+
+        foreach (var createPool in createPools)
         {
-            var c = ToChar(i);
-            var span = new Span<char>(ref c);
-            pool.ToString(span);
-        }
-        {
-            var c0 = ToChar(maximumCapacity + 1);
-            var c1 = ToChar(maximumCapacity + 2);
-            var span0 = new Span<char>(ref c0);
-            var span1 = new Span<char>(ref c1);
-            var str00 = pool.ToString(span0);
-            var str10 = pool.ToString(span1); // Caching last string so need intermediate
-            var str01 = pool.ToString(span0);
-            Assert.AreNotSame(str01, str00);
+            using var pool = createPool();
+
+            var withinCapacityStrings = new string[maximumCapacity];
+
+            for (var i = 0; i < maximumCapacity; i++)
+            {
+                var c = ToChar(i);
+                var span = new Span<char>(ref c);
+                withinCapacityStrings[i] = toString(pool, span);
+            }
+            {
+                var c0 = ToChar(maximumCapacity + 1);
+                var c1 = ToChar(maximumCapacity + 2);
+                var span0 = new Span<char>(ref c0);
+                var span1 = new Span<char>(ref c1);
+                var str00 = toString(pool, span0);
+                var str10 = toString(pool, span1); // Caching last string so need intermediate
+                var str01 = toString(pool, span0);
+                Assert.AreNotSame(str01, str00);
+            }
+            for (var i = 0; i < maximumCapacity; i++)
+            {
+                var c = ToChar(i);
+                var span = new Span<char>(ref c);
+                var s = toString(pool, span);
+                Assert.AreSame(withinCapacityStrings[i], s);
+            }
+
+            Assert.AreEqual(maximumCapacity, pool.Count);
         }
     }
 

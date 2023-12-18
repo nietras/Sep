@@ -35,7 +35,6 @@ public sealed partial class SepReader : SepReaderState
     // Currently rented on ArrayPool and will be rounded up to nearest power of 2.
     internal const int CharsMinimumLength = 24 * 1024;
 #endif
-    internal const int _charsCheckDataAvailableWhenLessThanLength = 256;
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
 
@@ -128,7 +127,7 @@ public sealed partial class SepReader : SepReaderState
                 HasRows = _parsedRowsCount > 1 || _charsDataEnd > _charsParseStart || _parsingRowColCount > 0;
                 if (!HasRows)
                 {
-                    HasRows = !CheckCharsAvailableDataMaybeRead(_charsPaddingLength);
+                    HasRows = !FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
                 }
             }
             else
@@ -192,7 +191,7 @@ public sealed partial class SepReader : SepReaderState
         _currentRowColCount = -1;
         _currentRowColEndsOrInfosOffset = 0;
 
-        // Move data to start if there is a current row in progress? Or data in buffer?
+        // Move data to start
         if (_parsingRowCharsStartIndex > 0)
         {
             A.Assert(_parser != null);
@@ -300,16 +299,8 @@ public sealed partial class SepReader : SepReaderState
 
     bool EnsureInitializeAndReadData(bool endOfFile)
     {
-        // Check how much data in buffer and read more to batch parsing in block
-        // of certain size.
-        var nothingLeftToRead = false;
-        if (_parser == null ||
-            (_charsDataEnd - _charsParseStart) < _charsCheckDataAvailableWhenLessThanLength)
-        {
-            nothingLeftToRead = CheckCharsAvailableDataMaybeRead(_charsPaddingLength);
-
-            CheckPoint($"{nameof(CheckCharsAvailableDataMaybeRead)} AFTER");
-        }
+        var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
+        CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
 
         if (_parser == null)
         {
@@ -339,13 +330,6 @@ public sealed partial class SepReader : SepReaderState
                 endOfFile = true;
             }
         }
-        if (_charsParseStart < _charsDataEnd)
-        {
-            if (_parsedRowsCount >= (_parsedRows.Length - (_parser?.PaddingLength ?? 32)))
-            {
-                DoubleParsedRowsCapacityCopyState();
-            }
-        }
         return endOfFile;
     }
 
@@ -366,21 +350,10 @@ public sealed partial class SepReader : SepReaderState
         //Console.WriteLine($"CurrentRowColInfosStartIndex = {_currentRowColEndsOrInfosStartIndex} CurrentRowColCount = {_currentRowColCount} New ColInfos Length = {_colEndsOrColInfos.Length}");
     }
 
-    void DoubleParsedRowsCapacityCopyState()
+    bool FillAndMaybeDoubleCharsBuffer(int paddingLength)
     {
-        var previous = _parsedRows;
-        _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(_parsedRows.Length * 2);
+        A.Assert(_charsDataStart == 0);
 
-        var previousSpan = previous.AsSpan().Slice(0, _parsedRowsCount);
-        var newSpan = _parsedRows.AsSpan().Slice(0, _parsedRowsCount);
-        previousSpan.CopyTo(newSpan);
-        ArrayPool<SepRowInfo>.Shared.Return(previous);
-        //Console.WriteLine($"ParsedRowsCount = {_parsedRowsCount} Length = {_parsedRows.Length}");
-    }
-
-    bool CheckCharsAvailableDataMaybeRead(int paddingLength)
-    {
-        // Check if buffer full or little data at end of buffer then move
         var offset = SepArrayExtensions.CheckFreeMaybeMoveMaybeDoubleLength(
             ref _chars, ref _charsDataStart, ref _charsDataEnd,
             _charsMinimumFreeLength, paddingLength);
@@ -388,70 +361,51 @@ public sealed partial class SepReader : SepReaderState
         {
             SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax);
         }
-        if (offset > 0)
-        {
-            A.Assert(_charsDataStart == 0, "Data start not at zero");
-            HandleDataMoved(offset);
-        }
+        A.Assert(offset == 0);
+
         // Read to free buffer area
         var freeLength = _chars.Length - _charsDataEnd - paddingLength;
         // Read 1 less than free length to ensure we always read \n after \r,
         // and hence always ensure we have the two combined in buffer.
         freeLength -= 1;
-        var freeSpan = new Span<char>(_chars, _charsDataEnd, freeLength);
-        A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
-        var readCount = _reader.Read(freeSpan);
-        if (readCount > 0)
+
+        if (freeLength > 0)
         {
-            _charsDataEnd += readCount;
-            // Ensure carriage return always followed by line feed
-            if (_chars[_charsDataEnd - 1] == CarriageReturn)
+            var freeSpan = new Span<char>(_chars, _charsDataEnd, freeLength);
+            A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
+
+            // Read until full or no more data
+            var totalBytesRead = 0;
+            var readCount = 0;
+            while (totalBytesRead < freeLength &&
+                   ((readCount = _reader.Read(freeSpan.Slice(totalBytesRead))) > 0))
             {
-                var extraChar = _reader.Peek();
-                if (extraChar == LineFeed)
+                _charsDataEnd += readCount;
+                // Ensure carriage return always followed by line feed
+                if (_chars[_charsDataEnd - 1] == CarriageReturn)
                 {
-                    var readChar = (char)_reader.Read();
-                    A.Assert(extraChar == readChar);
-                    _chars[_charsDataEnd] = readChar;
-                    ++_charsDataEnd;
-                    ++readCount;
+                    var extraChar = _reader.Peek();
+                    if (extraChar == LineFeed)
+                    {
+                        var readChar = (char)_reader.Read();
+                        A.Assert(extraChar == readChar);
+                        _chars[_charsDataEnd] = readChar;
+                        ++_charsDataEnd;
+                        ++readCount;
+                    }
                 }
+                totalBytesRead += readCount;
             }
             if (paddingLength > 0)
             {
                 _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
             }
-        }
-        //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
-        return readCount == 0;
-    }
-
-    void HandleDataMoved(int offset)
-    {
-        // Adjust parse start
-        A.Assert(_charsParseStart >= offset);
-        _charsParseStart -= offset;
-        // Adjust row start
-        A.Assert(_parsingRowCharsStartIndex >= offset);
-        _parsingRowCharsStartIndex -= offset;
-        // Adjust found cols, note includes _colCount since +1
-        if (_colUnquoteUnescape == 0)
-        {
-            ref var colEndsRef = ref GetColsRefAs<int>();
-            for (var i = 0; i <= _currentRowColCount; i++)
-            {
-                ref var colEnd = ref Unsafe.Add(ref colEndsRef, i);
-                colEnd -= offset;
-            }
+            //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
+            return totalBytesRead == 0;
         }
         else
         {
-            ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-            for (var i = 0; i <= _currentRowColCount; i++)
-            {
-                ref var colInfo = ref Unsafe.Add(ref colInfosRef, i);
-                colInfo.ColEnd -= offset;
-            }
+            return false;
         }
     }
 

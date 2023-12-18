@@ -22,8 +22,8 @@ public abstract class SepToString : IDisposable
             maximumStringLength, initialCapacity, maximumCapacity);
 
     public static SepCreateToString PoolPerColThreadSafeFixedCapacity(
-        int maximumStringLength = SepStringHashPoolThreadSafeFixedCapacity.MaximumStringLengthDefault,
-        int capacity = SepStringHashPoolThreadSafeFixedCapacity.CapacityDefault) =>
+        int maximumStringLength = SepStringHashPoolFixedCapacity.MaximumStringLengthDefault,
+        int capacity = SepStringHashPoolFixedCapacity.CapacityDefault) =>
         (maybeHeader, colCount) => new SepToStringHashPoolPerColThreadSafeFixedCapacity(colCount,
             maximumStringLength, capacity);
 

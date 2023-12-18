@@ -1,4 +1,7 @@
 ﻿#define SEPSTRINGPOOL_CACHE_LAST
+// Cache last does not appear to always be of benefit to thread-safe fixed
+// capacity, since this negatively affects code generation.
+//#define SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
 using System;
 using System.Buffers;
 #if SEPSTRINGPOOLUSAGE
@@ -7,7 +10,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
 using System.Threading;
 #endif
 
@@ -39,6 +42,8 @@ sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 #if SEPSTRINGPOOL_CACHE_LAST
     uint _lastHashCode = SepHash.Default(string.Empty);
     string _lastString = string.Empty;
+#endif
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
     readonly ThreadLocal<(uint, string)> _last = new(() => (SepHash.Default(string.Empty), string.Empty));
 #endif
 
@@ -146,7 +151,7 @@ sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 
         var hashCode = SepHash.Default(chars);
 
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
         var (lastHashCode, lastString) = _last.Value;
         if (lastHashCode == hashCode && MemoryExtensions.SequenceEqual(chars, lastString))
         {
@@ -169,7 +174,7 @@ sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 #if SEPSTRINGPOOLUSAGE
                 e.Count++;
 #endif
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
                 _last.Value = (hashCode, e.String);
 #endif
                 return e.String;
@@ -187,7 +192,7 @@ sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 
         string stringValue = new(chars);
 
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
         _last.Value = (hashCode, stringValue);
 #endif
 
@@ -251,7 +256,7 @@ sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
     {
         ArrayPool<int>.Shared.Return(_buckets);
         ArrayPool<Entry>.Shared.Return(_entries);
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
         _last.Dispose();
 #endif
         _buckets = default!;

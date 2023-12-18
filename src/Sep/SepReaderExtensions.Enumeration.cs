@@ -23,7 +23,7 @@ public static partial class SepReaderExtensions
         }
     }
 
-    public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.TryRowFunc<T> trySelect)
+    public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);
@@ -44,7 +44,7 @@ public static partial class SepReaderExtensions
         return ParallelEnumerateAsParallel(reader, select);
     }
 
-    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.TryRowFunc<T> trySelect)
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);
@@ -91,7 +91,7 @@ public static partial class SepReaderExtensions
         }
     }
 
-    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.TryRowFunc<T> trySelect)
+    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
     {
         var statesStack = new ConcurrentStack<SepReaderState>();
         try

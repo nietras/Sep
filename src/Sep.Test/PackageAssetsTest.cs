@@ -78,6 +78,30 @@ public class PackageAssetsTest
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_NoQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_WithQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
+#endif
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
     static void VerifyRead(string text, SepCreateToString createToString, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
@@ -113,10 +137,35 @@ public class PackageAssetsTest
         Assert.AreEqual(expected.Count, rowIndex);
     }
 
+    static void VerifyEnumerateTry(string text, SepCreateToString createToString,
+        Func<SepReader, SepReader.RowTryFunc<string[]>, IEnumerable<string[]>> enumerate,
+        bool unescape = false)
+    {
+        var startsWith = "8";
+        var expected = ReadLineSplit(text).Where(cols => cols[0].StartsWith(startsWith)).ToList();
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
+        var rows = enumerate(reader, (SepReader.Row r, out string[] cols) =>
+        {
+            if (r[0].Span.StartsWith(startsWith)) { cols = r[..].ToStringsArray(); return true; }
+            cols = default!;
+            return false;
+        });
+        var rowIndex = 0;
+        foreach (var cols in rows)
+        {
+            var expectedCols = expected[rowIndex];
+            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
+            Assert.AreEqual(expectedCols.Length, cols.Length);
+            CollectionAssert.AreEqual(expectedCols, cols);
+            ++rowIndex;
+        }
+        Assert.AreEqual(expected.Count, rowIndex);
+    }
+
     static List<string[]> ReadLineSplitAsList(string text, char separator = ',') =>
         ReadLineSplit(text, separator).ToList();
 
-    static IEnumerable<string[]> ReadLineSplit(string text, char separator)
+    static IEnumerable<string[]> ReadLineSplit(string text, char separator = ',')
     {
         using var reader = new StringReader(text);
         string? line;

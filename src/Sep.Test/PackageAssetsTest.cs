@@ -34,6 +34,7 @@ public class PackageAssetsTest
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_WithQuotes_Unescape(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString, unescape: true);
 
+
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_NoQuotes(SepCreateToString createToString) =>
@@ -53,6 +54,28 @@ public class PackageAssetsTest
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_WithQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes(SepCreateToString createToString) =>
+        VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes(SepCreateToString createToString) =>
+        VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
 
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]

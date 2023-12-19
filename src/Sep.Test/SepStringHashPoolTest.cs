@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -68,6 +69,38 @@ public class SepStringHashPoolTest
             var str0 = toString(pool, chars);
             var str1 = toString(pool, chars);
             Assert.AreNotSame(str0, str1);
+        }
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void SepStringHashPoolTest_TryCollisions(object toStringObject)
+    {
+        Contract.Assume(toStringObject != null);
+        var toString = (ToStringDelegate)toStringObject;
+
+        var maximumStringLength = 32;
+        var createPools = new Func<ISepStringHashPool>[] {
+            () => new SepStringHashPool(maximumStringLength),
+            () => new SepStringHashPoolFixedCapacity(maximumStringLength),
+        };
+
+        foreach (var createPool in createPools)
+        {
+            using var pool = createPool();
+
+            // Test is highly dependent on the hash used in the pool, this is
+            // known to degenerate be 0 for null strings.
+
+            const int maxNullStringLength = 64;
+            for (var nullStringLength = 1; nullStringLength < maxNullStringLength; nullStringLength++)
+            {
+                var nullString = new string('\0', nullStringLength);
+                var str = toString(pool, nullString);
+                Assert.IsNotNull(str);
+                Assert.AreNotSame(nullString, str);
+            }
+            Assert.IsTrue(pool.Count < maxNullStringLength);
         }
     }
 

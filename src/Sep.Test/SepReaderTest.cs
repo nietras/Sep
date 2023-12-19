@@ -464,7 +464,7 @@ public class SepReaderTest
         Assert.AreEqual(initialColCountCapacity * 2, reader._colEndsOrColInfos.Length);
     }
 
-#if !DEBUG // Causes OOMs in Debug due to tracing
+#if !SEPREADERTRACE // Causes OOMs in Debug due to tracing
     [TestMethod]
     public void SepReaderTest_TooLongRow_Throws()
     {

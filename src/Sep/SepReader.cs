@@ -354,7 +354,7 @@ public sealed partial class SepReader : SepReaderState
     {
         A.Assert(_charsDataStart == 0);
 
-        var offset = SepArrayExtensions.CheckFreeMaybeMoveMaybeDoubleLength(
+        var offset = SepArrayExtensions.CheckFreeMaybeDoubleLength(
             ref _chars, ref _charsDataStart, ref _charsDataEnd,
             _charsMinimumFreeLength, paddingLength);
         if (_chars.Length > RowLengthMax)

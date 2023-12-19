@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -35,7 +37,35 @@ public class SepParserTest
     [TestMethod]
     public void SepParserTest_CreateBest()
     {
-        Assert.IsNotNull(SepParserFactory.CreateBest(Sep.Default));
+        var best = SepParserFactory.CreateBest(Sep.Default);
+        Assert.IsNotNull(best);
+
+        var forceParserName = SepParserFactory.GetForceParserName();
+        if (string.IsNullOrEmpty(forceParserName))
+        {
+            Assert.IsInstanceOfType(best, GetBestExpectedType());
+
+        }
+        else if (!SepParserFactory.AvailableFactories.ContainsKey(forceParserName))
+        {
+            Assert.Inconclusive($"Unknown or unavailable forced parser name '{forceParserName}'");
+        }
+
+        static Type GetBestExpectedType()
+        {
+#if NET8_0_OR_GREATER
+            if (Environment.Is64BitProcess && Avx512BW.IsSupported)
+            { return typeof(SepParserAvx512PackCmpOrMoveMaskTzcnt); }
+            if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
+            { return typeof(SepParserVector512NrwCmpExtMsbTzcnt); }
+#endif
+            if (Avx2.IsSupported) { return typeof(SepParserAvx2PackCmpOrMoveMaskTzcnt); }
+            if (Sse2.IsSupported) { return typeof(SepParserSse2PackCmpOrMoveMaskTzcnt); }
+            if (Vector256.IsHardwareAccelerated) { return typeof(SepParserVector256NrwCmpExtMsbTzcnt); }
+            if (Vector128.IsHardwareAccelerated) { return typeof(SepParserVector128NrwCmpExtMsbTzcnt); }
+            if (Vector64.IsHardwareAccelerated) { return typeof(SepParserVector64NrwCmpExtMsbTzcnt); }
+            return typeof(SepParserIndexOfAny);
+        }
     }
 
     [TestMethod]

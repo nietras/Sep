@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace nietras.SeparatedValues.Test;
 

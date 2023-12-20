@@ -72,8 +72,8 @@ if (args.Length > 0)
 
     var nameToBenchTypesSet = new Dictionary<string, Type[]>()
     {
-        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), } },
-        { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), } },
+        { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), typeof(LongAssetPackageAssetsBench), } },
+        { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), typeof(LongQuotesAssetPackageAssetsBench), } },
         { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)
@@ -106,12 +106,12 @@ else
     //var b = new RowFloatsReaderBench();
     var b = new AssetPackageAssetsBench();
     //var b = new FloatsFloatsReaderBench();
-    b.Sep__MT__();
+    b.Sep_MT___();
 #if !DEBUG
     for (var i = 0; i < 2; ++i)
     {
         //b.Sylvan___();
-        b.Sep__MT__();
+        b.Sep_MT___();
         //b.CsvHelper();
         //b.ReadLineP();
         //b.ReadLine_();
@@ -124,7 +124,7 @@ else
     //var sylvan_ms = sw.ElapsedMilliseconds;
     //Thread.Sleep(300);
     sw.Restart();
-    b.Sep__MT__();
+    b.Sep_MT___();
     var sep_ms = sw.ElapsedMilliseconds;
     log($"Sep    {sep_ms:D4}");
     Thread.Sleep(300);
@@ -132,7 +132,7 @@ else
     Thread.Sleep(300);
     for (var i = 0; i < 20; i++)
     {
-        b.Sep__MT__();
+        b.Sep_MT___();
     }
 }
 

@@ -838,27 +838,29 @@ optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
-###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
-| Method       | Scope | Rows  | Mean       | Ratio | MB | MB/s    | ns/row | Allocated   | Alloc Ratio |
-|------------- |------ |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
-| Sep______    | Row   | 50000 |   2.409 ms |  1.00 | 29 | 12111.6 |   48.2 |       933 B |        1.00 |
-| Sep_Unescape | Row   | 50000 |   2.499 ms |  1.04 | 29 | 11675.7 |   50.0 |       934 B |        1.00 |
-| Sylvan___    | Row   | 50000 |   2.913 ms |  1.21 | 29 | 10016.5 |   58.3 |      7381 B |        7.91 |
-| ReadLine_    | Row   | 50000 |  12.198 ms |  5.04 | 29 |  2392.3 |  244.0 |  90734838 B |   97,250.63 |
-| CsvHelper    | Row   | 50000 |  42.460 ms | 17.63 | 29 |   687.3 |  849.2 |     21074 B |       22.59 |
-|              |       |       |            |       |    |         |        |             |             |
-| Sep______    | Cols  | 50000 |   3.480 ms |  1.00 | 29 |  8385.3 |   69.6 |       935 B |        1.00 |
-| Sep_Unescape | Cols  | 50000 |   3.959 ms |  1.14 | 29 |  7370.9 |   79.2 |       936 B |        1.00 |
-| Sylvan___    | Cols  | 50000 |   5.210 ms |  1.50 | 29 |  5600.5 |  104.2 |      7385 B |        7.90 |
-| ReadLine_    | Cols  | 50000 |  14.275 ms |  3.60 | 29 |  2044.3 |  285.5 |  90734826 B |   97,042.59 |
-| CsvHelper    | Cols  | 50000 |  69.058 ms | 19.86 | 29 |   422.6 | 1381.2 |    457060 B |      488.83 |
-|              |       |       |            |       |    |         |        |             |             |
-| Sep______    | Asset | 50000 |  35.052 ms |  1.00 | 29 |   832.5 |  701.0 |  14131121 B |        1.00 |
-| Sep_Unescape | Asset | 50000 |  34.813 ms |  1.00 | 29 |   838.2 |  696.3 |  14130768 B |        1.00 |
-| Sylvan___    | Asset | 50000 |  38.875 ms |  1.12 | 29 |   750.6 |  777.5 |  14297351 B |        1.01 |
-| ReadLine_    | Asset | 50000 | 127.866 ms |  3.76 | 29 |   228.2 | 2557.3 | 104584604 B |        7.40 |
-| CsvHelper    | Asset | 50000 |  86.415 ms |  2.47 | 29 |   337.7 | 1728.3 |  14306352 B |        1.01 |
+| Method           | Scope | Rows    | Mean         | Ratio | MB  | MB/s    | ns/row | Allocated    | Alloc Ratio |
+|----------------- |------ |-------- |-------------:|------:|----:|--------:|-------:|-------------:|------------:|
+| Sep______        | Row   | 50000   |     2.305 ms |  1.00 |  29 | 12658.6 |   46.1 |        967 B |        1.00 |
+| Sep_Unescape     | Row   | 50000   |     2.345 ms |  1.02 |  29 | 12444.9 |   46.9 |        967 B |        1.00 |
+| Sylvan___        | Row   | 50000   |     2.939 ms |  1.27 |  29 |  9929.2 |   58.8 |       7381 B |        7.63 |
+| ReadLine_        | Row   | 50000   |    12.693 ms |  5.55 |  29 |  2298.9 |  253.9 |   90734838 B |   93,831.27 |
+| CsvHelper        | Row   | 50000   |    42.865 ms | 18.59 |  29 |   680.8 |  857.3 |      21074 B |       21.79 |
+|                  |       |         |              |       |     |         |        |              |             |
+| Sep______        | Cols  | 50000   |     3.139 ms |  1.00 |  29 |  9295.1 |   62.8 |        970 B |        1.00 |
+| Sep_Unescape     | Cols  | 50000   |     3.746 ms |  1.19 |  29 |  7789.7 |   74.9 |        972 B |        1.00 |
+| Sylvan___        | Cols  | 50000   |     5.206 ms |  1.66 |  29 |  5605.1 |  104.1 |       7385 B |        7.61 |
+| ReadLine_        | Cols  | 50000   |    12.748 ms |  4.04 |  29 |  2289.1 |  255.0 |   90734839 B |   93,541.07 |
+| CsvHelper        | Cols  | 50000   |    69.417 ms | 22.11 |  29 |   420.4 | 1388.3 |     457060 B |      471.20 |
+|                  |       |         |              |       |     |         |        |              |             |
+| Sep______        | Asset | 1000000 |   654.674 ms |  1.00 | 583 |   891.7 |  654.7 |  273067448 B |        1.00 |
+| Sep_Unescape     | Asset | 1000000 |   654.754 ms |  1.00 | 583 |   891.6 |  654.8 |  273067376 B |        1.00 |
+| Sep__MT__        | Asset | 1000000 |   304.340 ms |  0.47 | 583 |  1918.2 |  304.3 |  276207048 B |        1.01 |
+| Sep__MT_Unescape | Asset | 1000000 |   320.516 ms |  0.49 | 583 |  1821.4 |  320.5 |  274088768 B |        1.00 |
+| Sylvan___        | Asset | 1000000 |   794.811 ms |  1.23 | 583 |   734.5 |  794.8 |  273227024 B |        1.00 |
+| ReadLine_        | Asset | 1000000 | 1,907.330 ms |  2.91 | 583 |   306.1 | 1907.3 | 2087765152 B |        7.65 |
+| CsvHelper        | Asset | 1000000 | 1,716.730 ms |  2.62 | 583 |   340.1 | 1716.7 |  273236328 B |        1.00 |
 
 ###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -918,27 +920,29 @@ looking at the numbers. For each row of 25 columns, there are 24 separators
 Adding quotes around each of the 25 columns will add 50 characters or almost
 triple the total to 76.
 
-###### AMD.Ryzen.9.5950X - PackageAssets with Quotes Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+###### AMD.Ryzen.9.5950X - PackageAssets with Quotes Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
-| Method       | Scope | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
-|------------- |------ |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
-| Sep______    | Row   | 50000 |   7.453 ms |  1.00 | 33 | 4478.2 |  149.1 |       944 B |        1.00 |
-| Sep_Unescape | Row   | 50000 |   7.381 ms |  0.99 | 33 | 4522.2 |  147.6 |       944 B |        1.00 |
-| Sylvan___    | Row   | 50000 |  18.035 ms |  2.40 | 33 | 1850.7 |  360.7 |      7390 B |        7.83 |
-| ReadLine_    | Row   | 50000 |  14.689 ms |  1.97 | 33 | 2272.3 |  293.8 | 111389433 B |  117,997.28 |
-| CsvHelper    | Row   | 50000 |  52.212 ms |  7.01 | 33 |  639.3 | 1044.2 |     21081 B |       22.33 |
-|              |       |       |            |       |    |        |        |             |             |
-| Sep______    | Cols  | 50000 |   7.780 ms |  1.00 | 33 | 4290.1 |  155.6 |       946 B |        1.00 |
-| Sep_Unescape | Cols  | 50000 |   8.337 ms |  1.07 | 33 | 4003.6 |  166.7 |       946 B |        1.00 |
-| Sylvan___    | Cols  | 50000 |  20.329 ms |  2.60 | 33 | 1641.9 |  406.6 |      7411 B |        7.83 |
-| ReadLine_    | Cols  | 50000 |  15.540 ms |  1.99 | 33 | 2147.8 |  310.8 | 111389433 B |  117,747.82 |
-| CsvHelper    | Cols  | 50000 |  83.149 ms | 10.64 | 33 |  401.4 | 1663.0 |    457060 B |      483.15 |
-|              |       |       |            |       |    |        |        |             |             |
-| Sep______    | Asset | 50000 |  35.903 ms |  1.00 | 33 |  929.6 |  718.1 |  14139438 B |        1.00 |
-| Sep_Unescape | Asset | 50000 |  34.316 ms |  0.93 | 33 |  972.7 |  686.3 |  14130926 B |        1.00 |
-| Sylvan___    | Asset | 50000 |  51.465 ms |  1.43 | 33 |  648.5 | 1029.3 |  14296613 B |        1.01 |
-| ReadLine_    | Asset | 50000 | 117.914 ms |  3.29 | 33 |  283.1 | 2358.3 | 125239144 B |        8.86 |
-| CsvHelper    | Asset | 50000 |  96.670 ms |  2.57 | 33 |  345.3 | 1933.4 |  14307304 B |        1.01 |
+| Method           | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
+|----------------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-------------:|------------:|
+| Sep______        | Row   | 50000   |     6.888 ms |  1.00 |  33 | 4845.6 |  137.8 |        981 B |        1.00 |
+| Sep_Unescape     | Row   | 50000   |     6.685 ms |  0.97 |  33 | 4992.7 |  133.7 |        981 B |        1.00 |
+| Sylvan___        | Row   | 50000   |    17.476 ms |  2.54 |  33 | 1909.9 |  349.5 |       7406 B |        7.55 |
+| ReadLine_        | Row   | 50000   |    15.115 ms |  2.21 |  33 | 2208.2 |  302.3 |  111389433 B |  113,546.82 |
+| CsvHelper        | Row   | 50000   |    52.863 ms |  7.68 |  33 |  631.4 | 1057.3 |      21081 B |       21.49 |
+|                  |       |         |              |       |     |        |        |              |             |
+| Sep______        | Cols  | 50000   |     7.683 ms |  1.00 |  33 | 4344.4 |  153.7 |        984 B |        1.00 |
+| Sep_Unescape     | Cols  | 50000   |     8.728 ms |  1.14 |  33 | 3824.3 |  174.6 |        987 B |        1.00 |
+| Sylvan___        | Cols  | 50000   |    20.225 ms |  2.63 |  33 | 1650.3 |  404.5 |       7411 B |        7.53 |
+| ReadLine_        | Cols  | 50000   |    15.128 ms |  1.97 |  33 | 2206.4 |  302.6 |  111389433 B |  113,200.64 |
+| CsvHelper        | Cols  | 50000   |    82.537 ms | 10.74 |  33 |  404.4 | 1650.7 |     457060 B |      464.49 |
+|                  |       |         |              |       |     |        |        |              |             |
+| Sep______        | Asset | 1000000 |   790.268 ms |  1.00 | 667 |  844.9 |  790.3 |  273121432 B |        1.00 |
+| Sep_Unescape     | Asset | 1000000 |   756.227 ms |  0.96 | 667 |  882.9 |  756.2 |  273067384 B |        1.00 |
+| Sep__MT__        | Asset | 1000000 |   403.149 ms |  0.51 | 667 | 1656.2 |  403.1 |  274175488 B |        1.00 |
+| Sep__MT_Unescape | Asset | 1000000 |   377.297 ms |  0.49 | 667 | 1769.7 |  377.3 |  274817976 B |        1.01 |
+| Sylvan___        | Asset | 1000000 | 1,077.943 ms |  1.36 | 667 |  619.4 | 1077.9 |  273233704 B |        1.00 |
+| ReadLine_        | Asset | 1000000 | 2,887.799 ms |  3.71 | 667 |  231.2 | 2887.8 | 2500932168 B |        9.16 |
+| CsvHelper        | Asset | 1000000 | 2,094.822 ms |  2.66 | 667 |  318.7 | 2094.8 |  273236496 B |        1.00 |
 
 ###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets with Quotes Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -1050,24 +1054,25 @@ naive `ReadLine` approach. With Sep being **>4x faster than CsvHelper**.
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings. 
 
-##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s    | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
-| Sep______ | Row    | 25000 |   1.893 ms |  1.00 | 20 | 10733.4 |   75.7 |     1.15 KB |        1.00 |
-| Sylvan___ | Row    | 25000 |   2.212 ms |  1.17 | 20 |  9187.9 |   88.5 |    10.02 KB |        8.74 |
-| ReadLine_ | Row    | 25000 |  10.913 ms |  5.76 | 20 |  1862.0 |  436.5 | 73489.63 KB |   64,099.99 |
-| CsvHelper | Row    | 25000 |  25.079 ms | 13.25 | 20 |   810.2 | 1003.2 |    20.58 KB |       17.95 |
+| Sep______ | Row    | 25000 |   2.011 ms |  1.00 | 20 | 10105.3 |   80.4 |     1.18 KB |        1.00 |
+| Sylvan___ | Row    | 25000 |   2.325 ms |  1.16 | 20 |  8738.1 |   93.0 |    10.02 KB |        8.52 |
+| ReadLine_ | Row    | 25000 |  11.574 ms |  5.77 | 20 |  1755.6 |  463.0 | 73489.64 KB |   62,450.95 |
+| CsvHelper | Row    | 25000 |  25.509 ms | 12.69 | 20 |   796.6 | 1020.4 |    20.59 KB |       17.49 |
 |           |        |       |            |       |    |         |        |             |             |
-| Sep______ | Cols   | 25000 |   2.591 ms |  1.00 | 20 |  7843.3 |  103.6 |     1.15 KB |        1.00 |
-| Sylvan___ | Cols   | 25000 |   3.738 ms |  1.44 | 20 |  5436.2 |  149.5 |    10.03 KB |        8.74 |
-| ReadLine_ | Cols   | 25000 |  11.010 ms |  4.25 | 20 |  1845.6 |  440.4 | 73489.64 KB |   64,045.44 |
-| CsvHelper | Cols   | 25000 |  27.201 ms | 10.43 | 20 |   747.0 | 1088.0 | 21340.99 KB |   18,598.45 |
+| Sep______ | Cols   | 25000 |   2.605 ms |  1.00 | 20 |  7799.5 |  104.2 |     1.18 KB |        1.00 |
+| Sylvan___ | Cols   | 25000 |   3.815 ms |  1.46 | 20 |  5326.0 |  152.6 |    10.03 KB |        8.48 |
+| ReadLine_ | Cols   | 25000 |  11.729 ms |  4.60 | 20 |  1732.5 |  469.2 | 73489.64 KB |   62,141.53 |
+| CsvHelper | Cols   | 25000 |  27.727 ms | 10.64 | 20 |   732.8 | 1109.1 | 21340.81 KB |   18,045.40 |
 |           |        |       |            |       |    |         |        |             |             |
-| Sep______ | Floats | 25000 |  21.397 ms |  1.00 | 20 |   949.7 |  855.9 |     7.87 KB |        1.00 |
-| Sylvan___ | Floats | 25000 |  65.771 ms |  3.08 | 20 |   308.9 | 2630.8 |     18.2 KB |        2.31 |
-| ReadLine_ | Floats | 25000 |  72.513 ms |  3.39 | 20 |   280.2 | 2900.5 | 73493.12 KB |    9,338.25 |
-| CsvHelper | Floats | 25000 | 106.198 ms |  4.96 | 20 |   191.3 | 4247.9 | 22062.55 KB |    2,803.33 |
+| Sep______ | Floats | 25000 |  22.110 ms |  1.00 | 20 |   919.0 |  884.4 |     7.93 KB |        1.00 |
+| Sep__MT__ | Floats | 25000 |   4.084 ms |  0.18 | 20 |  4975.1 |  163.4 |   176.38 KB |       22.25 |
+| Sylvan___ | Floats | 25000 |  69.014 ms |  3.12 | 20 |   294.4 | 2760.6 |     18.2 KB |        2.30 |
+| ReadLine_ | Floats | 25000 |  73.638 ms |  3.33 | 20 |   275.9 | 2945.5 | 73493.12 KB |    9,271.52 |
+| CsvHelper | Floats | 25000 | 108.419 ms |  4.90 | 20 |   187.4 | 4336.8 | 22062.55 KB |    2,783.30 |
 
 ##### Intel.Xeon.Silver.4316.2.30GHz - FloatsReader Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 

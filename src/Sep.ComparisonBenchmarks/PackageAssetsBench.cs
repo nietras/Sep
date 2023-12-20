@@ -18,7 +18,7 @@ namespace nietras.SeparatedValues.ComparisonBenchmarks;
 // splitting lines to strings basically, nothing else. This can be seen in:
 // https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
 [MemoryDiagnoser]
-[HideColumns("InvocationCount", "Job", "IterationTime", "MinIterationCount", "MaxIterationCount", "Type", "Quotes", "Reader", "RatioSD", "Gen0", "Gen1", "Gen2", "Error", "Median")]
+[HideColumns("InvocationCount", "Job", "IterationTime", "MinIterationCount", "MaxIterationCount", "Type", "Quotes", "Reader", "Gen0", "Gen1", "Gen2", "Error", "Median")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class PackageAssetsBench
 {
@@ -393,3 +393,14 @@ public class LongQuotesAssetPackageAssetsBench : LongAssetPackageAssetsBench
 {
     public LongQuotesAssetPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
+
+
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerLongAssetPackageAssetsBench : LongAssetPackageAssetsBench
+{ }
+
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerLongQuotesAssetPackageAssetsBench : LongQuotesAssetPackageAssetsBench
+{ }

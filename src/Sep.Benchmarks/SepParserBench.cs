@@ -77,7 +77,9 @@ public class SepParserBench
         _state._chars = ArrayPool<char>.Shared.Rent(text.Length + _parser.PaddingLength);
         text.AsSpan().CopyTo(_state._chars.AsSpan().Slice(0, text.Length));
         _state._charsDataEnd = text.Length;
+        _state._chars.ClearPaddingAfterData(_state._charsDataEnd, _parser.PaddingLength);
         _state._colEndsOrColInfos = ArrayPool<int>.Shared.Rent(SepReaderState.ColEndsInitialLength);
+        _state._parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(SepReaderState.ParsedRowsLength);
     }
 
     [Benchmark(Baseline = true)]
@@ -86,6 +88,10 @@ public class SepParserBench
         _state!._currentRowColCount = 0;
         _state!._parsingLineNumber = 0;
         _state!._charsParseStart = 0;
+        _state!._parsedRowsCount = 0;
+        _state._parsingRowCharsStartIndex = 0;
+        _state._parsingRowColCount = 0;
+        _state._parsingRowColEndsOrInfosStartIndex = 0;
         _parser!.ParseColEnds(_state!);
     }
 

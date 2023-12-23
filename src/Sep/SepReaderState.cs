@@ -95,7 +95,7 @@ public class SepReaderState : IDisposable
 
     internal Func<int, string> UnsafeToStringDelegate { get; }
 
-    internal void CopyParsedRowsTo(SepReaderState other)
+    internal void SwapParsedRowsTo(SepReaderState other)
     {
         A.Assert(_parsedRowIndex == 0);
         A.Assert(_parsedRowIndex <= _parsedRowsCount);

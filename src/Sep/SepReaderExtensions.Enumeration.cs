@@ -148,7 +148,7 @@ public static partial class SepReaderExtensions
             }
             if (reader.HasParsedRows())
             {
-                reader.CopyParsedRowsTo(state);
+                reader.SwapParsedRowsTo(state);
                 yield return state;
             }
         } while (reader.ParseNewRows());

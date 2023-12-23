@@ -52,6 +52,6 @@ static IColumn MBPerSecFromCharsLength() => new BytesStatisticColumn("MB/s",
 static long BytesFromCharsLength(IReadOnlyList<ParameterInstance> parameters)
 {
     return parameters.Where(p => p.Name == nameof(SepParserBench.Filler))
-        .Select(p => ((SepParserBench.FillerSpec)p.Value).Text.Length * sizeof(char))
+        .Select(p => ((SepParserBench.FillerSpec)p.Value).TotalLength * sizeof(char))
         .Single()!;
 }

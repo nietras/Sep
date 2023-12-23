@@ -8,9 +8,12 @@ namespace nietras.SeparatedValues.Benchmarks;
 
 public class SepParserBench
 {
+    const int CharsLength = 32 * 1024;
     public record FillerSpec(string Name, char Separator, string Text)
     {
-        public override string ToString() => $"{Name} {Text.Length:D8}";
+        public int Copies => CharsLength / Text.Length;
+        public int TotalLength => Copies * Text.Length;
+        public override string ToString() => $"{Name} {TotalLength:D8}";
     }
 
     public record ParserSpec(string Name, Func<Sep, object> CreateParser)
@@ -66,21 +69,23 @@ public class SepParserBench
     public FillerSpec Filler { get; set; }
     public IEnumerable<FillerSpec> Fillers() => _fillers;
 
-    public int Length => Filler.Text.Length;
+    public int Length => _state!._charsDataEnd;
 
     [GlobalSetup]
     public void GlobalSetup()
     {
         _parser = (ISepParser)Parser.CreateParser(new(Filler.Separator));
         var text = Filler.Text;
-        _state = new SepReaderState();
-        _state._chars = ArrayPool<char>.Shared.Rent(text.Length + _parser.PaddingLength);
-        text.AsSpan().CopyTo(_state._chars.AsSpan().Slice(0, text.Length));
-        _state._charsDataEnd = text.Length;
+        var copies = Filler.Copies;
+        _state = new();
+        _state._chars = ArrayPool<char>.Shared.Rent(Filler.TotalLength + _parser.PaddingLength);
+        FillCopies(text, copies);
+        _state._charsDataEnd = Filler.TotalLength;
         _state._chars.ClearPaddingAfterData(_state._charsDataEnd, _parser.PaddingLength);
         _state._colEndsOrColInfos = ArrayPool<int>.Shared.Rent(SepReaderState.ColEndsInitialLength);
         _state._parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(SepReaderState.ParsedRowsLength);
     }
+
 
     [Benchmark(Baseline = true)]
     public void ParseColEnds()
@@ -98,6 +103,15 @@ public class SepParserBench
     //[Benchmark]
     public void Copy()
     {
-        Filler.Text.CopyTo(_state!._chars.AsSpan(0, _state._charsDataEnd));
+        FillCopies(Filler.Text, Filler.Copies);
+    }
+
+    void FillCopies(string text, int copies)
+    {
+        var charsSpan = _state!._chars.AsSpan();
+        for (var i = 0; i < copies; i++)
+        {
+            text.AsSpan().CopyTo(charsSpan.Slice(i * text.Length, text.Length));
+        }
     }
 }

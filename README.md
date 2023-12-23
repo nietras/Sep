@@ -502,20 +502,21 @@ var actual = Enumerate(reader,
 
 CollectionAssert.AreEqual(expected, actual);
 
-static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> select)
 {
     foreach (var row in reader)
     {
-        yield return func(row);
+        yield return select(row);
     }
 }
 ```
-Which discounting the `Enumerate` method (which could naturally be an extension
-method), does have less boilerplate, but not really more effective lines of
-code. The issue here is that this tends to favor factoring code in a way that
-can become very inefficient quickly. Consider if one wanted to only enumerate
-rows matching a predicate on `Key` which meant only 1% of rows were to be
-enumerated e.g.:
+
+In fact, Sep now provides such a convenience extension method. And, discounting
+the `Enumerate` method, this does have less boilerplate, but not really more
+effective lines of code. The issue here is that this tends to favor factoring
+code in a way that can become very inefficient quickly. Consider if one wanted
+to only enumerate rows matching a predicate on `Key` which meant only 1% of rows
+were to be enumerated e.g.:
 ```csharp
 var text = """
            Key;Value
@@ -527,25 +528,17 @@ var expected = new (string Key, double Value)[] {
 };
 
 using var reader = Sep.Reader().FromText(text);
-var actual = Enumerate(reader,
+var actual = reader.Enumerate(
     row => (row["Key"].ToString(), row["Value"].Parse<double>()))
     .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
     .ToArray();
 
 CollectionAssert.AreEqual(expected, actual);
-
-static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
-{
-    foreach (var row in reader)
-    {
-        yield return func(row);
-    }
-}
 ```
 This means you are still parsing the double (which is magnitudes slower than
 getting just the key) for all rows. Imagine if this was an array of floating
 points or similar. Not only would you then be parsing a lot of values you would
-also be allocated 99x arrays that aren't used after filtering with `Where`.
+also be allocated 99x arrays that aren't used after filtering with `Where`. 
 
 Instead, you should focus on how to express the enumeration in a way that is
 both efficient and easy to read. For example, the above could be rewritten as:
@@ -576,10 +569,94 @@ static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
     }
 }
 ```
-This does not take significantly longer to write and is a lot more efficient
-(also avoids allocating a string for key for each row) and is easier to debug
-and perhaps even read. All examples above can be seen in
-[ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+
+To accomodate this Sep provides an overload for `Enumerate` that is similar to:
+```csharp
+static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
+{
+    foreach (var row in reader)
+    {
+        if (trySelect(row, out var value))
+        {
+            yield return value;
+        }
+    }
+}
+```
+With this the above custom `Enumerate` can be replaced with:
+```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+var expected = new (string Key, double Value)[] {
+    ("B", 2.2),
+};
+
+using var reader = Sep.Reader().FromText(text);
+var actual = reader.Enumerate((SepReader.Row row, out (string Key, double Value) kv) =>
+{
+    var keyCol = row["Key"];
+    if (keyCol.Span.StartsWith("B"))
+    {
+        kv = (keyCol.ToString(), row["Value"].Parse<double>());
+        return true;
+    }
+    kv = default;
+    return false;
+}).ToArray();
+
+CollectionAssert.AreEqual(expected, actual);
+```
+
+Note how this is pretty much the same length as the previous custom `Enumerate`.
+Also worse due to how C# requires specifying types for `out` parameters which
+then requires all parameter types for the lambda to be specified. Hence, in this
+case the custom `Enumerate` does not take significantly longer to write and is a
+lot more efficient than using LINQ `.Where` (also avoids allocating a string for
+key for each row) and is easier to debug and perhaps even read. All examples
+above can be seen in [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+
+There is a strong case for having an enumerate API though and that is for
+parallelized enumeration, which will be discussed next.
+
+#### ParallelEnumerate and Enumerate
+As discussed in the previous section Sep provides `Enumerate` convenience
+extension methods, that should be used carefully. Alongside these there are
+`ParallelEnumerate` extension methods that provide very efficient multi-threaded
+enumeration. See [benchmarks](#comparison-benchmarks) for numbers and [Public
+API Reference](#public-api-reference).
+
+`ParallelEnumerate` is build on top of LINQ `AsParallel().AsOrdered()` and will
+return exactly the same as `Enumerate` but with enumeration parallelized. This
+will use more memory during execution and as many threads as possible via the
+.NET thread pool. When using `ParallelEnumerate` one should, therefore (as
+always), be certain the provided delegate does not refer to or change any
+mutable state.
+
+`ParallelEnumerate` comes with a lot of overhead compared to single-threaded
+`foreach` or `Enumerate` and should be used carefully and based on measuring any
+potential benefit. Sep goes a long way to make this very efficient by using
+pooled arrays and parsing multiple rows in batches, but if the source only has a
+few rows then any benefit is unlikely.
+
+Due to `ParallelEnumerate` being based on batches of rows it is also important
+not to "abuse" it in-place of LINQ `AsParallel`. The idea is to use it for
+*parsing* rows, not for doing expensive per row operations like loading an image
+or similar. In that case, you are better off using `AsParallel()` after
+`ParallelEnumerate` or `Enumerate` similarly to:
+
+```csharp
+using var reader = Sep.Reader().FromFile("very-long.csv");
+var results = reader.ParallelEnumerate(ParseRow)
+                    .AsParallel().AsOrdered()
+                    .Select(LoadData) // Expensive load
+                    .ToList();
+```
+
+As a rule of thumb if the time per row exceeds 1 millisecond consider moving the
+expensive work to after `ParallelEnumerate`/`Enumerate`,
 
 ### SepWriter API
 `SepWriter` API has the following structure (in pseudo-C# code):
@@ -838,27 +915,33 @@ optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
-###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
-| Method       | Scope | Rows  | Mean       | Ratio | MB | MB/s    | ns/row | Allocated   | Alloc Ratio |
-|------------- |------ |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
-| Sep______    | Row   | 50000 |   2.409 ms |  1.00 | 29 | 12111.6 |   48.2 |       933 B |        1.00 |
-| Sep_Unescape | Row   | 50000 |   2.499 ms |  1.04 | 29 | 11675.7 |   50.0 |       934 B |        1.00 |
-| Sylvan___    | Row   | 50000 |   2.913 ms |  1.21 | 29 | 10016.5 |   58.3 |      7381 B |        7.91 |
-| ReadLine_    | Row   | 50000 |  12.198 ms |  5.04 | 29 |  2392.3 |  244.0 |  90734838 B |   97,250.63 |
-| CsvHelper    | Row   | 50000 |  42.460 ms | 17.63 | 29 |   687.3 |  849.2 |     21074 B |       22.59 |
-|              |       |       |            |       |    |         |        |             |             |
-| Sep______    | Cols  | 50000 |   3.480 ms |  1.00 | 29 |  8385.3 |   69.6 |       935 B |        1.00 |
-| Sep_Unescape | Cols  | 50000 |   3.959 ms |  1.14 | 29 |  7370.9 |   79.2 |       936 B |        1.00 |
-| Sylvan___    | Cols  | 50000 |   5.210 ms |  1.50 | 29 |  5600.5 |  104.2 |      7385 B |        7.90 |
-| ReadLine_    | Cols  | 50000 |  14.275 ms |  3.60 | 29 |  2044.3 |  285.5 |  90734826 B |   97,042.59 |
-| CsvHelper    | Cols  | 50000 |  69.058 ms | 19.86 | 29 |   422.6 | 1381.2 |    457060 B |      488.83 |
-|              |       |       |            |       |    |         |        |             |             |
-| Sep______    | Asset | 50000 |  35.052 ms |  1.00 | 29 |   832.5 |  701.0 |  14131121 B |        1.00 |
-| Sep_Unescape | Asset | 50000 |  34.813 ms |  1.00 | 29 |   838.2 |  696.3 |  14130768 B |        1.00 |
-| Sylvan___    | Asset | 50000 |  38.875 ms |  1.12 | 29 |   750.6 |  777.5 |  14297351 B |        1.01 |
-| ReadLine_    | Asset | 50000 | 127.866 ms |  3.76 | 29 |   228.2 | 2557.3 | 104584604 B |        7.40 |
-| CsvHelper    | Asset | 50000 |  86.415 ms |  2.47 | 29 |   337.7 | 1728.3 |  14306352 B |        1.01 |
+| Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s    | ns/row | Allocated    | Alloc Ratio |
+|------------- |------ |-------- |-------------:|------:|----:|--------:|-------:|-------------:|------------:|
+| Sep______    | Row   | 50000   |     2.319 ms |  1.00 |  29 | 12581.3 |   46.4 |        967 B |        1.00 |
+| Sep_Unescape | Row   | 50000   |     2.335 ms |  1.01 |  29 | 12497.4 |   46.7 |        967 B |        1.00 |
+| Sylvan___    | Row   | 50000   |     2.985 ms |  1.29 |  29 |  9776.4 |   59.7 |       7381 B |        7.63 |
+| ReadLine_    | Row   | 50000   |    12.779 ms |  5.55 |  29 |  2283.6 |  255.6 |   90734838 B |   93,831.27 |
+| CsvHelper    | Row   | 50000   |    43.702 ms | 18.84 |  29 |   667.7 |  874.0 |      21074 B |       21.79 |
+|              |       |         |              |       |     |         |        |              |             |
+| Sep______    | Cols  | 50000   |     3.127 ms |  1.00 |  29 |  9331.2 |   62.5 |        970 B |        1.00 |
+| Sep_Unescape | Cols  | 50000   |     3.757 ms |  1.20 |  29 |  7766.9 |   75.1 |        972 B |        1.00 |
+| Sylvan___    | Cols  | 50000   |     5.353 ms |  1.71 |  29 |  5451.1 |  107.1 |       7385 B |        7.61 |
+| ReadLine_    | Cols  | 50000   |    12.753 ms |  4.07 |  29 |  2288.1 |  255.1 |   90734839 B |   93,541.07 |
+| CsvHelper    | Cols  | 50000   |    69.377 ms | 22.20 |  29 |   420.6 | 1387.5 |     457060 B |      471.20 |
+|              |       |         |              |       |     |         |        |              |             |
+| Sep______    | Asset | 50000   |    35.112 ms |  1.00 |  29 |   831.1 |  702.2 |   14133938 B |        1.00 |
+| Sep_MT___    | Asset | 50000   |    22.928 ms |  0.66 |  29 |  1272.8 |  458.6 |   14327404 B |        1.01 |
+| Sylvan___    | Asset | 50000   |    39.254 ms |  1.11 |  29 |   743.4 |  785.1 |   14297119 B |        1.01 |
+| ReadLine_    | Asset | 50000   |   106.311 ms |  3.04 |  29 |   274.5 | 2126.2 |  104584704 B |        7.40 |
+| CsvHelper    | Asset | 50000   |    83.844 ms |  2.39 |  29 |   348.0 | 1676.9 |   14306424 B |        1.01 |
+|              |       |         |              |       |     |         |        |              |             |
+| Sep______    | Asset | 1000000 |   658.125 ms |  1.00 | 583 |   887.0 |  658.1 |  273067600 B |        1.00 |
+| Sep_MT___    | Asset | 1000000 |   305.092 ms |  0.46 | 583 |  1913.5 |  305.1 |  274288576 B |        1.00 |
+| Sylvan___    | Asset | 1000000 |   794.169 ms |  1.21 | 583 |   735.1 |  794.2 |  273227616 B |        1.00 |
+| ReadLine_    | Asset | 1000000 | 1,842.849 ms |  2.80 | 583 |   316.8 | 1842.8 | 2087764672 B |        7.65 |
+| CsvHelper    | Asset | 1000000 | 1,740.008 ms |  2.64 | 583 |   335.5 | 1740.0 |  273238000 B |        1.00 |
 
 ###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -918,27 +1001,33 @@ looking at the numbers. For each row of 25 columns, there are 24 separators
 Adding quotes around each of the 25 columns will add 50 characters or almost
 triple the total to 76.
 
-###### AMD.Ryzen.9.5950X - PackageAssets with Quotes Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+###### AMD.Ryzen.9.5950X - PackageAssets with Quotes Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
-| Method       | Scope | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
-|------------- |------ |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
-| Sep______    | Row   | 50000 |   7.453 ms |  1.00 | 33 | 4478.2 |  149.1 |       944 B |        1.00 |
-| Sep_Unescape | Row   | 50000 |   7.381 ms |  0.99 | 33 | 4522.2 |  147.6 |       944 B |        1.00 |
-| Sylvan___    | Row   | 50000 |  18.035 ms |  2.40 | 33 | 1850.7 |  360.7 |      7390 B |        7.83 |
-| ReadLine_    | Row   | 50000 |  14.689 ms |  1.97 | 33 | 2272.3 |  293.8 | 111389433 B |  117,997.28 |
-| CsvHelper    | Row   | 50000 |  52.212 ms |  7.01 | 33 |  639.3 | 1044.2 |     21081 B |       22.33 |
-|              |       |       |            |       |    |        |        |             |             |
-| Sep______    | Cols  | 50000 |   7.780 ms |  1.00 | 33 | 4290.1 |  155.6 |       946 B |        1.00 |
-| Sep_Unescape | Cols  | 50000 |   8.337 ms |  1.07 | 33 | 4003.6 |  166.7 |       946 B |        1.00 |
-| Sylvan___    | Cols  | 50000 |  20.329 ms |  2.60 | 33 | 1641.9 |  406.6 |      7411 B |        7.83 |
-| ReadLine_    | Cols  | 50000 |  15.540 ms |  1.99 | 33 | 2147.8 |  310.8 | 111389433 B |  117,747.82 |
-| CsvHelper    | Cols  | 50000 |  83.149 ms | 10.64 | 33 |  401.4 | 1663.0 |    457060 B |      483.15 |
-|              |       |       |            |       |    |        |        |             |             |
-| Sep______    | Asset | 50000 |  35.903 ms |  1.00 | 33 |  929.6 |  718.1 |  14139438 B |        1.00 |
-| Sep_Unescape | Asset | 50000 |  34.316 ms |  0.93 | 33 |  972.7 |  686.3 |  14130926 B |        1.00 |
-| Sylvan___    | Asset | 50000 |  51.465 ms |  1.43 | 33 |  648.5 | 1029.3 |  14296613 B |        1.01 |
-| ReadLine_    | Asset | 50000 | 117.914 ms |  3.29 | 33 |  283.1 | 2358.3 | 125239144 B |        8.86 |
-| CsvHelper    | Asset | 50000 |  96.670 ms |  2.57 | 33 |  345.3 | 1933.4 |  14307304 B |        1.01 |
+| Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
+|------------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-------------:|------------:|
+| Sep______    | Row   | 50000   |     6.867 ms |  1.00 |  33 | 4860.2 |  137.3 |        983 B |        1.00 |
+| Sep_Unescape | Row   | 50000   |     6.749 ms |  0.98 |  33 | 4945.8 |  135.0 |        981 B |        1.00 |
+| Sylvan___    | Row   | 50000   |    17.676 ms |  2.57 |  33 | 1888.3 |  353.5 |       7406 B |        7.53 |
+| ReadLine_    | Row   | 50000   |    15.002 ms |  2.19 |  33 | 2224.9 |  300.0 |  111389433 B |  113,315.80 |
+| CsvHelper    | Row   | 50000   |    52.772 ms |  7.68 |  33 |  632.5 | 1055.4 |      21081 B |       21.45 |
+|              |       |         |              |       |     |        |        |              |             |
+| Sep______    | Cols  | 50000   |     7.753 ms |  1.00 |  33 | 4305.2 |  155.1 |        986 B |        1.00 |
+| Sep_Unescape | Cols  | 50000   |     8.778 ms |  1.13 |  33 | 3802.3 |  175.6 |        987 B |        1.00 |
+| Sylvan___    | Cols  | 50000   |    20.304 ms |  2.63 |  33 | 1643.9 |  406.1 |       7411 B |        7.52 |
+| ReadLine_    | Cols  | 50000   |    15.319 ms |  1.99 |  33 | 2178.8 |  306.4 |  111389433 B |  112,971.03 |
+| CsvHelper    | Cols  | 50000   |    84.141 ms | 10.86 |  33 |  396.7 | 1682.8 |     457060 B |      463.55 |
+|              |       |         |              |       |     |        |        |              |             |
+| Sep______    | Asset | 50000   |    39.890 ms |  1.00 |  33 |  836.7 |  797.8 |   14134252 B |        1.00 |
+| Sep_MT___    | Asset | 50000   |    24.580 ms |  0.61 |  33 | 1357.9 |  491.6 |   14320647 B |        1.01 |
+| Sylvan___    | Asset | 50000   |    51.352 ms |  1.29 |  33 |  650.0 | 1027.0 |   14296619 B |        1.01 |
+| ReadLine_    | Asset | 50000   |   118.667 ms |  2.91 |  33 |  281.3 | 2373.3 |  125239088 B |        8.86 |
+| CsvHelper    | Asset | 50000   |    96.789 ms |  2.42 |  33 |  344.8 | 1935.8 |   14307820 B |        1.01 |
+|              |       |         |              |       |     |        |        |              |             |
+| Sep______    | Asset | 1000000 |   752.314 ms |  1.00 | 667 |  887.5 |  752.3 |  273070272 B |        1.00 |
+| Sep_MT___    | Asset | 1000000 |   403.912 ms |  0.54 | 667 | 1653.1 |  403.9 |  274538768 B |        1.01 |
+| Sylvan___    | Asset | 1000000 | 1,095.609 ms |  1.46 | 667 |  609.4 | 1095.6 |  273233808 B |        1.00 |
+| ReadLine_    | Asset | 1000000 | 2,550.179 ms |  3.38 | 667 |  261.8 | 2550.2 | 2500931696 B |        9.16 |
+| CsvHelper    | Asset | 1000000 | 2,031.309 ms |  2.70 | 667 |  328.7 | 2031.3 |  273236600 B |        1.00 |
 
 ###### Intel.Xeon.Silver.4316.2.30GHz - PackageAssets with Quotes Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -1050,24 +1139,25 @@ naive `ReadLine` approach. With Sep being **>4x faster than CsvHelper**.
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings. 
 
-##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
+##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s    | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|--------:|-------:|------------:|------------:|
-| Sep______ | Row    | 25000 |   1.893 ms |  1.00 | 20 | 10733.4 |   75.7 |     1.15 KB |        1.00 |
-| Sylvan___ | Row    | 25000 |   2.212 ms |  1.17 | 20 |  9187.9 |   88.5 |    10.02 KB |        8.74 |
-| ReadLine_ | Row    | 25000 |  10.913 ms |  5.76 | 20 |  1862.0 |  436.5 | 73489.63 KB |   64,099.99 |
-| CsvHelper | Row    | 25000 |  25.079 ms | 13.25 | 20 |   810.2 | 1003.2 |    20.58 KB |       17.95 |
+| Sep______ | Row    | 25000 |   1.936 ms |  1.00 | 20 | 10498.4 |   77.4 |     1.18 KB |        1.00 |
+| Sylvan___ | Row    | 25000 |   2.259 ms |  1.17 | 20 |  8995.4 |   90.4 |    10.02 KB |        8.50 |
+| ReadLine_ | Row    | 25000 |  11.063 ms |  5.69 | 20 |  1836.8 |  442.5 | 73489.64 KB |   62,295.85 |
+| CsvHelper | Row    | 25000 |  25.135 ms | 12.99 | 20 |   808.4 | 1005.4 |    20.58 KB |       17.45 |
 |           |        |       |            |       |    |         |        |             |             |
-| Sep______ | Cols   | 25000 |   2.591 ms |  1.00 | 20 |  7843.3 |  103.6 |     1.15 KB |        1.00 |
-| Sylvan___ | Cols   | 25000 |   3.738 ms |  1.44 | 20 |  5436.2 |  149.5 |    10.03 KB |        8.74 |
-| ReadLine_ | Cols   | 25000 |  11.010 ms |  4.25 | 20 |  1845.6 |  440.4 | 73489.64 KB |   64,045.44 |
-| CsvHelper | Cols   | 25000 |  27.201 ms | 10.43 | 20 |   747.0 | 1088.0 | 21340.99 KB |   18,598.45 |
+| Sep______ | Cols   | 25000 |   2.566 ms |  1.00 | 20 |  7918.8 |  102.6 |     1.18 KB |        1.00 |
+| Sylvan___ | Cols   | 25000 |   3.821 ms |  1.49 | 20 |  5318.1 |  152.8 |    10.03 KB |        8.48 |
+| ReadLine_ | Cols   | 25000 |  11.675 ms |  4.54 | 20 |  1740.5 |  467.0 | 73489.64 KB |   62,141.53 |
+| CsvHelper | Cols   | 25000 |  27.400 ms | 10.67 | 20 |   741.6 | 1096.0 | 21340.81 KB |   18,045.40 |
 |           |        |       |            |       |    |         |        |             |             |
-| Sep______ | Floats | 25000 |  21.397 ms |  1.00 | 20 |   949.7 |  855.9 |     7.87 KB |        1.00 |
-| Sylvan___ | Floats | 25000 |  65.771 ms |  3.08 | 20 |   308.9 | 2630.8 |     18.2 KB |        2.31 |
-| ReadLine_ | Floats | 25000 |  72.513 ms |  3.39 | 20 |   280.2 | 2900.5 | 73493.12 KB |    9,338.25 |
-| CsvHelper | Floats | 25000 | 106.198 ms |  4.96 | 20 |   191.3 | 4247.9 | 22062.55 KB |    2,803.33 |
+| Sep______ | Floats | 25000 |  21.852 ms |  1.00 | 20 |   929.9 |  874.1 |     7.93 KB |        1.00 |
+| Sep_MT___ | Floats | 25000 |   3.916 ms |  0.18 | 20 |  5188.4 |  156.7 |   178.87 KB |       22.56 |
+| Sylvan___ | Floats | 25000 |  71.861 ms |  3.29 | 20 |   282.8 | 2874.4 |     18.2 KB |        2.30 |
+| ReadLine_ | Floats | 25000 |  73.981 ms |  3.39 | 20 |   274.7 | 2959.2 | 73493.12 KB |    9,271.52 |
+| CsvHelper | Floats | 25000 | 102.224 ms |  4.68 | 20 |   198.8 | 4089.0 | 22062.55 KB |    2,783.30 |
 
 ##### Intel.Xeon.Silver.4316.2.30GHz - FloatsReader Benchmark Results (Sep 0.3.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -1309,6 +1399,7 @@ namespace nietras.SeparatedValues
             public int LineNumberToExcl { get; }
             public int RowIndex { get; }
             public System.ReadOnlySpan<char> Span { get; }
+            public System.Func<int, string> UnsafeToStringDelegate { get; }
             public override string ToString() { }
         }
         public delegate void ColAction(nietras.SeparatedValues.SepReader.Col col);
@@ -1316,9 +1407,12 @@ namespace nietras.SeparatedValues
         public delegate void ColsAction(nietras.SeparatedValues.SepReader.Cols col);
         public delegate void RowAction(nietras.SeparatedValues.SepReader.Row row);
         public delegate T RowFunc<T>(nietras.SeparatedValues.SepReader.Row row);
+        public delegate bool RowTryFunc<T>(nietras.SeparatedValues.SepReader.Row row, out T value);
     }
     public static class SepReaderExtensions
     {
+        public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
+        public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
@@ -1326,6 +1420,8 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
         public static nietras.SeparatedValues.SepReader FromFile(this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
         public static nietras.SeparatedValues.SepReader FromText(this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
+        public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep sep) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep? sep) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.SepSpec spec) { }
@@ -1364,12 +1460,15 @@ namespace nietras.SeparatedValues
     public abstract class SepToString : System.IDisposable
     {
         protected SepToString() { }
+        public virtual bool IsThreadSafe { get; }
         public static nietras.SeparatedValues.SepCreateToString Direct { get; }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
         public abstract string ToString(System.ReadOnlySpan<char> colSpan, int colIndex);
         public static nietras.SeparatedValues.SepCreateToString OnePool(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
         public static nietras.SeparatedValues.SepCreateToString PoolPerCol(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+        public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafe(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
+        public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafeFixedCapacity(int maximumStringLength = 32, int capacity = 2048) { }
     }
     public class SepWriter : System.IDisposable
     {

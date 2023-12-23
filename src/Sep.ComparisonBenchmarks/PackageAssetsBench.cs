@@ -18,7 +18,7 @@ namespace nietras.SeparatedValues.ComparisonBenchmarks;
 // splitting lines to strings basically, nothing else. This can be seen in:
 // https://github.com/nietras/NCsvPerf/blob/3e07bbbef6ccbbce61f66cea098d4ed10947a494/NCsvPerf/CsvReadable/Benchmarks/PackageAsset.cs#L52
 [MemoryDiagnoser]
-[HideColumns("InvocationCount", "Job", "IterationTime", "MinIterationCount", "MaxIterationCount", "Type", "Quotes", "Reader", "RatioSD", "Gen0", "Gen1", "Gen2", "Error", "Median", "StdDev")]
+[HideColumns("InvocationCount", "Job", "IterationTime", "MinIterationCount", "MaxIterationCount", "Type", "Quotes", "Reader", "Gen0", "Gen1", "Gen2", "Error", "Median")]
 [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
 public abstract class PackageAssetsBench
 {
@@ -262,8 +262,8 @@ public class AssetPackageAssetsBench : PackageAssetsBench
     const int DefaultLineCount = 50_000;
 #endif
 
-    public AssetPackageAssetsBench() : this(false) { }
-    public AssetPackageAssetsBench(bool quoteAroundSomeCols) : base("Asset", DefaultLineCount, quoteAroundSomeCols) { }
+    public AssetPackageAssetsBench() : this(DefaultLineCount, false) { }
+    public AssetPackageAssetsBench(int rowCount = DefaultLineCount, bool quoteAroundSomeCols = false) : base("Asset", rowCount, quoteAroundSomeCols) { }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
@@ -275,6 +275,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
+            Unescape = Quotes,
 #if USE_STRING_POOLING
             CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
 #endif
@@ -288,26 +289,21 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-    [Benchmark]
-    public void Sep_Unescape()
+    [Benchmark()]
+    public void Sep_MT___()
     {
-        var assets = new List<PackageAsset>();
-
         using var reader = Sep.Reader(o => o with
         {
             HasHeader = false,
-            Unescape = true,
+            Unescape = Quotes,
 #if USE_STRING_POOLING
-            CreateToString = SepToString.PoolPerCol(maximumStringLength: 128),
+            CreateToString = SepToString.PoolPerColThreadSafeFixedCapacity(maximumStringLength: 128),
 #endif
         })
         .From(Reader.CreateReader());
 
-        foreach (var row in reader)
-        {
-            var asset = PackageAsset.Read(reader, static (r, i) => r.ToString(i));
-            assets.Add(asset);
-        }
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, static (s, i) => s.ToStringDefault(i)))
+              .ToList();
     }
 
 #if !SEPBENCHSEPONLY
@@ -380,3 +376,31 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 }
+
+[BenchmarkCategory("3_Asset")]
+public class LongAssetPackageAssetsBench : AssetPackageAssetsBench
+{
+#if DEBUG
+    const int DefaultLineCount = 100_000;
+#else
+    const int DefaultLineCount = 1_000_000;
+#endif
+    public LongAssetPackageAssetsBench() : this(DefaultLineCount, false) { }
+    public LongAssetPackageAssetsBench(int rowCount = DefaultLineCount, bool quoteAroundSomeCols = false)
+        : base(rowCount, quoteAroundSomeCols) { }
+}
+public class LongQuotesAssetPackageAssetsBench : LongAssetPackageAssetsBench
+{
+    public LongQuotesAssetPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
+}
+
+
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerLongAssetPackageAssetsBench : LongAssetPackageAssetsBench
+{ }
+
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerLongQuotesAssetPackageAssetsBench : LongQuotesAssetPackageAssetsBench
+{ }

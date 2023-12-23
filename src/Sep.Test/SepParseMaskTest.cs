@@ -38,7 +38,6 @@ public partial class SepParseMaskTest
 
     static void AssertParseState(int[] expected,
         Span<int> colEnds, ref int start, ref int end,
-        int expectedRowLineEndingOffset, int rowLineEndingOffset,
         nuint expectedQuoting, nuint quoting,
         int expectedLineNumber, int lineNumber)
     {
@@ -51,7 +50,6 @@ public partial class SepParseMaskTest
             Assert.Fail($"{string.Join(',', expected)} != {string.Join(',', actual)}");
         }
         CollectionAssert.AreEqual(expected, actual);
-        Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset);
         Assert.AreEqual(expectedQuoting, quoting);
         Assert.AreEqual(expectedLineNumber, lineNumber);
     }

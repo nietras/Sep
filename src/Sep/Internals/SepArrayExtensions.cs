@@ -8,26 +8,19 @@ namespace nietras.SeparatedValues;
 
 static class SepArrayExtensions
 {
-    internal static int CheckFreeMaybeMoveMaybeDoubleLength<T>(ref T[] array, ref int start, ref int end,
+    internal static int CheckFreeMaybeDoubleLength<T>(ref T[] array, ref int start, ref int end,
         int minimumFreeLength, int paddingLengthToClear)
     {
         A.Assert(end >= start);
+        A.Assert(start == 0);
 
         var tailFreeLength = array.Length - end - paddingLengthToClear;
         if (tailFreeLength < minimumFreeLength)
         {
-            var totalFreeLength = tailFreeLength + start;
-            if (totalFreeLength >= minimumFreeLength)
-            {
-                return array.MoveDataToStart(ref start, ref end, paddingLengthToClear);
-            }
-            else
-            {
-                (array, var offset) = array.DoubleCapacityAndMove(start, end, paddingLengthToClear);
-                start -= offset;
-                end -= offset;
-                return offset;
-            }
+            (array, var offset) = array.DoubleCapacityAndMove(start, end, paddingLengthToClear);
+            start -= offset;
+            end -= offset;
+            return offset;
         }
         return 0;
     }

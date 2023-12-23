@@ -14,14 +14,27 @@ public abstract class SepToString : IDisposable
         (maybeHeader, colCount) => new SepToStringHashPoolPerCol(colCount,
             maximumStringLength, initialCapacity, maximumCapacity);
 
+    public static SepCreateToString PoolPerColThreadSafe(
+        int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
+        int initialCapacity = SepStringHashPool.InitialCapacityDefault,
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolPerColThreadSafe(colCount,
+            maximumStringLength, initialCapacity, maximumCapacity);
+
+    public static SepCreateToString PoolPerColThreadSafeFixedCapacity(
+        int maximumStringLength = SepStringHashPoolFixedCapacity.MaximumStringLengthDefault,
+        int capacity = SepStringHashPoolFixedCapacity.CapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolPerColThreadSafeFixedCapacity(colCount,
+            maximumStringLength, capacity);
+
     public static SepCreateToString OnePool(
         int maximumStringLength = SepStringHashPool.MaximumStringLengthDefault,
         int initialCapacity = SepStringHashPool.InitialCapacityDefault,
-        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault)
-    {
-        var s = new SepToStringHashPoolSingle(maximumStringLength, initialCapacity, maximumCapacity);
-        return (maybeHeader, colCount) => s;
-    }
+        int maximumCapacity = SepStringHashPool.MaximumCapacityDefault) =>
+        (maybeHeader, colCount) => new SepToStringHashPoolSingle(maximumStringLength,
+            initialCapacity, maximumCapacity);
+
+    public virtual bool IsThreadSafe => false;
 
     public abstract string ToString(ReadOnlySpan<char> colSpan, int colIndex);
 

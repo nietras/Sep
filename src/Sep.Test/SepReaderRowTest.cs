@@ -44,11 +44,12 @@ public class SepReaderRowTest
         // enumerator.Current should not be called if MoveNext false,
         // but here state is asserted anyway.
         var row = enumerator.Current;
-        Assert.AreEqual(1, row.RowIndex);
+        Assert.AreEqual(-1, row.RowIndex);
         Assert.AreEqual(1, row.LineNumberFrom);
         Assert.AreEqual(1, row.LineNumberToExcl);
         Assert.AreEqual(string.Empty, row.ToString());
         Assert.AreEqual(0, row.Span.Length);
+        Assert.IsNotNull(row.UnsafeToStringDelegate);
     }
 
     [DataRow(false)]
@@ -65,6 +66,8 @@ public class SepReaderRowTest
         Assert.AreEqual(3, row.LineNumberToExcl);
         Assert.AreEqual(string.Empty, row.ToString());
         Assert.AreEqual(0, row.Span.Length);
+        Assert.IsNotNull(row.UnsafeToStringDelegate);
+        Assert.AreEqual(string.Empty, row.UnsafeToStringDelegate(0));
     }
 
     [DataRow(false)]
@@ -100,12 +103,14 @@ public class SepReaderRowTest
     }
     static void SepReaderRowTest_Row_Indexer_Single(ref SepReader.Row row)
     {
+        var toString = row.UnsafeToStringDelegate;
         for (var index = 0; index < _cols; index++)
         {
             var name = _colNames[index];
             var expected = _colValues[index];
 
             Assert.AreEqual(expected, row[index].ToString());
+            Assert.AreEqual(expected, toString(index));
             Assert.AreEqual(expected, row[new Index(index)].ToString());
             Assert.AreEqual(expected, row[name].ToString());
             // fromEnd = true for Index

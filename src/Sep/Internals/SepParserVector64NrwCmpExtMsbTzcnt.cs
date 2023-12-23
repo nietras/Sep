@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
@@ -13,7 +12,7 @@ namespace nietras.SeparatedValues;
 
 sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
 {
-    readonly byte _separator;
+    readonly char _separator;
     readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
@@ -23,8 +22,8 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
 
     public unsafe SepParserVector64NrwCmpExtMsbTzcnt(Sep sep)
     {
-        _separator = (byte)sep.Separator;
-        _sps = Vec.Create(_separator);
+        _separator = sep.Separator;
+        _sps = Vec.Create((byte)_separator);
     }
 
     // Parses 2 x char vectors e.g. 1 byte vector
@@ -33,51 +32,29 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s)
     {
-        return Parse<int, SepColEndMethods>(s);
+        Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s)
     {
-        return Parse<SepColInfo, SepColInfoMethods>(s);
+        Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        var separator = (char)_separator;
+        // Unpack instance fields
+        var separator = _separator;
         var quoteCount = _quoteCount;
-
-        var chars = s._chars;
-        var charsIndex = s._charsParseStart;
-        var charsEnd = s._charsDataEnd;
-        var colInfos = s._colEndsOrColInfos;
-        var colCount = s._colCount;
-        var lineNumber = s._lineNumber;
-
-        var rowLineEndingOffset = 0;
-
-        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
-
-        chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, colCount, PaddingLength);
-
-        A.Assert(charsIndex <= charsEnd);
-        A.Assert(charsEnd <= (chars.Length - PaddingLength));
-        ref var charsRef = ref Add(ref MemoryMarshal.GetArrayDataReference(chars), charsIndex);
-
-        ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
-        ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - VecUI8.Count);
-
         // Use instance fields to force values into registers
         var max = _max;
         var nls = _nls; //Vec.Create(LineFeedByte);
@@ -85,9 +62,37 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         var qts = _qts; //Vec.Create(QuoteByte);
         var sps = _sps; //Vec.Create(_separator);
 
-        for (; charsIndex < charsEnd; charsIndex += VecUI8.Count,
-             charsRef = ref Add(ref charsRef, VecUI8.Count))
+        // Unpack state fields
+        var chars = s._chars;
+        var charsIndex = s._charsParseStart;
+        var charsEnd = s._charsDataEnd;
+        var lineNumber = s._parsingLineNumber;
+        var colInfos = s._colEndsOrColInfos;
+
+        var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
+
+        chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
+        A.Assert(charsIndex <= charsEnd);
+        A.Assert(charsEnd <= (chars.Length - PaddingLength));
+
+        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
+
+        ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosLength - VecUI8.Count);
+
+        charsIndex -= VecUI8.Count;
+    LOOPSTEP:
+        charsIndex += VecUI8.Count;
+    LOOPNOSTEP:
+        if (charsIndex < charsEnd &&
+            // If current is greater than or equal than "stop", then there is no
+            // longer guaranteed space enough for next VecUI8.Count.
+            !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
+            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecUI16>(ref byteRef);
             var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
@@ -105,31 +110,32 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars.ExtractMostSignificantBits();
-            if (specialCharMask != 0)
+            var specialCharMask = MoveMask(specialChars);
+            if (specialCharMask != 0u)
             {
-                var separatorsMask = spsEq.ExtractMostSignificantBits();
+                var separatorsMask = MoveMask(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
-                // Add quoting flags to mask as hack to skip if quoting.
+                // Add quote count to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoteCount;
                 if (separatorsMask == testMask)
                 {
-                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(separatorsMask, charsIndex,
-                        ref colInfosRefCurrent);
+                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
+                        separatorsMask, charsIndex, ref colInfosRefCurrent);
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators.ExtractMostSignificantBits();
+                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref rowLineEndingOffset, ref lineNumber);
-                        break;
+                            ref colInfosRefCurrent, ref lineNumber);
+                        goto NEWROW;
                     }
                     else
                     {
+                        var rowLineEndingOffset = 0;
                         colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
@@ -139,31 +145,39 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
                         {
                             // Must be a col end and last is then dataIndex
                             charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
-                            break;
+                            goto NEWROW;
                         }
                     }
                 }
-                // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next VecUI8.Count.
-                if (IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
-                {
-                    // Move data index so next find starts correctly
-                    charsIndex += VecUI8.Count;
-                    break;
-                }
+            }
+            goto LOOPSTEP;
+        NEWROW:
+            var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+            // Add new parsed row
+            ref var parsedRowRef = ref MemoryMarshal.GetArrayDataReference(s._parsedRows);
+            Add(ref parsedRowRef, s._parsedRowsCount) = new(lineNumber, colCount);
+            ++s._parsedRowsCount;
+            // Next row start (one before)
+            colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
+            colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
+            // Update for next row
+            colInfosRef = ref colInfosRefCurrent;
+            s._parsingRowColEndsOrInfosStartIndex += colCount + 1;
+            s._parsingRowCharsStartIndex = charsIndex;
+            // Space for more rows?
+            if (s._parsedRowsCount < s._parsedRows.Length)
+            {
+                goto LOOPNOSTEP;
             }
         }
-
-        // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
-        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / SizeOf<TColInfo>());
-        // Step is VecUI8.Count so may go past end, ensure limited
-        charsIndex = Math.Min(charsEnd, charsIndex);
-
+        // Update instance state from enregistered
         _quoteCount = quoteCount;
-        s._colCount = colCount;
-        s._lineNumber = lineNumber;
-        s._charsParseStart = charsIndex;
-
-        return rowLineEndingOffset;
+        s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+        s._parsingLineNumber = lineNumber;
+        // Step is VecUI8.Count so may go past end, ensure limited
+        s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static nuint MoveMask(VecUI8 v) => Vec.ExtractMostSignificantBits(v);
 }

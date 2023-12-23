@@ -8,6 +8,8 @@ using static nietras.SeparatedValues.SepReader;
 
 namespace nietras.SeparatedValues;
 
+internal readonly record struct SepRowInfo(int LineNumberTo, int ColCount);
+
 // Cannot be nested due to CS0146: Circular base type dependency
 public class SepReaderState : IDisposable
 {
@@ -24,51 +26,210 @@ public class SepReaderState : IDisposable
     internal char[] _chars = Array.Empty<char>();
     internal int _charsDataStart = 0;
     internal int _charsDataEnd = 0;
-    internal int _charsParseStart = 0;
-    internal int _charsRowStart = 0;
 
-    internal const int ColEndsInitialLength = 128;
-    // [0] = Previous row/col end e.g. one before row/first col start
-    // [1...] = Col ends/infos e.g. [1] = first col end/info
-    // Length = colCount + 1
-    internal int[] _colEndsOrColInfos = Array.Empty<int>();
-    internal int _colCountExpected = -1;
-    internal int _colCount = 0;
+    internal int _charsParseStart = 0;
+
+    internal int _parsingLineNumber = 1;
+    internal int _parsingRowCharsStartIndex = 0;
+    internal int _parsingRowColEndsOrInfosStartIndex = 0;
+    internal int _parsingRowColCount = 0;
+
     readonly internal uint _colUnquoteUnescape = 0;
+    internal int _colCountExpected = -1;
+#if DEBUG
+    internal const int ColEndsInitialLength = 128;
+#else
+    internal const int ColEndsInitialLength = 8 * 1024;
+#endif
+    // Multiple rows of format
+    // [0] = Previous row/col end e.g. one before row/first col start
+    // [1..ColCount] = Col ends/infos e.g. [1] = first col end/info
+    // Length = Sum of All Rows (ColCount + 1) and Current Row
+    internal int[] _colEndsOrColInfos = Array.Empty<int>();
+
+#if DEBUG
+    internal const int ParsedRowsLength = 3;
+#else
+    internal const int ParsedRowsLength = 512;
+#endif
+    internal SepRowInfo[] _parsedRows = ArrayPool<SepRowInfo>.Shared.Rent(ParsedRowsLength);
+    internal int _parsedRowsCount = 0;
+    internal int _parsedRowIndex = 0;
+
+    internal int _currentRowColCount = -1; // Must be minus one for start
+    internal int _currentRowColEndsOrInfosOffset = 0;
+    internal int _currentRowLineNumberFrom = 1;
+    internal int _currentRowLineNumberTo = 1;
 
     internal int _rowIndex = -1;
-    internal int _rowLineNumberFrom = 0;
-    internal int _lineNumber = 1;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
     internal SepArrayPoolAccessIndexed _arrayPool = null!;
+    internal SepToString _toString = null!;
 #pragma warning restore CA2213 // Disposable fields should be disposed
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
-#pragma warning disable CA2213 // Disposable fields should be disposed
-    internal SepToString _toString = null!;
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
-    internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
+    internal SepReaderState(bool colUnquoteUnescape = false)
+    {
+        _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u;
+        UnsafeToStringDelegate = ToStringDefault;
+    }
+
+    internal SepReaderState(SepReader other)
+        : this(other._colUnquoteUnescape != 0)
+    {
+        _header = other._header;
+        _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
+        System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
+        _cultureInfo = other._cultureInfo;
+        _createToString = other._createToString;
+
+        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
+        _colCountExpected = other._colCountExpected;
+        _arrayPool = new();
+        _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        // Only duplicate toString if not thread safe
+        _toString = other._toString.IsThreadSafe ? other._toString : _createToString(_header, _colCountExpected);
+    }
+
+    internal Func<int, string> UnsafeToStringDelegate { get; }
+
+    internal void SwapParsedRowsTo(SepReaderState other)
+    {
+        A.Assert(_parsedRowIndex == 0);
+        A.Assert(_parsedRowIndex <= _parsedRowsCount);
+
+        other._parsedRowIndex = _parsedRowIndex;
+        other._parsedRowsCount = _parsedRowsCount;
+        // Below is perhaps not needed
+        other._currentRowColCount = _currentRowColCount;
+        other._currentRowColEndsOrInfosOffset = _currentRowColEndsOrInfosOffset;
+        other._currentRowLineNumberFrom = _currentRowLineNumberFrom;
+        other._currentRowLineNumberTo = _currentRowLineNumberTo;
+
+        other._parsingLineNumber = _parsingLineNumber;
+
+        other._charsDataStart = _charsDataStart;
+        other._charsDataEnd = _charsDataEnd;
+        other._charsParseStart = _charsParseStart;
+
+        other._parsingRowCharsStartIndex = _parsingRowCharsStartIndex;
+        other._parsingRowColEndsOrInfosStartIndex = _parsingRowColEndsOrInfosStartIndex;
+        other._parsingRowColCount = _parsingRowColCount;
+
+        // Swap buffers
+        (other._chars, _chars) = (_chars, other._chars);
+        (other._colEndsOrColInfos, _colEndsOrColInfos) = (_colEndsOrColInfos, other._colEndsOrColInfos);
+        (other._parsedRows, _parsedRows) = (_parsedRows, other._parsedRows);
+        // Try swap tostring instance to avoid allocations
+        (other._toString, _toString) = (_toString, other._toString);
+
+        // Ensure buffers on this are still allocated correctly after swap
+        EnsureArrayFromPoolHasMinimumLength(ref _chars, other._chars.Length);
+        EnsureArrayFromPoolHasMinimumLength(ref _colEndsOrColInfos, other._colEndsOrColInfos.Length);
+        EnsureArrayFromPoolHasMinimumLength(ref _parsedRows, other._parsedRows.Length);
+
+        // Copy data for perhaps incomplete row after parsed rows
+        Array.Copy(other._chars, _parsingRowCharsStartIndex, _chars, _parsingRowCharsStartIndex, _charsDataEnd - _parsingRowCharsStartIndex);
+        var intsPerColInfo = GetIntegersPerColInfo();
+        var colInfosStart = _parsingRowColEndsOrInfosStartIndex * intsPerColInfo;
+        var colInfosCount = (_parsingRowColCount + 1) * intsPerColInfo;
+        Array.Copy(other._colEndsOrColInfos, colInfosStart, _colEndsOrColInfos, colInfosStart, colInfosCount);
+
+        // Ensure state
+        _rowIndex += _parsedRowsCount;
+        _parsedRowIndex = 0;
+        _parsedRowsCount = 0;
+    }
+
+    static void EnsureArrayFromPoolHasMinimumLength<T>(ref T[] array, int minimumLength)
+    {
+        if (minimumLength > array.Length)
+        {
+            if (array.Length > 0) { ArrayPool<T>.Shared.Return(array); }
+            array = ArrayPool<T>.Shared.Rent(minimumLength);
+        }
+#if DEBUG
+        Array.Clear(array);
+#endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool MoveNextAlreadyParsed()
+    {
+        if (_parsedRowIndex < _parsedRowsCount)
+        {
+            _cacheIndex = 0;
+            _arrayPool.Reset();
+            ++_rowIndex;
+
+            ref readonly var info = ref _parsedRows[_parsedRowIndex];
+            var colCount = info.ColCount;
+            _currentRowColEndsOrInfosOffset += _currentRowColCount + 1; // +1 since one more for start col
+            _currentRowColCount = colCount;
+            _currentRowLineNumberFrom = _currentRowLineNumberTo;
+            _currentRowLineNumberTo = info.LineNumberTo;
+
+            ++_parsedRowIndex;
+            if (_colCountExpected >= 0 && colCount != _colCountExpected)
+            {
+                ThrowInvalidDataExceptionColCountMismatch(_colCountExpected);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected)
+    {
+        var (rowStart, rowEnd) = RowStartEnd();
+        ThrowInvalidDataExceptionColCountMismatch(colCountExpected, rowStart, rowEnd);
+    }
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int rowStart, int rowEnd)
+    {
+        AssertState(rowStart, rowEnd);
+        var row = new string(_chars, rowStart, rowEnd - rowStart);
+        SepThrow.InvalidDataException_ColCountMismatch(_currentRowColCount, _rowIndex, _currentRowLineNumberFrom, _currentRowLineNumberTo, row,
+            colCountExpected, _header.ToString());
+
+        [ExcludeFromCodeCoverage]
+        void AssertState(int rowStart, int rowEnd)
+        {
+            A.Assert(_charsDataStart <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range {_charsDataStart} <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
+            A.Assert(rowEnd >= rowStart, $"Row end before row start {rowEnd} >= {rowStart}");
+        }
+    }
+
 
     #region Row
     internal ReadOnlySpan<char> RowSpan()
     {
-        if (_colCount > 0)
+        var (start, end) = RowStartEnd();
+        return new(_chars, start, end - start);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal (int start, int end) RowStartEnd()
+    {
+        if (_currentRowColCount > 0)
         {
             if (_colUnquoteUnescape == 0)
             {
                 var colEnds = _colEndsOrColInfos;
-                var start = colEnds[0] + 1; // +1 since previous end
-                var end = colEnds[_colCount];
-                return new(_chars, start, end - start);
+                var start = colEnds[_currentRowColEndsOrInfosOffset] + 1; // +1 since previous end
+                var end = colEnds[_currentRowColEndsOrInfosOffset + _currentRowColCount];
+                return new(start, end);
             }
             else
             {
                 ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+                colInfos = ref Unsafe.Add(ref colInfos, _currentRowColEndsOrInfosOffset);
                 var start = colInfos.ColEnd + 1; // +1 since previous end
-                var end = Unsafe.Add(ref colInfos, _colCount).ColEnd;
-                return new(_chars, start, end - start);
+                var end = Unsafe.Add(ref colInfos, _currentRowColCount).ColEnd;
+                return new(start, end);
             }
         }
         else
@@ -103,7 +264,9 @@ public class SepReaderState : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ReadOnlySpan<char> GetColSpan(int index)
     {
-        if ((uint)index >= (uint)_colCount) { SepThrow.IndexOutOfRangeException(); }
+        if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
+        A.Assert(_currentRowColEndsOrInfosOffset >= 0);
+        index += _currentRowColEndsOrInfosOffset;
         if (_colUnquoteUnescape == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔
@@ -111,9 +274,13 @@ public class SepReaderState : IDisposable
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
             // Above bounds checked is faster than below 🤔
-            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEnds);
+            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
             //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
             //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
 
             var colLength = colEnd - colStart;
             // Much better code generation given col span always inside buffer
@@ -127,6 +294,11 @@ public class SepReaderState : IDisposable
             var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
             ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
             var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+
             var colLength = colEnd - colStart;
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
             // Unescape if quotes found, negative and col has already been
@@ -365,6 +537,7 @@ public class SepReaderState : IDisposable
         return span;
     }
     #endregion
+
     #region Cols Range
     internal string[] ToStringsArray(int colStart, int colCount)
     {
@@ -479,6 +652,7 @@ public class SepReaderState : IDisposable
     {
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
+        ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
         _arrayPool.Dispose();
         _toString?.Dispose();
     }

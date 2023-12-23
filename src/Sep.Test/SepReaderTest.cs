@@ -458,14 +458,13 @@ public class SepReaderTest
         var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
-        Assert.AreEqual(initialColCountCapacity, reader._colEndsOrColInfos.Length);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(initialColCountCapacity, row.ColCount);
         Assert.AreEqual(initialColCountCapacity * 2, reader._colEndsOrColInfos.Length);
     }
 
-#if !DEBUG // Causes OOMs in Debug due to tracing
+#if !SEPREADERTRACE // Causes OOMs in Debug due to tracing
     [TestMethod]
     public void SepReaderTest_TooLongRow_Throws()
     {

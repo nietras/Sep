@@ -70,7 +70,11 @@ public class SepReaderState : IDisposable
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
 
-    internal SepReaderState(bool colUnquoteUnescape = false) { _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u; }
+    internal SepReaderState(bool colUnquoteUnescape = false)
+    {
+        _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u;
+        UnsafeToStringDelegate = ToStringDefault;
+    }
 
     internal SepReaderState(SepReader other)
         : this(other._colUnquoteUnescape != 0)
@@ -88,6 +92,18 @@ public class SepReaderState : IDisposable
         // Only duplicate toString if not thread safe
         _toString = other._toString.IsThreadSafe ? other._toString : _createToString(_header, _colCountExpected);
     }
+
+    /// <summary>
+    /// Delegate to get column string at a given index.
+    /// </summary>
+    /// <remarks>
+    /// Named "unsafe" since this refers to internal state and should not be
+    /// used outside the scope of <see cref="SepReader.Row"/>. This is, however,
+    /// needed to integrate with external benchmarks like NCsvPerf that require
+    /// such a delegate. Hence, in order to avoid an allocation per row this
+    /// property is provided.
+    /// </remarks>
+    internal Func<int, string> UnsafeToStringDelegate { get; }
 
     internal void CopyParsedRowsTo(SepReaderState other)
     {

@@ -1322,6 +1322,7 @@ namespace nietras.SeparatedValues
             public int LineNumberToExcl { get; }
             public int RowIndex { get; }
             public System.ReadOnlySpan<char> Span { get; }
+            public System.Func<int, string> UnsafeToStringDelegate { get; }
             public override string ToString() { }
         }
         public delegate void ColAction(nietras.SeparatedValues.SepReader.Col col);

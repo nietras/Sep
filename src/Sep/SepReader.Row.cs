@@ -31,6 +31,18 @@ public partial class SepReader
 
         public override string ToString() => new(Span);
 
+        /// <summary>
+        /// Delegate to get column string at a given index.
+        /// </summary>
+        /// <remarks>
+        /// Named "unsafe" since this refers to internal state and should not be
+        /// used outside the scope of <see cref="SepReader.Row"/>. This is,
+        /// however, needed to integrate with external benchmarks like NCsvPerf
+        /// that require such a delegate. Hence, in order to avoid an allocation
+        /// per row this property is provided.
+        /// </remarks>
+        public Func<int, string> UnsafeToStringDelegate => _state.UnsafeToStringDelegate;
+
         public Col this[int index] => new(_state, index);
 
         public Col this[Index index] => new(_state, index.GetOffset(_state._currentRowColCount));

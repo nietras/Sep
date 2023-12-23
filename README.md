@@ -502,20 +502,21 @@ var actual = Enumerate(reader,
 
 CollectionAssert.AreEqual(expected, actual);
 
-static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> select)
 {
     foreach (var row in reader)
     {
-        yield return func(row);
+        yield return select(row);
     }
 }
 ```
-Which discounting the `Enumerate` method (which could naturally be an extension
-method), does have less boilerplate, but not really more effective lines of
-code. The issue here is that this tends to favor factoring code in a way that
-can become very inefficient quickly. Consider if one wanted to only enumerate
-rows matching a predicate on `Key` which meant only 1% of rows were to be
-enumerated e.g.:
+
+In fact, Sep now provides such a convenience extension method. And, discounting
+the `Enumerate` method, this does have less boilerplate, but not really more
+effective lines of code. The issue here is that this tends to favor factoring
+code in a way that can become very inefficient quickly. Consider if one wanted
+to only enumerate rows matching a predicate on `Key` which meant only 1% of rows
+were to be enumerated e.g.:
 ```csharp
 var text = """
            Key;Value
@@ -527,25 +528,17 @@ var expected = new (string Key, double Value)[] {
 };
 
 using var reader = Sep.Reader().FromText(text);
-var actual = Enumerate(reader,
+var actual = reader.Enumerate(
     row => (row["Key"].ToString(), row["Value"].Parse<double>()))
     .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
     .ToArray();
 
 CollectionAssert.AreEqual(expected, actual);
-
-static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
-{
-    foreach (var row in reader)
-    {
-        yield return func(row);
-    }
-}
 ```
 This means you are still parsing the double (which is magnitudes slower than
 getting just the key) for all rows. Imagine if this was an array of floating
 points or similar. Not only would you then be parsing a lot of values you would
-also be allocated 99x arrays that aren't used after filtering with `Where`.
+also be allocated 99x arrays that aren't used after filtering with `Where`. 
 
 Instead, you should focus on how to express the enumeration in a way that is
 both efficient and easy to read. For example, the above could be rewritten as:
@@ -576,10 +569,94 @@ static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
     }
 }
 ```
-This does not take significantly longer to write and is a lot more efficient
-(also avoids allocating a string for key for each row) and is easier to debug
-and perhaps even read. All examples above can be seen in
-[ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+
+To accomodate this Sep provides an overload for `Enumerate` that is similar to:
+```csharp
+static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
+{
+    foreach (var row in reader)
+    {
+        if (trySelect(row, out var value))
+        {
+            yield return value;
+        }
+    }
+}
+```
+With this the above custom `Enumerate` can be replaced with:
+```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+var expected = new (string Key, double Value)[] {
+    ("B", 2.2),
+};
+
+using var reader = Sep.Reader().FromText(text);
+var actual = reader.Enumerate((SepReader.Row row, out (string Key, double Value) kv) =>
+{
+    var keyCol = row["Key"];
+    if (keyCol.Span.StartsWith("B"))
+    {
+        kv = (keyCol.ToString(), row["Value"].Parse<double>());
+        return true;
+    }
+    kv = default;
+    return false;
+}).ToArray();
+
+CollectionAssert.AreEqual(expected, actual);
+```
+
+Note how this is pretty much the same length as the previous custom `Enumerate`.
+Also worse due to how C# requires specifying types for `out` parameters which
+then requires all parameter types for the lambda to be specified. Hence, in this
+case the custom `Enumerate` does not take significantly longer to write and is a
+lot more efficient than using LINQ `.Where` (also avoids allocating a string for
+key for each row) and is easier to debug and perhaps even read. All examples
+above can be seen in [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+
+There is a strong case for having an enumerate API though and that is for
+parallelized enumeration, which will be discussed next.
+
+#### ParallelEnumerate and Enumerate
+As discussed in the previous section Sep provides `Enumerate` convenience
+extension methods, that should be used carefully. Alongside these there are
+`ParallelEnumerate` extension methods that provide very efficient multi-threaded
+enumeration. See [benchmarks](#comparison-benchmarks) for numbers and [Public
+API Reference](#public-api-reference).
+
+`ParallelEnumerate` is build on top of LINQ `AsParallel().AsOrdered()` and will
+return exactly the same as `Enumerate` but with enumeration parallelized. This
+will use more memory during execution and as many threads as possible via the
+.NET thread pool. When using `ParallelEnumerate` one should, therefore (as
+always), be certain the provided delegate does not refer to or change any
+mutable state.
+
+`ParallelEnumerate` comes with a lot of overhead compared to single-threaded
+`foreach` or `Enumerate` and should be used carefully and based on measuring any
+potential benefit. Sep goes a long way to make this very efficient by using
+pooled arrays and parsing multiple rows in batches, but if the source only has a
+few rows then any benefit is unlikely.
+
+Due to `ParallelEnumerate` being based on batches of rows it is also important
+not to "abuse" it in-place of LINQ `AsParallel`. The idea is to use it for
+*parsing* rows, not for doing expensive per row operations like loading an image
+or similar. In that case, you are better off using `AsParallel()` after
+`ParallelEnumerate` or `Enumerate` similarly to:
+
+```csharp
+using var reader = Sep.Reader().FromFile("very-long.csv");
+var results = reader.ParallelEnumerate(ParseRow)
+                    .AsParallel().AsOrdered()
+                    .Select(LoadData) // Expensive load
+                    .ToList();
+```
+
+As a rule of thumb if the time per row exceeds 1 millisecond consider moving the
+expensive work to after `ParallelEnumerate`/`Enumerate`,
 
 ### SepWriter API
 `SepWriter` API has the following structure (in pseudo-C# code):

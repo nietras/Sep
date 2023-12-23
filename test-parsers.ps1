@@ -17,14 +17,6 @@ Try {
         dotnet test --nologo -c Debug -- /Parallel
         Write-Host "Testing $parser Release"
         dotnet test --nologo -c Release -- /Parallel 
-        #Write-Host "Testing $parser Debug X86"
-        #dotnet test --nologo -c Debug -- RunConfiguration.TargetPlatform=x86 /Parallel
-        #Write-Host "Testing $parser Release X86"
-        #dotnet test --nologo -c Release -- RunConfiguration.TargetPlatform=x86 /Parallel
-        #Write-Host "Testing $parser Debug X64"
-        #dotnet test --nologo -c Debug -- RunConfiguration.TargetPlatform=x64 /Parallel
-        #Write-Host "Testing $parser Release X64"
-        #dotnet test --nologo -c Release --collect:"XPlat Code Coverage" -- RunConfiguration.TargetPlatform=x64 /Parallel 
     }
 } Finally {
     Remove-Item env:SEPFORCEPARSER

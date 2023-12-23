@@ -302,7 +302,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         })
         .From(Reader.CreateReader());
 
-        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, (s, i) => s.ToStringDefault(i)))
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state, static (s, i) => s.ToStringDefault(i)))
               .ToList();
     }
 

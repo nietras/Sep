@@ -23,50 +23,49 @@ sealed class SepParserIndexOfAny : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s)
     {
-        return Parse<int, SepColEndMethods>(s);
+        Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public int ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s)
     {
-        return Parse<SepColInfo, SepColInfoMethods>(s);
+        Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        var separator = (char)_separator;
+        // Unpack instance fields
+        var separator = _separator;
         var quoteCount = _quoteCount;
 
+        // Unpack state fields
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
+        var lineNumber = s._parsingLineNumber;
         var colInfos = s._colEndsOrColInfos;
-        var colCount = s._colCount;
-        var lineNumber = s._lineNumber;
 
-        var rowLineEndingOffset = 0;
-
-        var colInfosLength = colInfos.Length / (SizeOf<TColInfo>() / SizeOf<int>());
+        var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
 
         chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, colCount, PaddingLength);
-
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - PaddingLength));
         ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
-        ref var colInfosRef = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRefCurrent = ref Add(ref colInfosRef, colCount);
-        ref var colInfosRefStop = ref Add(ref colInfosRef, colInfosLength - 2);
+        ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosLength - 3);
 
         var span = chars.AsSpan(0, charsEnd);
         var specialCharsSpan = _specialChars.AsSpan();
@@ -79,6 +78,7 @@ sealed class SepParserIndexOfAny : ISepParser
                 A.Assert(charsIndex < charsEnd, $"{nameof(charsIndex)} >= {nameof(charsEnd)}");
 
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
+                var rowLineEndingOffset = 0;
                 colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
                     separator, ref rowLineEndingOffset, ref quoteCount, ref colInfosRefCurrent, ref lineNumber);
                 charsIndex += relativeIndex + 1;
@@ -88,9 +88,25 @@ sealed class SepParserIndexOfAny : ISepParser
                 {
                     // Must be a col end and last is then dataIndex
                     charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
-                    break;
-                }
 
+                    var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+                    // Add new parsed row
+                    ref var parsedRowRef = ref MemoryMarshal.GetArrayDataReference(s._parsedRows);
+                    Add(ref parsedRowRef, s._parsedRowsCount) = new(lineNumber, colCount);
+                    ++s._parsedRowsCount;
+                    // Next row start (one before)
+                    colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
+                    colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
+                    // Update for next row
+                    colInfosRef = ref colInfosRefCurrent;
+                    s._parsingRowColEndsOrInfosStartIndex += colCount + 1;
+                    s._parsingRowCharsStartIndex = charsIndex;
+                    // Space for more rows?
+                    if (s._parsedRowsCount >= s._parsedRows.Length)
+                    {
+                        break;
+                    }
+                }
                 // If current is greater than or equal than "stop", then break.
                 // There is no longer guaranteed space enough for next.
                 if (IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
@@ -103,17 +119,11 @@ sealed class SepParserIndexOfAny : ISepParser
                 charsIndex = charsEnd;
             }
         }
-
-        // ">> 2" instead of "/ sizeof(int))" // CQ: Weird with div sizeof
-        colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / SizeOf<TColInfo>());
-        // Step is VecUI8.Count so may go past end, ensure limited
-        charsIndex = Math.Min(charsEnd, charsIndex);
-
+        // Update instance state from enregistered
         _quoteCount = quoteCount;
-        s._colCount = colCount;
-        s._lineNumber = lineNumber;
-        s._charsParseStart = charsIndex;
-
-        return rowLineEndingOffset;
+        s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+        s._parsingLineNumber = lineNumber;
+        // Step is VecUI8.Count so may go past end, ensure limited
+        s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }
 }

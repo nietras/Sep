@@ -11,32 +11,33 @@ public partial class SepParseMaskTest
     public void SepParseMaskTest_ParseSeparatorsLineEndingsMasks_Ordinary()
     {
         AssertParseSeparatorsLineEndingsMasks(";a;b\r\n;", new[] { 0, 2, 4 },
-            rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
+            expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
 
         AssertParseSeparatorsLineEndingsMasks("a;;b\r;", new[] { 1, 2, 4 },
-            rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
+            expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
         AssertParseSeparatorsLineEndingsMasks(";a;b\n;", new[] { 0, 2, 4 },
-            rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
+            expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
         AssertParseSeparatorsLineEndingsMasks(";aa;bbb;cccc;\n", new[] { 0, 3, 7, 12, 13 },
-            rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
+            expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
         AssertParseSeparatorsLineEndingsMasks(new string('a', s_nativeBitSize - 1) + "\r\n", new[] { s_nativeBitSize - 1 },
-            rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
+            expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
     }
 
     static void AssertParseSeparatorsLineEndingsMasks(string chars, int[] expected,
-        int rowLineEndingOffset, int expectedRowLineEndingOffset,
+        int expectedRowLineEndingOffset,
         nuint quoting = 0, nuint expectedQuoting = 0,
         int lineNumber = -1, int expectedLineNumber = -1)
     {
         for (var i = 0; i < expected.Length; ++i) { expected[i] += CharsIndexOffset; }
+        var expectedCharsIndex = expected[^1] + expectedRowLineEndingOffset;
         var separatorsMask = SeparatorsMaskFor(chars);
         var lineEndingsMask = LineEndingsMaskFor(chars);
         Span<int> colEnds = stackalloc int[s_nativeBitSize + 1];
@@ -47,10 +48,10 @@ public partial class SepParseMaskTest
         ref var end = ref ParseSeparatorsLineEndingsMasks(
             separatorsMask, separatorsMask | lineEndingsMask,
             ref MemoryMarshal.GetReference<char>(chars), ref charsIndex, Separator,
-            ref start, ref rowLineEndingOffset, ref lineNumber);
+            ref start, ref lineNumber);
 
+        Assert.AreEqual(expectedCharsIndex, charsIndex);
         AssertParseState(expected, colEnds, ref start, ref end,
-            expectedRowLineEndingOffset, rowLineEndingOffset,
             expectedQuoting, quoting,
             expectedLineNumber, lineNumber);
     }

@@ -252,6 +252,21 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
+    [Benchmark()]
+    public double Sep_MT___()
+    {
+        using var reader = Sep.Reader().From(Reader.CreateReader());
+
+        var groundTruthColNames = reader.Header.NamesStartingWith(T.GroundTruthColNamePrefix);
+        var resultColNames = groundTruthColNames.Select(n =>
+            n.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.Ordinal))
+            .ToArray();
+
+        return reader.ParallelEnumerate(r => MeanSquaredError(
+                        r[groundTruthColNames].Parse<float>(), r[resultColNames].Parse<float>()))
+                     .Average();
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif

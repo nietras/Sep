@@ -33,6 +33,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{32021D88-4
 		publish-tester.ps1 = publish-tester.ps1
 		README.md = README.md
 		rename.ps1 = rename.ps1
+		test-parsers.ps1 = test-parsers.ps1
+		test-x64-x86.ps1 = test-x64-x86.ps1
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sep.Tester", "src\Sep.Tester\Sep.Tester.csproj", "{28D41891-53C4-4FE9-8ED4-A8880E766E16}"

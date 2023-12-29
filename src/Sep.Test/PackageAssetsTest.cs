@@ -9,38 +9,126 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class PackageAssetsTest
 {
-    [TestMethod]
-    public void PackageAssetsTest_Read_NoQuotes() => VerifyRead(NoQuotes);
+    internal static IEnumerable<object[]> ToStrings => new object[][]
+    {
+        new[]{ SepToString.Direct },
+        new[]{ SepToString.OnePool() },
+        new[]{ SepToString.PoolPerCol() },
+        new[]{ SepToString.PoolPerColThreadSafe() },
+        new[]{ SepToString.PoolPerColThreadSafeFixedCapacity() },
+    };
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_NoQuotes_Unescape() => VerifyRead(NoQuotes, unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_NoQuotes(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString);
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_WithQuotes() => VerifyRead(WithQuotes);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_NoQuotes_Unescape(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString, unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Read_WithQuotes_Unescape() => VerifyRead(WithQuotes, unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_WithQuotes(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_NoQuotes() =>
-        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select));
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Read_WithQuotes_Unescape(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString, unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_NoQuotes_Unescape() =>
-        VerifyEnumerate(NoQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_WithQuotes() =>
-        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select));
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_NoQuotes(SepCreateToString createToString) =>
+        VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [TestMethod]
-    public void PackageAssetsTest_Enumerate_WithQuotes_Unescape() =>
-        VerifyEnumerate(WithQuotes, (reader, select) => reader.Enumerate(select), unescape: true);
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_NoQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    static void VerifyRead(string text, bool unescape = false)
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_WithQuotes(SepCreateToString createToString) =>
+        VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_WithQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes(SepCreateToString createToString) =>
+        VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes(SepCreateToString createToString) =>
+        VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes_Unescape(SepCreateToString createToString) =>
+        VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
+
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_NoQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_WithQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+                var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
+#endif
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_NoQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_WithQuotes(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
+#endif
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    static void VerifyRead(string text, SepCreateToString createToString, bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
         var rowIndex = 0;
         foreach (var row in reader)
         {
@@ -53,13 +141,38 @@ public class PackageAssetsTest
         Assert.AreEqual(expected.Count, rowIndex);
     }
 
-    static void VerifyEnumerate(string text,
+    static void VerifyEnumerate(string text, SepCreateToString createToString,
         Func<SepReader, SepReader.RowFunc<string[]>, IEnumerable<string[]>> enumerate,
         bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = unescape }).FromText(text);
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
         var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
+        var rowIndex = 0;
+        foreach (var cols in rows)
+        {
+            var expectedCols = expected[rowIndex];
+            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
+            Assert.AreEqual(expectedCols.Length, cols.Length);
+            CollectionAssert.AreEqual(expectedCols, cols);
+            ++rowIndex;
+        }
+        Assert.AreEqual(expected.Count, rowIndex);
+    }
+
+    static void VerifyEnumerateTry(string text, SepCreateToString createToString,
+        Func<SepReader, SepReader.RowTryFunc<string[]>, IEnumerable<string[]>> enumerate,
+        bool unescape = false)
+    {
+        var startsWith = "8";
+        var expected = ReadLineSplit(text).Where(cols => cols[0].StartsWith(startsWith)).ToList();
+        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
+        var rows = enumerate(reader, (SepReader.Row r, out string[] cols) =>
+        {
+            if (r[0].Span.StartsWith(startsWith)) { cols = r[..].ToStringsArray(); return true; }
+            cols = default!;
+            return false;
+        });
         var rowIndex = 0;
         foreach (var cols in rows)
         {
@@ -75,7 +188,7 @@ public class PackageAssetsTest
     static List<string[]> ReadLineSplitAsList(string text, char separator = ',') =>
         ReadLineSplit(text, separator).ToList();
 
-    static IEnumerable<string[]> ReadLineSplit(string text, char separator)
+    static IEnumerable<string[]> ReadLineSplit(string text, char separator = ',')
     {
         using var reader = new StringReader(text);
         string? line;
@@ -217,5 +330,6 @@ bdfcfee8-0f34-45b2-9bc2-7075284de5f4,2020-11-28T01:45:42.1469270+00:00,""AspNetC
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""net461"","""","""","""","""","""",""lib/net461/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""net461"","".NETFramework"",""4.6.1.0"","""","""",""0.0.0.0""
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""net5.0"","""","""","""","""","""",""lib/net5.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""net5.0"","".NETCoreApp"",""5.0.0.0"","""","""",""0.0.0.0""
 f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netcoreapp3.1"","""","""","""","""","""",""lib/netcoreapp3.1/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netcoreapp3.1"","".NETCoreApp"",""3.1.0.0"","""","""",""0.0.0.0""
-f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netstandard2.0"","""","""","""","""","""",""lib/netstandard2.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netstandard2.0"","".NETStandard"",""2.0.0.0"","""","""",""0.0.0.0""";
+f2ae9835-5378-4ee6-8340-d53ae34ff4c0,2020-11-28T01:46:00.0316805+00:00,""Avalonia.SKPictureImage"",""0.4.2-preview9"",2020-11-27T20:07:16.2070000+00:00,""AvailableAssets"",""RuntimeAssemblies"","""","""",""netstandard2.0"","""","""","""","""","""",""lib/netstandard2.0/Avalonia.SKPictureImage.dll"",""Avalonia.SKPictureImage.dll"","".dll"",""lib"",""netstandard2.0"","".NETStandard"",""2.0.0.0"","""","""",""0.0.0.0""
+";
 }

@@ -1,4 +1,7 @@
 ﻿#define SEPSTRINGPOOL_CACHE_LAST
+// Cache last does not appear to always be of benefit to thread-safe fixed
+// capacity, since this negatively affects code generation.
+//#define SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
 using System;
 using System.Buffers;
 #if SEPSTRINGPOOLUSAGE
@@ -7,7 +10,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
 using System.Threading;
 #endif
 
@@ -16,10 +19,9 @@ namespace nietras.SeparatedValues;
 // Based on https://github.com/MarkPflug/Sylvan/blob/main/source/Sylvan.Common/StringPool.cs
 // MIT License, Copyright(c) 2022 Mark Pflug
 // Highly optimized and greatly-simplified HashSet<string> that only allows additions.
-sealed class SepStringHashPool : ISepStringHashPool
+sealed class SepStringHashPoolFixedCapacity : ISepStringHashPool
 {
-    internal const int InitialCapacityDefault = 64;
-    internal const int MaximumCapacityDefault = 4096;
+    internal const int CapacityDefault = 2048;
     internal const int MaximumStringLengthDefault = 32;
     const int CollisionLimit = 8;
 
@@ -34,35 +36,31 @@ sealed class SepStringHashPool : ISepStringHashPool
     }
 
     readonly int _maximumStringLength;
-    readonly int _maximumCapacity;
     int[] _buckets; // contains index into entries offset by -1. So that 0 (default) means empty bucket.
     Entry[] _entries;
-    int _count;
+    volatile int _count;
 #if SEPSTRINGPOOL_CACHE_LAST
     uint _lastHashCode = SepHash.Default(string.Empty);
     string _lastString = string.Empty;
+#endif
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
     readonly ThreadLocal<(uint, string)> _last = new(() => (SepHash.Default(string.Empty), string.Empty));
 #endif
+
     /// <summary>
     /// Simple string pool based on a very simple, fast, but poor hash.
     /// </summary>
     /// <param name="maximumStringLength">The string length beyond which strings will not be pooled.</param>
-    /// <param name="initialCapacity">Initial requested capacity of pool. May be rounded up to nearest power of two.</param>
-    /// <param name="maximumCapacity">Maximum capacity of pool. If pool full all new spans result in new strings.</param>
+    /// <param name="capacity">Initial requested capacity of pool. May be rounded up to nearest power of two.</param>
     /// <remarks>
     /// The <paramref name="maximumStringLength"/> prevents pooling strings beyond a certain length. 
     /// Longer strings are typically less likely to be duplicated, and carry extra cost for identifying uniqueness.
     /// </remarks>
-    public SepStringHashPool(int maximumStringLength = MaximumStringLengthDefault,
-        int initialCapacity = InitialCapacityDefault, int maximumCapacity = MaximumCapacityDefault)
+    public SepStringHashPoolFixedCapacity(int maximumStringLength = MaximumStringLengthDefault,
+        int capacity = CapacityDefault)
     {
-        if (initialCapacity > maximumCapacity)
-        {
-            throw new ArgumentException($"{nameof(initialCapacity)}:{initialCapacity} must be less than or equal to {nameof(maximumCapacity)}:{maximumCapacity}");
-        }
         _maximumStringLength = maximumStringLength;
-        _maximumCapacity = maximumCapacity;
-        var size = GetSize(Math.Max(2, initialCapacity));
+        var size = GetSize(Math.Max(2, capacity));
         _buckets = ArrayPool<int>.Shared.Rent(size);
         Array.Clear(_buckets);
         _entries = ArrayPool<Entry>.Shared.Rent(size);
@@ -128,28 +126,19 @@ sealed class SepStringHashPool : ISepStringHashPool
         lastString = stringValue;
 #endif
         var index = count;
-        if (index == entriesLength)
+        if (index < entriesLength)
         {
-            if (index >= _maximumCapacity)
-            {
-                return stringValue;
-            }
-            entries = Resize();
-            entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
-            bucket = ref GetBucket(hashCode);
-        }
-
-        ref var entry = ref Unsafe.Add(ref entriesRef, index);
-        entry.HashCode = hashCode;
+            ref var entry = ref Unsafe.Add(ref entriesRef, index);
+            entry.HashCode = hashCode;
 #if SEPSTRINGPOOLUSAGE
         entry.Count = 1;
 #endif
-        entry.Next = bucket - 1;
-        entry.String = stringValue;
+            entry.Next = bucket - 1;
+            entry.String = stringValue;
 
-        bucket = index + 1; // bucket is an int ref
-        _count = index + 1;
-
+            bucket = index + 1; // bucket is an int ref
+            _count = index + 1;
+        }
         return stringValue;
     }
 
@@ -162,101 +151,75 @@ sealed class SepStringHashPool : ISepStringHashPool
 
         var hashCode = SepHash.Default(chars);
 
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
         var (lastHashCode, lastString) = _last.Value;
         if (lastHashCode == hashCode && MemoryExtensions.SequenceEqual(chars, lastString))
         {
             return lastString;
         }
 #endif
-        lock (this)
-        {
-            ref var bucket = ref GetBucket(hashCode);
-            var entries = _entries;
-            ref var entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
-            var entriesLength = (uint)entries.Length;
+        ref var bucket = ref GetBucket(hashCode);
 
-            var i = bucket - 1;
-            uint collisionCount = 0;
-            while ((uint)i < entriesLength)
-            {
-                ref var e = ref Unsafe.Add(ref entriesRef, i);
-                if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
-                {
-#if SEPSTRINGPOOL_CACHE_LAST
-                    _last.Value = (hashCode, e.String);
-#endif
-                    return e.String;
-                }
-
-                i = e.Next;
-
-                if (++collisionCount > CollisionLimit)
-                {
-                    // protects against malicious inputs
-                    // too many collisions give up and create the string.
-                    return new(chars);
-                }
-            }
-
-            string stringValue = new(chars);
-
-#if SEPSTRINGPOOL_CACHE_LAST
-            _last.Value = (hashCode, stringValue);
-#endif
-            var index = _count;
-            if (index == entriesLength)
-            {
-                if (index >= _maximumCapacity)
-                {
-                    return stringValue;
-                }
-                entries = Resize();
-                entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
-                bucket = ref GetBucket(hashCode);
-            }
-
-            ref var entry = ref Unsafe.Add(ref entriesRef, index);
-            entry.HashCode = hashCode;
-            entry.Next = bucket - 1;
-            entry.String = stringValue;
-
-            bucket = index + 1; // bucket is an int ref
-            _count = index + 1;
-
-            return stringValue;
-        }
-    }
-
-    Entry[] Resize()
-    {
-        var newSize = GetSize(_count + 1);
-
-        ArrayPool<int>.Shared.Return(_buckets);
-
-        var entries = ArrayPool<Entry>.Shared.Rent(newSize);
-        _buckets = ArrayPool<int>.Shared.Rent(newSize);
-
-        Array.Clear(_buckets);
-        var count = _count;
-        Array.Copy(_entries, entries, count);
-
-        ArrayPool<Entry>.Shared.Return(_entries);
-
+        var entries = _entries;
         ref var entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
-        for (var i = 0; i < count; i++)
+        var entriesLength = entries.Length;
+
+        var i = bucket - 1;
+        uint collisionCount = 0;
+        while ((uint)i < (uint)_count)
         {
-            ref var entry = ref Unsafe.Add(ref entriesRef, i);
-            if (entry.Next >= -1)
+            ref var e = ref Unsafe.Add(ref entriesRef, i);
+            if (e.HashCode == hashCode && MemoryExtensions.SequenceEqual(chars, e.String.AsSpan()))
             {
-                ref var bucket = ref GetBucket(entry.HashCode);
-                entry.Next = bucket - 1;
-                bucket = i + 1;
+#if SEPSTRINGPOOLUSAGE
+                e.Count++;
+#endif
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
+                _last.Value = (hashCode, e.String);
+#endif
+                return e.String;
+            }
+
+            i = e.Next;
+
+            if (++collisionCount > CollisionLimit)
+            {
+                // protects against malicious inputs
+                // too many collisions give up and create the string.
+                return new(chars);
             }
         }
 
-        _entries = entries;
-        return entries;
+        string stringValue = new(chars);
+
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
+        _last.Value = (hashCode, stringValue);
+#endif
+
+        // Add only if more room
+        if (_count < entriesLength)
+        {
+            // Lock during add of new entry
+            lock (this)
+            {
+                var index = _count;
+                if (index < entriesLength)
+                {
+                    ref var entry = ref Unsafe.Add(ref entriesRef, index);
+                    entry.HashCode = hashCode;
+#if SEPSTRINGPOOLUSAGE
+                    entry.Count = 1;
+#endif
+                    entry.Next = bucket - 1;
+                    entry.String = stringValue;
+
+                    bucket = index + 1; // bucket is an int ref
+                    _count = index + 1;
+                }
+            }
+        }
+
+        return stringValue;
     }
 
     static int GetSize(int capacity) => (int)BitOperations.RoundUpToPowerOf2((uint)capacity);
@@ -293,7 +256,7 @@ sealed class SepStringHashPool : ISepStringHashPool
     {
         ArrayPool<int>.Shared.Return(_buckets);
         ArrayPool<Entry>.Shared.Return(_entries);
-#if SEPSTRINGPOOL_CACHE_LAST
+#if SEPSTRINGPOOL_CACHE_LAST_THREADSAFE
         _last.Dispose();
 #endif
         _buckets = default!;

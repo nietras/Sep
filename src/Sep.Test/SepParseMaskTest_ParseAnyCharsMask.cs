@@ -70,8 +70,8 @@ public partial class SepParseMaskTest
             ref rowLineEndingOffset, ref quoting, ref start, ref lineNumber);
 
         AssertParseState(expected, colEnds, ref start, ref end,
-            expectedRowLineEndingOffset, rowLineEndingOffset,
             expectedQuoting, quoting,
             expectedLineNumber, lineNumber);
+        Assert.AreEqual(expectedRowLineEndingOffset, rowLineEndingOffset);
     }
 }

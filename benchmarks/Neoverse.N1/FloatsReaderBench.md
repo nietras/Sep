@@ -1,10 +1,10 @@
 ```
 
-BenchmarkDotNet v0.13.10, Ubuntu 22.04.2 LTS (Jammy Jellyfish)
+BenchmarkDotNet v0.13.11, Ubuntu 22.04.2 LTS (Jammy Jellyfish)
 Unknown processor
 .NET SDK 8.0.100
   [Host]     : .NET 8.0.0 (8.0.23.53103), Arm64 RyuJIT AdvSIMD
-  Job-HCCPYN : .NET 8.0.0 (8.0.23.53103), Arm64 RyuJIT AdvSIMD
+  Job-EEMDRF : .NET 8.0.0 (8.0.23.53103), Arm64 RyuJIT AdvSIMD
 
 Runtime=.NET 8.0  Toolchain=net80  InvocationCount=Default  
 IterationTime=350.0000 ms  MaxIterationCount=15  MinIterationCount=5  
@@ -13,17 +13,18 @@ WarmupCount=6  Reader=String
 ```
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
-| Sep______ | Row    | 25000 |   9.182 ms |  1.00 | 20 | 2207.7 |  367.3 |     1.11 KB |        1.00 |
-| Sylvan___ | Row    | 25000 |  30.729 ms |  3.35 | 20 |  659.7 | 1229.1 |     9.74 KB |        8.80 |
-| ReadLine_ | Row    | 25000 |  33.696 ms |  3.67 | 20 |  601.6 | 1347.8 | 73489.73 KB |   66,419.67 |
-| CsvHelper | Row    | 25000 |  59.282 ms |  6.46 | 20 |  342.0 | 2371.3 |    20.71 KB |       18.71 |
+| Sep______ | Row    | 25000 |   9.537 ms |  1.00 | 20 | 2125.7 |  381.5 |     1.21 KB |        1.00 |
+| Sylvan___ | Row    | 25000 |  30.832 ms |  3.23 | 20 |  657.5 | 1233.3 |     9.74 KB |        8.02 |
+| ReadLine_ | Row    | 25000 |  33.938 ms |  3.56 | 20 |  597.3 | 1357.5 | 73489.73 KB |   60,493.16 |
+| CsvHelper | Row    | 25000 |  59.210 ms |  6.21 | 20 |  342.4 | 2368.4 |    20.71 KB |       17.04 |
 |           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Cols   | 25000 |  11.392 ms |  1.00 | 20 | 1779.4 |  455.7 |     1.12 KB |        1.00 |
-| Sylvan___ | Cols   | 25000 |  34.813 ms |  3.06 | 20 |  582.3 | 1392.5 |     9.75 KB |        8.70 |
-| ReadLine_ | Cols   | 25000 |  32.510 ms |  2.85 | 20 |  623.6 | 1300.4 | 73489.75 KB |   65,551.83 |
-| CsvHelper | Cols   | 25000 |  64.080 ms |  5.63 | 20 |  316.4 | 2563.2 | 21341.07 KB |   19,035.94 |
+| Sep______ | Cols   | 25000 |  11.460 ms |  1.00 | 20 | 1768.9 |  458.4 |     1.23 KB |        1.00 |
+| Sylvan___ | Cols   | 25000 |  34.857 ms |  3.04 | 20 |  581.6 | 1394.3 |     9.75 KB |        7.91 |
+| ReadLine_ | Cols   | 25000 |  35.410 ms |  3.09 | 20 |  572.5 | 1416.4 | 73489.72 KB |   59,630.33 |
+| CsvHelper | Cols   | 25000 |  64.828 ms |  5.65 | 20 |  312.7 | 2593.1 | 21341.07 KB |   17,316.37 |
 |           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Floats | 25000 |  52.081 ms |  1.00 | 20 |  389.2 | 2083.2 |     7.97 KB |        1.00 |
-| Sylvan___ | Floats | 25000 | 169.677 ms |  3.26 | 20 |  119.5 | 6787.1 |     18.2 KB |        2.28 |
-| ReadLine_ | Floats | 25000 | 162.237 ms |  3.11 | 20 |  125.0 | 6489.5 | 73493.46 KB |    9,221.58 |
-| CsvHelper | Floats | 25000 | 220.231 ms |  4.23 | 20 |   92.0 | 8809.2 | 22063.34 KB |    2,768.39 |
+| Sep______ | Floats | 25000 |  52.297 ms |  1.00 | 20 |  387.6 | 2091.9 |     8.12 KB |        1.00 |
+| Sep_MT___ | Floats | 25000 |  15.271 ms |  0.29 | 20 | 1327.5 |  610.9 |    65.28 KB |        8.04 |
+| Sylvan___ | Floats | 25000 | 168.664 ms |  3.23 | 20 |  120.2 | 6746.6 |     18.2 KB |        2.24 |
+| ReadLine_ | Floats | 25000 | 166.356 ms |  3.18 | 20 |  121.9 | 6654.3 | 73493.46 KB |    9,052.97 |
+| CsvHelper | Floats | 25000 | 218.131 ms |  4.17 | 20 |   92.9 | 8725.2 | 22063.34 KB |    2,717.78 |

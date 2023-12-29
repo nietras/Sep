@@ -83,7 +83,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_1()
+    public void SepReaderNoHeaderTest_Enumerate_Quotes_Rows_1()
     {
         var text = """
                    10;"A;";20";"11
@@ -96,7 +96,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_2()
+    public void SepReaderNoHeaderTest_Enumerate_Quotes_Rows_2()
     {
         var text = """
                    10;"A;";20";"11

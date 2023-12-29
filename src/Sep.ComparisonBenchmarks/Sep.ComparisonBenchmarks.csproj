@@ -13,6 +13,10 @@
     <!--<Optimize>true</Optimize>
     <Configuration>Release</Configuration>-->
     <IsPackable>false</IsPackable>
+    <!--<TieredCompilation>false</TieredCompilation>-->
+
+    <!--PackageAssetsBench is much faster using server GC!-->
+    <!--<ServerGarbageCollection>true</ServerGarbageCollection>-->
   </PropertyGroup>
 
   <ItemGroup>

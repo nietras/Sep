@@ -9,7 +9,7 @@
     <EnableAOTAnalyzer>true</EnableAOTAnalyzer>
 
     <EnablePackageValidation>true</EnablePackageValidation>
-    <PackageValidationBaselineVersion>0.2.0</PackageValidationBaselineVersion>
+    <PackageValidationBaselineVersion>0.3.0</PackageValidationBaselineVersion>
 
     <Description>Modern, minimal, fast, zero allocation, reading and writing of separated values (csv, tsv etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.</Description>
 

@@ -18,7 +18,7 @@ public unsafe class SepParseSeparatorsMaskBench
     MaskSpec _mask;
     nuint _maskValue;
     readonly int _dataIndex = 17;
-    readonly int* _colEnds = (int*)NativeMemory.Alloc((nuint)Unsafe.SizeOf<nuint>() * 8, sizeof(int));
+    readonly int* _colEndsOrColInfos = (int*)NativeMemory.Alloc((nuint)Unsafe.SizeOf<nuint>() * 8, sizeof(int));
 
     public SepParseSeparatorsMaskBench()
     {
@@ -44,13 +44,13 @@ public unsafe class SepParseSeparatorsMaskBench
     public unsafe ref int DummyForWarmup()
     {
         return ref SepParseMask.ParseSeparatorsMask(
-            _maskValue, _dataIndex, ref *_colEnds);
+            _maskValue, _dataIndex, ref *_colEndsOrColInfos);
     }
 
     [Benchmark(Baseline = true)]
     public unsafe ref int ParseSeparatorsMask()
     {
         return ref SepParseMask.ParseSeparatorsMask(
-            _maskValue, _dataIndex, ref *_colEnds);
+            _maskValue, _dataIndex, ref *_colEndsOrColInfos);
     }
 }

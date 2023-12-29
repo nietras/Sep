@@ -123,6 +123,7 @@ public class SepReaderColTest
     {
         var src = new string(chars);
         using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(src);
+        Assert.IsTrue(reader.MoveNext());
         // Ensure repeated access works
         for (var i = 0; i < 4; i++)
         {

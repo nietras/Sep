@@ -137,11 +137,11 @@ public class ReadMeTest
 
         CollectionAssert.AreEqual(expected, actual);
 
-        static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
+        static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> select)
         {
             foreach (var row in reader)
             {
-                yield return func(row);
+                yield return select(row);
             }
         }
     }
@@ -159,20 +159,12 @@ public class ReadMeTest
         };
 
         using var reader = Sep.Reader().FromText(text);
-        var actual = Enumerate(reader,
+        var actual = reader.Enumerate(
             row => (row["Key"].ToString(), row["Value"].Parse<double>()))
             .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
             .ToArray();
 
         CollectionAssert.AreEqual(expected, actual);
-
-        static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> func)
-        {
-            foreach (var row in reader)
-            {
-                yield return func(row);
-            }
-        }
     }
 
     [TestMethod]
@@ -203,6 +195,34 @@ public class ReadMeTest
                 }
             }
         }
+    }
+
+    [TestMethod]
+    public void ReadMeTest_EnumerateTrySelect()
+    {
+        var text = """
+                   Key;Value
+                   A;1.1
+                   B;2.2
+                   """;
+        var expected = new (string Key, double Value)[] {
+            ("B", 2.2),
+        };
+
+        using var reader = Sep.Reader().FromText(text);
+        var actual = reader.Enumerate((SepReader.Row row, out (string Key, double Value) kv) =>
+        {
+            var keyCol = row["Key"];
+            if (keyCol.Span.StartsWith("B"))
+            {
+                kv = (keyCol.ToString(), row["Value"].Parse<double>());
+                return true;
+            }
+            kv = default;
+            return false;
+        }).ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -245,11 +265,13 @@ public class ReadMeTest
     {
         var readmeFilePath = s_readmeFilePath;
 
-        var benchmarkFileNameToConfig = new Dictionary<string, (string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
+        var benchmarkFileNameToConfig = new Dictionary<string, (string Description, string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
         {
-            { "PackageAssetsBench.md", new("##### PackageAssets Benchmark Results", "##### ", "###### ") },
-            { "PackageAssetsBenchQuotes.md", new("##### PackageAssets with Quotes Benchmark Results", "#### ", "###### ") },
-            { "FloatsReaderBench.md", new("#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
+            { "PackageAssetsBench.md", new("PackageAssets Benchmark Results", "##### PackageAssets Benchmark Results", "##### PackageAssets", "###### ") },
+            { "PackageAssetsBench-GcServer.md", new("PackageAssets Benchmark Results (SERVER GC)", "##### PackageAssets Benchmark Results (SERVER GC)", "##### ", "###### ") },
+            { "PackageAssetsBenchQuotes.md", new("PackageAssets with Quotes Benchmark Results", "##### PackageAssets with Quotes Benchmark Results", "##### PackageAssets", "###### ") },
+            { "PackageAssetsBenchQuotes-GcServer.md", new("PackageAssets with Quotes Benchmark Results (SERVER GC)", "##### PackageAssets with Quotes Benchmark Results (SERVER GC)", "#### ", "###### ") },
+            { "FloatsReaderBench.md", new("FloatsReader Benchmark Results", "#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
         };
 
         var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
@@ -260,7 +282,7 @@ public class ReadMeTest
 
         foreach (var (fileName, config) in benchmarkFileNameToConfig)
         {
-            var name = Path.GetFileNameWithoutExtension(fileName).Replace("Bench", " ").Trim().Replace(" ", " with ");
+            var description = config.Description;
             var prefix = config.SectionPrefix;
             var readmeBefore = config.ReadmeBefore;
             var readmeEndLine = config.ReadmeEnd;
@@ -271,11 +293,10 @@ public class ReadMeTest
                 var contents = File.ReadAllText(Path.Combine(processorDirectory, fileName));
                 var processor = LastDirectoryName(processorDirectory);
 
-                var section = $"{prefix}{processor} - {name} Benchmark Results ({versions})";
+                var section = $"{prefix}{processor} - {description} ({versions})";
                 var benchmarkTable = GetBenchmarkTable(contents);
                 var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
                 all += readmeContents;
-                Trace.WriteLine(section);
             }
             readmeLines = ReplaceReadmeLines(readmeLines, new[] { all }, readmeBefore, prefix, 0, readmeEndLine, 0);
         }
@@ -307,8 +328,9 @@ public class ReadMeTest
             (nameof(ReadMeTest_SepReader_Debuggability) + "()", "#### SepReader Debuggability"),
             (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
             (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
-            (nameof(ReadMeTest_EnumerateWhere) + "()", "Which discounting the `Enumerate`"),
+            (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep now provides such a convenience "),
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
+            (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
@@ -338,8 +360,6 @@ public class ReadMeTest
     public void ReadMeTest_PublicApi()
     {
         var publicApi = typeof(Sep).Assembly.GeneratePublicApi();
-        Trace.WriteLine(Environment.Version);
-        Trace.WriteLine(publicApi);
 
         var readmeFilePath = s_readmeFilePath;
         var readmeLines = File.ReadAllLines(readmeFilePath);

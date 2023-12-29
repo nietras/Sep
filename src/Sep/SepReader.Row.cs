@@ -10,6 +10,7 @@ public partial class SepReader
     // Problem here is Row is a ref struct so can't use Action<Row>
     public delegate void RowAction(Row row);
     public delegate T RowFunc<T>(Row row);
+    public delegate bool RowTryFunc<T>(Row row, out T value);
 
     [DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
     [DebuggerTypeProxy(typeof(DebugView))]
@@ -21,18 +22,30 @@ public partial class SepReader
 
         public int RowIndex => _state._rowIndex;
 
-        public int LineNumberFrom => _state._rowLineNumberFrom;
-        public int LineNumberToExcl => _state._lineNumber;
+        public int LineNumberFrom => _state._currentRowLineNumberFrom;
+        public int LineNumberToExcl => _state._currentRowLineNumberTo;
 
-        public int ColCount => _state._colCount;
+        public int ColCount => _state._currentRowColCount;
 
         public ReadOnlySpan<char> Span => _state.RowSpan();
 
         public override string ToString() => new(Span);
 
+        /// <summary>
+        /// Delegate to get column string at a given index.
+        /// </summary>
+        /// <remarks>
+        /// Named "unsafe" since this refers to internal state and should not be
+        /// used outside the scope of <see cref="SepReader.Row"/>. This is,
+        /// however, needed to integrate with external benchmarks like NCsvPerf
+        /// that require such a delegate. Hence, in order to avoid an allocation
+        /// per row this property is provided.
+        /// </remarks>
+        public Func<int, string> UnsafeToStringDelegate => _state.UnsafeToStringDelegate;
+
         public Col this[int index] => new(_state, index);
 
-        public Col this[Index index] => new(_state, index.GetOffset(_state._colCount));
+        public Col this[Index index] => new(_state, index.GetOffset(_state._currentRowColCount));
 
         public Col this[string colName]
         {
@@ -48,7 +61,7 @@ public partial class SepReader
         {
             get
             {
-                var (offset, length) = range.GetOffsetAndLength(_state._colCount);
+                var (offset, length) = range.GetOffsetAndLength(_state._currentRowColCount);
                 return new(_state, offset, length);
             }
         }
@@ -196,7 +209,7 @@ public partial class SepReader
             ColDebugView[] GetCols()
             {
                 var row = new Row(_state);
-                var cols = new ColDebugView[_state._colCount];
+                var cols = new ColDebugView[_state._currentRowColCount];
                 var maybeHeader = _state._hasHeader ? _state._header : null;
                 for (var colIndex = 0; colIndex < cols.Length; colIndex++)
                 {

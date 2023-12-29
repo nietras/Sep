@@ -275,7 +275,7 @@ public class ReadMeTest
         };
 
         var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
-        var processorDirectories = Directory.EnumerateDirectories(benchmarksDirectory).Take(1).ToArray();
+        var processorDirectories = Directory.EnumerateDirectories(benchmarksDirectory).ToArray();
         var processors = processorDirectories.Select(LastDirectoryName).ToArray();
 
         var readmeLines = File.ReadAllLines(readmeFilePath);

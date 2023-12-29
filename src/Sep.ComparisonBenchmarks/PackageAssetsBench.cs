@@ -386,7 +386,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         var options = new VariableLengthReaderRawOptions
         {
             HasHeader = false,
-            ContainsQuotedFields = false,
+            ContainsQuotedFields = Quotes,
             Trim = false,
 
             ColumnCount = 25,

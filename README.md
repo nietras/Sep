@@ -37,6 +37,10 @@ SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
 fast parsing of floating points. Reads or writes one row at a time efficiently
 with [detailed benchmarks](#comparison-benchmarks) to prove it.
+* **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
+  parsing that is up to 35x faster than CsvHelper, see
+  [ParallelEnumerate](#parallelenumerate-and-enumerate) and
+  [benchmarks](#comparison-benchmarks) .
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.
@@ -841,6 +845,10 @@ time:
  * **XYZ** - finally the full scope is performed which is specific to each of
    the scenarios.
 
+Additionally, as Sep supports multi-threaded parsing via `ParallelEnumerate`
+benchmarks results with `_MT` in the method name are multi-threaded. These show
+Sep provides unparalleled performance compared to any other CSV parser.
+
 #### NCsvPerf PackageAssets Reader Comparison Benchmarks
 [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
    parser in
@@ -905,7 +913,7 @@ slight cost no matter what, most notably for the `Cols` scope. Sep is still the
 fastest of all (by far in many cases).
 
 ##### PackageAssets Benchmark Results
-The results below show Sep is now **the fastest .NET CSV Parser** (for this
+The results below show Sep is **the fastest .NET CSV Parser** (for this
 benchmark on these platforms and machines 😀). While for pure parsing allocating
 only a fraction of the memory due to extensive use of pooling and the
 `ArrayPool<T>`.

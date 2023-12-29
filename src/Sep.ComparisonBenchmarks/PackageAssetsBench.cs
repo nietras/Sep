@@ -379,7 +379,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark]
-    public void RecPrs_MT()
+    public void RecordParser_MT()
     {
         using var streamReader = Reader.CreateReader();
 

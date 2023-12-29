@@ -265,11 +265,13 @@ public class ReadMeTest
     {
         var readmeFilePath = s_readmeFilePath;
 
-        var benchmarkFileNameToConfig = new Dictionary<string, (string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
+        var benchmarkFileNameToConfig = new Dictionary<string, (string Description, string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
         {
-            { "PackageAssetsBench.md", new("##### PackageAssets Benchmark Results", "##### ", "###### ") },
-            { "PackageAssetsBenchQuotes.md", new("##### PackageAssets with Quotes Benchmark Results", "#### ", "###### ") },
-            { "FloatsReaderBench.md", new("#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
+            { "PackageAssetsBench.md", new("PackageAssets Benchmark Results", "##### PackageAssets Benchmark Results", "##### PackageAssets", "###### ") },
+            { "PackageAssetsBench-GcServer.md", new("PackageAssets Benchmark Results (SERVER GC)", "##### PackageAssets Benchmark Results (SERVER GC)", "##### ", "###### ") },
+            { "PackageAssetsBenchQuotes.md", new("PackageAssets with Quotes Benchmark Results", "##### PackageAssets with Quotes Benchmark Results", "##### PackageAssets", "###### ") },
+            { "PackageAssetsBenchQuotes-GcServer.md", new("PackageAssets with Quotes Benchmark Results (SERVER GC)", "##### PackageAssets with Quotes Benchmark Results (SERVER GC)", "#### ", "###### ") },
+            { "FloatsReaderBench.md", new("FloatsReader Benchmark Results", "#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
         };
 
         var benchmarksDirectory = Path.Combine(s_rootDirectory, "benchmarks");
@@ -280,7 +282,7 @@ public class ReadMeTest
 
         foreach (var (fileName, config) in benchmarkFileNameToConfig)
         {
-            var name = Path.GetFileNameWithoutExtension(fileName).Replace("Bench", " ").Trim().Replace(" ", " with ");
+            var description = config.Description;
             var prefix = config.SectionPrefix;
             var readmeBefore = config.ReadmeBefore;
             var readmeEndLine = config.ReadmeEnd;
@@ -291,7 +293,7 @@ public class ReadMeTest
                 var contents = File.ReadAllText(Path.Combine(processorDirectory, fileName));
                 var processor = LastDirectoryName(processorDirectory);
 
-                var section = $"{prefix}{processor} - {name} Benchmark Results ({versions})";
+                var section = $"{prefix}{processor} - {description} ({versions})";
                 var benchmarkTable = GetBenchmarkTable(contents);
                 var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
                 all += readmeContents;

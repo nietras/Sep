@@ -394,6 +394,15 @@ public class LongQuotesAssetPackageAssetsBench : LongAssetPackageAssetsBench
     public LongQuotesAssetPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
 }
 
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerAssetPackageAssetsBench : AssetPackageAssetsBench
+{ }
+
+[BenchmarkCategory("4_Asset")]
+[GcServer(true)]
+public class GcServerQuotesAssetPackageAssetsBench : QuotesAssetPackageAssetsBench
+{ }
 
 [BenchmarkCategory("4_Asset")]
 [GcServer(true)]

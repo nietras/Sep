@@ -1021,7 +1021,7 @@ GC](https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/worksta
 can, therefore, provide significant speedup as can be seen below.
 
 With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
-18x faster than CsvHelper**. Breaking 4 GB/s parsing speed on package assets onn
+18x faster than CsvHelper**. Breaking 4 GB/s parsing speed on package assets on
 5950X.
 
 ###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (SERVER GC) (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)

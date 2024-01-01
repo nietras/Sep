@@ -38,7 +38,8 @@ SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 fast parsing of floating points. Reads or writes one row at a time efficiently
 with [detailed benchmarks](#comparison-benchmarks) to prove it.
 * **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
-  parsing that is up to 35x faster than CsvHelper, see
+  parsing that is [up to 35x faster than
+  CsvHelper](#floats-reader-comparison-benchmarks), see
   [ParallelEnumerate](#parallelenumerate-and-enumerate) and
   [benchmarks](#comparison-benchmarks) .
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
@@ -640,7 +641,7 @@ always), be certain the provided delegate does not refer to or change any
 mutable state.
 
 `ParallelEnumerate` comes with a lot of overhead compared to single-threaded
-`foreach` or `Enumerate` and should be used carefully and based on measuring any
+`foreach` or `Enumerate` and should be used carefully based on measuring any
 potential benefit. Sep goes a long way to make this very efficient by using
 pooled arrays and parsing multiple rows in batches, but if the source only has a
 few rows then any benefit is unlikely.
@@ -923,6 +924,9 @@ optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
+With `ParallelEnumerate` (MT) Sep is **>2x faster than Sylvan and up to 9x
+faster than CsvHelper**.
+
 ###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
 | Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s    | ns/row | Allocated    | Alloc Ratio |
@@ -1015,6 +1019,10 @@ GC becomes a significant bottleneck for the benchmark, especially for
 multi-threaded parsing. Switching to [SERVER
 GC](https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/workstation-server-gc)
 can, therefore, provide significant speedup as can be seen below.
+
+With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
+18x faster than CsvHelper**. Breaking 4 GB/s parsing speed on package assets onn
+5950X.
 
 ###### AMD.Ryzen.9.5950X - PackageAssets Benchmark Results (SERVER GC) (Sep 0.4.0.0, Sylvan  1.3.5.0, CsvHelper 30.0.1.0)
 
@@ -1271,12 +1279,20 @@ tiny part of the total runtime for Sep for which the run time is dominated by
 parsing the floating points. Since Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
 floating point parser, it is **>2x faster than Sylvan** for example. If using
-Sylvan one may consider using csFastFloat if that is an option.
+Sylvan one may consider using csFastFloat if that is an option. With the
+multi-threaded (MT) `ParallelEnumerate` implementation Sep is **up to 23x faster
+than Sylvan**.
 
 CsvHelper suffers from the fact that one can only access the column as a string
 so this has to be allocated for each column (ReadLine by definition always
 allocates a string per column). Still CsvHelper is significantly slower than the
-naive `ReadLine` approach. With Sep being **>4x faster than CsvHelper**.
+naive `ReadLine` approach. With Sep being **>4x faster than CsvHelper** and **up to
+35x times faster when using `ParallelEnumerate`**.
+
+Note that `ParallelEnumerate` provides significant speedup over single-threaded
+parsing even though the source is only about 20 MB. This underlines how
+efficient `ParallelEnumerate` is, but bear in mind that this is for the case of
+repeated micro-benchmark runs.
 
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings. 
@@ -1377,9 +1393,7 @@ Assert.AreEqual(text, writer.ToString());
 While the [RFC-4180](https://www.ietf.org/rfc/rfc4180.txt) requires `\r\n`
 (CR,LF) as line ending, the well-known line endings (`\r\n`, `\n` and `\r`) are
 supported similar to .NET. `Environment.NewLine` is used when writing. Quoting
-is supported by simply matching pairs of quotes, no matter what. With no
-automatic escaping. Hence, you are responsible and in control of this at this
-time. 
+is supported by simply matching pairs of quotes, no matter what.
 
 Note that some libraries will claim conformance but the RFC is, perhaps
 naturally, quite strict e.g. only comma is supported as separator/delimiter. Sep

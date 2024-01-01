@@ -339,6 +339,48 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
+    [Benchmark]
+    public void List()
+    {
+        var assets = new List<PackageAsset>();
+
+        for (var i = 0; i < Rows; i++)
+        {
+            var asset = new PackageAsset()
+            {
+                ScanId = default,
+                ScanTimestamp = default,
+                Id = string.Empty,
+                Version = string.Empty,
+                Created = default,
+                ResultType = string.Empty,
+
+                PatternSet = string.Empty,
+                PropertyAnyValue = string.Empty,
+                PropertyCodeLanguage = string.Empty,
+                PropertyTargetFrameworkMoniker = string.Empty,
+                PropertyLocale = string.Empty,
+                PropertyManagedAssembly = string.Empty,
+                PropertyMSBuild = string.Empty,
+                PropertyRuntimeIdentifier = string.Empty,
+                PropertySatelliteAssembly = string.Empty,
+
+                Path = string.Empty,
+                FileName = string.Empty,
+                FileExtension = string.Empty,
+                TopLevelFolder = string.Empty,
+
+                RoundTripTargetFrameworkMoniker = string.Empty,
+                FrameworkName = string.Empty,
+                FrameworkVersion = string.Empty,
+                FrameworkProfile = string.Empty,
+                PlatformName = string.Empty,
+                PlatformVersion = string.Empty,
+            };
+            assets.Add(asset);
+        }
+    }
+
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif

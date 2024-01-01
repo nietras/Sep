@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>BenchmarkRun-joined-2024-01-01-12-51-37</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.13.11, Windows 10 (10.0.19044.3086/21H2/November2021Update)
+AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 8.0.100
+  [Host]     : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX2
+  Job-SOXNEC : .NET 8.0.0 (8.0.23.53103), X64 RyuJIT AVX2
+</code></pre>
+<pre><code>Job=Job-SOXNEC  Runtime=.NET 8.0  Server=True  
+Toolchain=net80  InvocationCount=Default  IterationTime=350.0000 ms  
+MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
+Quotes=False  Reader=String  
+</code></pre>
+
+<table>
+<thead><tr><th>Method   </th><th>Scope</th><th>Rows</th><th>Mean  </th><th>Ratio</th><th>RatioSD</th><th>MB</th><th>MB/s</th><th>ns/row</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>Sep______</td><td>Asset</td><td>50000</td><td>22.007 ms</td><td>1.00</td><td>0.00</td><td>29</td><td>1326.0</td><td>440.1</td><td>13.48 MB</td><td>1.00</td>
+</tr><tr><td>Sep_MT___</td><td>Asset</td><td>50000</td><td>7.125 ms</td><td>0.32</td><td>0.00</td><td>29</td><td>4095.6</td><td>142.5</td><td>13.65 MB</td><td>1.01</td>
+</tr><tr><td>Sylvan___</td><td>Asset</td><td>50000</td><td>29.523 ms</td><td>1.34</td><td>0.00</td><td>29</td><td>988.4</td><td>590.5</td><td>13.63 MB</td><td>1.01</td>
+</tr><tr><td>List</td><td>Asset</td><td>50000</td><td>3.650 ms</td><td>0.17</td><td>0.02</td><td>29</td><td>7995.9</td><td>73.0</td><td>13.21 MB</td><td>0.98</td>
+</tr><tr><td>ReadLine_</td><td>Asset</td><td>50000</td><td>37.918 ms</td><td>1.70</td><td>0.35</td><td>29</td><td>769.6</td><td>758.4</td><td>99.74 MB</td><td>7.40</td>
+</tr><tr><td>CsvHelper</td><td>Asset</td><td>50000</td><td>79.135 ms</td><td>3.59</td><td>0.01</td><td>29</td><td>368.8</td><td>1582.7</td><td>13.65 MB</td><td>1.01</td>
+</tr><tr><td>RecordParser_MT</td><td>Asset</td><td>50000</td><td>14.673 ms</td><td>0.67</td><td>0.00</td><td>29</td><td>1988.8</td><td>293.5</td><td>26.4 MB</td><td>1.96</td>
+</tr><tr><td>Sep______</td><td>Asset</td><td>1000000</td><td>449.837 ms</td><td>1.00</td><td>0.00</td><td>583</td><td>1297.8</td><td>449.8</td><td>260.41 MB</td><td>1.00</td>
+</tr><tr><td>Sep_MT___</td><td>Asset</td><td>1000000</td><td>130.665 ms</td><td>0.29</td><td>0.00</td><td>583</td><td>4467.8</td><td>130.7</td><td>261.48 MB</td><td>1.00</td>
+</tr><tr><td>Sylvan___</td><td>Asset</td><td>1000000</td><td>600.387 ms</td><td>1.33</td><td>0.01</td><td>583</td><td>972.3</td><td>600.4</td><td>260.57 MB</td><td>1.00</td>
+</tr><tr><td>List</td><td>Asset</td><td>1000000</td><td>73.820 ms</td><td>0.17</td><td>0.03</td><td>583</td><td>7908.3</td><td>73.8</td><td>260.14 MB</td><td>1.00</td>
+</tr><tr><td>ReadLine_</td><td>Asset</td><td>1000000</td><td>662.021 ms</td><td>1.47</td><td>0.02</td><td>583</td><td>881.8</td><td>662.0</td><td>1991.04 MB</td><td>7.65</td>
+</tr><tr><td>CsvHelper</td><td>Asset</td><td>1000000</td><td>1,598.979 ms</td><td>3.55</td><td>0.02</td><td>583</td><td>365.1</td><td>1599.0</td><td>260.58 MB</td><td>1.00</td>
+</tr><tr><td>RecordParser_MT</td><td>Asset</td><td>1000000</td><td>249.758 ms</td><td>0.55</td><td>0.00</td><td>583</td><td>2337.4</td><td>249.8</td><td>362.68 MB</td><td>1.39</td>
+</tr></tbody></table>
+</body>
+</html>

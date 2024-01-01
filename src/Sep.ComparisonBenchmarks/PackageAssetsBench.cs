@@ -381,6 +381,43 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
+    [Benchmark]
+    public void List_MT()
+    {
+        Enumerable.Range(0, Rows).AsParallel().AsOrdered().Select(i =>
+            new PackageAsset()
+            {
+                ScanId = default,
+                ScanTimestamp = default,
+                Id = string.Empty,
+                Version = string.Empty,
+                Created = default,
+                ResultType = string.Empty,
+
+                PatternSet = string.Empty,
+                PropertyAnyValue = string.Empty,
+                PropertyCodeLanguage = string.Empty,
+                PropertyTargetFrameworkMoniker = string.Empty,
+                PropertyLocale = string.Empty,
+                PropertyManagedAssembly = string.Empty,
+                PropertyMSBuild = string.Empty,
+                PropertyRuntimeIdentifier = string.Empty,
+                PropertySatelliteAssembly = string.Empty,
+
+                Path = string.Empty,
+                FileName = string.Empty,
+                FileExtension = string.Empty,
+                TopLevelFolder = string.Empty,
+
+                RoundTripTargetFrameworkMoniker = string.Empty,
+                FrameworkName = string.Empty,
+                FrameworkVersion = string.Empty,
+                FrameworkProfile = string.Empty,
+                PlatformName = string.Empty,
+                PlatformVersion = string.Empty,
+            }).ToList();
+    }
+
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif

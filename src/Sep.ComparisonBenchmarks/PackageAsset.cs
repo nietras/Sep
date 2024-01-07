@@ -69,6 +69,41 @@ public sealed class PackageAsset
         };
     }
 
+    public static PackageAsset CreateEmpty()
+    {
+        return new PackageAsset()
+        {
+            ScanId = default,
+            ScanTimestamp = default,
+            Id = string.Empty,
+            Version = string.Empty,
+            Created = default,
+            ResultType = string.Empty,
+
+            PatternSet = string.Empty,
+            PropertyAnyValue = string.Empty,
+            PropertyCodeLanguage = string.Empty,
+            PropertyTargetFrameworkMoniker = string.Empty,
+            PropertyLocale = string.Empty,
+            PropertyManagedAssembly = string.Empty,
+            PropertyMSBuild = string.Empty,
+            PropertyRuntimeIdentifier = string.Empty,
+            PropertySatelliteAssembly = string.Empty,
+
+            Path = string.Empty,
+            FileName = string.Empty,
+            FileExtension = string.Empty,
+            TopLevelFolder = string.Empty,
+
+            RoundTripTargetFrameworkMoniker = string.Empty,
+            FrameworkName = string.Empty,
+            FrameworkVersion = string.Empty,
+            FrameworkProfile = string.Empty,
+            PlatformName = string.Empty,
+            PlatformVersion = string.Empty,
+        };
+    }
+
     static DateTimeOffset? ParseNullableDateTimeOffset(ReadOnlySpan<char> input) =>
         input.Length > 0 ? ParseDateTimeOffset(input) : null;
 

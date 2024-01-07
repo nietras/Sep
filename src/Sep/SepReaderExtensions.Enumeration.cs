@@ -142,16 +142,42 @@ public static partial class SepReaderExtensions
     {
         do
         {
-            if (!states.TryPop(out var state))
-            {
-                state = new SepReaderState(reader);
-            }
             if (reader.HasParsedRows())
             {
+                if (!states.TryPop(out var state))
+                {
+                    state = new SepReaderState(reader);
+                }
                 reader.SwapParsedRowsTo(state);
                 yield return state;
             }
         } while (reader.ParseNewRows());
+    }
+
+    static IEnumerable<SepReaderState> EnumerateStatesByChunksBacktrackingNewLine(SepReader reader, ConcurrentStack<SepReaderState> states)
+    {
+        // Return initial sequentially parsed state
+        if (reader.HasParsedRows())
+        {
+            if (!states.TryPop(out var state))
+            {
+                state = new SepReaderState(reader);
+            }
+            reader.SwapParsedRowsTo(state);
+            yield return state;
+        }
+        while (reader.ParseNewRows())
+        {
+            if (reader.HasParsedRows())
+            {
+                if (!states.TryPop(out var state))
+                {
+                    state = new SepReaderState(reader);
+                }
+                reader.SwapParsedRowsTo(state);
+                yield return state;
+            }
+        }
     }
 
     static void DisposeStates(ConcurrentStack<SepReaderState> statesStack)

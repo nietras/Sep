@@ -340,6 +340,15 @@ public class AssetPackageAssetsBench : PackageAssetsBench
     }
 
     [Benchmark]
+    public void ReadFile()
+    {
+        using var reader = Reader.CreateReader();
+        Span<char> buffer = stackalloc char[32 * 1024];
+        int read;
+        while ((read = reader.Read(buffer)) > 0) { }
+    }
+
+    [Benchmark]
     public void List()
     {
         var assets = new List<PackageAsset>();

@@ -31,6 +31,17 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public bool HasHeader { get; init; } = true;
     /// <summary>
+    /// Indicates whether source has quotes (") and whether to handle quoting
+    /// during parsing. Use only if sure that source has no quotes.
+    /// </summary>
+    /// <remarks>
+    /// This may speed up <see
+    /// cref="SepReaderExtensions.ParallelEnumerate{T}(SepReader,
+    /// SepReader.RowFunc{T})"/> and other overloads as this allows for better
+    /// parallel parsing of source.
+    /// </remarks>
+    public bool HasQuotes { get; init; } = true;
+    /// <summary>
     /// Specifies the method factory used to convert a column span 
     /// of `char`s to a `string`.
     /// </summary>

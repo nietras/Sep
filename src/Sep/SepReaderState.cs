@@ -143,6 +143,10 @@ public class SepReaderState : IDisposable
         _parsedRowsCount = 0;
     }
 
+    internal void SwapDataForParsingNewRows(SepReaderState other)
+    {
+    }
+
     static void EnsureArrayFromPoolHasMinimumLength<T>(ref T[] array, int minimumLength)
     {
         if (minimumLength > array.Length)

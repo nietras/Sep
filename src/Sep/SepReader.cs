@@ -186,6 +186,65 @@ public sealed partial class SepReader : SepReaderState
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal bool ParseNewRows()
     {
+        PrepareForNewRows();
+
+        var endOfFile = false;
+    LOOP:
+        CheckPoint($"{nameof(_parser)} BEFORE");
+
+        if (_parser is not null)
+        {
+            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
+            else { _parser.ParseColInfos(this); }
+        }
+
+        CheckPoint($"{nameof(_parser)} AFTER");
+        if (endOfFile)
+        {
+            CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
+            goto RETURN;
+        }
+
+        CheckPoint($"{nameof(_parser)} AFTER");
+
+        if (_parsedRowsCount > 0) { return true; }
+
+        endOfFile = EnsureInitializeAndReadData(endOfFile);
+        if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
+        {
+            ++_parsingRowColCount;
+            var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
+            if (_colUnquoteUnescape == 0)
+            {
+                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
+            }
+            else
+            {
+                Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
+                    new(_charsDataEnd, _parser?.QuoteCount ?? 0);
+            }
+            ++_parsingLineNumber;
+            _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
+            ++_parsedRowsCount;
+
+            _parsingRowColCount = 0;
+            _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
+            _parsingRowCharsStartIndex = _charsDataEnd;
+            goto RETURN;
+        }
+        if (_parsedRowsCount <= 0) { goto LOOP; }
+    RETURN:
+        return _parsedRowsCount > 0;
+    }
+
+    internal bool PrepareAndReadDataForNewRows()
+    {
+        PrepareForNewRows();
+        return false;
+    }
+
+    void PrepareForNewRows()
+    {
         _parsedRowsCount = 0;
         _parsedRowIndex = 0;
         _currentRowColCount = -1;
@@ -245,54 +304,6 @@ public sealed partial class SepReader : SepReaderState
 #if DEBUG
         _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
 #endif
-
-        var endOfFile = false;
-    LOOP:
-        CheckPoint($"{nameof(_parser)} BEFORE");
-
-        if (_parser is not null)
-        {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
-            else { _parser.ParseColInfos(this); }
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-        if (endOfFile)
-        {
-            CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
-            goto RETURN;
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-
-        if (_parsedRowsCount > 0) { return true; }
-
-        endOfFile = EnsureInitializeAndReadData(endOfFile);
-        if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
-        {
-            ++_parsingRowColCount;
-            var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
-            if (_colUnquoteUnescape == 0)
-            {
-                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
-            }
-            else
-            {
-                Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
-                    new(_charsDataEnd, _parser?.QuoteCount ?? 0);
-            }
-            ++_parsingLineNumber;
-            _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
-            ++_parsedRowsCount;
-
-            _parsingRowColCount = 0;
-            _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
-            _parsingRowCharsStartIndex = _charsDataEnd;
-            goto RETURN;
-        }
-        if (_parsedRowsCount <= 0) { goto LOOP; }
-    RETURN:
-        return _parsedRowsCount > 0;
     }
 
     public string ToString(int index) => ToStringDefault(index);

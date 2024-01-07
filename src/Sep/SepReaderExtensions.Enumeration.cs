@@ -166,17 +166,24 @@ public static partial class SepReaderExtensions
             reader.SwapParsedRowsTo(state);
             yield return state;
         }
-        while (reader.ParseNewRows())
+
+        // Move lingering data to start in reader
+        // Fill buffer
+        // Check if any data or finish (could then avoid parallelization for that case - short file)
+        // Find last new line (\r, \r\n, \n) by backtracking (must always have 1 char after new line)
+        // Take care of end-of-file where last row may not have new line
+        // Set data end to just before?/after? new line (be sure next start then is after)
+        // Swap to state and let parsing be done in parallel
+        // Continue producing states until no more data
+        while (reader.PrepareAndReadDataForNewRows())
         {
-            if (reader.HasParsedRows())
+            if (!states.TryPop(out var state))
             {
-                if (!states.TryPop(out var state))
-                {
-                    state = new SepReaderState(reader);
-                }
-                reader.SwapParsedRowsTo(state);
-                yield return state;
+                state = new SepReaderState(reader);
             }
+            reader.SwapDataForParsingNewRows(state);
+            yield return state;
+            // TODO: Call parse rows after with check for
         }
     }
 

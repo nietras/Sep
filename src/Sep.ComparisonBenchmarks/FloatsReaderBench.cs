@@ -129,7 +129,6 @@ public class RowFloatsReaderBench : FloatsReaderBench
 #endif
     public void Cursively()
     {
-        // not immediately sure what this was supposed to be?
         CsvSyncInput.ForMemory(Bytes).WithDelimiter((byte)';').Process(CsvReaderVisitorBase.Null);
     }
 }
@@ -233,7 +232,6 @@ public class ColsFloatsReaderBench : FloatsReaderBench
 #endif
     public void Cursively()
     {
-        // not immediately sure what this was supposed to be?
         CsvSyncInput.ForMemory(Bytes).WithDelimiter((byte)';').Process(CsvReaderVisitorBase.Null);
     }
 }
@@ -247,14 +245,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     const int DefaultLineCount = 25_000;
 #endif
 
-    public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount)
-    {
-        // my own testing code... delete if you find it irrelevant
-        if (Sep______() != Cursively())
-        {
-            throw new InvalidOperationException("Cursively is busted.");
-        }
-    }
+    public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount) { }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
@@ -497,7 +488,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
 
         public override void VisitPartialFieldContents(ReadOnlySpan<byte> chunk)
         {
-            throw new NotImplementedException("Haven't needed to use this one: no quoted fields, and the whole input is one big chunk.");
+            throw new NotSupportedException("We don't need this one for this specific benchmark: there are no quoted fields at all, and the whole input is one big chunk.");
         }
 
         public override void VisitEndOfField(ReadOnlySpan<byte> chunk)

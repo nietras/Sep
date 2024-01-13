@@ -58,6 +58,12 @@ public class BytesStatisticColumn : IColumn
             if (statistics != null)
             {
                 var bytes = _getBytes(benchmarkCase.Parameters.Items);
+                if (benchmarkCase.Descriptor.WorkloadMethod.Name == "Cursively")
+                {
+                    // Cursively operates on the bytes, and input is all ASCII, so this gives it a
+                    // more appropriate result for the associated columns.
+                    bytes /= 2;
+                }
                 return _format(bytes, benchmarkCase, statistics);
             }
         }

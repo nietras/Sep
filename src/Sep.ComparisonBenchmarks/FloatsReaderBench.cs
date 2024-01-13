@@ -7,6 +7,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Cursively;
 using Sylvan.Data.Csv;
 using T = nietras.SeparatedValues.ComparisonBenchmarks.FloatsTestData;
 
@@ -29,6 +30,7 @@ public abstract class FloatsReaderBench
             //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
         };
         Reader = _readers.First();
+        Bytes = T.GenerateBytes(Rows, FloatsCount);
     }
 
     [ParamsSource(nameof(ScopeParams))] // Attributes for params is challenging 👇
@@ -42,6 +44,8 @@ public abstract class FloatsReaderBench
     [ParamsSource(nameof(RowsParams))] // Attributes for params is challenging 👇
     public int Rows { get; set; }
     public IEnumerable<int> RowsParams() => new[] { Rows };
+
+    protected byte[] Bytes { get; set; }
 }
 
 [BenchmarkCategory("0_Row")]
@@ -118,6 +122,15 @@ public class RowFloatsReaderBench : FloatsReaderBench
         while (csvParser.Read())
         {
         }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void Cursively()
+    {
+        // not immediately sure what this was supposed to be?
+        CsvSyncInput.ForMemory(Bytes).WithDelimiter((byte)';').Process(CsvReaderVisitorBase.Null);
     }
 }
 
@@ -214,6 +227,15 @@ public class ColsFloatsReaderBench : FloatsReaderBench
             }
         }
     }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void Cursively()
+    {
+        // not immediately sure what this was supposed to be?
+        CsvSyncInput.ForMemory(Bytes).WithDelimiter((byte)';').Process(CsvReaderVisitorBase.Null);
+    }
 }
 
 [BenchmarkCategory("2_Floats")]
@@ -225,7 +247,14 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     const int DefaultLineCount = 25_000;
 #endif
 
-    public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount) { }
+    public FloatsFloatsReaderBench() : base("Floats", DefaultLineCount)
+    {
+        // my own testing code... delete if you find it irrelevant
+        if (Sep______() != Cursively())
+        {
+            throw new InvalidOperationException("Cursively is busted.");
+        }
+    }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
@@ -362,7 +391,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
+                var colIndex = colNameToIndex[resultColNames[i]];
                 var value = float.Parse(cols[colIndex]);
                 res[i] = value;
             }
@@ -420,7 +449,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
+                var colIndex = colNameToIndex[resultColNames[i]];
                 var value = float.Parse(csvParser[colIndex]);
                 res[i] = value;
             }
@@ -440,5 +469,76 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             sumSquaredError += diff * diff;
         }
         return sumSquaredError / gts.Length; // Assume > 0
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public double Cursively()
+    {
+        using CursivelyFloatsVisitor vis = new();
+        CsvSyncInput.ForMemory(Bytes).WithDelimiter((byte)';').Process(vis);
+        return vis.Sum / vis.Count;
+    }
+
+    sealed class CursivelyFloatsVisitor : CsvReaderVisitorBase, IDisposable
+    {
+        private int _currentFieldIndex;
+
+        private float[]? _rowBuf;
+
+        private ArraySegment<float> _gts;
+
+        private ArraySegment<float> _res;
+
+        public double Sum { get; private set; }
+
+        public int Count { get; private set; }
+
+        public override void VisitPartialFieldContents(ReadOnlySpan<byte> chunk)
+        {
+            throw new NotImplementedException("Haven't needed to use this one: no quoted fields, and the whole input is one big chunk.");
+        }
+
+        public override void VisitEndOfField(ReadOnlySpan<byte> chunk)
+        {
+            var fieldIndex = _currentFieldIndex++;
+            if (_rowBuf is { } rowBuf)
+            {
+                _ = csFastFloat.FastFloatParser.TryParseFloat(chunk, out rowBuf[fieldIndex]);
+            }
+        }
+
+        public override void VisitEndOfRecord()
+        {
+            if (_rowBuf is null)
+            {
+                VisitEndOfHeader();
+            }
+            else
+            {
+                Sum += MeanSquaredError(_gts, _res);
+                ++Count;
+                _currentFieldIndex = 0;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (_rowBuf is not null)
+            {
+                ArrayPool<float>.Shared.Return(_rowBuf);
+                _rowBuf = null;
+            }
+        }
+
+        private void VisitEndOfHeader()
+        {
+            var fieldCount = _currentFieldIndex;
+            _currentFieldIndex = 0;
+            _rowBuf = ArrayPool<float>.Shared.Rent(fieldCount);
+            _gts = new(_rowBuf, 0, fieldCount / 2);
+            _res = new(_rowBuf, fieldCount / 2, fieldCount / 2);
+        }
     }
 }

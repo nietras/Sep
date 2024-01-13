@@ -152,7 +152,8 @@ static long BytesFromReaderSpec(IReadOnlyList<ParameterInstance> parameters)
 static string GetVersions() =>
      $"Sep {GetFileVersion(typeof(nietras.SeparatedValues.SepReader).Assembly)}, " +
      $"Sylvan  {GetFileVersion(typeof(Sylvan.Data.Csv.CsvDataReader).Assembly)}, " +
-     $"CsvHelper {GetFileVersion(typeof(CsvHelper.CsvReader).Assembly)}";
+     $"CsvHelper {GetFileVersion(typeof(CsvHelper.CsvReader).Assembly)}, " +
+     $"Cursively {GetFileVersion(typeof(Cursively.CsvSyncInput).Assembly)}";
 
 static string GetFileVersion(Assembly assembly) =>
     FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion!;

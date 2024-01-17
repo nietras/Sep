@@ -1412,7 +1412,6 @@ foreach (var row in reader)
     if (row.Span.Length == 0) { continue; }
 
     actual.Add(row["A"].Parse<int>());
-
 }
 CollectionAssert.AreEqual(expected, actual);
 ```

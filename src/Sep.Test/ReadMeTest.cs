@@ -241,8 +241,36 @@ public class ReadMeTest
         {
             using var writeRow = writer.NewRow(readRow);
         }
-
         Assert.AreEqual(text, writer.ToString());
+    }
+
+    [TestMethod]
+    public void ReadMeTest_Example_Skip_Empty_Rows()
+    {
+        var text = """
+                   A
+                   1
+                   2
+
+                   3
+
+
+                   4
+                   
+                   """; // Empty line at end is for line ending
+        var expected = new[] { 1, 2, 3, 4 };
+
+        // Disable col count check to allow empty rows
+        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
+        var actual = new List<int>();
+        foreach (var row in reader)
+        {
+            // Skip empty row
+            if (row.Span.Length == 0) { continue; }
+
+            actual.Add(row["A"].Parse<int>());
+        }
+        CollectionAssert.AreEqual(expected, actual);
     }
 
     [TestMethod]
@@ -332,6 +360,7 @@ public class ReadMeTest
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
+            (nameof(ReadMeTest_Example_Skip_Empty_Rows) + "()", "### Example - Skip Empty Rows"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
             sourceStartLineOffset: 2, "    }", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 8);

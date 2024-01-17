@@ -1385,8 +1385,35 @@ foreach (var readRow in reader)
 {
     using var writeRow = writer.NewRow(readRow);
 }
-
 Assert.AreEqual(text, writer.ToString());
+```
+
+### Example - Skip Empty Rows
+```csharp
+var text = """
+           A
+           1
+           2
+
+           3
+
+
+           4
+           
+           """; // Empty line at end is for line ending
+var expected = new[] { 1, 2, 3, 4 };
+
+// Disable col count check to allow empty rows
+using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
+var actual = new List<int>();
+foreach (var row in reader)
+{
+    // Skip empty row
+    if (row.Span.Length == 0) { continue; }
+
+    actual.Add(row["A"].Parse<int>());
+}
+CollectionAssert.AreEqual(expected, actual);
 ```
 
 ## RFC-4180

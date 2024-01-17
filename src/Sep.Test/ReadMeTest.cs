@@ -269,7 +269,6 @@ public class ReadMeTest
             if (row.Span.Length == 0) { continue; }
 
             actual.Add(row["A"].Parse<int>());
-
         }
         CollectionAssert.AreEqual(expected, actual);
     }

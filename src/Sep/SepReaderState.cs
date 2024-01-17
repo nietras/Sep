@@ -143,7 +143,7 @@ public class SepReaderState : IDisposable
         _parsedRowsCount = 0;
     }
 
-    internal void SwapDataForParsingNewRows(SepReaderState other)
+    internal void SwapDataForParsingNewRows(SepReaderState other, int actualDataEnd)
     {
     }
 

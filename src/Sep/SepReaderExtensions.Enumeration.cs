@@ -175,16 +175,24 @@ public static partial class SepReaderExtensions
         // Set data end to just before?/after? new line (be sure next start then is after)
         // Swap to state and let parsing be done in parallel
         // Continue producing states until no more data
-        while (reader.PrepareAndReadDataForNewRows())
+        int actualDataEnd;
+        while ((actualDataEnd = reader.PrepareAndReadDataForNewRows()) > 0)
         {
             if (!states.TryPop(out var state))
             {
                 state = new SepReaderState(reader);
             }
-            reader.SwapDataForParsingNewRows(state);
+            reader.SwapDataForParsingNewRows(state, actualDataEnd);
             yield return state;
             // TODO: Call parse rows after with check for
         }
+
+        // How to preserve row indices and line numbers across parallization?
+        // Pprobably need to do split in two passes?:
+        // states.AsParallel().AsOrdered()
+        //       .Select(s => FixUpRowIndexAndLineNumbers())
+        //       .AsParallel().AsOrdered()
+        //       .Select(PooledSelect)
     }
 
     static void DisposeStates(ConcurrentStack<SepReaderState> statesStack)

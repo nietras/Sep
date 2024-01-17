@@ -202,7 +202,7 @@ public sealed partial class SepReader : SepReaderState
         if (endOfFile)
         {
             CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
-            goto RETURN;
+            return _parsedRowsCount > 0;
         }
 
         CheckPoint($"{nameof(_parser)} AFTER");
@@ -230,17 +230,54 @@ public sealed partial class SepReader : SepReaderState
             _parsingRowColCount = 0;
             _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
             _parsingRowCharsStartIndex = _charsDataEnd;
-            goto RETURN;
+            return _parsedRowsCount > 0;
         }
         if (_parsedRowsCount <= 0) { goto LOOP; }
-    RETURN:
         return _parsedRowsCount > 0;
     }
 
-    internal bool PrepareAndReadDataForNewRows()
+    // Only use if HasQuotes == false
+    internal int PrepareAndReadDataForNewRows()
     {
+        A.Assert(_parser is not null);
+        // Move lingering data to start in reader
         PrepareForNewRows();
-        return false;
+        CheckPoint($"{nameof(PrepareForNewRows)} AFTER");
+
+        // Fill buffer
+        var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
+        CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
+
+        // Check if any data or finish (could then avoid parallelization for
+        // that case - short file)
+        if (nothingLeftToRead && _charsDataStart == _charsDataEnd)
+        {
+            return 0;
+        }
+        // Find last new line (\r, \r\n, \n) by backtracking (must always have 1
+        // char after new line - guaranteed by Fill)
+        if (!nothingLeftToRead)
+        {
+            // TODO: Optimize! Vectorize!
+            var actualDataEnd = _charsDataEnd;
+            var start = _charsDataStart;
+            var lastRowEnd = actualDataEnd;
+            for (; lastRowEnd >= start; --lastRowEnd)
+            {
+                var c = _chars[lastRowEnd];
+                if (c == LineFeed || c == CarriageReturn)
+                {
+                    break;
+                }
+            }
+            // +1 for after new line
+            _charsDataEnd = lastRowEnd + 1;
+            return actualDataEnd;
+        }
+        else
+        {
+            return _charsDataEnd;
+        }
     }
 
     void PrepareForNewRows()

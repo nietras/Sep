@@ -22,7 +22,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="PublicApiGenerator" Version="11.1.0" />
-    <PackageReference Include="MSTest" Version="3.2.1" />
+    <PackageReference Include="MSTest" Version="3.2.2" />
   </ItemGroup>
 
 </Project>

@@ -13,7 +13,7 @@ static class PackageAssetsTestData
 {
     static readonly Uri PackageAssetsUrl = new("https://raw.githubusercontent.com/joelverhagen/NCsvPerf/main/NCsvPerf/TestData/PackageAssets.csv");
     const string PackageAssetsFileName = @"PackageAssets.csv";
-
+    const string DirectoryNameToFind = "artifacts";
     static readonly ConcurrentDictionary<bool, LineCache> _quotesOrNotToLineCache = new();
 
     internal static LineCache PackageAssets(bool quoteAroundSomeCols = false)
@@ -47,7 +47,7 @@ static class PackageAssetsTestData
         return packageAssetsFilePath;
     }
 
-    internal static string FindParentDirectory() => FindParentDirectory(typeof(PackageAssetsBench).Assembly.Location, "build");
+    internal static string FindParentDirectory() => FindParentDirectory(typeof(PackageAssetsBench).Assembly.Location, DirectoryNameToFind);
     internal static string FindParentDirectory(string currentDirectory, string directoryNameToFind)
     {
         var directory = currentDirectory;

@@ -13,9 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7DC8FFC9-A68
 	ProjectSection(SolutionItems) = preProject
 		src\Directory.Build.props = src\Directory.Build.props
 		src\Directory.Build.targets = src\Directory.Build.targets
-		src\OutputBuildProject.props = src\OutputBuildProject.props
-		src\OutputBuildProps.props = src\OutputBuildProps.props
-		src\OutputBuildTargets.props = src\OutputBuildTargets.props
 		src\SourceLink.GitHub.props = src\SourceLink.GitHub.props
 	EndProjectSection
 EndProject

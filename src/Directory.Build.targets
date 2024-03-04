@@ -1,6 +1,4 @@
 ﻿<Project>
-  <Import Project="$(MSBuildThisFileDirectory)\OutputBuildTargets.props" />
-  
   <Target Name="AfterMinVer" AfterTargets="MinVer">
     <PropertyGroup>
       <AssemblyVersion>$(MinVerMajor).$(MinVerMinor).0</AssemblyVersion>

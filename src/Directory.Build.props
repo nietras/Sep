@@ -1,10 +1,6 @@
 <Project>
 
   <PropertyGroup>
-    <!--<AssemblyVersion>0.2.0</AssemblyVersion>
-    <FileVersion>0.2.6</FileVersion>
-    <InformationalVersion>$(FileVersion)-preview.1</InformationalVersion>
-    <PackageVersion>$(InformationalVersion)</PackageVersion>-->
     <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
     <MinVerTagPrefix>v</MinVerTagPrefix>
     <MinVerVerbosity>minimal</MinVerVerbosity>
@@ -20,6 +16,9 @@
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
     <Nullable>enable</Nullable>
+
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../artifacts</ArtifactsPath>
 
     <PublishRelease>true</PublishRelease>
     <PackRelease>true</PackRelease>
@@ -48,8 +47,6 @@
       <_Parameter1>false</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-  
-  <Import Project="$(MSBuildThisFileDirectory)\OutputBuildProps.props" />
 
   <Import Project="$(MSBuildThisFileDirectory)\SourceLink.GitHub.props" />
 

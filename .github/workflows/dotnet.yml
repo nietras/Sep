@@ -96,7 +96,7 @@ jobs:
     - name: Pack nuget package
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - name: Get version of dll
-      run: (Get-Item ./build/bin/Sep/Release/net8.0/Sep.dll).VersionInfo.ProductVersion
+      run: (Get-Item ./artifacts/bin/Sep/release_net8.0/Sep.dll).VersionInfo.ProductVersion
     - uses: actions/upload-artifact@v3
       with:
         name: nuget

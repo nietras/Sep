@@ -15,8 +15,6 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="csFastFloat" Version="4.1.0" />
-    <!--https://github.com/simon-k/dotnet-code-coverage-badge-->
     <PackageReference Include="coverlet.collector" Version="6.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

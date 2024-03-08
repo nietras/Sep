@@ -84,7 +84,14 @@ static class SepThrow
     internal static void InvalidOperationException_NotAllColsSet(List<ColImpl> cols, string[] colNamesHeader)
     {
         // TODO: Make detailed exception
-        throw new InvalidOperationException($"Not all expected columns '{string.Join(",", colNamesHeader)}' have been set.");
+        if (colNamesHeader.Length == 0)
+        {
+            throw new InvalidOperationException($"Not all expected columns have been set.");
+        }
+        else
+        {
+            throw new InvalidOperationException($"Not all expected columns '{string.Join(",", colNamesHeader)}' have been set.");
+        }
     }
 
     [DoesNotReturn]

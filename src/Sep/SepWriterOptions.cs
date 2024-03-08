@@ -10,6 +10,7 @@ public readonly record struct SepWriterOptions
     {
         Sep = sep;
         CultureInfo = SepDefaults.CultureInfo;
+        WriteHeader = true;
     }
 
     /// <summary>
@@ -21,4 +22,11 @@ public readonly record struct SepWriterOptions
     /// May be `null` for default culture.
     /// </summary>
     public CultureInfo? CultureInfo { get; init; }
+    /// <summary>
+    /// Specifies whether to write a header row 
+    /// before data rows. Requires all columns 
+    /// to have a name. Otherwise, columns can be
+    /// added by indexing alone.
+    /// </summary>
+    public bool WriteHeader { get; init; } = true;
 }

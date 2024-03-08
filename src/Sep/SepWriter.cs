@@ -10,6 +10,7 @@ public partial class SepWriter : IDisposable
     const int DefaultCapacity = 16;
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
+    readonly bool _writeHeader;
     readonly TextWriter _writer;
     internal readonly List<(string ColName, int ColIndex)> _colNameCache = new(DefaultCapacity);
 
@@ -20,7 +21,7 @@ public partial class SepWriter : IDisposable
     internal string[] _colNamesHeader = Array.Empty<string>();
 
     internal readonly SepArrayPoolAccessIndexed _arrayPool = new();
-    bool _headerWritten = false;
+    bool _headerWrittenOrSkipped = false;
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
@@ -28,6 +29,7 @@ public partial class SepWriter : IDisposable
     {
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
+        _writeHeader = options.WriteHeader;
         _writer = writer;
     }
 
@@ -47,37 +49,43 @@ public partial class SepWriter : IDisposable
     {
         if (!_newRowActive) { SepThrow.InvalidOperationException_WriterDoesNotHaveActiveRow(); }
 
-        A.Assert(_colNameToCol.Count == _cols.Count);
+        A.Assert(!_writeHeader || _colNameToCol.Count == _cols.Count);
         var cols = _cols;
 
         // Header
-        if (!_headerWritten)
+        if (!_headerWrittenOrSkipped)
         {
-            A.Assert(_colNamesHeader.Length == 0);
-            if (cols.Count != _colNamesHeader.Length)
+            if (_writeHeader)
             {
-                _colNamesHeader = new string[cols.Count];
-            }
-            var notFirstHeader = false;
-            for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
-            {
-                var col = cols[colIndex];
-                A.Assert(colIndex == col.Index);
-
-                if (notFirstHeader)
+                A.Assert(_colNamesHeader.Length == 0);
+                if (cols.Count != _colNamesHeader.Length)
                 {
-                    _writer.Write(_sep.Separator);
+                    _colNamesHeader = new string[cols.Count];
                 }
-                var name = col.Name;
-                _writer.Write(name);
-                _colNamesHeader[colIndex] = name;
-                notFirstHeader = true;
+                var notFirstHeader = false;
+                for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
+                {
+                    var col = cols[colIndex];
+                    A.Assert(colIndex == col.Index);
+
+                    if (notFirstHeader)
+                    {
+                        _writer.Write(_sep.Separator);
+                    }
+                    var name = col.Name;
+                    _writer.Write(name);
+                    _colNamesHeader[colIndex] = name;
+                    notFirstHeader = true;
+                }
+                _writer.WriteLine();
             }
-            _writer.WriteLine();
-            _headerWritten = true;
+            _headerWrittenOrSkipped = true;
         }
         else
         {
+            // Note this prevents writing different number of cols (or less cols
+            // than previous row) in case of no header written. Revisit this if
+            // variable cols count is needed.
             for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
             {
                 var col = cols[colIndex];
@@ -86,7 +94,7 @@ public partial class SepWriter : IDisposable
                     SepThrow.InvalidOperationException_NotAllColsSet(cols, _colNamesHeader);
                 }
             }
-            A.Assert(cols.Count == _colNamesHeader.Length);
+            A.Assert(!_writeHeader || cols.Count == _colNamesHeader.Length);
         }
 
         // New Row

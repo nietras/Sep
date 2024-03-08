@@ -715,6 +715,13 @@ public Sep Sep { get; init; }
 /// May be `null` for default culture.
 /// </summary>
 public CultureInfo? CultureInfo { get; init; }
+/// <summary>
+/// Specifies whether to write a header row 
+/// before data rows. Requires all columns 
+/// to have a name. Otherwise, columns can be
+/// added by indexing alone.
+/// </summary>
+public bool WriteHeader { get; init; } = true;
 ```
 
 ## Limitations and Constraints
@@ -1754,6 +1761,7 @@ namespace nietras.SeparatedValues
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public nietras.SeparatedValues.Sep Sep { get; init; }
+        public bool WriteHeader { get; init; }
     }
 }
 ```

@@ -226,6 +226,80 @@ public class SepWriterTest
         File.Delete(fileName);
     }
 
+    [TestMethod]
+    public void SepWriterTest_WriteHeader_False()
+    {
+        using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("1");
+            row[1].Format(2);
+            row[2].Set($"{2 * 17}");
+        }
+        {
+            using var row = writer.NewRow();
+            // Order of cols is not important after first row written
+            row[2].Set("65");
+            row[1].Format(3);
+            row["A"].Set($"{23,3}");
+        }
+        var expected =
+@"1;2;34
+ 23;3;65
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_WriteHeader_False_UnknownColName()
+    {
+        using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("1");
+            row[1].Format(2);
+            row[2].Set($"{2 * 17}");
+        }
+        {
+            using var row = writer.NewRow();
+            row[2].Set("65");
+            row[1].Format(3);
+            row["A"].Set($"{23,3}");
+
+            var e = AssertThrowsException<KeyNotFoundException>(row,
+                r => { r["B"].Set("Test"); });
+            Assert.AreEqual("B", e.Message);
+        }
+        var expected =
+@"1;2;34
+ 23;3;65
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_WriteHeader_False_ColMissingInSecondRow()
+    {
+        using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
+        {
+            using var row1 = writer.NewRow();
+            row1[0].Set("A");
+            row1[1].Set("B");
+        }
+        {
+            var row2 = writer.NewRow();
+            row2[1].Set("Y");
+            var e = AssertThrowsException<InvalidOperationException>(row2,
+                r => { r.Dispose(); });
+            Assert.AreEqual("Not all expected columns have been set.", e.Message);
+        }
+        // Expected output should only be valid rows
+        var expected =
+@"A;B
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static SepWriter CreateWriter() =>
         Sep.New(';').Writer().ToText();
 

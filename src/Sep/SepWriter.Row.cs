@@ -86,12 +86,12 @@ public partial class SepWriter
     internal ColImpl GetOrAddCol(int colIndex)
     {
         var cols = _cols;
-        //if (colIndex == sbs.Count)
-        //{
-        //    // TODO: Add without name if WriteHeader false
-        //}
-        var c = cols[colIndex];
-        return c;
+        if (colIndex == cols.Count && !_writeHeader)
+        {
+            var col = new ColImpl(this, colIndex, string.Empty, SepStringBuilderPool.Take());
+            _cols.Add(col);
+        }
+        return cols[colIndex];
     }
 
     internal ColImpl GetOrAddCol(string colName)
@@ -109,7 +109,7 @@ public partial class SepWriter
 
         if (!_colNameToCol.TryGetValue(colName, out var col))
         {
-            if (!_headerWritten)
+            if (!_headerWrittenOrSkipped)
             {
                 var colIndex = _colNameToCol.Count;
                 col = new ColImpl(this, colIndex, colName, SepStringBuilderPool.Take());

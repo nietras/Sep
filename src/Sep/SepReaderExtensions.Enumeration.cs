@@ -52,12 +52,29 @@ public static partial class SepReaderExtensions
         return ParallelEnumerateAsParallel(reader, trySelect);
     }
 
-    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowFunc<T> select)
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select, int degreeOfParallism)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(select);
+        if (!reader.HasRows) { return Array.Empty<T>(); }
+        return ParallelEnumerateAsParallel(reader, select, p => p.WithDegreeOfParallelism(degreeOfParallism));
+    }
+
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect, int degreeOfParallism)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(trySelect);
+        if (!reader.HasRows) { return Array.Empty<T>(); }
+        return ParallelEnumerateAsParallel(reader, trySelect, p => p.WithDegreeOfParallelism(degreeOfParallism));
+    }
+
+    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowFunc<T> select,
+        Func<ParallelQuery<SepReaderState>, ParallelQuery<SepReaderState>>? modifyParallelQuery = null)
     {
         var statesStack = new ConcurrentStack<SepReaderState>();
         try
         {
-            var parallelStates = EnumerateStatesParallel(reader, statesStack);
+            var parallelStates = EnumerateStatesParallel(reader, statesStack, modifyParallelQuery);
             var batches = parallelStates.Select(PooledSelect);
             foreach (var batch in batches)
             {
@@ -91,12 +108,13 @@ public static partial class SepReaderExtensions
         }
     }
 
-    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
+    static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect,
+        Func<ParallelQuery<SepReaderState>, ParallelQuery<SepReaderState>>? modifyParallelQuery = null)
     {
         var statesStack = new ConcurrentStack<SepReaderState>();
         try
         {
-            var parallelStates = EnumerateStatesParallel(reader, statesStack);
+            var parallelStates = EnumerateStatesParallel(reader, statesStack, modifyParallelQuery);
             var batches = parallelStates.Select(PooledSelect);
             foreach (var batch in batches)
             {
@@ -132,10 +150,15 @@ public static partial class SepReaderExtensions
             return (array, index);
         }
     }
-    static ParallelQuery<SepReaderState> EnumerateStatesParallel(SepReader reader, ConcurrentStack<SepReaderState> statesStack)
+
+    static ParallelQuery<SepReaderState> EnumerateStatesParallel(SepReader reader,
+        ConcurrentStack<SepReaderState> statesStack,
+        Func<ParallelQuery<SepReaderState>, ParallelQuery<SepReaderState>>? modifyParallelQuery = null)
     {
         var states = EnumerateStates(reader, statesStack);
-        return states.AsParallel().AsOrdered();
+        // For now always force ordered
+        var statesParallel = states.AsParallel().AsOrdered();
+        return modifyParallelQuery is null ? statesParallel : modifyParallelQuery(statesParallel);
     }
 
     static IEnumerable<SepReaderState> EnumerateStates(SepReader reader, ConcurrentStack<SepReaderState> states)

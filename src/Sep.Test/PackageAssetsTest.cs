@@ -91,6 +91,18 @@ public class PackageAssetsTest
 
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_NoQuotes_DegreeOfParallism(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_WithQuotes(SepCreateToString createToString)
     {
 #if SEPREADERTRACE
@@ -111,6 +123,18 @@ public class PackageAssetsTest
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
 #endif
         VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_NoQuotes_DegreeOfParallism(SepCreateToString createToString)
+    {
+#if SEPREADERTRACE
+        var text = NoQuotes;
+#else
+        var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
+#endif
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
     }
 
     [DataTestMethod]

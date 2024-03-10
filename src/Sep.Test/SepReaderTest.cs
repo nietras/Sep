@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -444,24 +445,51 @@ public class SepReaderTest
     [TestMethod]
     public void SepReaderTest_ColsInitialLength()
     {
-        var initialColCountCapacity = SepReader.ColEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
-        var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
+        var colCount = SepReader.ColEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
+        var text = "A" + Environment.NewLine + new string(';', colCount - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        Assert.AreEqual(initialColCountCapacity, row.ColCount);
+        Assert.AreEqual(colCount, row.ColCount);
     }
 
     [TestMethod]
     public void SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
-        var initialColCountCapacity = SepReader.ColEndsInitialLength;
-        var text = "A" + Environment.NewLine + new string(';', initialColCountCapacity - 1);
+        var colCount = SepReader.ColEndsInitialLength;
+        var text = "A" + Environment.NewLine + new string(';', colCount - 1);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        Assert.AreEqual(initialColCountCapacity, row.ColCount);
-        Assert.AreEqual(initialColCountCapacity * 2, reader._colEndsOrColInfos.Length);
+        Assert.AreEqual(colCount, row.ColCount);
+        Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
+    {
+        // At any time during parsing there may be an incomplete row e.g. a
+        // parsing row, when then new rows are about to be parsed e.g. in
+        // ParseNewRows(). The col ends/infos for that row need to be copied to
+        // beginning before new rows are found. At any time these col infos
+        // should never exceed the end of the array of col infos. However, a bug
+        // was present <= 0.4.3 as reported in issue #108
+        // https://github.com/nietras/Sep/issues/108 where this was the case and
+        // an `ArgumentOutOfRangeException` would occur on the slicing that
+        // happens when these col infos are to be copied to beginning. This test
+        // triggers that issue.
+        var colCounts = Enumerable.Range(SepReader.ColEndsInitialLength - 1, 1);
+        var charsLength = (int)BitOperations.RoundUpToPowerOf2(SepReader.CharsMinimumLength);
+        foreach (var colCount in colCounts)
+        {
+            var text = new string('A', Math.Max(1, charsLength - colCount + 1))
+                + new string(';', colCount - 1) + Environment.NewLine
+                + new string(';', colCount * 2);
+            using var reader = Sep
+                .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
+                .FromText(text);
+            while (reader.MoveNext()) { }
+        }
     }
 
 #if !SEPREADERTRACE // Causes OOMs in Debug due to tracing

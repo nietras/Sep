@@ -80,7 +80,9 @@ sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParser
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
         ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
-        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosLength - VecUI8.Count);
+        ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
+        var colInfosStopLength = colInfosLength - VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount;
+        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
         charsIndex -= VecUI8.Count;
     LOOPSTEP:
@@ -88,7 +90,7 @@ sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParser
     LOOPNOSTEP:
         if (charsIndex < charsEnd &&
             // If current is greater than or equal than "stop", then there is no
-            // longer guaranteed space enough for next VecUI8.Count.
+            // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
@@ -156,6 +158,7 @@ sealed class SepParserSse2PackCmpOrMoveMaskTzcnt : ISepParser
             ++s._parsedRowsCount;
             // Next row start (one before)
             colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
+            A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
             colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
             // Update for next row
             colInfosRef = ref colInfosRefCurrent;

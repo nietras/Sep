@@ -29,7 +29,7 @@
     <RepositoryType>git</RepositoryType>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
 
   </PropertyGroup>
 

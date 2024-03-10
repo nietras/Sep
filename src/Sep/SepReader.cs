@@ -325,7 +325,7 @@ public sealed partial class SepReader : SepReaderState
         {
             if (nothingLeftToRead)
             {
-                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= (GetColInfosLength() - ColEndsOrInfosExtraEndCount))
+                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= GetColInfosLength())
                 {
                     DoubleColInfosCapacityCopyState();
                 }

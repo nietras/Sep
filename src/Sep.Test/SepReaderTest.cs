@@ -466,7 +466,7 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_ColInfosLength_ParsingRowColCounts_ArgumentOutOfRangeException_Issue_108()
+    public void SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
     {
         // At any time during parsing there may be an incomplete row e.g. a
         // parsing row, when then new rows are about to be parsed e.g. in

@@ -476,7 +476,8 @@ public class SepReaderTest
         // was present <= 0.4.3 as reported in issue #108
         // https://github.com/nietras/Sep/issues/108 where this was the case and
         // a `ArgumentOutOfRangeException` would occur on the slicing that
-        // happens when these col infos are to be copied to beginning.
+        // happens when these col infos are to be copied to beginning. This test
+        // tries triggers that issue.
         var colCounts = Enumerable.Range(1, SepReader.ColEndsInitialLength * 2);
         var charsLength = (int)BitOperations.RoundUpToPowerOf2(SepReader.CharsMinimumLength);
         foreach (var colCount in colCounts)

@@ -191,6 +191,8 @@ public sealed partial class SepReader : SepReaderState
         _currentRowColCount = -1;
         _currentRowColEndsOrInfosOffset = 0;
 
+        CheckPoint($"{nameof(ParseNewRows)} BEGINNING");
+
         // Move data to start
         if (_parsingRowCharsStartIndex > 0)
         {
@@ -201,7 +203,7 @@ public sealed partial class SepReader : SepReaderState
             A.Assert(_charsParseStart >= offset);
             _charsParseStart -= offset;
 
-            //A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
+            A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
 
             // Adjust found current row col infos, note includes col count since +1
             if (_colUnquoteUnescape == 0)
@@ -447,7 +449,7 @@ public sealed partial class SepReader : SepReaderState
     }
 
     [ExcludeFromCodeCoverage]
-    [Conditional(TraceCondition), Conditional("SEPREADERCHECKPOINT")]
+    [Conditional(TraceCondition), Conditional(AssertCondition)]
     void CheckPoint(string name, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
     {
         TraceState(name, filePath, lineNumber);
@@ -491,12 +493,13 @@ public sealed partial class SepReader : SepReaderState
         A.Assert(0 <= _charsDataEnd && _charsDataEnd <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(_charsDataStart <= _charsDataEnd, $"{name}", filePath, lineNumber);
         A.Assert(_charsDataStart <= _parsingRowCharsStartIndex && _parsingRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
+        A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
 
         if (_colUnquoteUnescape == 0)
         {
             var colEnds = GetColsEntireSpanAs<int>();
             A.Assert(colEnds.Length > 0, $"{name}", filePath, lineNumber);
-            A.Assert(0 <= _currentRowColCount && _currentRowColCount <= colEnds.Length, $"{name}", filePath, lineNumber);
+            A.Assert(-1 <= _currentRowColCount && _currentRowColCount <= colEnds.Length, $"{name}", filePath, lineNumber);
             for (var i = 0; i < _currentRowColCount; i++)
             {
                 var colEnd = colEnds[i];
@@ -509,7 +512,7 @@ public sealed partial class SepReader : SepReaderState
         {
             var colInfos = GetColsEntireSpanAs<SepColInfo>();
             A.Assert(colInfos.Length > 0, $"{name}", filePath, lineNumber);
-            A.Assert(0 <= _currentRowColCount && _currentRowColCount <= colInfos.Length, $"{name}", filePath, lineNumber);
+            A.Assert(-1 <= _currentRowColCount && _currentRowColCount <= colInfos.Length, $"{name}", filePath, lineNumber);
             for (var i = 0; i < _currentRowColCount; i++)
             {
                 var (colEnd, _) = colInfos[i];

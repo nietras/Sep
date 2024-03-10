@@ -475,7 +475,7 @@ public class SepReaderTest
         // should never exceed the end of the array of col infos. However, a bug
         // was present <= 0.4.3 as reported in issue #108
         // https://github.com/nietras/Sep/issues/108 where this was the case and
-        // a `ArgumentOutOfRangeException` would occur on the slicing that
+        // an `ArgumentOutOfRangeException` would occur on the slicing that
         // happens when these col infos are to be copied to beginning. This test
         // tries triggers that issue.
         var colCounts = Enumerable.Range(SepReader.ColEndsInitialLength - 1, 1);

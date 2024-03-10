@@ -41,6 +41,8 @@ public class SepReaderState : IDisposable
 #else
     internal const int ColEndsInitialLength = 8 * 1024;
 #endif
+    // 1 for first col end and since pre-increment, 1 for next row start
+    internal const int ColEndsOrInfosExtraEndCount = 2;
     // Multiple rows of format
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1..ColCount] = Col ends/infos e.g. [1] = first col end/info

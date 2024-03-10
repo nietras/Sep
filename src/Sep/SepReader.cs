@@ -314,26 +314,33 @@ public sealed partial class SepReader : SepReaderState
             CheckPoint($"{nameof(TryDetectSeparatorInitializeParser)} AFTER");
         }
 
-        if (_parser != null && _charsParseStart < _charsDataEnd)
-        {
-            if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= (GetColInfosLength() - _parser.PaddingLength))
-            {
-                DoubleColInfosCapacityCopyState();
-            }
-        }
-        else
+        if (_parser == null || _charsParseStart >= _charsDataEnd)
         {
             if (nothingLeftToRead)
             {
-                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= GetColInfosLength())
-                {
-                    DoubleColInfosCapacityCopyState();
-                }
+                // Make sure room for any col at end of file
+                CheckColInfosCapacityMaybeDouble(paddingLength: 0);
                 // If nothing has been read, then at end of file.
                 endOfFile = true;
             }
         }
+        else
+        {
+            CheckColInfosCapacityMaybeDouble(_parser.PaddingLength);
+        }
         return endOfFile;
+    }
+
+    void CheckColInfosCapacityMaybeDouble(int paddingLength)
+    {
+        // Potential end is current parsing end plus maximum col infos for next parse loop
+        var parsingRowColInfosEnd = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
+        var colInfosPotentialEnd = parsingRowColInfosEnd + paddingLength + ColEndsOrInfosExtraEndCount;
+        var colInfosLength = GetColInfosLength();
+        if (colInfosLength < colInfosPotentialEnd)
+        {
+            DoubleColInfosCapacityCopyState();
+        }
     }
 
     void DoubleColInfosCapacityCopyState()

@@ -201,6 +201,8 @@ public sealed partial class SepReader : SepReaderState
             A.Assert(_charsParseStart >= offset);
             _charsParseStart -= offset;
 
+            //A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
+
             // Adjust found current row col infos, note includes col count since +1
             if (_colUnquoteUnescape == 0)
             {
@@ -226,8 +228,9 @@ public sealed partial class SepReader : SepReaderState
             var intsPerColInfo = GetIntegersPerColInfo();
             var colInfosSpan = _colEndsOrColInfos.AsSpan();
             var length = (_parsingRowColCount + 1) * intsPerColInfo;
-            colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length)
-                .CopyTo(colInfosSpan.Slice(0, length));
+            var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length);
+            var destination = colInfosSpan.Slice(0, length);
+            source.CopyTo(destination);
             _parsingRowColEndsOrInfosStartIndex = 0;
         }
 

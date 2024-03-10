@@ -316,8 +316,7 @@ public sealed partial class SepReader : SepReaderState
 
         if (_parser != null && _charsParseStart < _charsDataEnd)
         {
-            // + 1 - must be room for one more col always
-            if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) >= (GetColInfosLength() - _parser.PaddingLength - ColEndsOrInfosExtraEndCount))
+            if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= (GetColInfosLength() - _parser.PaddingLength))
             {
                 DoubleColInfosCapacityCopyState();
             }
@@ -326,8 +325,7 @@ public sealed partial class SepReader : SepReaderState
         {
             if (nothingLeftToRead)
             {
-                // + 1 - must be room for one more col always
-                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) >= (GetColInfosLength() - ColEndsOrInfosExtraEndCount))
+                if ((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + ColEndsOrInfosExtraEndCount) >= (GetColInfosLength() - ColEndsOrInfosExtraEndCount))
                 {
                     DoubleColInfosCapacityCopyState();
                 }

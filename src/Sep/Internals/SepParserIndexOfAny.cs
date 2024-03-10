@@ -65,7 +65,9 @@ sealed class SepParserIndexOfAny : ISepParser
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
         ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
-        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosLength - 3);
+        ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
+        var colInfosStopLength = colInfosLength - 3 - SepReaderState.ColEndsOrInfosExtraEndCount;
+        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
         var span = chars.AsSpan(0, charsEnd);
         var specialCharsSpan = _specialChars.AsSpan();
@@ -96,6 +98,7 @@ sealed class SepParserIndexOfAny : ISepParser
                     ++s._parsedRowsCount;
                     // Next row start (one before)
                     colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
+                    A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
                     colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
                     // Update for next row
                     colInfosRef = ref colInfosRefCurrent;

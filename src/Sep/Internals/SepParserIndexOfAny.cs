@@ -18,7 +18,7 @@ sealed class SepParserIndexOfAny : ISepParser
         _specialChars = new[] { sep.Separator, CarriageReturn, LineFeed, Quote };
     }
 
-    public int PaddingLength => 0;
+    public int PaddingLength => 4;
     public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
@@ -71,7 +71,8 @@ sealed class SepParserIndexOfAny : ISepParser
 
         var span = chars.AsSpan(0, charsEnd);
         var specialCharsSpan = _specialChars.AsSpan();
-        while ((uint)charsIndex < (uint)charsEnd)
+        while ((uint)charsIndex < (uint)charsEnd &&
+               !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
             // https://github.com/dotnet/runtime/blob/942ce9af6e4858b74cc3a1429e9a64065ffb207a/src/libraries/System.Private.CoreLib/src/System/SpanHelpers.T.cs#L1926-L2045
             var relativeIndex = span.Slice(charsIndex).IndexOfAny(specialCharsSpan);
@@ -109,12 +110,6 @@ sealed class SepParserIndexOfAny : ISepParser
                     {
                         break;
                     }
-                }
-                // If current is greater than or equal than "stop", then break.
-                // There is no longer guaranteed space enough for next.
-                if (IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
-                {
-                    break;
                 }
             }
             else

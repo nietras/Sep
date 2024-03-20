@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace nietras.SeparatedValues;
@@ -10,6 +11,7 @@ public static class SepDefaults
 
     public static char Separator => _separator;
     public static CultureInfo CultureInfo { get; } = CultureInfo.InvariantCulture;
+    public static StringComparer ColNameComparer { get; } = StringComparer.Ordinal;
 
     internal static IReadOnlyList<char> AutoDetectSeparators { get; } =
         new[] { Separator, '\t', '|', ',' };

@@ -192,6 +192,45 @@ public class SepReaderTest
     }
 
     [TestMethod]
+    public void SepReaderTest_ColNameComparer_Default()
+    {
+        var text = $"""
+                    Aa;Bb
+                    10;11
+                    """;
+
+        using var reader = Sep.Reader().FromText(text);
+        var header = reader.Header;
+        reader.MoveNext();
+
+        Assert.AreEqual(0, header.IndexOf("Aa"));
+        Assert.ThrowsException<KeyNotFoundException>(() => header.IndexOf("aa"));
+        Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
+        Assert.ThrowsException<KeyNotFoundException>(() => reader.Current["aa"].ToString());
+    }
+
+    [TestMethod]
+    public void SepReaderTest_ColNameComparer_OrdinalIgnoreCase()
+    {
+        var text = $"""
+                    Aa;Bb
+                    10;11
+                    """;
+
+        using var reader = Sep.Reader(o => o with
+        { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text);
+        var header = reader.Header;
+        reader.MoveNext();
+
+        Assert.AreEqual(0, header.IndexOf("Aa"));
+        Assert.AreEqual(0, header.IndexOf("aA"));
+        Assert.ThrowsException<KeyNotFoundException>(() => header.IndexOf("X"));
+        Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
+        Assert.AreEqual(10, reader.Current["aA"].Parse<int>());
+        Assert.ThrowsException<KeyNotFoundException>(() => reader.Current["X"].ToString());
+    }
+
+    [TestMethod]
     public void SepReaderTest_Info_Ctor()
     {
         var info = new SepReader.Info("A", I => "B");

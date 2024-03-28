@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -13,6 +14,7 @@ public class SepReaderOptionsTest
 
         Assert.AreEqual(null, sut.Sep);
         Assert.AreSame(CultureInfo.InvariantCulture, sut.CultureInfo);
+        Assert.AreSame(StringComparer.Ordinal, sut.ColNameComparer);
         Assert.IsTrue(sut.HasHeader);
         Assert.AreSame(SepToString.Direct, sut.CreateToString);
         Assert.IsFalse(sut.DisableFastFloat);
@@ -26,6 +28,7 @@ public class SepReaderOptionsTest
         {
             Sep = new(','),
             CultureInfo = CultureInfo.CreateSpecificCulture("da-Dk"),
+            ColNameComparer = StringComparer.OrdinalIgnoreCase,
             HasHeader = false,
             CreateToString = SepToString.OnePool(),
             DisableFastFloat = true,
@@ -34,6 +37,7 @@ public class SepReaderOptionsTest
 
         Assert.AreEqual(new Sep(','), sut.Sep);
         Assert.AreNotSame(CultureInfo.InvariantCulture, sut.CultureInfo);
+        Assert.AreNotSame(StringComparer.Ordinal, sut.ColNameComparer);
         Assert.IsFalse(sut.HasHeader);
         Assert.AreNotSame(SepToString.Direct, sut.CreateToString);
         Assert.IsTrue(sut.DisableFastFloat);

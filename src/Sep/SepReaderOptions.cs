@@ -34,7 +34,7 @@ public readonly record struct SepReaderOptions
     public bool HasHeader { get; init; } = true;
     /// <summary>
     /// Specifies <see cref="IEqualityComparer{T}" /> to use 
-    /// for comparing header column names and index look up.
+    /// for comparing header column names and looking up index.
     /// </summary>
     public IEqualityComparer<string> ColNameComparer { get; init; } = SepDefaults.ColNameComparer;
     /// <summary>

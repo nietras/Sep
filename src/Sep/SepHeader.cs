@@ -19,10 +19,13 @@ public sealed class SepHeader
 
     public static SepHeader Empty { get; } = new(string.Empty, new Dictionary<string, int>());
 
-    internal static SepHeader Parse(Sep sep, string line)
+    internal static SepHeader Parse(Sep sep, string line) =>
+        Parse(sep, line, SepDefaults.ColNameComparer);
+
+    internal static SepHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
     {
         var colNames = sep.Split(line);
-        var colNameToIndex = new Dictionary<string, int>(colNames.Length);
+        var colNameToIndex = new Dictionary<string, int>(colNames.Length, comparer);
         for (var i = 0; i < colNames.Length; i++)
         {
             var colName = colNames[i];

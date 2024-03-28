@@ -279,6 +279,11 @@ public CultureInfo? CultureInfo { get; init; } = SepDefaults.CultureInfo;
 /// </summary>
 public bool HasHeader { get; init; } = true;
 /// <summary>
+/// Specifies <see cref="IEqualityComparer{T}" /> to use 
+/// for comparing header column names and index look up.
+/// </summary>
+public IEqualityComparer<string> ColNameComparer { get; init; } = SepDefaults.ColNameComparer;
+/// <summary>
 /// Specifies the method factory used to convert a column span 
 /// of `char`s to a `string`.
 /// </summary>
@@ -1500,6 +1505,7 @@ namespace nietras.SeparatedValues
     public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepHeader? maybeHeader, int colCount);
     public static class SepDefaults
     {
+        public static System.StringComparer ColNameComparer { get; }
         public static System.Globalization.CultureInfo CultureInfo { get; }
         public static char Separator { get; }
     }
@@ -1627,6 +1633,7 @@ namespace nietras.SeparatedValues
     {
         public SepReaderOptions() { }
         public SepReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public System.Collections.Generic.IEqualityComparer<string> ColNameComparer { get; init; }
         public nietras.SeparatedValues.SepCreateToString CreateToString { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public bool DisableColCountCheck { get; init; }

@@ -111,7 +111,7 @@ public sealed partial class SepReader : SepReaderState
             _colCountExpected = firstRowColCount;
             if (options.HasHeader)
             {
-                var colNameToIndex = new Dictionary<string, int>(firstRowColCount);
+                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, options.ColNameComparer);
                 for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
                 {
                     var colName = ToStringDirect(colIndex);

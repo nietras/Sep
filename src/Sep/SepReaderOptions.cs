@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Generic;
+using System.Globalization;
 
 namespace nietras.SeparatedValues;
 
@@ -11,6 +12,7 @@ public readonly record struct SepReaderOptions
         Sep = sep;
         CultureInfo = SepDefaults.CultureInfo;
         HasHeader = true;
+        ColNameComparer = SepDefaults.ColNameComparer;
         CreateToString = SepToString.Direct;
         DisableFastFloat = false;
         DisableColCountCheck = false;
@@ -30,6 +32,11 @@ public readonly record struct SepReaderOptions
     /// Indicates whether the first row is a header row.
     /// </summary>
     public bool HasHeader { get; init; } = true;
+    /// <summary>
+    /// Specifies <see cref="IEqualityComparer{T}" /> to use 
+    /// for comparing header column names and looking up index.
+    /// </summary>
+    public IEqualityComparer<string> ColNameComparer { get; init; } = SepDefaults.ColNameComparer;
     /// <summary>
     /// Specifies the method factory used to convert a column span 
     /// of `char`s to a `string`.

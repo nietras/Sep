@@ -20,7 +20,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserVector256NrwCmpExtMsbTzcnt(Sep sep)
+    public unsafe SepParserVector256NrwCmpExtMsbTzcnt(SepParserConfig sep)
     {
         _separator = sep.Separator;
         _sps = Vec.Create((byte)_separator);

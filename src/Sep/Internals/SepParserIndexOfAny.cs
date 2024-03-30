@@ -12,7 +12,7 @@ sealed class SepParserIndexOfAny : ISepParser
     readonly char[] _specialChars;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserIndexOfAny(Sep sep)
+    public unsafe SepParserIndexOfAny(SepParserConfig sep)
     {
         _separator = sep.Separator;
         _specialChars = new[] { sep.Separator, CarriageReturn, LineFeed, Quote };

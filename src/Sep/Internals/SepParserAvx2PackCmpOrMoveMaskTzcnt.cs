@@ -21,7 +21,7 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
+    public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(SepParserConfig sep)
     {
         _separator = sep.Separator;
         _sps = Vec.Create((byte)_separator);

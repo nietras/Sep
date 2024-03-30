@@ -36,7 +36,7 @@ public class SepParserBench
     {
 #pragma warning disable CA1307 // Specify StringComparison for clarity
         _parsers = SepParserFactory.AcceleratedFactories.Select(p =>
-            new ParserSpec(p.Key.Replace("SepParser", "").Replace("SepParserVector", ""), p.Value)).ToArray();
+            new ParserSpec(p.Key.Replace("SepParser", "").Replace("SepParserVector", ""), sep => p.Value(new(sep)))).ToArray();
 #pragma warning restore CA1307 // Specify StringComparison for clarity
         _parserPaddingLengthMax = Math.Max(_parserPaddingLengthMax,
             _parsers.Select(p => ((ISepParser)p.CreateParser(Sep.Default)).PaddingLength).Max());

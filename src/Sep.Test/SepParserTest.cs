@@ -32,12 +32,12 @@ public class SepParserTest
     }
 
     static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
-        .Select(f => new object[] { f.Value(Sep.Default) });
+        .Select(f => new object[] { f.Value(new(Sep.Default)) });
 
     [TestMethod]
     public void SepParserTest_CreateBest()
     {
-        var best = SepParserFactory.CreateBest(Sep.Default);
+        var best = SepParserFactory.CreateBest(new(Sep.Default));
         Assert.IsNotNull(best);
 
         var forceParserName = SepParserFactory.GetForceParserName();

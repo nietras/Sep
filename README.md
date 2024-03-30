@@ -280,7 +280,7 @@ public CultureInfo? CultureInfo { get; init; } = SepDefaults.CultureInfo;
 public bool HasHeader { get; init; } = true;
 /// <summary>
 /// Specifies <see cref="IEqualityComparer{T}" /> to use 
-/// for comparing header column names and index look up.
+/// for comparing header column names and looking up index.
 /// </summary>
 public IEqualityComparer<string> ColNameComparer { get; init; } = SepDefaults.ColNameComparer;
 /// <summary>
@@ -297,6 +297,10 @@ public bool DisableFastFloat { get; init; } = false;
 /// Disables checking if column count is the same for all rows.
 /// </summary>
 public bool DisableColCountCheck { get; init; } = false;
+/// <summary>
+/// Disables detecting and parsing quotes.
+/// </summary>
+public bool DisableQuotesParsing { get; init; } = false;
 /// <summary>
 /// Unescape quotes on column access.
 /// </summary>
@@ -1638,6 +1642,7 @@ namespace nietras.SeparatedValues
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public bool DisableColCountCheck { get; init; }
         public bool DisableFastFloat { get; init; }
+        public bool DisableQuotesParsing { get; init; }
         public bool HasHeader { get; init; }
         public nietras.SeparatedValues.Sep? Sep { get; init; }
         public bool Unescape { get; init; }

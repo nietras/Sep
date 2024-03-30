@@ -55,9 +55,16 @@ public class SepReaderDetectSepTest
         AssertDetectSep("a,b,c,d;e;f\n", endOfFile: false, new(','));
     }
 
-    static void AssertDetectSep(ReadOnlySpan<char> chars, bool endOfFile, Sep? expected)
+    [TestMethod]
+    public void SepReaderDetectSepTest_DetectSep_DisableQuotesParsing()
     {
-        var actual = SepReaderExtensions.DetectSep(chars, endOfFile);
+        AssertDetectSep("\"a,b,c,d,e\"\n", endOfFile: false, Sep.New(';'), disableQuotesParsing: false);
+        AssertDetectSep("\"a,b,c,d,e\"\n", endOfFile: false, Sep.New(','), disableQuotesParsing: true);
+    }
+
+    static void AssertDetectSep(ReadOnlySpan<char> chars, bool endOfFile, Sep? expected, bool disableQuotesParsing = false)
+    {
+        var actual = SepReaderExtensions.DetectSep(chars, endOfFile, disableQuotesParsing);
         Assert.AreEqual(expected, actual);
     }
 }

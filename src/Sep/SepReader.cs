@@ -444,7 +444,7 @@ public sealed partial class SepReader : SepReaderState
     {
         // Detect separator if no parser defined
         var validChars = _chars.AsSpan(_charsDataStart.._charsDataEnd);
-        var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead);
+        var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead, _disableQuotesParsing);
         if (maybeSep.HasValue)
         {
             var sep = maybeSep.Value;

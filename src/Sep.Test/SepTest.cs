@@ -9,7 +9,7 @@ namespace nietras.SeparatedValues.Test;
 public class SepTest
 {
     readonly IReadOnlyList<char> _supportedSeparators = SepDefaults
-        .AutoDetectSeparators.Concat(new char[] { ' ', '~' }).ToArray();
+        .AutoDetectSeparators.Concat([' ', '~']).ToArray();
 
     [TestMethod]
     public void SepTest_Ctor_Empty()

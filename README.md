@@ -544,7 +544,7 @@ var expected = new (string Key, double Value)[] {
 using var reader = Sep.Reader().FromText(text);
 var actual = reader.Enumerate(
     row => (row["Key"].ToString(), row["Value"].Parse<double>()))
-    .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
+    .Where(kv => kv.Item1.StartsWith('B'))
     .ToArray();
 
 CollectionAssert.AreEqual(expected, actual);
@@ -1490,7 +1490,7 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Benchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v7.0", FrameworkDisplayName=".NET 7.0")]
 namespace nietras.SeparatedValues
 {
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>

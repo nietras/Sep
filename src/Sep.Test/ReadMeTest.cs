@@ -161,7 +161,7 @@ public class ReadMeTest
         using var reader = Sep.Reader().FromText(text);
         var actual = reader.Enumerate(
             row => (row["Key"].ToString(), row["Value"].Parse<double>()))
-            .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
+            .Where(kv => kv.Item1.StartsWith('B'))
             .ToArray();
 
         CollectionAssert.AreEqual(expected, actual);

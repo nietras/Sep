@@ -39,11 +39,11 @@ public abstract class PackageAssetsBench
 
     [ParamsSource(nameof(ScopeParams))] // Attributes for params is challenging 👇
     public string Scope { get; set; }
-    public IEnumerable<string> ScopeParams() => new[] { Scope };
+    public IEnumerable<string> ScopeParams() => [Scope];
 
     [ParamsSource(nameof(QuotesParams))] // Attributes for params is challenging 👇
     public bool Quotes { get; set; }
-    public IEnumerable<bool> QuotesParams() => new[] { Quotes };
+    public IEnumerable<bool> QuotesParams() => [Quotes];
 
     [ParamsSource(nameof(Readers))]
     public ReaderSpec Reader { get; set; }
@@ -51,7 +51,7 @@ public abstract class PackageAssetsBench
 
     [ParamsSource(nameof(RowsParams))] // Attributes for params is challenging 👇
     public int Rows { get; set; }
-    public IEnumerable<int> RowsParams() => new[] { Rows };
+    public IEnumerable<int> RowsParams() => [Rows];
 }
 
 public class QuotesRowPackageAssetsBench : RowPackageAssetsBench

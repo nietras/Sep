@@ -31,4 +31,17 @@ public class SepParserOptionsTest
         Assert.AreEqual(';', sut.Separator);
         Assert.AreEqual(';', sut.QuotesOrSeparatorIfDisabled);
     }
+
+    [TestMethod]
+    public void SepParserOptionsTest_Set()
+    {
+        var sut = new SepParserOptions()
+        {
+            Separator = ',',
+            QuotesOrSeparatorIfDisabled = ';',
+        };
+
+        Assert.AreEqual(',', sut.Separator);
+        Assert.AreEqual(';', sut.QuotesOrSeparatorIfDisabled);
+    }
 }

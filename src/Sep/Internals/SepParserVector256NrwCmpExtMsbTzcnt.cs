@@ -20,10 +20,11 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserVector256NrwCmpExtMsbTzcnt(Sep sep)
+    public unsafe SepParserVector256NrwCmpExtMsbTzcnt(SepParserOptions options)
     {
-        _separator = sep.Separator;
+        _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);
+        _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
     }
 
     // Parses 2 x char vectors e.g. 1 byte vector

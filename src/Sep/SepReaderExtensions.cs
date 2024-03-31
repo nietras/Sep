@@ -103,7 +103,7 @@ public static partial class SepReaderExtensions
         }
     }
 
-    internal static Sep? DetectSep(ReadOnlySpan<char> chars, bool nothingLeftToRead)
+    internal static Sep? DetectSep(ReadOnlySpan<char> chars, bool nothingLeftToRead, bool disableQuotesParsing)
     {
         var separators = SepDefaults.AutoDetectSeparators;
         Span<int> counts = stackalloc int[separators.Count];
@@ -112,7 +112,7 @@ public static partial class SepReaderExtensions
         var lineEnd = false;
         foreach (var c in chars)
         {
-            if (c == SepDefaults.Quote)
+            if (!disableQuotesParsing && c == SepDefaults.Quote)
             {
                 quoting = !quoting;
             }

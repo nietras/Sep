@@ -18,10 +18,10 @@ static class SepParserFactory
     }
 
     [ExcludeFromCodeCoverage]
-    internal static Func<Sep, ISepParser> CreateBest { get; }
+    internal static Func<SepParserOptions, ISepParser> CreateBest { get; }
 
     [ExcludeFromCodeCoverage]
-    internal static Func<Sep, ISepParser> CreateBestFunc()
+    internal static Func<SepParserOptions, ISepParser> CreateBestFunc()
     {
         var forceParserName = GetForceParserName();
         if (AvailableFactories.TryGetValue(forceParserName, out var createParser))
@@ -34,18 +34,18 @@ static class SepParserFactory
 
     internal static string GetForceParserName() => Environment.GetEnvironmentVariable(SepForceParserEnvName) ?? string.Empty;
 
-    internal static IReadOnlyDictionary<string, Func<Sep, ISepParser>> AcceleratedFactories { get; } = CreateFactories(createUnaccelerated: false);
-    internal static IReadOnlyDictionary<string, Func<Sep, ISepParser>> AvailableFactories { get; } = CreateFactories(createUnaccelerated: true);
+    internal static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> AcceleratedFactories { get; } = CreateFactories(createUnaccelerated: false);
+    internal static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> AvailableFactories { get; } = CreateFactories(createUnaccelerated: true);
 
-    static IReadOnlyDictionary<string, Func<Sep, ISepParser>> CreateFactories(bool createUnaccelerated)
+    static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> CreateFactories(bool createUnaccelerated)
     {
-        var parsers = new Dictionary<string, Func<Sep, ISepParser>>();
+        var parsers = new Dictionary<string, Func<SepParserOptions, ISepParser>>();
         AddFactories(parsers, createUnaccelerated);
         return parsers;
     }
 
     static void AddFactories<TCollection>(TCollection parsers, bool createUnaccelerated)
-        where TCollection : ICollection<KeyValuePair<string, Func<Sep, ISepParser>>>
+        where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
@@ -66,9 +66,9 @@ static class SepParserFactory
         Add(parsers, static sep => new SepParserIndexOfAny(sep));
     }
 
-    static void Add<TCollection, TParser>(TCollection parsers, Func<Sep, TParser> create)
+    static void Add<TCollection, TParser>(TCollection parsers, Func<SepParserOptions, TParser> create)
         where TParser : ISepParser
-        where TCollection : ICollection<KeyValuePair<string, Func<Sep, ISepParser>>>
+        where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
         parsers.Add(new(typeof(TParser).Name, sep => create(sep)));
     }

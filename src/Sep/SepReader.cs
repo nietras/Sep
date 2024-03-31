@@ -22,6 +22,7 @@ public sealed partial class SepReader : SepReaderState
 
     readonly Info _info;
     char _separator;
+    readonly bool _disableQuotesParsing;
     readonly TextReader _reader;
     ISepParser? _parser;
 
@@ -45,6 +46,7 @@ public sealed partial class SepReader : SepReaderState
         _reader = reader;
         _cultureInfo = options.CultureInfo;
         _createToString = options.CreateToString;
+        _disableQuotesParsing = options.DisableQuotesParsing;
         _arrayPool = new();
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
@@ -69,7 +71,7 @@ public sealed partial class SepReader : SepReaderState
         var sep = options.Sep;
         if (sep.HasValue)
         {
-            _parser = SepParserFactory.CreateBest(sep.Value);
+            _parser = SepParserFactory.CreateBest(new(sep.Value, _disableQuotesParsing));
             _charsPaddingLength = _parser.PaddingLength;
             _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
             _separator = sep.Value.Separator;
@@ -442,12 +444,12 @@ public sealed partial class SepReader : SepReaderState
     {
         // Detect separator if no parser defined
         var validChars = _chars.AsSpan(_charsDataStart.._charsDataEnd);
-        var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead);
+        var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead, _disableQuotesParsing);
         if (maybeSep.HasValue)
         {
             var sep = maybeSep.Value;
             _separator = sep.Separator;
-            _parser = SepParserFactory.CreateBest(sep);
+            _parser = SepParserFactory.CreateBest(new(sep, _disableQuotesParsing));
             // TODO: Initialize other members
             _charsPaddingLength = _parser.PaddingLength;
         }

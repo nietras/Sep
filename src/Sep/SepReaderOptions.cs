@@ -52,6 +52,10 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public bool DisableColCountCheck { get; init; } = false;
     /// <summary>
+    /// Disables detecting and parsing quotes.
+    /// </summary>
+    public bool DisableQuotesParsing { get; init; } = false;
+    /// <summary>
     /// Unescape quotes on column access.
     /// </summary>
     /// <remarks>

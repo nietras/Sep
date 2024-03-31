@@ -17,14 +17,15 @@ sealed class SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
-    readonly VecUI8 _qts = Vec.Create(QuoteByte);
+    readonly VecUI8 _qts;
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(Sep sep)
+    public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(SepParserOptions options)
     {
-        _separator = sep.Separator;
+        _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);
+        _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
     }
 
     // Parses 2 x char vectors e.g. 1 byte vector

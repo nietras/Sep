@@ -134,7 +134,7 @@ public class SepReaderTest
     {
         var text = "\"C1;;;\";\"C;\"2;\";;C3\"";
         var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: false,
+        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: false, disableQuotesParsing: false,
                         "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
     }
 
@@ -151,7 +151,7 @@ public class SepReaderTest
             ("10", "\"A;\"", "20\";\"11"),
             ("\"11\"", "\";\"B", "\"20;00\""),
         };
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true,
+        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: false,
                         "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
     }
 
@@ -189,6 +189,23 @@ public class SepReaderTest
             ("\"11\"", $"\";\"{longColB}", $"\"20;{longCol0}\""),
         };
         AssertEnumerate(text, expected);
+    }
+
+    [TestMethod]
+    public void SepReaderTest_Enumerate_Quotes_DisableQuotesParsing()
+    {
+        var text = """
+                   C1","C2",C3"
+                   10,"A,"20"
+                   "11","B,20"
+                   """;
+        var expected = new (string c1, string c2, string c3)[]
+        {
+            ("10", "\"A", "\"20\""),
+            ("\"11\"", "\"B", "20\""),
+        };
+        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: true,
+                        "C1\"", "\"C2\"", "C3\"");
     }
 
     [TestMethod]
@@ -641,10 +658,10 @@ public class SepReaderTest
     }
 
     static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,
-        bool isEmpty = false, bool hasHeader = true, bool hasRows = true,
+        bool isEmpty = false, bool hasHeader = true, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
     {
-        using var reader = Sep.Reader().FromText(text);
+        using var reader = Sep.Reader(o => o with { DisableQuotesParsing = disableQuotesParsing }).FromText(text);
 
         var actual = Enumerate(reader, colName1, colName2, colName3).ToArray();
 

@@ -96,13 +96,13 @@ public class SepReaderColTest
 
     internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
         {
-            new object[] { "a\"\"a", "a\"\"a" },
-            new object[] { "a\"a\"a", "a\"a\"a" },
-            new object[] { "·\"\"·", "·\"\"·" },
-            new object[] { "·\"a\"·", "·\"a\"·" },
-            new object[] { "·\"\"", "·\"\"" },
-            new object[] { "·\"a\"", "·\"a\"" },
-            new object[] { "a\"\"\"a", "a\"\"\"a" },
+            ["a\"\"a", "a\"\"a"],
+            ["a\"a\"a", "a\"a\"a"],
+            ["·\"\"·", "·\"\"·"],
+            ["·\"a\"·", "·\"a\"·"],
+            ["·\"\"", "·\"\""],
+            ["·\"a\"", "·\"a\""],
+            ["a\"\"\"a", "a\"\"\"a"],
         });
 
     [DataTestMethod]

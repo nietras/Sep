@@ -23,11 +23,11 @@ public abstract class FloatsReaderBench
     {
         Scope = scope;
         Rows = lineCount;
-        _readers = new ReaderSpec[]
-        {
+        _readers =
+        [
             ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
             //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
-        };
+        ];
         Reader = _readers.First();
     }
 

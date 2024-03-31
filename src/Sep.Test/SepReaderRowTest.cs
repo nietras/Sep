@@ -17,8 +17,8 @@ public class SepReaderRowTest
     const string _colValue2 = "1.23456789";
     const string _colValue3 = "abcdefgh\t, ._";
     const int _cols = 4;
-    static readonly string[] _colNames = new string[_cols] { _colName0, _colName1, _colName2, _colName3 };
-    static readonly string[] _colValues = new string[_cols] { _colValue0, _colValue1, _colValue2, _colValue3 };
+    static readonly string[] _colNames = [_colName0, _colName1, _colName2, _colName3];
+    static readonly string[] _colValues = [_colValue0, _colValue1, _colValue2, _colValue3];
     static readonly string _headerText = string.Join(';', _colNames);
     static readonly string _rowText = string.Join(';', _colValues);
     static readonly string _text = $"{_headerText}\r{_rowText}\r";
@@ -162,11 +162,11 @@ public class SepReaderRowTest
     {
         var indicesSet = new int[][]
         {
-            new[]{ 0 },
-            new[]{ 0, 1 },
-            new[]{ 0, 2 },
-            new[]{ 1, 3 },
-            new[]{ 1, 2, 3 },
+            [0],
+            [0, 1],
+            [0, 2],
+            [1, 3],
+            [1, 2, 3],
         };
         foreach (var indices in indicesSet)
         {

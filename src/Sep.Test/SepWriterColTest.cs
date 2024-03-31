@@ -111,12 +111,12 @@ public class SepWriterColTest
 
     static void Run(SepWriter.ColAction action, string? expectedColValue = ColText, CultureInfo? cultureInfo = null)
     {
-        Func<SepWriter>[] createWriters = new[]
-        {
+        Func<SepWriter>[] createWriters =
+        [
             () => Sep.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
             () => Sep.Default.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
             () => new SepSpec(Sep.Default, cultureInfo ?? SepDefaults.CultureInfo).Writer(o => o with {  }).ToText(),
-        };
+        ];
         foreach (var createWriter in createWriters)
         {
             using var writer = createWriter();

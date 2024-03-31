@@ -17,7 +17,7 @@ public class SepReaderBench
     int _floatIndex;
     int _doubleIndex;
     int[]? _colIndeces;
-    readonly string[] _colNames = new[] { C.SByte, C.Short, C.Int, C.Long, C.Float, C.Double };
+    readonly string[] _colNames = [C.SByte, C.Short, C.Int, C.Long, C.Float, C.Double];
     SepReader? _enumerator;
 
     [IterationSetup]
@@ -30,7 +30,7 @@ public class SepReaderBench
         _longIndex = _reader.Header.IndexOf(C.Long);
         _floatIndex = _reader.Header.IndexOf(C.Float);
         _doubleIndex = _reader.Header.IndexOf(C.Double);
-        _colIndeces = new[] { _sbyteIndex, _shortIndex, _intIndex, _longIndex, _floatIndex, _doubleIndex };
+        _colIndeces = [_sbyteIndex, _shortIndex, _intIndex, _longIndex, _floatIndex, _doubleIndex];
         _enumerator = _reader.GetEnumerator();
     }
 

@@ -154,13 +154,13 @@ public class SepParserTest
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ\";\";ˉˉ#ˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉˉ\";\r\n\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉ\rˉ");
         var expectedSet = new Expected[]
         {
-            new(new[]{ 0, 2, 4, }, NextStart : 5, RowLineEndingOffset: 1, 4),
-            new(new[]{ 5, }, NextStart : 6, RowLineEndingOffset: 1, 5),
-            new(new[]{ 10, 19 }, NextStart : 20, RowLineEndingOffset: 1, 6),
-            new(new[]{ 24 }, NextStart : 25, RowLineEndingOffset: 1, 7),
-            new(new[]{ 27 }, NextStart : 30, RowLineEndingOffset: 2, 8),
-            new(new[]{ 30, 42, 46, 48 }, NextStart : 49, RowLineEndingOffset: 1, 10),
-            new(new[]{ 51 }, NextStart : 52, RowLineEndingOffset: 1, 11),
+            new([0, 2, 4,], NextStart : 5, RowLineEndingOffset: 1, 4),
+            new([5,], NextStart : 6, RowLineEndingOffset: 1, 5),
+            new([10, 19], NextStart : 20, RowLineEndingOffset: 1, 6),
+            new([24], NextStart : 25, RowLineEndingOffset: 1, 7),
+            new([27], NextStart : 30, RowLineEndingOffset: 2, 8),
+            new([30, 42, 46, 48], NextStart : 49, RowLineEndingOffset: 1, 10),
+            new([51], NextStart : 52, RowLineEndingOffset: 1, 11),
             //new(Array.Empty<int>(), charsEnd, RowLineEndingOffset: 0, 11),
         };
         AssertParserOutput(parser, charsStart: 0, charsEnd, expectedSet);
@@ -175,7 +175,7 @@ public class SepParserTest
         var charsEnd = FillChars(";ˉ;ˉ;;ˉ;ˉ;;ˉˉ#ˉˉˉˉˉ;ˉˉˉˉ;ˉˉ;;ˉ;ˉ" + "ˉ;ˉˉˉ;ˉˉ,ˉ;ˉ.ˉ;ˉ;ˉˉˉ;");
         var expectedSet = new Expected[]
         {
-            new(new[]{ 0, 2, 4, 5, 7, 9, 10, 19, 24, 27, 28, 30, 33, 37, 42, 46, 48, 52 }, charsEnd, RowLineEndingOffset: 0, 3),
+            new([0, 2, 4, 5, 7, 9, 10, 19, 24, 27, 28, 30, 33, 37, 42, 46, 48, 52], charsEnd, RowLineEndingOffset: 0, 3),
         };
         AssertParserOutput(parser, charsStart: 0, charsEnd, expectedSet);
     }
@@ -189,11 +189,11 @@ public class SepParserTest
         var charsEnd = FillChars(";ˉ;ˉ\n\rˉ\"ˉ\";ˉˉ#ˉˉˉˉˉ\rˉˉˉˉ\nˉˉ\r\nˉ;ˉ" + "ˉ\"ˉˉˉ\"ˉˉ,ˉ;ˉ.ˉ;ˉ\nˉˉˉ\r");
         var expectedSet = new Expected[]
         {
-            new(new[]{ 10, 19 }, NextStart: 20, RowLineEndingOffset: 1, 4),
-            new(new[]{ 24 }, NextStart: 25, RowLineEndingOffset: 1, 5),
-            new(new[]{ 27 }, NextStart: 30, RowLineEndingOffset: 2, 6),
-            new(new[]{ 30, 42, 46, 48 }, NextStart: 49, RowLineEndingOffset: 1, 7),
-            new(new[]{ 52 }, charsEnd, RowLineEndingOffset: 1, 8),
+            new([10, 19], NextStart: 20, RowLineEndingOffset: 1, 4),
+            new([24], NextStart: 25, RowLineEndingOffset: 1, 5),
+            new([27], NextStart: 30, RowLineEndingOffset: 2, 6),
+            new([30, 42, 46, 48], NextStart: 49, RowLineEndingOffset: 1, 7),
+            new([52], charsEnd, RowLineEndingOffset: 1, 8),
         };
         AssertParserOutput(parser, charsStart: 7, charsEnd, expectedSet);
     }
@@ -214,12 +214,12 @@ public class SepParserTest
         var expected = new Expected(ends, nextStart, lineEndingOffset, 3 + lineEndingOffset);
         var expectedSet = new Expected[] { expected };
 
-        var expectedOutput = new ExpectedOutput(new ExpectedParsedRow[] {
-          new(ColEnds: new[]{ 0, 10, 46, 83 }, LineNumberTo: 4),
-          new(ColEnds: new[]{ 83, 86 }, LineNumberTo: 5),
-          new(ColEnds: new[]{ 87, 89, 101, 105, 107 }, LineNumberTo: 6),
-          new(ColEnds: new[]{ 107, 111 }, LineNumberTo: 7),
-        }, new(ColEnds: new[] { 111 }, LineNumberTo: 7, CharsStartIndex: 112, ColEndsStartIndex: 13, ColCount: 0));
+        var expectedOutput = new ExpectedOutput([
+          new(ColEnds: [0, 10, 46, 83], LineNumberTo: 4),
+          new(ColEnds: [83, 86], LineNumberTo: 5),
+          new(ColEnds: [87, 89, 101, 105, 107], LineNumberTo: 6),
+          new(ColEnds: [107, 111], LineNumberTo: 7),
+        ], new(ColEnds: [111], LineNumberTo: 7, CharsStartIndex: 112, ColEndsStartIndex: 13, ColCount: 0));
 
         AssertOutput(parser, charsStart, charsEnd, expectedOutput);
     }

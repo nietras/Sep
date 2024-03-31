@@ -46,15 +46,15 @@ public class SepParserBench
             new("Sequence", ';', FillSequence)
         };
 #else
-        _fillers = new FillerSpec[]
-        {
+        _fillers =
+        [
             new("0_Assets___", ',', PackageAssetsText),
             //new("1_Floats___", ';', FloatsText),
             //new("1_ManyChars", ';', FillFor(";\n\r\"____;___\n___" + "\r___\"___####ˉˉˉˉ")),
             //new("2_FewSep___", ';', FillFor("ˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉ")),
             //new("3_NoChars__", ';', FillFor("ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ")),
             //new("4_FullSeps_", ';', FillFor(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")),
-        };
+        ];
 #endif
         Parser = _parsers.First();
         Filler = _fillers.First();

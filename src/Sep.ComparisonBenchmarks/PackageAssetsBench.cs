@@ -29,11 +29,11 @@ public abstract class PackageAssetsBench
         Quotes = quoteAroundSomeCols;
         Scope = scope;
         Rows = lineCount;
-        _readers = new ReaderSpec[]
-        {
+        _readers =
+        [
             ReaderSpec.FromString("String", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetString(Rows))),
             //ReaderSpec.FromBytes("Stream", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols).GetBytes(Rows))),
-        };
+        ];
         Reader = _readers.First();
     }
 

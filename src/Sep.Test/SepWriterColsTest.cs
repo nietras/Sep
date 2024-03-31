@@ -8,11 +8,10 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepWriterColsTest
 {
-    const int _cols = 3;
-    static readonly string[] _colNames = new string[_cols] { "A", "B", "C" };
-    static readonly int[] _colValues0 = new int[_cols] { 10, 11, 12 };
+    static readonly string[] _colNames = ["A", "B", "C"];
+    static readonly int[] _colValues0 = [10, 11, 12];
     static readonly string[] _colTexts0 = _colValues0.Select(i => i.ToString()).ToArray();
-    static readonly long[] _colValues1 = new long[_cols] { 20, 21, 22 };
+    static readonly long[] _colValues1 = [20, 21, 22];
     static readonly string[] _colTexts1 = _colValues1.Select(i => i.ToString()).ToArray();
     const string Expected = """
                             A;B;C

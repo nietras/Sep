@@ -10,11 +10,11 @@ public class SepStringHashPoolTest
 {
     internal delegate string ToStringDelegate(ISepStringHashPool pool, ReadOnlySpan<char> chars);
 
-    internal static IEnumerable<object[]> ToStrings => new object[][]
-    {
+    internal static IEnumerable<object[]> ToStrings =>
+    [
         new ToStringDelegate[] { new((pool, chars) => pool.ToString(chars)) },
         new ToStringDelegate[] { new((pool, chars) => pool.ToStringThreadSafe(chars)) },
-    };
+    ];
 
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]

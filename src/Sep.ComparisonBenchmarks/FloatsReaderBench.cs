@@ -23,17 +23,17 @@ public abstract class FloatsReaderBench
     {
         Scope = scope;
         Rows = lineCount;
-        _readers = new ReaderSpec[]
-        {
+        _readers =
+        [
             ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
             //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
-        };
+        ];
         Reader = _readers.First();
     }
 
     [ParamsSource(nameof(ScopeParams))] // Attributes for params is challenging 👇
     public string Scope { get; set; }
-    public IEnumerable<string> ScopeParams() => new[] { Scope };
+    public IEnumerable<string> ScopeParams() => [Scope];
 
     [ParamsSource(nameof(Readers))]
     public ReaderSpec Reader { get; set; }
@@ -41,7 +41,7 @@ public abstract class FloatsReaderBench
 
     [ParamsSource(nameof(RowsParams))] // Attributes for params is challenging 👇
     public int Rows { get; set; }
-    public IEnumerable<int> RowsParams() => new[] { Rows };
+    public IEnumerable<int> RowsParams() => [Rows];
 }
 
 [BenchmarkCategory("0_Row")]

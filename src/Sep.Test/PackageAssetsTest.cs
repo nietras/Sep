@@ -9,14 +9,14 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class PackageAssetsTest
 {
-    internal static IEnumerable<object[]> ToStrings => new object[][]
-    {
+    internal static IEnumerable<object[]> ToStrings =>
+    [
         new[]{ SepToString.Direct },
         new[]{ SepToString.OnePool() },
         new[]{ SepToString.PoolPerCol() },
         new[]{ SepToString.PoolPerColThreadSafe() },
         new[]{ SepToString.PoolPerColThreadSafeFixedCapacity() },
-    };
+    ];
 
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]

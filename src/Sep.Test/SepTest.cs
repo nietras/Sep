@@ -9,7 +9,7 @@ namespace nietras.SeparatedValues.Test;
 public class SepTest
 {
     readonly IReadOnlyList<char> _supportedSeparators = SepDefaults
-        .AutoDetectSeparators.Concat(new char[] { ' ', '~' }).ToArray();
+        .AutoDetectSeparators.Concat([' ', '~']).ToArray();
 
     [TestMethod]
     public void SepTest_Ctor_Empty()
@@ -113,12 +113,12 @@ public class SepTest
     static void AssertSeparatorThrows<TException>(char separator, string expectedMessage)
         where TException : Exception
     {
-        Action[] actions = new[]
-        {
+        Action[] actions =
+        [
             () => { var s = new Sep(separator); },
             () => { var s = Sep.New(separator); },
             () => { var s = Sep.Default with { Separator = separator }; },
-        };
+        ];
         foreach (var action in actions)
         {
             var e = Assert.ThrowsException<TException>(action);

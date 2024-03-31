@@ -161,7 +161,7 @@ public class ReadMeTest
         using var reader = Sep.Reader().FromText(text);
         var actual = reader.Enumerate(
             row => (row["Key"].ToString(), row["Value"].Parse<double>()))
-            .Where(kv => kv.Item1.StartsWith("B", StringComparison.Ordinal))
+            .Where(kv => kv.Item1.StartsWith('B'))
             .ToArray();
 
         CollectionAssert.AreEqual(expected, actual);
@@ -326,7 +326,7 @@ public class ReadMeTest
                 var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
                 all += readmeContents;
             }
-            readmeLines = ReplaceReadmeLines(readmeLines, new[] { all }, readmeBefore, prefix, 0, readmeEndLine, 0);
+            readmeLines = ReplaceReadmeLines(readmeLines, [all], readmeBefore, prefix, 0, readmeEndLine, 0);
         }
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
@@ -392,7 +392,7 @@ public class ReadMeTest
 
         var readmeFilePath = s_readmeFilePath;
         var readmeLines = File.ReadAllLines(readmeFilePath);
-        readmeLines = ReplaceReadmeLines(readmeLines, new[] { publicApi },
+        readmeLines = ReplaceReadmeLines(readmeLines, [publicApi],
             "## Public API Reference", "```csharp", 1, "```", 0);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;

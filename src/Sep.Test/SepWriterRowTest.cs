@@ -78,8 +78,8 @@ public class SepWriterRowTest
     [TestMethod]
     public void SepWriterRowTest_Indexer_ColNames_IReadOnlyList()
     {
-        IReadOnlyList<string> colNames = new string[] { "A", "B" };
-        IReadOnlyList<string> colValues = new string[] { "1", "2" };
+        IReadOnlyList<string> colNames = ["A", "B"];
+        IReadOnlyList<string> colValues = ["1", "2"];
         Run(row => row[colNames].Set(colValues), $"A;B{NL}1;2{NL}");
     }
 

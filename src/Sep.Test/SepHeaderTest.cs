@@ -37,17 +37,17 @@ public class SepHeaderTest
 
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(3, header.ColNames.Count);
-        AreEqual(new[] { "A", "B", "C" }, header.ColNames);
+        AreEqual(["A", "B", "C"], header.ColNames);
 
         Assert.AreEqual(1, header.IndexOf("B"));
-        AreEqual(new[] { 2, 0, 1 }, header.IndicesOf("C", "A", "B"));
-        AreEqual(new[] { 1, 2, 0 }, header.IndicesOf(new[] { "B", "C", "A" }.AsSpan()));
-        AreEqual(new[] { 0, 2 }, header.IndicesOf((ReadOnlySpan<string>)new[] { "A", "C" }));
-        AreEqual(new[] { 2, 0 }, header.IndicesOf((IReadOnlyList<string>)new[] { "C", "A" }));
+        AreEqual([2, 0, 1], header.IndicesOf("C", "A", "B"));
+        AreEqual([1, 2, 0], header.IndicesOf(new[] { "B", "C", "A" }.AsSpan()));
+        AreEqual([0, 2], header.IndicesOf((ReadOnlySpan<string>)["A", "C"]));
+        AreEqual([2, 0], header.IndicesOf((IReadOnlyList<string>)["C", "A"]));
 
         var actualIndices = new int[2];
-        header.IndicesOf((ReadOnlySpan<string>)new[] { "A", "C" }, actualIndices);
-        AreEqual(new int[] { 0, 2 }, actualIndices);
+        header.IndicesOf((ReadOnlySpan<string>)["A", "C"], actualIndices);
+        AreEqual([0, 2], actualIndices);
 
         Assert.AreEqual("A;B;C", header.ToString());
     }

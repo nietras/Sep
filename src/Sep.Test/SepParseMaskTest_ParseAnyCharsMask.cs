@@ -10,23 +10,23 @@ public partial class SepParseMaskTest
     [TestMethod]
     public void SepParseMaskTest_ParseAnyCharsMask_Ordinary()
     {
-        AssertParseAnyCharsMask(";a;b\r\n;", new[] { 0, 2, 4 },
+        AssertParseAnyCharsMask(";a;b\r\n;", [0, 2, 4],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
 
-        AssertParseAnyCharsMask(";a;b\r;", new[] { 0, 2, 4 },
+        AssertParseAnyCharsMask(";a;b\r;", [0, 2, 4],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
-        AssertParseAnyCharsMask(";a;b\n;", new[] { 0, 2, 4 },
+        AssertParseAnyCharsMask(";a;b\n;", [0, 2, 4],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 3);
 
-        AssertParseAnyCharsMask(";aa;bbb;cccc;;", new[] { 0, 3, 7, 12, 13 },
+        AssertParseAnyCharsMask(";aa;bbb;cccc;;", [0, 3, 7, 12, 13],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 0,
             lineNumber: 2, expectedLineNumber: 2);
 
-        AssertParseAnyCharsMask(new string('a', s_nativeBitSize - 1) + "\r\n", new[] { s_nativeBitSize - 1 },
+        AssertParseAnyCharsMask(new string('a', s_nativeBitSize - 1) + "\r\n", [s_nativeBitSize - 1],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3);
     }
@@ -34,15 +34,15 @@ public partial class SepParseMaskTest
     [TestMethod]
     public void SepParseMaskTest_ParseAnyCharsMask_Quotes()
     {
-        AssertParseAnyCharsMask(";\"a\r\nb\";\"c\"\r\n;", new[] { 0, 7, 11 },
+        AssertParseAnyCharsMask(";\"a\r\nb\";\"c\"\r\n;", [0, 7, 11],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 4);
 
-        AssertParseAnyCharsMask(";\"a\rb\";\"c\"\r;", new[] { 0, 6, 10 },
+        AssertParseAnyCharsMask(";\"a\rb\";\"c\"\r;", [0, 6, 10],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 4);
 
-        AssertParseAnyCharsMask(";\"a\nb\";\"c\"\n;", new[] { 0, 6, 10 },
+        AssertParseAnyCharsMask(";\"a\nb\";\"c\"\n;", [0, 6, 10],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 1,
             lineNumber: 2, expectedLineNumber: 4);
 
@@ -50,7 +50,7 @@ public partial class SepParseMaskTest
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 0, expectedQuoting: 1,
             lineNumber: 2, expectedLineNumber: 2); // Line number first increment when \n handled
 
-        AssertParseAnyCharsMask("\"" + new string('\r', s_nativeBitSize - 3) + "\"\r\n", new[] { s_nativeBitSize - 1 },
+        AssertParseAnyCharsMask("\"" + new string('\r', s_nativeBitSize - 3) + "\"\r\n", [s_nativeBitSize - 1],
             rowLineEndingOffset: 0, expectedRowLineEndingOffset: 2,
             lineNumber: 2, expectedLineNumber: 3 + s_nativeBitSize - 3);
     }

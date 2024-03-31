@@ -9,16 +9,16 @@ namespace nietras.SeparatedValues.Test;
 public class SepReaderColsTest
 {
     const int _colsCount = 3;
-    static readonly string[] _colNames = new string[_colsCount] { "A", "B", "C" };
+    static readonly string[] _colNames = ["A", "B", "C"];
     static readonly int[] _colIndices = Enumerable.Range(0, _colsCount).ToArray();
-    static readonly int[] _colValues = new int[_colsCount] { 10, 11, 12 };
+    static readonly int[] _colValues = [10, 11, 12];
     static readonly float[] _colValuesFloat = _colValues.Select(i => (float)i).ToArray();
     static readonly string[] _colTexts = _colValues.Select(i => i.ToString()).ToArray();
     const string Text = """
                          A;B;C
                          10;11;12
                          """;
-    static readonly int?[] _colValuesUnparseable = new int?[_colsCount] { null, null, 12 };
+    static readonly int?[] _colValuesUnparseable = [null, null, 12];
     const string TextUnparseable = """
                                    A;B;C
                                    1a;;12

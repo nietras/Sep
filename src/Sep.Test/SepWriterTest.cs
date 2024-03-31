@@ -66,7 +66,7 @@ public class SepWriterTest
         {
             using var row = writer.NewRow();
             // Order of cols is not important after first row/header written
-            row["C"].Set(new Span<char>(new[] { '6', '5' }));
+            row["C"].Set(new Span<char>(['6', '5']));
             row["B"].Format(3);
             row["A"].Set($"{23,3}");
         }
@@ -95,7 +95,7 @@ public class SepWriterTest
             using var row = writer.NewRow();
             row["A"].Set($"{23,3}");
             row[1].Format(3);
-            row["C"].Set(new Span<char>(new[] { '6', '5' }));
+            row["C"].Set(new Span<char>(['6', '5']));
             var a = row[0];
             var b = row[1];
             var c = row[2];

@@ -192,7 +192,7 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_DisableQuotesParsing_Rows_2()
+    public void SepReaderTest_Enumerate_Quotes_DisableQuotesParsing()
     {
         var text = """
                    C1","C2",C3"

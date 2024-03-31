@@ -8,16 +8,6 @@ using System.Runtime.Intrinsics.X86;
 
 namespace nietras.SeparatedValues;
 
-readonly record struct SepParserConfig(char Separator, char QuotesOrSeparatorIfDisabled)
-{
-    internal SepParserConfig(Sep sep)
-        : this(sep.Separator, SepDefaults.Quote)
-    { }
-    internal SepParserConfig(Sep sep, bool disableQuotesParsing)
-        : this(sep.Separator, disableQuotesParsing ? sep.Separator : SepDefaults.Quote)
-    { }
-}
-
 static class SepParserFactory
 {
     const string SepForceParserEnvName = "SEPFORCEPARSER";
@@ -28,10 +18,10 @@ static class SepParserFactory
     }
 
     [ExcludeFromCodeCoverage]
-    internal static Func<SepParserConfig, ISepParser> CreateBest { get; }
+    internal static Func<SepParserOptions, ISepParser> CreateBest { get; }
 
     [ExcludeFromCodeCoverage]
-    internal static Func<SepParserConfig, ISepParser> CreateBestFunc()
+    internal static Func<SepParserOptions, ISepParser> CreateBestFunc()
     {
         var forceParserName = GetForceParserName();
         if (AvailableFactories.TryGetValue(forceParserName, out var createParser))
@@ -44,18 +34,18 @@ static class SepParserFactory
 
     internal static string GetForceParserName() => Environment.GetEnvironmentVariable(SepForceParserEnvName) ?? string.Empty;
 
-    internal static IReadOnlyDictionary<string, Func<SepParserConfig, ISepParser>> AcceleratedFactories { get; } = CreateFactories(createUnaccelerated: false);
-    internal static IReadOnlyDictionary<string, Func<SepParserConfig, ISepParser>> AvailableFactories { get; } = CreateFactories(createUnaccelerated: true);
+    internal static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> AcceleratedFactories { get; } = CreateFactories(createUnaccelerated: false);
+    internal static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> AvailableFactories { get; } = CreateFactories(createUnaccelerated: true);
 
-    static IReadOnlyDictionary<string, Func<SepParserConfig, ISepParser>> CreateFactories(bool createUnaccelerated)
+    static IReadOnlyDictionary<string, Func<SepParserOptions, ISepParser>> CreateFactories(bool createUnaccelerated)
     {
-        var parsers = new Dictionary<string, Func<SepParserConfig, ISepParser>>();
+        var parsers = new Dictionary<string, Func<SepParserOptions, ISepParser>>();
         AddFactories(parsers, createUnaccelerated);
         return parsers;
     }
 
     static void AddFactories<TCollection>(TCollection parsers, bool createUnaccelerated)
-        where TCollection : ICollection<KeyValuePair<string, Func<SepParserConfig, ISepParser>>>
+        where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
@@ -76,9 +66,9 @@ static class SepParserFactory
         Add(parsers, static sep => new SepParserIndexOfAny(sep));
     }
 
-    static void Add<TCollection, TParser>(TCollection parsers, Func<SepParserConfig, TParser> create)
+    static void Add<TCollection, TParser>(TCollection parsers, Func<SepParserOptions, TParser> create)
         where TParser : ISepParser
-        where TCollection : ICollection<KeyValuePair<string, Func<SepParserConfig, ISepParser>>>
+        where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
         parsers.Add(new(typeof(TParser).Name, sep => create(sep)));
     }

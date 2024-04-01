@@ -7,7 +7,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+#if NET8_0
 using PublicApiGenerator;
+#endif
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
 
 // Only parallize on class level to avoid multiple writes to README file

@@ -5,8 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+#if NET8_0
 using PublicApiGenerator;
+#endif
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
 
 // Only parallize on class level to avoid multiple writes to README file
 [assembly: Parallelize(Workers = 0, Scope = ExecutionScope.ClassLevel)]
@@ -289,6 +293,50 @@ public class ReadMeTest
     }
 
     [TestMethod]
+    public async Task ReadMeTest_Example_AsyncAwaitContext_Enumerate()
+    {
+        var text = """
+                   C
+                   1
+                   2
+                   """;
+
+        using var reader = Sep.Reader().FromText(text);
+        var squaredSum = 0;
+        // Use Enumerate to avoid referencing SepReader.Row in async context
+        foreach (var value in reader.Enumerate(row => row["C"].Parse<int>()))
+        {
+            squaredSum += await Task.Run(() => value * value);
+        }
+        Assert.AreEqual(5, squaredSum);
+    }
+
+    [TestMethod]
+    public async Task ReadMeTest_Example_AsyncAwaitContext_CustomIterator()
+    {
+        var text = """
+                   C
+                   1
+                   2
+                   """;
+
+        using var reader = Sep.Reader().FromText(text);
+        var squaredSum = 0;
+        // Use custom local function Enumerate to avoid referencing
+        // SepReader.Row in async context
+        foreach (var value in Enumerate(reader))
+        {
+            squaredSum += await Task.Run(() => value * value);
+        }
+        Assert.AreEqual(5, squaredSum);
+
+        static IEnumerable<int> Enumerate(SepReader reader)
+        {
+            foreach (var r in reader) { yield return r["C"].Parse<int>(); }
+        }
+    }
+
+    [TestMethod]
     public void ReadMeTest_UpdateBenchmarksInMarkdown()
     {
         var readmeFilePath = s_readmeFilePath;
@@ -361,6 +409,8 @@ public class ReadMeTest
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
             (nameof(ReadMeTest_Example_Skip_Empty_Rows) + "()", "### Example - Skip Empty Rows"),
+            (nameof(ReadMeTest_Example_AsyncAwaitContext_Enumerate) + "()", "### Example - Use Extension Method Enumerate within async/await Context"),
+            (nameof(ReadMeTest_Example_AsyncAwaitContext_CustomIterator) + "()", "### Example - Use Local Function within async/await Context"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
             sourceStartLineOffset: 2, "    }", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 8);
@@ -385,6 +435,8 @@ public class ReadMeTest
         File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
     }
 
+    // Only update public API in README for .NET 8.0 to keep consistent
+#if NET8_0
     [TestMethod]
     public void ReadMeTest_PublicApi()
     {
@@ -398,6 +450,7 @@ public class ReadMeTest
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
         File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
     }
+#endif
 
     static string[] UpdateReadme(string[] sourceLines, string[] readmeLines,
         (string StartLineContains, string ReadmeLineBefore)[] blocksToUpdate,

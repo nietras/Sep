@@ -216,9 +216,9 @@ public class SepParserTest
 
         var expectedOutput = new ExpectedOutput([
           new(ColEnds: [0, 10, 46, 83], LineNumberTo: 4),
-          new(ColEnds: [83, 86], LineNumberTo: 5),
-          new(ColEnds: [87, 89, 101, 105, 107], LineNumberTo: 6),
-          new(ColEnds: [107, 111], LineNumberTo: 7),
+            new(ColEnds: [83, 86], LineNumberTo: 5),
+            new(ColEnds: [87, 89, 101, 105, 107], LineNumberTo: 6),
+            new(ColEnds: [107, 111], LineNumberTo: 7),
         ], new(ColEnds: [111], LineNumberTo: 7, CharsStartIndex: 112, ColEndsStartIndex: 13, ColCount: 0));
 
         AssertOutput(parser, charsStart, charsEnd, expectedOutput);

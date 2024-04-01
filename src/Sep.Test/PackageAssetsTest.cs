@@ -11,11 +11,11 @@ public class PackageAssetsTest
 {
     internal static IEnumerable<object[]> ToStrings =>
     [
-        new[]{ SepToString.Direct },
-        new[]{ SepToString.OnePool() },
-        new[]{ SepToString.PoolPerCol() },
-        new[]{ SepToString.PoolPerColThreadSafe() },
-        new[]{ SepToString.PoolPerColThreadSafeFixedCapacity() },
+        [SepToString.Direct],
+        [SepToString.OnePool()],
+        [SepToString.PoolPerCol()],
+        [SepToString.PoolPerColThreadSafe()],
+        [SepToString.PoolPerColThreadSafeFixedCapacity()],
     ];
 
     [DataTestMethod]

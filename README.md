@@ -312,6 +312,7 @@ public bool DisableQuotesParsing { get; init; } = false;
 /// state after unescaped cols before next col. This is for efficiency to
 /// avoid allocating secondary memory for unescaped columns. Header
 /// columns/names will also be unescaped.
+/// Requires <see cref="DisableQuotesParsing"/> to be false.
 /// </remarks>
 public bool Unescape { get; init; } = false;
 ```
@@ -1430,6 +1431,57 @@ foreach (var row in reader)
     actual.Add(row["A"].Parse<int>());
 }
 CollectionAssert.AreEqual(expected, actual);
+```
+
+### Example - Use Extension Method Enumerate within async/await Context
+Since `SepReader.Row` is a `ref struct` as covered above, one has to avoid
+referencing it directly in async context. This can be done in a number of ways,
+but one way is to use `Enumerate` extension method to parse/extract data from
+row like shown below.
+
+```csharp
+var text = """
+           C
+           1
+           2
+           """;
+
+using var reader = Sep.Reader().FromText(text);
+var squaredSum = 0;
+// Use Enumerate to avoid referencing SepReader.Row in async context
+foreach (var value in reader.Enumerate(row => row["C"].Parse<int>()))
+{
+    squaredSum += await Task.Run(() => value * value);
+}
+Assert.AreEqual(5, squaredSum);
+```
+
+### Example - Use Local Function within async/await Context
+Another way to avoid referencing `SepReader.Row` directly in async context is to
+use custom iterator via `yield return` to parse/extract data from row like shown
+below.
+
+```csharp
+var text = """
+           C
+           1
+           2
+           """;
+
+using var reader = Sep.Reader().FromText(text);
+var squaredSum = 0;
+// Use custom local function Enumerate to avoid referencing
+// SepReader.Row in async context
+foreach (var value in Enumerate(reader))
+{
+    squaredSum += await Task.Run(() => value * value);
+}
+Assert.AreEqual(5, squaredSum);
+
+static IEnumerable<int> Enumerate(SepReader reader)
+{
+    foreach (var r in reader) { yield return r["C"].Parse<int>(); }
+}
 ```
 
 ## RFC-4180

@@ -267,75 +267,75 @@ public class SepReaderTest
 
     internal static IEnumerable<object[]> ColCountMismatchData =>
     [
-        [ """
-          C1;C2
-          123
-          """,
-          """
-          Found 1 column(s) on row 1/lines [2..3]:'123'
-          Expected 2 column(s) matching header/first row 'C1;C2'
-          """,
-          new [] { 2, 1 } ],
-        [ """
-          C1;C2
-          
-          1;2
-          """,
-          """
-          Found 1 column(s) on row 1/lines [2..3]:''
-          Expected 2 column(s) matching header/first row 'C1;C2'
-          """,
-          new [] { 2, 1, 2 } ],
-        [ """
-          C1;C2;C3
-          1;2;3
-          4;5
-          """,
-          """
-          Found 2 column(s) on row 2/lines [3..4]:'4;5'
-          Expected 3 column(s) matching header/first row 'C1;C2;C3'
-          """,
-          new [] { 3, 3, 2 } ],
-        [ """
-          C1;C2;C3
-          4;5
-          1;2;3
-          """,
-          """
-          Found 2 column(s) on row 1/lines [2..3]:'4;5'
-          Expected 3 column(s) matching header/first row 'C1;C2;C3'
-          """,
-          new [] { 3, 2, 3 } ],
-        [ """
-          C1
-          
-          4;5
-          """,
-          """
-          Found 2 column(s) on row 2/lines [3..4]:'4;5'
-          Expected 1 column(s) matching header/first row 'C1'
-          """,
-          new [] { 1, 1, 2 } ],
-        [ """
-          C1;C2
-          4;5
-          1;2;3
-          """,
-          """
-          Found 3 column(s) on row 2/lines [3..4]:'1;2;3'
-          Expected 2 column(s) matching header/first row 'C1;C2'
-          """,
-          new [] { 2, 2, 3 } ],
-        [ """
-          C1;C2
-          4";"5
-          1;2;345
-          """,
-          """
-          Found 1 column(s) on row 1/lines [2..3]:'4";"5'
-          Expected 2 column(s) matching header/first row 'C1;C2'
-          """,
-          new [] { 2, 1, 3 } ],
+        ["""
+         C1;C2
+         123
+         """,
+         """
+         Found 1 column(s) on row 1/lines [2..3]:'123'
+         Expected 2 column(s) matching header/first row 'C1;C2'
+         """,
+         new[] { 2, 1 }],
+        ["""
+         C1;C2
+         
+         1;2
+         """,
+         """
+         Found 1 column(s) on row 1/lines [2..3]:''
+         Expected 2 column(s) matching header/first row 'C1;C2'
+         """,
+         new[] { 2, 1, 2 }],
+        ["""
+         C1;C2;C3
+         1;2;3
+         4;5
+         """,
+         """
+         Found 2 column(s) on row 2/lines [3..4]:'4;5'
+         Expected 3 column(s) matching header/first row 'C1;C2;C3'
+         """,
+         new[] { 3, 3, 2 }],
+        ["""
+         C1;C2;C3
+         4;5
+         1;2;3
+         """,
+         """
+         Found 2 column(s) on row 1/lines [2..3]:'4;5'
+         Expected 3 column(s) matching header/first row 'C1;C2;C3'
+         """,
+         new[] { 3, 2, 3 }],
+        ["""
+         C1
+         
+         4;5
+         """,
+         """
+         Found 2 column(s) on row 2/lines [3..4]:'4;5'
+         Expected 1 column(s) matching header/first row 'C1'
+         """,
+         new[] { 1, 1, 2 }],
+        ["""
+         C1;C2
+         4;5
+         1;2;3
+         """,
+         """
+         Found 3 column(s) on row 2/lines [3..4]:'1;2;3'
+         Expected 2 column(s) matching header/first row 'C1;C2'
+         """,
+         new[] { 2, 2, 3 }],
+        ["""
+         C1;C2
+         4";"5
+         1;2;345
+         """,
+         """
+         Found 1 column(s) on row 1/lines [2..3]:'4";"5'
+         Expected 2 column(s) matching header/first row 'C1;C2'
+         """,
+         new[] { 2, 1, 3 }],
     ];
 
     [DataTestMethod]
@@ -412,28 +412,28 @@ public class SepReaderTest
 
     internal static IEnumerable<object[]> LineNumbersData =>
     [
-        ["C1;C2\n123;456", new [] { (1, 2), (2, 3) }],
-        ["C1;C2\n123;456\n", new [] { (1, 2), (2, 3) }],
-        ["C1;C2\r\n123;456\r\n", new [] { (1, 2), (2, 3) }],
-        ["C1;C2\r123;456\r", new [] { (1, 2), (2, 3) }],
-        ["C1;C2\n123;456\n789;012\n", new [] { (1, 2), (2, 3), (3, 4) }],
+        ["C1;C2\n123;456", new[] { (1, 2), (2, 3) }],
+        ["C1;C2\n123;456\n", new[] { (1, 2), (2, 3) }],
+        ["C1;C2\r\n123;456\r\n", new[] { (1, 2), (2, 3) }],
+        ["C1;C2\r123;456\r", new[] { (1, 2), (2, 3) }],
+        ["C1;C2\n123;456\n789;012\n", new[] { (1, 2), (2, 3), (3, 4) }],
         // Line endings in quotes
-        [ """
-          "C1
-          ;
-          ";C2
-          "ab
-          ";"cd
-          ;
-          e"
-          "
-          
-          
-          
-          1";2
-          """, new [] { (1, 4), (4, 8), (8, 13) } ],
-        [ "\"C1\n\";C2\n\"1\n2\r3\";\"4\r\n56\"\n\"7\r\r\r\r\r89\";012\n",
-          new [] { (1, 3), (3, 7), (7, 13) } ],
+        ["""
+         "C1
+         ;
+         ";C2
+         "ab
+         ";"cd
+         ;
+         e"
+         "
+         
+         
+         
+         1";2
+         """, new[] { (1, 4), (4, 8), (8, 13) }],
+        ["\"C1\n\";C2\n\"1\n2\r3\";\"4\r\n56\"\n\"7\r\r\r\r\r89\";012\n",
+         new[] { (1, 3), (3, 7), (7, 13) }],
     ];
 
     [DataTestMethod]

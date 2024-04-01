@@ -66,6 +66,7 @@ public readonly record struct SepReaderOptions
     /// state after unescaped cols before next col. This is for efficiency to
     /// avoid allocating secondary memory for unescaped columns. Header
     /// columns/names will also be unescaped.
+    /// Requires <see cref="DisableQuotesParsing"/> to be false.
     /// </remarks>
     public bool Unescape { get; init; } = false;
 }

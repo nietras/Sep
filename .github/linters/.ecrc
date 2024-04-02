@@ -1,0 +1,18 @@
+{
+  "Verbose": false,
+  "Debug": false,
+  "IgnoreDefaults": false,
+  "SpacesAftertabs": false,
+  "NoColor": false,
+  "exclude": ["testfiles"],
+  "AllowedContentTypes": [],
+  "PassedFiles": [],
+  "Disable": {
+    "EndOfLine": false,
+    "Indentation": true,
+    "InsertFinalNewline": false,
+    "TrimTrailingWhitespace": false,
+    "IndentSize": false,
+    "MaxLineLength": false
+  }
+}

@@ -61,7 +61,7 @@ few MBs. 💾
 pragmatic approach towards this especially with regards to quoting and line
 ends. See section [RFC-4180](#rfc-4180).
 
-[Example](#Example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
+[Example](#example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
 
 ## Example
 ```csharp
@@ -253,7 +253,7 @@ That is, to use `SepReader` follow the points below:
     var colNames = header.NamesStarting("GT_");
     var colIndices = header.IndicesOf(colNames);
     ```
- 1. Enumerate rows. One row at a time. 
+ 1. Enumerate rows. One row at a time.
  1. Access a column by name or index. Or access multiple columns with names and
     indices. `Sep` internally handles pooled allocation and reuse of arrays for
     multiple columns.
@@ -398,7 +398,7 @@ If you are hovering over `row` then this will show something like:
 ```
   2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
-This has the format shown below. 
+This has the format shown below.
 ```
 <ROWINDEX>:[<LINENUMBERRANGE>] = "<ROW>"
 ```
@@ -553,7 +553,7 @@ CollectionAssert.AreEqual(expected, actual);
 This means you are still parsing the double (which is magnitudes slower than
 getting just the key) for all rows. Imagine if this was an array of floating
 points or similar. Not only would you then be parsing a lot of values you would
-also be allocated 99x arrays that aren't used after filtering with `Where`. 
+also be allocated 99x arrays that aren't used after filtering with `Where`.
 
 Instead, you should focus on how to express the enumeration in a way that is
 both efficient and easy to read. For example, the above could be rewritten as:
@@ -709,7 +709,7 @@ That is, to use `SepWriter` follow the points below:
  1. Use `Set` to set the column value either as a `ReadOnlySpan<char>`, `string`
     or via an interpolated string. Or use `Format<T>` where `T : IFormattable`
     to format `T` to the column value.
- 1. Row is written when `Dispose` is called on the row. 
+ 1. Row is written when `Dispose` is called on the row.
     > Note this is to allow a row to be defined flexibly with both column
     > removal, moves and renames in the future. This is not yet supported.
 
@@ -738,10 +738,10 @@ public bool WriteHeader { get; init; } = true;
 Sep is designed to be minimal and fast. As such, it has some limitations and
 constraints, since these are not needed for the initial intended usage:
 
- * Automatic escaping and unescaping quotes is not supported. Use
+* Automatic escaping and unescaping quotes is not supported. Use
    [`Trim`](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.trim)
    extension method to remove surrounding quotes, for example.
- * Comments `#` are not directly supported. You can skip a row by:
+* Comments `#` are not directly supported. You can skip a row by:
    ```csharp
    foreach (var row in reader)
    {
@@ -753,28 +753,28 @@ constraints, since these are not needed for the initial intended usage:
    }
    ```
    This does not allow skipping a header row starting with `#` though.
- * `SepWriter` is not yet fully featured and one cannot skip writing a header
+* `SepWriter` is not yet fully featured and one cannot skip writing a header
    currently.
 
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:
 
- * [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly
+* [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly
    used CSV library with a staggering
    ![downloads](https://img.shields.io/nuget/dt/csvhelper) downloads on NuGet. Fully
    featured and battle tested.
- * [Sylvan](https://github.com/MarkPflug/Sylvan) - is well-known and has
+* [Sylvan](https://github.com/MarkPflug/Sylvan) - is well-known and has
    previously been shown to be [the fastest CSV libraries for
    parsing](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
    (Sep changes that 😉).
- * `ReadLine`/`WriteLine` - basic naive implementations that read line by line
+* `ReadLine`/`WriteLine` - basic naive implementations that read line by line
    and split on separator. While writing columns, separators and line endings
    directly. Does not handle quotes or similar correctly.
 
 All benchmarks are run from/to memory either with:
 
- * `StringReader` or `StreamReader + MemoryStream`
- * `StringWriter` or `StreamWriter + MemoryStream`
+* `StringReader` or `StreamReader + MemoryStream`
+* `StringWriter` or `StreamWriter + MemoryStream`
 
 This to avoid confounding factors from reading from or writing to disk.
 
@@ -807,6 +807,7 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 
 ### Runtime and Platforms
 The following runtime is used for benchmarking:
+
 * `NET 8.0.X`
 
 The following platforms are used for benchmarking:
@@ -830,17 +831,17 @@ The following platforms are used for benchmarking:
 ### Reader Comparison Benchmarks
 The following reader scenarios are benchmarked:
 
- * [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
+* [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
    parser in
    .NET](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
- * [**Floats**](#floats-reader-comparison-benchmarks) as for example in machine learning.
+* [**Floats**](#floats-reader-comparison-benchmarks) as for example in machine learning.
 
 Details for each can be found in the following. However, for each of these 3
 different scopes are benchmarked to better assertain the low-level performance
 of each library and approach and what parts of the parsing consume the most
 time:
 
- * **Row** - for this scope only the row is enumerated. That is, for Sep all
+* **Row** - for this scope only the row is enumerated. That is, for Sep all
    that is done is:
    ```csharp
    foreach (var row in reader) { }
@@ -848,7 +849,7 @@ time:
    this should capture parsing both row and columns but without accessing these.
    Note that some libraries (like Sylvan) will defer work for columns to when
    these are accessed.
- * **Cols** - for this scope all rows and all columns are enumerated. If
+* **Cols** - for this scope all rows and all columns are enumerated. If
    possible columns are accessed as spans, if not as strings, which then might
    mean a string has to be allocated. That is, for Sep this is:
    ```csharp
@@ -859,8 +860,8 @@ time:
            var span = row[i].Span;
        }
    }
-   ```   
- * **XYZ** - finally the full scope is performed which is specific to each of
+   ```
+* **XYZ** - finally the full scope is performed which is specific to each of
    the scenarios.
 
 Additionally, as Sep supports multi-threaded parsing via `ParallelEnumerate`
@@ -1094,7 +1095,7 @@ With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
 `NCsvPerf` does not examine performance in the face of quotes in the csv. This
 is relevant since some libraries like Sylvan will revert to a slower (not SIMD
 vectorized) parsing code path if it encounters quotes. Sep was designed to
-always use SIMD vectorization no matter what. 
+always use SIMD vectorization no matter what.
 
 Since there are two extra `char`s to handle per column, it does have a
 significant impact on performance, no matter what though. This is expected when
@@ -1312,7 +1313,7 @@ efficient `ParallelEnumerate` is, but bear in mind that this is for the case of
 repeated micro-benchmark runs.
 
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
-pretty good compared to CsvHelper regardless of allocating a lot of strings. 
+pretty good compared to CsvHelper regardless of allocating a lot of strings.
 
 ##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.4.6.0, Sylvan  1.3.7.0, CsvHelper 31.0.2.15)
 
@@ -1531,7 +1532,8 @@ Ask questions on GitHub and this section will be expanded. :)
 ### SepWriter FAQ
 
 ## Links
- * [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
+
+* [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
 
 ## Public API Reference
 ```csharp

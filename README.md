@@ -1292,7 +1292,7 @@ each, even if this ends up adding a bit more code in the benchmark for other
 approaches.
 
 As can be seen below, the actual low level parsing of the separated values is a
-tiny part of the total runtime for Sep for which the run time is dominated by
+tiny part of the total runtime for Sep for which the runtime is dominated by
 parsing the floating points. Since Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
 floating point parser, it is **>2x faster than Sylvan** for example. If using

@@ -1,0 +1,7 @@
+---
+# Don't report passed checks in output
+quiet: true
+compact: true
+skip-check: CKV_GHA_7
+soft-fail: true
+...

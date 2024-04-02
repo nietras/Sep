@@ -5,6 +5,8 @@ on:  # yamllint disable-line rule:truthy
   push: null
   pull_request: null
 
+permissions: read-all
+
 jobs:
   build:
     name: Lint

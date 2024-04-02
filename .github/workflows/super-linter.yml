@@ -26,6 +26,11 @@ jobs:
           # list of files that changed across commits
           fetch-depth: 0
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          global-json-file: global.json
+
       - name: Super-linter
         uses: super-linter/super-linter@v6.3.0  # x-release-please-version
         env:

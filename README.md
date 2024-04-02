@@ -191,7 +191,7 @@ example.
 
 ### API Pattern
 In general, both reading and writing follow a similar pattern:
-```
+```text
 Sep/Spec => SepReaderOptions => SepReader => Row => Col(s) => Span/ToString/Parse
 Sep/Spec => SepWriterOptions => SepWriter => Row => Col(s) => Set/Format
 ```
@@ -387,7 +387,7 @@ foreach (var row in reader)
 ```
 and you are hovering over `reader` when the break is triggered then this will
 show something like:
-```
+```text
 String Length=55
 ```
 That is, it will show information of the source for the reader, in this case a
@@ -395,11 +395,11 @@ string of length 55.
 
 ##### SepReader.Row Debuggability
 If you are hovering over `row` then this will show something like:
-```
+```text
   2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 This has the format shown below.
-```
+```text
 <ROWINDEX>:[<LINENUMBERRANGE>] = "<ROW>"
 ```
 Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
@@ -413,14 +413,14 @@ that makes Sep a bit slower but which is a price considered worth paying.
 
 Additionally, if you expand the `row` in the debugger (e.g. via the small
 triangle) you will see each column of the row similar to below.
-```
+```text
 00:'Key'   = "B"
 01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 
 ##### SepReader.Col Debuggability
 If you hover over `col` you should see:
-```
+```text
 "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 
@@ -888,7 +888,7 @@ library.
 The source used for this benchmark [PackageAssetsBench.cs](src/Sep.ComparisonBenchmarks/PackageAssetsBench.cs) is a
 [PackageAssets.csv](https://raw.githubusercontent.com/joelverhagen/NCsvPerf/main/NCsvPerf/TestData/PackageAssets.csv)
 with NuGet package information in 25 columns with rows like:
-```
+```text
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,RuntimeAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,CompileLibAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,ResourceAssemblies,,,net5.0,,,,,,lib/net5.0/de/BlazorGrid.resources.dll,BlazorGrid.resources.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
@@ -1250,7 +1250,7 @@ generated with `N` ground truth values, `N` predicted result values and nothing
 else (note this was changed from version 0.3.0, prior to that there were some
 extra leading columns). `N = 20`
 here. For example:
-```
+```text
 GT_Feature0;GT_Feature1;GT_Feature2;GT_Feature3;GT_Feature4;GT_Feature5;GT_Feature6;GT_Feature7;GT_Feature8;GT_Feature9;GT_Feature10;GT_Feature11;GT_Feature12;GT_Feature13;GT_Feature14;GT_Feature15;GT_Feature16;GT_Feature17;GT_Feature18;GT_Feature19;RE_Feature0;RE_Feature1;RE_Feature2;RE_Feature3;RE_Feature4;RE_Feature5;RE_Feature6;RE_Feature7;RE_Feature8;RE_Feature9;RE_Feature10;RE_Feature11;RE_Feature12;RE_Feature13;RE_Feature14;RE_Feature15;RE_Feature16;RE_Feature17;RE_Feature18;RE_Feature19
 0.52276427;0.16843422;0.26259267;0.7244084;0.51292276;0.17365117;0.76125056;0.23458846;0.2573214;0.50560355;0.3202332;0.3809696;0.26024464;0.5174511;0.035318818;0.8141374;0.57719684;0.3974705;0.15219308;0.09011261;0.70515215;0.81618196;0.5399706;0.044147138;0.7111546;0.14776127;0.90621275;0.6925897;0.5164137;0.18637845;0.041509967;0.30819967;0.5831603;0.8210651;0.003954861;0.535722;0.8051845;0.7483589;0.3845737;0.14911908
 0.6264564;0.11517637;0.24996082;0.77242833;0.2896067;0.6481459;0.14364648;0.044498358;0.6045593;0.51591337;0.050794687;0.42036617;0.7065823;0.6284636;0.21844554;0.013253775;0.36516154;0.2674384;0.06866083;0.71817476;0.07094294;0.46409357;0.012033525;0.7978093;0.43917948;0.5134962;0.4995968;0.008952909;0.82883793;0.012896823;0.0030740085;0.063773096;0.6541431;0.034539033;0.9135142;0.92897075;0.46119377;0.37533295;0.61660606;0.044443816
@@ -1498,7 +1498,7 @@ separators when reading. This is decidedly non-conforming.
 
 The RFC defines the following condensed [ABNF
 grammar](https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_form):
-```
+```text
 file = [header CRLF] record *(CRLF record) [CRLF]
 header = name *(COMMA name)
 record = field *(COMMA field)

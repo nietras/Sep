@@ -2,6 +2,7 @@
 ![.NET](https://img.shields.io/badge/net7.0%20net8.0-5C2D91?logo=.NET&labelColor=gray)
 ![C#](https://img.shields.io/badge/12.0-239120?logo=csharp&logoColor=white&labelColor=gray)
 [![Build Status](https://github.com/nietras/Sep/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/nietras/Sep/actions/workflows/dotnet.yml)
+[![Super-Linter](https://github.com/nietras/Sep/actions/workflows/super-linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![codecov](https://codecov.io/gh/nietras/Sep/branch/main/graph/badge.svg?token=WN56CR3X0D)](https://codecov.io/gh/nietras/Sep)
 [![Nuget](https://img.shields.io/nuget/v/Sep?color=purple)](https://www.nuget.org/packages/Sep/)
 [![Release](https://img.shields.io/github/v/release/nietras/Sep)](https://github.com/nietras/Sep/releases/)
@@ -61,7 +62,7 @@ few MBs. 💾
 pragmatic approach towards this especially with regards to quoting and line
 ends. See section [RFC-4180](#rfc-4180).
 
-[Example](#Example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
+[Example](#example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
 
 ## Example
 ```csharp
@@ -191,7 +192,7 @@ example.
 
 ### API Pattern
 In general, both reading and writing follow a similar pattern:
-```
+```text
 Sep/Spec => SepReaderOptions => SepReader => Row => Col(s) => Span/ToString/Parse
 Sep/Spec => SepWriterOptions => SepWriter => Row => Col(s) => Set/Format
 ```
@@ -253,7 +254,7 @@ That is, to use `SepReader` follow the points below:
     var colNames = header.NamesStarting("GT_");
     var colIndices = header.IndicesOf(colNames);
     ```
- 1. Enumerate rows. One row at a time. 
+ 1. Enumerate rows. One row at a time.
  1. Access a column by name or index. Or access multiple columns with names and
     indices. `Sep` internally handles pooled allocation and reuse of arrays for
     multiple columns.
@@ -387,7 +388,7 @@ foreach (var row in reader)
 ```
 and you are hovering over `reader` when the break is triggered then this will
 show something like:
-```
+```text
 String Length=55
 ```
 That is, it will show information of the source for the reader, in this case a
@@ -395,11 +396,11 @@ string of length 55.
 
 ##### SepReader.Row Debuggability
 If you are hovering over `row` then this will show something like:
-```
+```text
   2:[5..9] = "B;\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
-This has the format shown below. 
-```
+This has the format shown below.
+```text
 <ROWINDEX>:[<LINENUMBERRANGE>] = "<ROW>"
 ```
 Note how this shows line number range `[FromIncl..ToExcl]`, as in C# [range
@@ -413,14 +414,14 @@ that makes Sep a bit slower but which is a price considered worth paying.
 
 Additionally, if you expand the `row` in the debugger (e.g. via the small
 triangle) you will see each column of the row similar to below.
-```
+```text
 00:'Key'   = "B"
 01:'Value' = "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 
 ##### SepReader.Col Debuggability
 If you hover over `col` you should see:
-```
+```text
 "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 
@@ -553,7 +554,7 @@ CollectionAssert.AreEqual(expected, actual);
 This means you are still parsing the double (which is magnitudes slower than
 getting just the key) for all rows. Imagine if this was an array of floating
 points or similar. Not only would you then be parsing a lot of values you would
-also be allocated 99x arrays that aren't used after filtering with `Where`. 
+also be allocated 99x arrays that aren't used after filtering with `Where`.
 
 Instead, you should focus on how to express the enumeration in a way that is
 both efficient and easy to read. For example, the above could be rewritten as:
@@ -709,7 +710,7 @@ That is, to use `SepWriter` follow the points below:
  1. Use `Set` to set the column value either as a `ReadOnlySpan<char>`, `string`
     or via an interpolated string. Or use `Format<T>` where `T : IFormattable`
     to format `T` to the column value.
- 1. Row is written when `Dispose` is called on the row. 
+ 1. Row is written when `Dispose` is called on the row.
     > Note this is to allow a row to be defined flexibly with both column
     > removal, moves and renames in the future. This is not yet supported.
 
@@ -738,10 +739,10 @@ public bool WriteHeader { get; init; } = true;
 Sep is designed to be minimal and fast. As such, it has some limitations and
 constraints, since these are not needed for the initial intended usage:
 
- * Automatic escaping and unescaping quotes is not supported. Use
+* Automatic escaping and unescaping quotes is not supported. Use
    [`Trim`](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.trim)
    extension method to remove surrounding quotes, for example.
- * Comments `#` are not directly supported. You can skip a row by:
+* Comments `#` are not directly supported. You can skip a row by:
    ```csharp
    foreach (var row in reader)
    {
@@ -753,28 +754,28 @@ constraints, since these are not needed for the initial intended usage:
    }
    ```
    This does not allow skipping a header row starting with `#` though.
- * `SepWriter` is not yet fully featured and one cannot skip writing a header
+* `SepWriter` is not yet fully featured and one cannot skip writing a header
    currently.
 
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:
 
- * [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly
+* [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly
    used CSV library with a staggering
    ![downloads](https://img.shields.io/nuget/dt/csvhelper) downloads on NuGet. Fully
    featured and battle tested.
- * [Sylvan](https://github.com/MarkPflug/Sylvan) - is well-known and has
+* [Sylvan](https://github.com/MarkPflug/Sylvan) - is well-known and has
    previously been shown to be [the fastest CSV libraries for
    parsing](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
    (Sep changes that 😉).
- * `ReadLine`/`WriteLine` - basic naive implementations that read line by line
+* `ReadLine`/`WriteLine` - basic naive implementations that read line by line
    and split on separator. While writing columns, separators and line endings
    directly. Does not handle quotes or similar correctly.
 
 All benchmarks are run from/to memory either with:
 
- * `StringReader` or `StreamReader + MemoryStream`
- * `StringWriter` or `StreamWriter + MemoryStream`
+* `StringReader` or `StreamReader + MemoryStream`
+* `StringWriter` or `StreamWriter + MemoryStream`
 
 This to avoid confounding factors from reading from or writing to disk.
 
@@ -807,6 +808,7 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 
 ### Runtime and Platforms
 The following runtime is used for benchmarking:
+
 * `NET 8.0.X`
 
 The following platforms are used for benchmarking:
@@ -830,17 +832,17 @@ The following platforms are used for benchmarking:
 ### Reader Comparison Benchmarks
 The following reader scenarios are benchmarked:
 
- * [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
+* [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
    parser in
    .NET](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
- * [**Floats**](#floats-reader-comparison-benchmarks) as for example in machine learning.
+* [**Floats**](#floats-reader-comparison-benchmarks) as for example in machine learning.
 
 Details for each can be found in the following. However, for each of these 3
 different scopes are benchmarked to better assertain the low-level performance
 of each library and approach and what parts of the parsing consume the most
 time:
 
- * **Row** - for this scope only the row is enumerated. That is, for Sep all
+* **Row** - for this scope only the row is enumerated. That is, for Sep all
    that is done is:
    ```csharp
    foreach (var row in reader) { }
@@ -848,7 +850,7 @@ time:
    this should capture parsing both row and columns but without accessing these.
    Note that some libraries (like Sylvan) will defer work for columns to when
    these are accessed.
- * **Cols** - for this scope all rows and all columns are enumerated. If
+* **Cols** - for this scope all rows and all columns are enumerated. If
    possible columns are accessed as spans, if not as strings, which then might
    mean a string has to be allocated. That is, for Sep this is:
    ```csharp
@@ -859,8 +861,8 @@ time:
            var span = row[i].Span;
        }
    }
-   ```   
- * **XYZ** - finally the full scope is performed which is specific to each of
+   ```
+* **XYZ** - finally the full scope is performed which is specific to each of
    the scenarios.
 
 Additionally, as Sep supports multi-threaded parsing via `ParallelEnumerate`
@@ -887,7 +889,7 @@ library.
 The source used for this benchmark [PackageAssetsBench.cs](src/Sep.ComparisonBenchmarks/PackageAssetsBench.cs) is a
 [PackageAssets.csv](https://raw.githubusercontent.com/joelverhagen/NCsvPerf/main/NCsvPerf/TestData/PackageAssets.csv)
 with NuGet package information in 25 columns with rows like:
-```
+```text
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,RuntimeAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,CompileLibAssemblies,,,net5.0,,,,,,lib/net5.0/BlazorGrid.dll,BlazorGrid.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
 75fcf875-017d-4579-bfd9-791d3e6767f0,2020-11-28T01:50:41.2449947+00:00,Akinzekeel.BlazorGrid,0.9.1-preview,2020-11-27T22:42:54.3100000+00:00,AvailableAssets,ResourceAssemblies,,,net5.0,,,,,,lib/net5.0/de/BlazorGrid.resources.dll,BlazorGrid.resources.dll,.dll,lib,net5.0,.NETCoreApp,5.0.0.0,,,0.0.0.0
@@ -1094,7 +1096,7 @@ With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
 `NCsvPerf` does not examine performance in the face of quotes in the csv. This
 is relevant since some libraries like Sylvan will revert to a slower (not SIMD
 vectorized) parsing code path if it encounters quotes. Sep was designed to
-always use SIMD vectorization no matter what. 
+always use SIMD vectorization no matter what.
 
 Since there are two extra `char`s to handle per column, it does have a
 significant impact on performance, no matter what though. This is expected when
@@ -1249,7 +1251,7 @@ generated with `N` ground truth values, `N` predicted result values and nothing
 else (note this was changed from version 0.3.0, prior to that there were some
 extra leading columns). `N = 20`
 here. For example:
-```
+```text
 GT_Feature0;GT_Feature1;GT_Feature2;GT_Feature3;GT_Feature4;GT_Feature5;GT_Feature6;GT_Feature7;GT_Feature8;GT_Feature9;GT_Feature10;GT_Feature11;GT_Feature12;GT_Feature13;GT_Feature14;GT_Feature15;GT_Feature16;GT_Feature17;GT_Feature18;GT_Feature19;RE_Feature0;RE_Feature1;RE_Feature2;RE_Feature3;RE_Feature4;RE_Feature5;RE_Feature6;RE_Feature7;RE_Feature8;RE_Feature9;RE_Feature10;RE_Feature11;RE_Feature12;RE_Feature13;RE_Feature14;RE_Feature15;RE_Feature16;RE_Feature17;RE_Feature18;RE_Feature19
 0.52276427;0.16843422;0.26259267;0.7244084;0.51292276;0.17365117;0.76125056;0.23458846;0.2573214;0.50560355;0.3202332;0.3809696;0.26024464;0.5174511;0.035318818;0.8141374;0.57719684;0.3974705;0.15219308;0.09011261;0.70515215;0.81618196;0.5399706;0.044147138;0.7111546;0.14776127;0.90621275;0.6925897;0.5164137;0.18637845;0.041509967;0.30819967;0.5831603;0.8210651;0.003954861;0.535722;0.8051845;0.7483589;0.3845737;0.14911908
 0.6264564;0.11517637;0.24996082;0.77242833;0.2896067;0.6481459;0.14364648;0.044498358;0.6045593;0.51591337;0.050794687;0.42036617;0.7065823;0.6284636;0.21844554;0.013253775;0.36516154;0.2674384;0.06866083;0.71817476;0.07094294;0.46409357;0.012033525;0.7978093;0.43917948;0.5134962;0.4995968;0.008952909;0.82883793;0.012896823;0.0030740085;0.063773096;0.6541431;0.034539033;0.9135142;0.92897075;0.46119377;0.37533295;0.61660606;0.044443816
@@ -1292,7 +1294,7 @@ each, even if this ends up adding a bit more code in the benchmark for other
 approaches.
 
 As can be seen below, the actual low level parsing of the separated values is a
-tiny part of the total runtime for Sep for which the run time is dominated by
+tiny part of the total runtime for Sep for which the runtime is dominated by
 parsing the floating points. Since Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
 floating point parser, it is **>2x faster than Sylvan** for example. If using
@@ -1312,7 +1314,7 @@ efficient `ParallelEnumerate` is, but bear in mind that this is for the case of
 repeated micro-benchmark runs.
 
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
-pretty good compared to CsvHelper regardless of allocating a lot of strings. 
+pretty good compared to CsvHelper regardless of allocating a lot of strings.
 
 ##### AMD.Ryzen.9.5950X - FloatsReader Benchmark Results (Sep 0.4.6.0, Sylvan  1.3.7.0, CsvHelper 31.0.2.15)
 
@@ -1497,7 +1499,7 @@ separators when reading. This is decidedly non-conforming.
 
 The RFC defines the following condensed [ABNF
 grammar](https://en.wikipedia.org/wiki/Augmented_Backus%E2%80%93Naur_form):
-```
+```text
 file = [header CRLF] record *(CRLF record) [CRLF]
 header = name *(COMMA name)
 record = field *(COMMA field)
@@ -1531,7 +1533,8 @@ Ask questions on GitHub and this section will be expanded. :)
 ### SepWriter FAQ
 
 ## Links
- * [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
+
+* [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
 
 ## Public API Reference
 ```csharp

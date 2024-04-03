@@ -1,5 +1,7 @@
 name: comparison-bench
 
+permissions: read-all
+
 # configure manual trigger
 on:
   workflow_dispatch:

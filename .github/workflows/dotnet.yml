@@ -2,6 +2,8 @@
 
 name: dotnet
 
+permissions: read-all
+
 on:
   push:
     branches: [ "main" ]

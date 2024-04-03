@@ -45,6 +45,8 @@ jobs:
       uses: codecov/codecov-action@v3
       with:
         flags: ${{ matrix.os }},${{ matrix.configuration }}
+    - name: Format verify no changes
+      run: dotnet format -c ${{ matrix.configuration }} --verify-no-changes
 
   test-parsers:
     strategy:

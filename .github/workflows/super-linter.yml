@@ -1,15 +1,17 @@
 ---
-name: lint
+name: super-linter
 
 permissions: read-all
 
 on:  # yamllint disable-line rule:truthy
-  push: null
-  pull_request: null
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
-    name: Lint
+    name: super-linter
     runs-on: ubuntu-latest
 
     permissions:
@@ -26,14 +28,10 @@ jobs:
           # list of files that changed across commits
           fetch-depth: 0
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          global-json-file: global.json
-
       - name: Super-linter
         uses: super-linter/super-linter@v6.3.0  # x-release-please-version
         env:
+          # dotnet format not working, checked during build instead
           VALIDATE_CSHARP: false
           FILTER_REGEX_EXCLUDE: './benchmarks/.*'
           # To report GitHub Actions status checks

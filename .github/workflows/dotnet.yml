@@ -46,7 +46,7 @@ jobs:
       with:
         flags: ${{ matrix.os }},${{ matrix.configuration }}
     - name: Format verify no changes
-      run: dotnet format -c ${{ matrix.configuration }} --verify-no-changes
+      run: dotnet format --verify-no-changes
 
   test-parsers:
     strategy:

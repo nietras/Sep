@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace nietras.SeparatedValues;
 
+[DebuggerDisplay("{DebuggerDisplayPrefix,nq}")]
+[DebuggerTypeProxy(typeof(DebugView))]
 public sealed class SepWriterHeader
 {
     readonly SepWriter _writer;
@@ -37,5 +41,18 @@ public sealed class SepWriterHeader
             SepThrow.ArgumentException_ColNameAlreadyExists(colName);
         }
         _writer.AddCol(colName);
+    }
+
+    internal string DebuggerDisplayPrefix => $"Count = {GetColNames().Count}";
+
+    IReadOnlyCollection<string> GetColNames() =>
+        _writer._colNamesHeader is null ? _writer._colNameToCol.Keys : _writer._colNamesHeader;
+
+    internal class DebugView
+    {
+        internal DebugView(SepWriterHeader header) => ColNames = header.GetColNames().ToArray();
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        internal string[] ColNames { get; }
     }
 }

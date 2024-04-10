@@ -29,6 +29,26 @@ public sealed partial class SepWriter : IDisposable
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
+    public sealed class SepWriterHeader
+    {
+        readonly SepWriter _writer;
+
+        internal SepWriterHeader(SepWriter writer) => _writer = writer;
+
+        public void Add(string colName)
+        {
+            if (_writer._headerWrittenOrSkipped)
+            {
+                SepThrow.InvalidOperationException_CannotAddColNameHeaderAlreadyWritten(colName);
+            }
+            if (_writer._colNameToCol.ContainsKey(colName))
+            {
+                SepThrow.ArgumentException_ColNameAlreadyExists(colName);
+            }
+            _writer.AddCol(colName);
+        }
+    }
+
     internal SepWriter(SepWriterOptions options, TextWriter writer, Action<TextWriter> disposeTextWriter)
     {
         _sep = options.Sep;
@@ -36,9 +56,11 @@ public sealed partial class SepWriter : IDisposable
         _writeHeader = options.WriteHeader;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
+        Header = new(this);
     }
 
     public SepSpec Spec => new(_sep, _cultureInfo);
+    public SepWriterHeader Header { get; }
 
     public Row NewRow()
     {

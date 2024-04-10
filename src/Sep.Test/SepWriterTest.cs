@@ -169,6 +169,26 @@ public class SepWriterTest
     }
 
     [TestMethod]
+    public void SepWriterTest_Header_Add_ReadOnlyList_Rows_1()
+    {
+        using var writer = CreateWriter();
+        IReadOnlyList<string> colNames = ["A", "B", "C"];
+        writer.Header.Add(colNames);
+        using (var row = writer.NewRow())
+        {
+            row["C"].Set("3");
+            row["A"].Set("1");
+            row["B"].Set("2");
+        }
+        var expected = """
+                       A;B;C
+                       1;2;3
+                       
+                       """;
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterTest_NewRowWhenAlreadyNewRow_Throws()
     {
         using var writer = CreateWriter();

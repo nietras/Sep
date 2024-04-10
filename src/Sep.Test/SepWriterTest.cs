@@ -110,6 +110,65 @@ public class SepWriterTest
     }
 
     [TestMethod]
+    public void SepWriterTest_Header_Add_Array_Rows_0()
+    {
+        using var writer = CreateWriter();
+        var colNames = new string[] { "A", "B", "C" };
+        writer.Header.Add(colNames);
+        var expected =
+@"A;B;C
+";
+        // Header written on Dispose
+        writer.Dispose();
+
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_Header_Add_ReadOnlyList_Rows_0()
+    {
+        using var writer = CreateWriter();
+        IReadOnlyList<string> colNames = ["A", "B", "C"];
+        writer.Header.Add(colNames);
+        var expected =
+@"A;B;C
+";
+        // Header written on Dispose
+        writer.Dispose();
+
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_Header_Add_ReadOnlySpan_Rows_0()
+    {
+        using var writer = CreateWriter();
+        ReadOnlySpan<string> colNames = ["A", "B", "C"];
+        writer.Header.Add(colNames);
+        var expected =
+@"A;B;C
+";
+        // Header written on Dispose
+        writer.Dispose();
+
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_Header_Add_String_Rows_0()
+    {
+        using var writer = CreateWriter();
+        writer.Header.Add("A");
+        var expected =
+@"A
+";
+        // Header written on Dispose
+        writer.Dispose();
+
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterTest_NewRowWhenAlreadyNewRow_Throws()
     {
         using var writer = CreateWriter();

@@ -1823,6 +1823,8 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}")]
+    [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepWriterHeader.DebugView))]
     public sealed class SepWriterHeader
     {
         public void Add(System.Collections.Generic.IReadOnlyList<string> colNames) { }

@@ -116,7 +116,7 @@ public partial class SepWriter
         return col;
     }
 
-    ColImpl AddCol(string colName)
+    internal ColImpl AddCol(string colName)
     {
         var colIndex = _colNameToCol.Count;
         var col = new ColImpl(this, colIndex, colName, SepStringBuilderPool.Take());

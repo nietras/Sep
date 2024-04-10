@@ -1731,11 +1731,10 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafe(int maximumStringLength = 32, int initialCapacity = 64, int maximumCapacity = 4096) { }
         public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafeFixedCapacity(int maximumStringLength = 32, int capacity = 2048) { }
     }
-    public class SepWriter : System.IDisposable
+    public sealed class SepWriter : System.IDisposable
     {
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
-        protected virtual void Dispose(bool disposing) { }
         public void Flush() { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public override string ToString() { }

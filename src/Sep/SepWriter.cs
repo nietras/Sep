@@ -5,7 +5,7 @@ using System.IO;
 
 namespace nietras.SeparatedValues;
 
-public partial class SepWriter : IDisposable
+public sealed partial class SepWriter : IDisposable
 {
     const int DefaultCapacity = 16;
     readonly Sep _sep;
@@ -151,7 +151,7 @@ public partial class SepWriter : IDisposable
 
     #region Dispose
     bool _disposed;
-    protected virtual void Dispose(bool disposing)
+    void Dispose(bool disposing)
     {
         if (!_disposed)
         {

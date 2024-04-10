@@ -50,17 +50,24 @@ public static class SepWriterExtensions
         return To(options, writer);
     }
 
-    public static SepWriter To(this SepWriterOptions options, Stream stream)
+    public static SepWriter To(this SepWriterOptions options, Stream stream) =>
+        To(options, stream, leaveOpen: false);
+
+    public static SepWriter To(this SepWriterOptions options, Stream stream, bool leaveOpen)
     {
         ArgumentNullException.ThrowIfNull(options);
-        var writer = new StreamWriter(stream);
+        var writer = new StreamWriter(stream, leaveOpen: leaveOpen);
         return To(options, writer);
     }
 
-    public static SepWriter To(this SepWriterOptions options, TextWriter writer)
+    public static SepWriter To(this SepWriterOptions options, TextWriter writer) =>
+        To(options, writer, leaveOpen: false);
+
+    public static SepWriter To(this SepWriterOptions options, TextWriter writer, bool leaveOpen)
     {
+        Action<TextWriter> disposeTextWriter = leaveOpen ? static w => { } : static w => w.Dispose();
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(writer);
-        return new SepWriter(options, writer);
+        return new SepWriter(options, writer, disposeTextWriter);
     }
 }

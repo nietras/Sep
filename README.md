@@ -1733,7 +1733,6 @@ namespace nietras.SeparatedValues
     }
     public class SepWriter : System.IDisposable
     {
-        public SepWriter(nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
         protected virtual void Dispose(bool disposing) { }
@@ -1814,6 +1813,8 @@ namespace nietras.SeparatedValues
     {
         public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream) { }
         public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
+        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream, bool leaveOpen) { }
+        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer, bool leaveOpen) { }
         public static nietras.SeparatedValues.SepWriter ToFile(this nietras.SeparatedValues.SepWriterOptions options, string filePath) { }
         public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options) { }
         public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options, int capacity) { }

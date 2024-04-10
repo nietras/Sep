@@ -11,7 +11,11 @@ public partial class SepWriter : IDisposable
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     readonly bool _writeHeader;
+    // _writer dispose handled by _disposeTextWriter
+#pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
+#pragma warning restore CA2213 // Disposable fields should be disposed
+    readonly Action<TextWriter> _disposeTextWriter;
     internal readonly List<(string ColName, int ColIndex)> _colNameCache = new(DefaultCapacity);
 
     // TODO: Add Stack<ColImpl> for remove/add cols when manipulating
@@ -25,12 +29,13 @@ public partial class SepWriter : IDisposable
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
-    public SepWriter(SepWriterOptions options, TextWriter writer)
+    internal SepWriter(SepWriterOptions options, TextWriter writer, Action<TextWriter> disposeTextWriter)
     {
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
         _writer = writer;
+        _disposeTextWriter = disposeTextWriter;
     }
 
     public SepSpec Spec => new(_sep, _cultureInfo);
@@ -135,7 +140,7 @@ public partial class SepWriter : IDisposable
 
     void DisposeManaged()
     {
-        _writer.Dispose();
+        _disposeTextWriter(_writer);
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)
         {

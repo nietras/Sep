@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -224,6 +225,54 @@ public class SepWriterTest
                         
                         """, File.ReadAllText(fileName));
         File.Delete(fileName);
+    }
+
+    [DataRow(true)]
+    [DataRow(false)]
+    [DataTestMethod]
+    public void SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
+    {
+        var stream = new MemoryStream();
+        using (var writer = Sep.Writer().To(stream, leaveOpen))
+        {
+            using var row = writer.NewRow();
+            row["A"].Format(1);
+        }
+        Assert.AreEqual(stream.CanRead && stream.CanWrite && stream.CanSeek, leaveOpen);
+        var actual = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.AreEqual("""
+                        A
+                        1
+                        
+                        """, actual);
+    }
+
+    [DataRow(true)]
+    [DataRow(false)]
+    [DataTestMethod]
+    public void SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
+    {
+        var textWriter = new StringWriter();
+        using (var writer = Sep.Writer().To(textWriter, leaveOpen))
+        {
+            using var row = writer.NewRow();
+            row["A"].Format(1);
+        }
+        var actual = textWriter.ToString();
+        Assert.AreEqual("""
+                        A
+                        1
+                        
+                        """, actual);
+        if (!leaveOpen)
+        {
+            Assert.ThrowsException<ObjectDisposedException>(
+                () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
+        }
+        else
+        {
+            textWriter.Write("2");
+        }
     }
 
     [TestMethod]

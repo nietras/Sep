@@ -43,7 +43,9 @@ public sealed class SepWriterHeader
         _writer.AddCol(colName);
     }
 
-    internal string DebuggerDisplayPrefix => $"Count = {GetColNames().Count}";
+    internal string DebuggerDisplayPrefix =>
+        $"Count = {GetColNames().Count} State = '{(_writer._headerWrittenOrSkipped ? (_writer._writeHeader ? "Written" : "Skipped") :
+                                                  (_writer._writeHeader ? "Not yet written" : "To be skipped"))}'";
 
     IReadOnlyCollection<string> GetColNames() =>
         _writer._colNamesHeader is null ? _writer._colNameToCol.Keys : _writer._colNamesHeader;

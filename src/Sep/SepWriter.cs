@@ -10,7 +10,7 @@ public sealed partial class SepWriter : IDisposable
     const int DefaultCapacity = 16;
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
-    readonly bool _writeHeader;
+    internal readonly bool _writeHeader;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;

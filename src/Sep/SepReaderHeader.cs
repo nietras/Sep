@@ -10,7 +10,7 @@ public sealed class SepReaderHeader
     readonly Dictionary<string, int> _colNameToIndex;
     readonly string[] _colNames;
 
-    public SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
+    internal SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
     {
         _row = row;
         _colNameToIndex = colNameToIndex;

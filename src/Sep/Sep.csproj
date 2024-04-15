@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="csFastFloat" Version="4.1.0" />
+    <PackageReference Include="csFastFloat" Version="4.1.2" />
   </ItemGroup>
 
 </Project>

@@ -10,14 +10,14 @@ public sealed class SepReaderHeader
     readonly Dictionary<string, int> _colNameToIndex;
     readonly string[] _colNames;
 
-    public SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
+    internal SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
     {
         _row = row;
         _colNameToIndex = colNameToIndex;
         _colNames = _colNameToIndex.Keys.ToArray();
     }
 
-    public static SepReaderHeader Empty { get; } = new(string.Empty, new Dictionary<string, int>());
+    public static SepReaderHeader Empty { get; } = new(string.Empty, []);
 
     internal static SepReaderHeader Parse(Sep sep, string line) =>
         Parse(sep, line, SepDefaults.ColNameComparer);

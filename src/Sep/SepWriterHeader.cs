@@ -55,9 +55,11 @@ public sealed class SepWriterHeader
 
     internal class DebugView
     {
-        internal DebugView(SepWriterHeader header) => ColNames = header.DebugColNames();
+        readonly SepWriterHeader _header;
+
+        internal DebugView(SepWriterHeader header) => _header = header;
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        internal string[] ColNames { get; }
+        internal string[] ColNames => _header.DebugColNames();
     }
 }

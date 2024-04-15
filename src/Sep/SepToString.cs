@@ -78,4 +78,4 @@ public abstract class SepToString : IDisposable
 
 // Signature to allow customizing per col or similar.
 // Note that if source has no header this will be null.
-public delegate SepToString SepCreateToString(SepHeader? maybeHeader, int colCount);
+public delegate SepToString SepCreateToString(SepReaderHeader? maybeHeader, int colCount);

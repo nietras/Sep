@@ -91,7 +91,7 @@ public sealed partial class SepReader : SepReaderState
     public SepSpec Spec => new(new(_separator), _cultureInfo);
     public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
     public bool HasRows { get; private set; }
-    public SepHeader Header => _header;
+    public SepReaderHeader Header => _header;
 
     internal int CharsLength => _chars.Length;
 
@@ -162,7 +162,7 @@ public sealed partial class SepReader : SepReaderState
         _toString = options.CreateToString(_header, _colCountExpected);
 
         // Use empty header if no header
-        _header ??= SepHeader.Empty;
+        _header ??= SepReaderHeader.Empty;
 
         _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
     }

@@ -208,7 +208,7 @@ public class SepReaderNoHeaderTest
         Assert.AreEqual(hasRows, reader.HasRows, nameof(reader.HasRows));
     }
 
-    static void AssertHeader(SepHeader header)
+    static void AssertHeader(SepReaderHeader header)
     {
         Assert.AreEqual(0, header.ColNames.Count);
         Assert.AreEqual(true, header.IsEmpty);

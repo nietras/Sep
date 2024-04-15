@@ -11,7 +11,7 @@ public class SepToStringTest
     {
         var create = SepToString.Direct;
         using var pool0 = create(null, colCount: 1);
-        using var pool1 = create(SepHeader.Empty, colCount: 1);
+        using var pool1 = create(SepReaderHeader.Empty, colCount: 1);
 
         var chars = new char[] { 'a' };
         var str0 = pool0.ToString(chars, colIndex: 0);
@@ -27,7 +27,7 @@ public class SepToStringTest
     {
         var create = SepToString.OnePool();
         using var pool0 = create(null, colCount: 1);
-        using var pool1 = create(SepHeader.Empty, colCount: 1);
+        using var pool1 = create(SepReaderHeader.Empty, colCount: 1);
 
         var chars = new char[] { 'a' };
         var str00 = pool0.ToString(chars, colIndex: 0);
@@ -43,7 +43,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerCol()
     {
         var create = SepToString.PoolPerCol();
-        var header = new SepHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 
@@ -65,7 +65,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerColThreadSafe()
     {
         var create = SepToString.PoolPerColThreadSafe();
-        var header = new SepHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 
@@ -87,7 +87,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerColThreadSafeFixedCapacity()
     {
         var create = SepToString.PoolPerColThreadSafeFixedCapacity();
-        var header = new SepHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 

@@ -4,25 +4,25 @@ using System.Linq;
 
 namespace nietras.SeparatedValues;
 
-public sealed class SepHeader
+public sealed class SepReaderHeader
 {
     readonly string _row;
     readonly Dictionary<string, int> _colNameToIndex;
     readonly string[] _colNames;
 
-    public SepHeader(string row, Dictionary<string, int> colNameToIndex)
+    public SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
     {
         _row = row;
         _colNameToIndex = colNameToIndex;
         _colNames = _colNameToIndex.Keys.ToArray();
     }
 
-    public static SepHeader Empty { get; } = new(string.Empty, new Dictionary<string, int>());
+    public static SepReaderHeader Empty { get; } = new(string.Empty, new Dictionary<string, int>());
 
-    internal static SepHeader Parse(Sep sep, string line) =>
+    internal static SepReaderHeader Parse(Sep sep, string line) =>
         Parse(sep, line, SepDefaults.ColNameComparer);
 
-    internal static SepHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
+    internal static SepReaderHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
     {
         var colNames = sep.Split(line);
         var colNameToIndex = new Dictionary<string, int>(colNames.Length, comparer);
@@ -31,7 +31,7 @@ public sealed class SepHeader
             var colName = colNames[i];
             colNameToIndex.Add(colName, i);
         }
-        return new SepHeader(line, colNameToIndex);
+        return new SepReaderHeader(line, colNameToIndex);
 
     }
 

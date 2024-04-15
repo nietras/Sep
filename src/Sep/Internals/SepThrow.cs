@@ -101,4 +101,16 @@ static class SepThrow
             $"Buffer or row has reached maximum supported length of {maxLength}. " +
             $"If no such row should exist ensure quotes \" are terminated.");
     }
+
+    [DoesNotReturn]
+    internal static void ArgumentException_ColNameAlreadyExists(string colName)
+    {
+        throw new ArgumentException($"Column name '{colName}' already exists", nameof(colName));
+    }
+
+    [DoesNotReturn]
+    internal static void InvalidOperationException_CannotAddColNameHeaderAlreadyWritten(string colName)
+    {
+        throw new InvalidOperationException($"Cannot add column name '{colName} since header or first row already written.");
+    }
 }

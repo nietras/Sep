@@ -10,7 +10,7 @@ public sealed partial class SepWriter : IDisposable
     const int DefaultCapacity = 16;
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
-    readonly bool _writeHeader;
+    internal readonly bool _writeHeader;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -19,13 +19,13 @@ public sealed partial class SepWriter : IDisposable
     internal readonly List<(string ColName, int ColIndex)> _colNameCache = new(DefaultCapacity);
 
     // TODO: Add Stack<ColImpl> for remove/add cols when manipulating
-    readonly Dictionary<string, ColImpl> _colNameToCol = new(DefaultCapacity);
+    internal readonly Dictionary<string, ColImpl> _colNameToCol = new(DefaultCapacity);
     // Once header is written cols cannot be added or removed
     internal List<ColImpl> _cols = new(DefaultCapacity);
     internal string[] _colNamesHeader = Array.Empty<string>();
 
     internal readonly SepArrayPoolAccessIndexed _arrayPool = new();
-    bool _headerWrittenOrSkipped = false;
+    internal bool _headerWrittenOrSkipped = false;
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
@@ -36,9 +36,11 @@ public sealed partial class SepWriter : IDisposable
         _writeHeader = options.WriteHeader;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
+        Header = new(this);
     }
 
     public SepSpec Spec => new(_sep, _cultureInfo);
+    public SepWriterHeader Header { get; }
 
     public Row NewRow()
     {
@@ -60,31 +62,7 @@ public sealed partial class SepWriter : IDisposable
         // Header
         if (!_headerWrittenOrSkipped)
         {
-            if (_writeHeader)
-            {
-                A.Assert(_colNamesHeader.Length == 0);
-                if (cols.Count != _colNamesHeader.Length)
-                {
-                    _colNamesHeader = new string[cols.Count];
-                }
-                var notFirstHeader = false;
-                for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
-                {
-                    var col = cols[colIndex];
-                    A.Assert(colIndex == col.Index);
-
-                    if (notFirstHeader)
-                    {
-                        _writer.Write(_sep.Separator);
-                    }
-                    var name = col.Name;
-                    _writer.Write(name);
-                    _colNamesHeader[colIndex] = name;
-                    notFirstHeader = true;
-                }
-                _writer.WriteLine();
-            }
-            _headerWrittenOrSkipped = true;
+            WriteHeader();
         }
         else
         {
@@ -138,8 +116,43 @@ public sealed partial class SepWriter : IDisposable
         return null;
     }
 
+    internal void WriteHeader()
+    {
+        if (_writeHeader)
+        {
+            var cols = _cols;
+            A.Assert(_colNamesHeader.Length == 0);
+            if (cols.Count != _colNamesHeader.Length)
+            {
+                _colNamesHeader = new string[cols.Count];
+            }
+            var notFirstHeader = false;
+            for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
+            {
+                var col = cols[colIndex];
+                A.Assert(colIndex == col.Index);
+
+                if (notFirstHeader)
+                {
+                    _writer.Write(_sep.Separator);
+                }
+                var name = col.Name;
+                _writer.Write(name);
+                _colNamesHeader[colIndex] = name;
+                notFirstHeader = true;
+            }
+            _writer.WriteLine();
+        }
+        _headerWrittenOrSkipped = true;
+    }
+
     void DisposeManaged()
     {
+        if (!_headerWrittenOrSkipped && _cols.Count > 0)
+        {
+            WriteHeader();
+        }
+
         _disposeTextWriter(_writer);
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)

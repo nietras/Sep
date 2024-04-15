@@ -109,6 +109,7 @@ public class SepWriterTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
+
     [TestMethod]
     public void SepWriterTest_NewRowWhenAlreadyNewRow_Throws()
     {

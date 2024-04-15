@@ -109,24 +109,23 @@ public partial class SepWriter
 
         if (!_colNameToCol.TryGetValue(colName, out var col))
         {
-            if (!_headerWrittenOrSkipped)
-            {
-                var colIndex = _colNameToCol.Count;
-                col = new ColImpl(this, colIndex, colName, SepStringBuilderPool.Take());
-                _colNameToCol.Add(colName, col);
-                _cols.Add(col);
-                _colNameCache.Add((colName, colIndex));
-                // Is it really necessary to increment cache colIndex for first row,
-                // we won't hit cache here any way.
-                ++_cacheIndex;
-            }
-            else
-            {
-                throw new KeyNotFoundException(colName);
-            }
+            col = !_headerWrittenOrSkipped ? AddCol(colName) : throw new KeyNotFoundException(colName);
         }
         // Should we cache on else
 
+        return col;
+    }
+
+    internal ColImpl AddCol(string colName)
+    {
+        var colIndex = _colNameToCol.Count;
+        var col = new ColImpl(this, colIndex, colName, SepStringBuilderPool.Take());
+        _colNameToCol.Add(colName, col);
+        _cols.Add(col);
+        _colNameCache.Add((colName, colIndex));
+        // Is it really necessary to increment cache colIndex for first row,
+        // we won't hit cache here any way.
+        ++_cacheIndex;
         return col;
     }
 }

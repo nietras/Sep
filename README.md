@@ -1735,6 +1735,7 @@ namespace nietras.SeparatedValues
     }
     public sealed class SepWriter : System.IDisposable
     {
+        public nietras.SeparatedValues.SepWriterHeader Header { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
         public void Flush() { }
@@ -1823,6 +1824,16 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
+    }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+    [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepWriterHeader.DebugView))]
+    public sealed class SepWriterHeader
+    {
+        public void Add(System.Collections.Generic.IReadOnlyList<string> colNames) { }
+        public void Add(System.ReadOnlySpan<string> colNames) { }
+        public void Add(string colName) { }
+        public void Add(string[] colNames) { }
+        public void Write() { }
     }
     public readonly struct SepWriterOptions : System.IEquatable<nietras.SeparatedValues.SepWriterOptions>
     {

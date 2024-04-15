@@ -1678,7 +1678,6 @@ namespace nietras.SeparatedValues
     }
     public sealed class SepReaderHeader
     {
-        public SepReaderHeader(string row, System.Collections.Generic.Dictionary<string, int> colNameToIndex) { }
         public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
         public bool IsEmpty { get; }
         public static nietras.SeparatedValues.SepReaderHeader Empty { get; }

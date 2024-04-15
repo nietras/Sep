@@ -62,7 +62,7 @@ public sealed partial class SepWriter : IDisposable
         // Header
         if (!_headerWrittenOrSkipped)
         {
-            WriteHeader(cols);
+            WriteHeader();
         }
         else
         {
@@ -116,10 +116,11 @@ public sealed partial class SepWriter : IDisposable
         return null;
     }
 
-    void WriteHeader(List<ColImpl> cols)
+    internal void WriteHeader()
     {
         if (_writeHeader)
         {
+            var cols = _cols;
             A.Assert(_colNamesHeader.Length == 0);
             if (cols.Count != _colNamesHeader.Length)
             {
@@ -149,7 +150,7 @@ public sealed partial class SepWriter : IDisposable
     {
         if (!_headerWrittenOrSkipped && _cols.Count > 0)
         {
-            WriteHeader(_cols);
+            WriteHeader();
         }
 
         _disposeTextWriter(_writer);

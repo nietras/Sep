@@ -1823,7 +1823,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
-    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}")]
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
     [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepWriterHeader.DebugView))]
     public sealed class SepWriterHeader
     {
@@ -1831,6 +1831,7 @@ namespace nietras.SeparatedValues
         public void Add(System.ReadOnlySpan<string> colNames) { }
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
+        public void Write() { }
     }
     public readonly struct SepWriterOptions : System.IEquatable<nietras.SeparatedValues.SepWriterOptions>
     {

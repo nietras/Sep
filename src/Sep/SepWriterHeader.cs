@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace nietras.SeparatedValues;
 
-[DebuggerDisplay("{DebuggerDisplayPrefix,nq}")]
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
 [DebuggerTypeProxy(typeof(DebugView))]
 public sealed class SepWriterHeader
 {
@@ -43,16 +43,19 @@ public sealed class SepWriterHeader
         _writer.AddCol(colName);
     }
 
-    internal string DebuggerDisplayPrefix =>
-        $"Count = {GetColNames().Count} State = '{(_writer._headerWrittenOrSkipped ? (_writer._writeHeader ? "Written" : "Skipped") :
-                                                  (_writer._writeHeader ? "Not yet written" : "To be skipped"))}'";
+    public void Write() => _writer.WriteHeader();
 
-    IReadOnlyCollection<string> GetColNames() =>
-        _writer._colNamesHeader is null ? _writer._colNameToCol.Keys : _writer._colNamesHeader;
+    internal string DebuggerDisplay =>
+        $"Count = {DebugColNames().Length} State = '{(_writer._headerWrittenOrSkipped ? (_writer._writeHeader ? "Written" : "Skipped") :
+                                                     (_writer._writeHeader ? "Not yet written" : "To be skipped"))}'";
+
+    string[] DebugColNames() =>
+        _writer._colNamesHeader.Length != _writer._colNameToCol.Count
+        ? _writer._colNameToCol.Keys.ToArray() : _writer._colNamesHeader;
 
     internal class DebugView
     {
-        internal DebugView(SepWriterHeader header) => ColNames = header.GetColNames().ToArray();
+        internal DebugView(SepWriterHeader header) => ColNames = header.DebugColNames();
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         internal string[] ColNames { get; }

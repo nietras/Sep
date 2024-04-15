@@ -681,7 +681,7 @@ public class SepReaderTest
         Assert.AreEqual(hasRows, reader.HasRows, nameof(reader.HasRows));
     }
 
-    static void AssertHeader(SepHeader header, string colName1, string colName2, string colName3)
+    static void AssertHeader(SepReaderHeader header, string colName1, string colName2, string colName3)
     {
         if (header.ColNames.Count > 0)
         {

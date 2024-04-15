@@ -17,7 +17,7 @@ public class SepReaderState : IDisposable
     // promote cache to member here.
     readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
 
-    internal SepHeader _header = null!;
+    internal SepReaderHeader _header = null!;
     internal bool _hasHeader;
     internal char _fastFloatDecimalSeparatorOrZero;
     internal CultureInfo? _cultureInfo;

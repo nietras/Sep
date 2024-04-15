@@ -6,13 +6,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
-public class SepHeaderTest
+public class SepReaderHeaderTest
 {
     [TestMethod]
-    public void SepHeaderTest_Empty()
+    public void SepReaderHeaderTest_Empty()
     {
         // If no line read i.e. line == null
-        var header = SepHeader.Empty;
+        var header = SepReaderHeader.Empty;
 
         Assert.AreEqual(true, header.IsEmpty);
         Assert.AreEqual(0, header.ColNames.Count);
@@ -20,9 +20,9 @@ public class SepHeaderTest
     }
 
     [TestMethod]
-    public void SepHeaderTest_EmptyString()
+    public void SepReaderHeaderTest_EmptyString()
     {
-        var header = SepHeader.Parse(Sep.Default, string.Empty);
+        var header = SepReaderHeader.Parse(Sep.Default, string.Empty);
 
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(1, header.ColNames.Count);
@@ -31,9 +31,9 @@ public class SepHeaderTest
     }
 
     [TestMethod]
-    public void SepHeaderTest_NotEmpty()
+    public void SepReaderHeaderTest_NotEmpty()
     {
-        var header = SepHeader.Parse(Sep.New(';'), "A;B;C");
+        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C");
 
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(3, header.ColNames.Count);
@@ -53,16 +53,16 @@ public class SepHeaderTest
     }
 
     [TestMethod]
-    public void SepHeaderTest_NamesStartingWith()
+    public void SepReaderHeaderTest_NamesStartingWith()
     {
-        var header = SepHeader.Parse(Sep.New(';'), "A;B;C;GT_0;RE_0;GT_1;RE_1");
+        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C;GT_0;RE_0;GT_1;RE_1");
         AreEqual(new[] { "GT_0", "GT_1" }, header.NamesStartingWith("GT_"));
     }
 
     [TestMethod]
-    public void SepHeaderTest_IndicesOf_LengthsNotSame_Throws()
+    public void SepReaderHeaderTest_IndicesOf_LengthsNotSame_Throws()
     {
-        var header = SepHeader.Parse(Sep.New(';'), "A;B;C");
+        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C");
 
         var e = Assert.ThrowsException<ArgumentException>(() =>
         {

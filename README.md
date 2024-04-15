@@ -1563,26 +1563,12 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
-    public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepHeader? maybeHeader, int colCount);
+    public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepReaderHeader? maybeHeader, int colCount);
     public static class SepDefaults
     {
         public static System.StringComparer ColNameComparer { get; }
         public static System.Globalization.CultureInfo CultureInfo { get; }
         public static char Separator { get; }
-    }
-    public sealed class SepHeader
-    {
-        public SepHeader(string row, System.Collections.Generic.Dictionary<string, int> colNameToIndex) { }
-        public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
-        public bool IsEmpty { get; }
-        public static nietras.SeparatedValues.SepHeader Empty { get; }
-        public int IndexOf(string colName) { }
-        public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public int[] IndicesOf(System.ReadOnlySpan<string> colNames) { }
-        public int[] IndicesOf(params string[] colNames) { }
-        public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
-        public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
-        public override string ToString() { }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class SepReader : nietras.SeparatedValues.SepReaderState
@@ -1590,7 +1576,7 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepReader.Row Current { get; }
         public bool HasHeader { get; }
         public bool HasRows { get; }
-        public nietras.SeparatedValues.SepHeader Header { get; }
+        public nietras.SeparatedValues.SepReaderHeader Header { get; }
         public bool IsEmpty { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
@@ -1689,6 +1675,20 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.Sep? sep, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+    }
+    public sealed class SepReaderHeader
+    {
+        public SepReaderHeader(string row, System.Collections.Generic.Dictionary<string, int> colNameToIndex) { }
+        public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
+        public bool IsEmpty { get; }
+        public static nietras.SeparatedValues.SepReaderHeader Empty { get; }
+        public int IndexOf(string colName) { }
+        public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
+        public int[] IndicesOf(System.ReadOnlySpan<string> colNames) { }
+        public int[] IndicesOf(params string[] colNames) { }
+        public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
+        public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
+        public override string ToString() { }
     }
     public readonly struct SepReaderOptions : System.IEquatable<nietras.SeparatedValues.SepReaderOptions>
     {

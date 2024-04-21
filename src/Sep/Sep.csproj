@@ -11,7 +11,7 @@
     <EnablePackageValidation>true</EnablePackageValidation>
     <PackageValidationBaselineVersion>0.5.0</PackageValidationBaselineVersion>
 
-    <Description>Modern, minimal, fast, zero allocation, reading and writing of separated values (csv, tsv etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.</Description>
+    <Description>World's Fastest .NET CSV Parser. Modern, minimal, fast, zero allocation, reading and writing of separated values (csv, tsv etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.</Description>
 
     <!-- NuGet -->
     <PackageId>Sep</PackageId>

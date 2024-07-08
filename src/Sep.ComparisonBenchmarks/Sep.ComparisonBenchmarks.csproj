@@ -30,7 +30,7 @@
     <PackageReference Include="csFastFloat" Version="4.1.4" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="Sylvan.Common" Version="0.4.3" />
-    <PackageReference Include="Sylvan.Data.Csv" Version="1.3.8" />
+    <PackageReference Include="Sylvan.Data.Csv" Version="1.3.9" />
   </ItemGroup>
   
 </Project>

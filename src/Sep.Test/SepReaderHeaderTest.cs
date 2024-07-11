@@ -45,6 +45,13 @@ public class SepReaderHeaderTest
         AreEqual([0, 2], header.IndicesOf((ReadOnlySpan<string>)["A", "C"]));
         AreEqual([2, 0], header.IndicesOf((IReadOnlyList<string>)["C", "A"]));
 
+        var tryTrue = header.TryIndexOf("B", out var tryTrueIndex);
+        Assert.IsTrue(tryTrue);
+        Assert.AreEqual(1, tryTrueIndex);
+        var tryFalse = header.TryIndexOf("XX", out var tryFalseIndex);
+        Assert.IsFalse(tryFalse);
+        Assert.AreEqual(0, tryFalseIndex);
+
         var actualIndices = new int[2];
         header.IndicesOf((ReadOnlySpan<string>)["A", "C"], actualIndices);
         AreEqual([0, 2], actualIndices);

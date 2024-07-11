@@ -1687,6 +1687,7 @@ namespace nietras.SeparatedValues
         public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
         public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
         public override string ToString() { }
+        public bool TryIndexOf(string colName, out int colIndex) { }
     }
     public readonly struct SepReaderOptions : System.IEquatable<nietras.SeparatedValues.SepReaderOptions>
     {

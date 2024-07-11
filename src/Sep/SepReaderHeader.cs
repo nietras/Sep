@@ -41,6 +41,8 @@ public sealed class SepReaderHeader
 
     public int IndexOf(string colName) => _colNameToIndex[colName];
 
+    public bool TryIndexOf(string colName, out int colIndex) => _colNameToIndex.TryGetValue(colName, out colIndex);
+
     public IReadOnlyList<string> NamesStartingWith(string prefix, StringComparison comparison = StringComparison.Ordinal)
     {
         var colNames = new List<string>();

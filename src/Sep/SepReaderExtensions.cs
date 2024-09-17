@@ -86,7 +86,6 @@ public static partial class SepReaderExtensions
 
     internal static SepReader FromWithInfo(SepReader.Info info, SepReaderOptions options, TextReader reader)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
         SepReader? sepReader = null;
         try

@@ -31,21 +31,18 @@ public static class SepWriterExtensions
 
     public static SepWriter ToText(this SepWriterOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var writer = new StringWriter();
         return To(options, writer);
     }
 
     public static SepWriter ToText(this SepWriterOptions options, int capacity)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var writer = new StringWriter(new StringBuilder(capacity));
         return To(options, writer);
     }
 
     public static SepWriter ToFile(this SepWriterOptions options, string filePath)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var writer = new StreamWriter(filePath, s_streamWriterOptions);
         return To(options, writer);
     }
@@ -55,7 +52,6 @@ public static class SepWriterExtensions
 
     public static SepWriter To(this SepWriterOptions options, Stream stream, bool leaveOpen)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var writer = new StreamWriter(stream, leaveOpen: leaveOpen);
         return To(options, writer);
     }
@@ -66,7 +62,6 @@ public static class SepWriterExtensions
     public static SepWriter To(this SepWriterOptions options, TextWriter writer, bool leaveOpen)
     {
         Action<TextWriter> disposeTextWriter = leaveOpen ? static w => { } : static w => w.Dispose();
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(writer);
         return new SepWriter(options, writer, disposeTextWriter);
     }

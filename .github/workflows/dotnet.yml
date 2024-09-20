@@ -115,7 +115,7 @@ jobs:
       run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
     - name: Get version of dll
       run: (Get-Item ./artifacts/bin/Sep/release_net8.0/Sep.dll).VersionInfo.ProductVersion
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4.4
       with:
         name: nuget
         if-no-files-found: error

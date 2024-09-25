@@ -35,6 +35,7 @@ public class SepReaderState : IDisposable
     internal int _parsingRowColCount = 0;
 
     readonly internal uint _colUnquoteUnescape = 0;
+    readonly internal uint _trim = 0;
     internal int _colCountExpected = -1;
 #if DEBUG
     internal const int ColEndsInitialLength = 128;
@@ -72,9 +73,10 @@ public class SepReaderState : IDisposable
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
 
-    internal SepReaderState(bool colUnquoteUnescape = false)
+    internal SepReaderState(bool colUnquoteUnescape = false, bool trim = false)
     {
         _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u;
+        _trim = trim ? 1u : 0u;
         UnsafeToStringDelegate = ToStringDefault;
     }
 
@@ -269,6 +271,7 @@ public class SepReaderState : IDisposable
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
         A.Assert(_currentRowColEndsOrInfosOffset >= 0);
         index += _currentRowColEndsOrInfosOffset;
+        //var unescapeOrTrim = _colUnquoteUnescape | _trim;
         if (_colUnquoteUnescape == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔
@@ -288,6 +291,12 @@ public class SepReaderState : IDisposable
             // Much better code generation given col span always inside buffer
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
             var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+            // Calling trim messes up entire method code gen,
+            // probably need to divert to other NoInlining method
+            //if (_trim != 0)
+            //{
+            //    col = MemoryExtensions.Trim(col);
+            //}
             return col;
         }
         else // Unquote/Unescape

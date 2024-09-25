@@ -11,7 +11,7 @@ public class SepUnescapeTest
 {
     // Should always be an even count since all quotes have to be paired
     // First char must always be quote since that is checked outside this scope
-    internal static IEnumerable<object[]> UnescapeData =>
+    public static IEnumerable<object[]> UnescapeData =>
     [
         ["\"\"", ""],
         ["\"\"\"\"", "\""],

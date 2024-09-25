@@ -31,7 +31,7 @@ public class SepParserTest
         _stateUnescape._colEndsOrColInfos = _colEndsOrColInfos;
     }
 
-    static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
+    public static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
         .Select(f => new object[] { f.Value(new(Sep.Default)) });
 
     [TestMethod]

@@ -126,7 +126,7 @@ public class SepReaderNoHeaderTest
         AssertEnumerate(text, expected);
     }
 
-    internal static IEnumerable<object[]> ColCountMismatchData =>
+    public static IEnumerable<object[]> ColCountMismatchData =>
         SepReaderTest.ColCountMismatchData;
 
     [DataTestMethod]

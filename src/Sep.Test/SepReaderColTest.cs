@@ -94,7 +94,7 @@ public class SepReaderColTest
     }
 #endif
 
-    internal static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
+    public static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
         {
             ["a\"\"a", "a\"\"a"],
             ["a\"a\"a", "a\"a\"a"],

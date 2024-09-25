@@ -266,7 +266,7 @@ public class SepReaderTest
     // TODO: Need test of quotes at end
 
 #pragma warning disable IDE0055
-    internal static IEnumerable<object[]> ColCountMismatchData =>
+    public static IEnumerable<object[]> ColCountMismatchData =>
     [
         ["""
          C1;C2
@@ -413,7 +413,7 @@ public class SepReaderTest
 
 
 #pragma warning disable IDE0055
-    internal static IEnumerable<object[]> LineNumbersData =>
+    public static IEnumerable<object[]> LineNumbersData =>
     [
         ["C1;C2\n123;456", new[] { (1, 2), (2, 3) }],
         ["C1;C2\n123;456\n", new[] { (1, 2), (2, 3) }],

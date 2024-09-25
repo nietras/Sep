@@ -9,7 +9,7 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class PackageAssetsTest
 {
-    internal static IEnumerable<object[]> ToStrings =>
+    public static IEnumerable<object[]> ToStrings =>
     [
         [SepToString.Direct],
         [SepToString.OnePool()],

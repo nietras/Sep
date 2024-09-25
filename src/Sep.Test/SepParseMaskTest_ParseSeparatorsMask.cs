@@ -26,7 +26,7 @@ public partial class SepParseMaskTest
         // new(0, new[] { s_nativeBitSize }),
     ];
 
-    static IEnumerable<object[]> Methods =>
+    public static IEnumerable<object[]> Methods =>
     [
         [new ParseSeparatorsMaskMethod(SepParseMask.ParseSeparatorsMask)],
     ];

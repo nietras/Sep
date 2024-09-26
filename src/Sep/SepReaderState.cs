@@ -276,11 +276,11 @@ public class SepReaderState : IDisposable
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
         A.Assert(_currentRowColEndsOrInfosOffset >= 0);
         index += _currentRowColEndsOrInfosOffset;
-        var colEnds = _colEndsOrColInfos;
         //var unescapeOrTrim = _colUnquoteUnescape | _trim;
         if (_colSpanFlags == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔
+            var colEnds = _colEndsOrColInfos;
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
             // Above bounds checked is faster than below 🤔
@@ -306,7 +306,7 @@ public class SepReaderState : IDisposable
         }
         else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
         {
-            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(colEnds));
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
             var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
             ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
             var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;

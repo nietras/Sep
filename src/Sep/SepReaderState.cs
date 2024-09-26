@@ -35,7 +35,10 @@ public class SepReaderState : IDisposable
     internal int _parsingRowColCount = 0;
 
     readonly internal uint _colUnquoteUnescape = 0;
-    readonly internal uint _trim = 0;
+    readonly internal uint _colSpanFlags = 0;
+    const uint UnescapeFlag = 0b001;
+    const uint TrimOuterFlag = 0b010;
+    const uint TrimInsideQuotesFlag = 0b100;
     internal int _colCountExpected = -1;
 #if DEBUG
     internal const int ColEndsInitialLength = 128;
@@ -75,14 +78,16 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(bool colUnquoteUnescape = false, bool trim = false)
     {
-        _colUnquoteUnescape = colUnquoteUnescape ? 1u : 0u;
-        _trim = trim ? 1u : 0u;
+        _colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
+        _colSpanFlags = _colUnquoteUnescape | (trim ? TrimOuterFlag : 0u);
         UnsafeToStringDelegate = ToStringDefault;
     }
 
     internal SepReaderState(SepReader other)
-        : this(other._colUnquoteUnescape != 0)
     {
+        _colUnquoteUnescape = other._colUnquoteUnescape;
+        _colSpanFlags = other._colSpanFlags;
+        UnsafeToStringDelegate = other.UnsafeToStringDelegate;
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
@@ -271,11 +276,11 @@ public class SepReaderState : IDisposable
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
         A.Assert(_currentRowColEndsOrInfosOffset >= 0);
         index += _currentRowColEndsOrInfosOffset;
+        var colEnds = _colEndsOrColInfos;
         //var unescapeOrTrim = _colUnquoteUnescape | _trim;
-        if (_colUnquoteUnescape == 0)
+        if (_colSpanFlags == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔
-            var colEnds = _colEndsOrColInfos;
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
             // Above bounds checked is faster than below 🤔
@@ -299,9 +304,9 @@ public class SepReaderState : IDisposable
             //}
             return col;
         }
-        else // Unquote/Unescape
+        else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
         {
-            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(colEnds));
             var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
             ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
             var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
@@ -320,7 +325,7 @@ public class SepReaderState : IDisposable
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
             // From now on it is known the first char in col is a quote if not
-            // already escaped. Optimize for common case of outermost quotes.
+            // already unescaped. Optimize for common case of outermost quotes.
             else if (quoteCountOrNegativeUnescapedLength == 2 &&
                      Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
@@ -339,6 +344,16 @@ public class SepReaderState : IDisposable
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
         }
+        else
+        {
+            return GetColSpanTrimmed(index);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    ReadOnlySpan<char> GetColSpanTrimmed(int directIndex)
+    {
+        return default;
     }
 
     internal string ToStringDefault(int index)

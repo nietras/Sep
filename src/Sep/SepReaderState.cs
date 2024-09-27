@@ -76,10 +76,12 @@ public class SepReaderState : IDisposable
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
 
-    internal SepReaderState(bool colUnquoteUnescape = false, bool trim = false)
+    internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.No)
     {
         _colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
-        _colSpanFlags = _colUnquoteUnescape | (trim ? TrimOuterFlag : 0u);
+        _colSpanFlags = _colUnquoteUnescape;
+        _colSpanFlags |= ((trim & SepTrim.Trim) != 0u ? TrimOuterFlag : 0u);
+        _colSpanFlags |= ((trim & SepTrim.InsideQuotes) != 0u ? TrimInsideQuotesFlag : 0u);
         UnsafeToStringDelegate = ToStringDefault;
     }
 
@@ -296,12 +298,6 @@ public class SepReaderState : IDisposable
             // Much better code generation given col span always inside buffer
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
             var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
-            // Calling trim messes up entire method code gen,
-            // probably need to divert to other NoInlining method
-            //if (_trim != 0)
-            //{
-            //    col = MemoryExtensions.Trim(col);
-            //}
             return col;
         }
         else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
@@ -351,9 +347,33 @@ public class SepReaderState : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    ReadOnlySpan<char> GetColSpanTrimmed(int directIndex)
+    ReadOnlySpan<char> GetColSpanTrimmed(int index)
     {
-        return default;
+        if (_colSpanFlags == TrimOuterFlag)
+        {
+            // Using array indexing is slightly faster despite more code 🤔
+            var colEnds = _colEndsOrColInfos;
+            var colStart = colEnds[index] + 1; // +1 since previous end
+            var colEnd = colEnds[index + 1];
+            // Above bounds checked is faster than below 🤔
+            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
+            //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
+            //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+
+            var colLength = colEnd - colStart;
+            // Much better code generation given col span always inside buffer
+            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+            return col.Trim();
+        }
+        else
+        {
+            return default;
+        }
     }
 
     internal string ToStringDefault(int index)

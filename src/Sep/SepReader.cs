@@ -40,7 +40,7 @@ public sealed partial class SepReader : SepReaderState
     int _charsPaddingLength;
 
     internal SepReader(Info info, SepReaderOptions options, TextReader reader)
-        : base(colUnquoteUnescape: options.Unescape)
+        : base(colUnquoteUnescape: options.Unescape, trim: options.Trim)
     {
         _info = info;
         _reader = reader;

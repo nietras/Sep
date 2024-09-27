@@ -147,6 +147,15 @@ public class SepReaderColTest
         [" a a ", "a a"],
     ];
 
+    public static IEnumerable<object[]> TrimUnescapeData => TrimData.Concat(
+    [
+        ["\"a\"", "a"],
+        ["\" a\"", "a"],
+        ["\"a \"", "a"],
+        ["\" a \"", "a"],
+        ["\" a a \"", "a a"],
+    ]);
+
     [DataTestMethod]
     [DynamicData(nameof(TrimData))]
     public void SepReaderColTest_Trim_Header_Test(string chars, string expected)
@@ -165,6 +174,28 @@ public class SepReaderColTest
     {
         var src = new string(chars);
         using var reader = Sep.Reader(o => o with { HasHeader = false, Trim = SepTrim.Trim }).FromText(src);
+        Assert.IsTrue(reader.MoveNext());
+        // Ensure repeated access works
+        for (var i = 0; i < 4; i++)
+        {
+            var row = reader.Current;
+
+            var actualCol = row[0].ToString();
+            Assert.AreEqual(expectedCol, actualCol, src);
+
+            // Ensure row can be gotten and that expectedCol is contained
+            var rowText = row.Span.ToString();
+            Assert.IsTrue(rowText.Contains(expectedCol));
+        }
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(TrimUnescapeData))]
+    public void SepReaderColTest_TrimUnescape_Col_Test(string chars, string expectedCol)
+    {
+        var src = new string(chars);
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.All }).FromText(src);
         Assert.IsTrue(reader.MoveNext());
         // Ensure repeated access works
         for (var i = 0; i < 4; i++)

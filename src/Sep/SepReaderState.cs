@@ -81,7 +81,8 @@ public class SepReaderState : IDisposable
         _colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
         _colSpanFlags = _colUnquoteUnescape;
         _colSpanFlags |= ((trim & SepTrim.Trim) != 0u ? TrimOuterFlag : 0u);
-        _colSpanFlags |= ((trim & SepTrim.InsideQuotes) != 0u ? TrimInsideQuotesFlag : 0u);
+        _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.InsideQuotes) != 0u))
+                         ? TrimInsideQuotesFlag : 0u;
         UnsafeToStringDelegate = ToStringDefault;
     }
 
@@ -278,7 +279,6 @@ public class SepReaderState : IDisposable
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
         A.Assert(_currentRowColEndsOrInfosOffset >= 0);
         index += _currentRowColEndsOrInfosOffset;
-        //var unescapeOrTrim = _colUnquoteUnescape | _trim;
         if (_colSpanFlags == 0)
         {
             // Using array indexing is slightly faster despite more code 🤔
@@ -366,13 +366,54 @@ public class SepReaderState : IDisposable
 
             var colLength = colEnd - colStart;
             // Much better code generation given col span always inside buffer
-            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            ref var colRef = ref Unsafe.Add(
+                ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
             var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             return col.Trim();
         }
-        else
+        else //if ((_colSpanFlags & UnescapeFlag) != 0)
         {
-            return default;
+            // Always certain unescaping here
+            A.Assert((_colSpanFlags & UnescapeFlag) != 0);
+
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(
+                ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+
+            var colLength = colEnd - colStart;
+            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+
+            if (quoteCountOrNegativeUnescapedLength < 0)
+            {
+                var unescapedLength = -quoteCountOrNegativeUnescapedLength;
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
+            }
+            var originalCol = MemoryMarshal.CreateSpan(ref colRef, colLength);
+            var col = originalCol;
+            if ((_colSpanFlags & TrimOuterFlag) != 0)
+            {
+                col = col.Trim();
+            }
+            if (col.Length > 0 && col[0] == SepDefaults.Quote)
+            {
+                var unescapedLength = SepUnescape.UnescapeInPlace(
+                    ref MemoryMarshal.GetReference(col), col.Length);
+                col = col.Slice(0, unescapedLength);
+            }
+            if ((_colSpanFlags & TrimInsideQuotesFlag) != 0)
+            {
+                col = col.Trim();
+            }
+            // Overlaps
+            col.CopyTo(originalCol);
+            colInfo.QuoteCount = -col.Length;
+            return MemoryMarshal.CreateReadOnlySpan(ref colRef, col.Length);
         }
     }
 

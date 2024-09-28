@@ -34,7 +34,8 @@ public class SepReaderState : IDisposable
     internal int _parsingRowColEndsOrInfosStartIndex = 0;
     internal int _parsingRowColCount = 0;
 
-    readonly internal uint _colUnquoteUnescape = 0;
+    //readonly internal uint _colUnquoteUnescape = 0;
+    internal uint _colUnquoteUnescape => _colSpanFlags & UnescapeFlag;
     readonly internal uint _colSpanFlags = 0;
     const uint UnescapeFlag = 0b001;
     const uint TrimOuterFlag = 0b010;
@@ -78,8 +79,8 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.No)
     {
-        _colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
-        _colSpanFlags = _colUnquoteUnescape;
+        //_colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
+        _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u; // _colUnquoteUnescape;
         _colSpanFlags |= ((trim & SepTrim.Trim) != 0u ? TrimOuterFlag : 0u);
         _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.InsideQuotes) != 0u))
                          ? TrimInsideQuotesFlag : 0u;
@@ -88,7 +89,7 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(SepReader other)
     {
-        _colUnquoteUnescape = other._colUnquoteUnescape;
+        //_colUnquoteUnescape = other._colUnquoteUnescape;
         _colSpanFlags = other._colSpanFlags;
         UnsafeToStringDelegate = other.UnsafeToStringDelegate;
         _header = other._header;

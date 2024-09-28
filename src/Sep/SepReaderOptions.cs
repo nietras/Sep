@@ -5,7 +5,7 @@ using System.Globalization;
 namespace nietras.SeparatedValues;
 
 [Flags]
-public enum SepTrim
+public enum SepTrim : byte
 {
     No = 0b000,
     Trim = 0b001,

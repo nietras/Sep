@@ -39,7 +39,7 @@ public class SepReaderState : IDisposable
     readonly internal uint _colSpanFlags = 0;
     const uint UnescapeFlag = 0b001;
     const uint TrimOuterFlag = 0b010;
-    const uint TrimInsideQuotesFlag = 0b100;
+    const uint TrimAfterUnescapeFlag = 0b100;
     internal int _colCountExpected = -1;
 #if DEBUG
     internal const int ColEndsInitialLength = 128;
@@ -83,7 +83,7 @@ public class SepReaderState : IDisposable
         _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u; // _colUnquoteUnescape;
         _colSpanFlags |= ((trim & SepTrim.Outer) != 0u ? TrimOuterFlag : 0u);
         _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.AfterUnescape) != 0u))
-                         ? TrimInsideQuotesFlag : 0u;
+                         ? TrimAfterUnescapeFlag : 0u;
         UnsafeToStringDelegate = ToStringDefault;
     }
 
@@ -407,7 +407,7 @@ public class SepReaderState : IDisposable
                     ref MemoryMarshal.GetReference(col), col.Length);
                 col = col.Slice(0, unescapedLength);
             }
-            if ((_colSpanFlags & TrimInsideQuotesFlag) != 0)
+            if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {
                 col = col.Trim();
             }

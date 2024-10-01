@@ -317,7 +317,7 @@ public bool DisableQuotesParsing { get; init; } = false;
 /// Requires <see cref="DisableQuotesParsing"/> to be false.
 /// </remarks>
 public bool Unescape { get; init; } = false;
-public SepTrim Trim { get; init; } = SepTrim.No;
+public SepTrim Trim { get; init; } = SepTrim.None;
 ```
 
 #### Unescaping
@@ -1735,11 +1735,11 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepCreateToString PoolPerColThreadSafeFixedCapacity(int maximumStringLength = 32, int capacity = 2048) { }
     }
     [System.Flags]
-    public enum SepTrim
+    public enum SepTrim : byte
     {
-        No = 0,
-        Trim = 1,
-        InsideQuotes = 2,
+        None = 0,
+        Outer = 1,
+        AfterUnescape = 2,
         All = 3,
     }
     public sealed class SepWriter : System.IDisposable

@@ -1,17 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 
 namespace nietras.SeparatedValues;
-
-[Flags]
-public enum SepTrim : byte
-{
-    No = 0b000,
-    Trim = 0b001,
-    InsideQuotes = 0b010,
-    All = Trim | InsideQuotes,
-}
 
 public readonly record struct SepReaderOptions
 {
@@ -27,7 +17,7 @@ public readonly record struct SepReaderOptions
         DisableFastFloat = false;
         DisableColCountCheck = false;
         Unescape = false;
-        Trim = SepTrim.No;
+        Trim = SepTrim.None;
     }
 
     /// <summary>
@@ -81,5 +71,5 @@ public readonly record struct SepReaderOptions
     /// Requires <see cref="DisableQuotesParsing"/> to be false.
     /// </remarks>
     public bool Unescape { get; init; } = false;
-    public SepTrim Trim { get; init; } = SepTrim.No;
+    public SepTrim Trim { get; init; } = SepTrim.None;
 }

@@ -77,12 +77,12 @@ public class SepReaderState : IDisposable
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
 
-    internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.No)
+    internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.None)
     {
         //_colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
         _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u; // _colUnquoteUnescape;
-        _colSpanFlags |= ((trim & SepTrim.Trim) != 0u ? TrimOuterFlag : 0u);
-        _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.InsideQuotes) != 0u))
+        _colSpanFlags |= ((trim & SepTrim.Outer) != 0u ? TrimOuterFlag : 0u);
+        _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.AfterUnescape) != 0u))
                          ? TrimInsideQuotesFlag : 0u;
         UnsafeToStringDelegate = ToStringDefault;
     }

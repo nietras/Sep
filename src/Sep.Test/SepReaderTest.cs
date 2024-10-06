@@ -256,6 +256,16 @@ public class SepReaderTest
         Assert.AreEqual(expected, e.Message);
     }
 
+    [DataTestMethod]
+    [DataRow("A;B;C;\"A\";D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;\"A\";D;E'")]
+    [DataRow("\"A\";B;C;A;D;\"A\";E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row '\"A\";B;C;A;D;\"A\";E;A'")]
+    public void SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
+    {
+        var e = Assert.ThrowsException<ArgumentException>(() =>
+        Sep.Reader(o => o with { Unescape = true }).FromText(text));
+        Assert.AreEqual(expected, e.Message);
+    }
+
     [TestMethod]
     public void SepReaderTest_Info_Ctor()
     {

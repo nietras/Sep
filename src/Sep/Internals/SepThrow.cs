@@ -103,7 +103,7 @@ static class SepThrow
             $"If no such row should exist ensure quotes \" are terminated.");
     }
 
-    // C# compiler does not handle does not return in face of try/finally it seems
+    // C# compiler does not support DoesNotReturn in face of try/finally currently
     //[DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static void ArgumentException_DuplicateColNamesFound(SepReaderState reader,

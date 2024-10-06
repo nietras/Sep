@@ -114,9 +114,9 @@ static class SepThrow
     {
         var colNames = new string[headerColCount];
         var colIndex = 0;
-        foreach (var n in colNameToIndexUntilDuplicate.Keys)
+        foreach (var colName in colNameToIndexUntilDuplicate.Keys)
         {
-            colNames[colIndex] = n;
+            colNames[colIndex] = colName;
             ++colIndex;
         }
         for (; colIndex < headerColCount; ++colIndex)

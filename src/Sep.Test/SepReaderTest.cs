@@ -248,6 +248,18 @@ public class SepReaderTest
     }
 
     [TestMethod]
+    public void SepReaderTest_DuplicateColumnNames_ThrowsWithDetails()
+    {
+        var text = $"""
+                    A;B;C;A;D;E
+                    """;
+
+        var e = Assert.ThrowsException<ArgumentException>(() => Sep.Reader().FromText(text));
+        Assert.AreEqual("", e.Message);
+    }
+
+
+    [TestMethod]
     public void SepReaderTest_Info_Ctor()
     {
         var info = new SepReader.Info("A", i => "B");

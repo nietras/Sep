@@ -119,8 +119,7 @@ public sealed partial class SepReader : SepReaderState
                 for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
                 {
                     var colName = ToStringDirect(colIndex);
-                    var added = colNameToIndex.TryAdd(colName, colIndex);
-                    if (!added)
+                    if (!colNameToIndex.TryAdd(colName, colIndex))
                     {
                         SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex,
                             colName, firstRowColCount, colNameComparer, headerRow);

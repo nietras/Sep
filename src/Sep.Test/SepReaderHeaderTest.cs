@@ -22,7 +22,7 @@ public class SepReaderHeaderTest
     [TestMethod]
     public void SepReaderHeaderTest_EmptyString()
     {
-        var header = SepReaderHeader.Parse(Sep.Default, string.Empty);
+        var header = Parse(Sep.Default, string.Empty);
 
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(1, header.ColNames.Count);
@@ -33,7 +33,7 @@ public class SepReaderHeaderTest
     [TestMethod]
     public void SepReaderHeaderTest_NotEmpty()
     {
-        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C");
+        var header = Parse(Sep.New(';'), "A;B;C");
 
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(3, header.ColNames.Count);
@@ -62,14 +62,14 @@ public class SepReaderHeaderTest
     [TestMethod]
     public void SepReaderHeaderTest_NamesStartingWith()
     {
-        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C;GT_0;RE_0;GT_1;RE_1");
+        var header = Parse(Sep.New(';'), "A;B;C;GT_0;RE_0;GT_1;RE_1");
         AreEqual(new[] { "GT_0", "GT_1" }, header.NamesStartingWith("GT_"));
     }
 
     [TestMethod]
     public void SepReaderHeaderTest_IndicesOf_LengthsNotSame_Throws()
     {
-        var header = SepReaderHeader.Parse(Sep.New(';'), "A;B;C");
+        var header = Parse(Sep.New(';'), "A;B;C");
 
         var e = Assert.ThrowsException<ArgumentException>(() =>
         {
@@ -82,4 +82,20 @@ public class SepReaderHeaderTest
 
     static void AreEqual<T>(IReadOnlyList<T> expected, IReadOnlyList<T> actual) =>
         CollectionAssert.AreEqual((ICollection)expected, (ICollection)actual);
+
+    // Convenience method for testing only
+    static SepReaderHeader Parse(Sep sep, string line) =>
+        Parse(sep, line, SepDefaults.ColNameComparer);
+
+    static SepReaderHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
+    {
+        var colNames = sep.Split(line);
+        var colNameToIndex = new Dictionary<string, int>(colNames.Length, comparer);
+        for (var i = 0; i < colNames.Length; i++)
+        {
+            var colName = colNames[i];
+            colNameToIndex.Add(colName, i);
+        }
+        return new SepReaderHeader(line, colNameToIndex);
+    }
 }

@@ -113,13 +113,18 @@ public sealed partial class SepReader : SepReaderState
             _colCountExpected = firstRowColCount;
             if (options.HasHeader)
             {
-                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, options.ColNameComparer);
+                var headerRow = new string(RowSpan());
+                var colNameComparer = options.ColNameComparer;
+                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, colNameComparer);
                 for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
                 {
                     var colName = ToStringDirect(colIndex);
-                    colNameToIndex.Add(colName, colIndex);
+                    if (!colNameToIndex.TryAdd(colName, colIndex))
+                    {
+                        SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex,
+                            colName, firstRowColCount, colNameComparer, headerRow);
+                    }
                 }
-                var headerRow = new string(RowSpan());
                 _header = new(headerRow, colNameToIndex);
 
                 HasHeader = true;

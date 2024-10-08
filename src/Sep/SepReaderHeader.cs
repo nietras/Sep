@@ -19,22 +19,6 @@ public sealed class SepReaderHeader
 
     public static SepReaderHeader Empty { get; } = new(string.Empty, []);
 
-    internal static SepReaderHeader Parse(Sep sep, string line) =>
-        Parse(sep, line, SepDefaults.ColNameComparer);
-
-    internal static SepReaderHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
-    {
-        var colNames = sep.Split(line);
-        var colNameToIndex = new Dictionary<string, int>(colNames.Length, comparer);
-        for (var i = 0; i < colNames.Length; i++)
-        {
-            var colName = colNames[i];
-            colNameToIndex.Add(colName, i);
-        }
-        return new SepReaderHeader(line, colNameToIndex);
-
-    }
-
     public bool IsEmpty => _colNameToIndex.Count == 0;
 
     public IReadOnlyList<string> ColNames => _colNames;

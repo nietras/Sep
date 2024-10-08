@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Runtime.CompilerServices;
 using static nietras.SeparatedValues.SepWriter;
 
 namespace nietras.SeparatedValues;
@@ -100,6 +101,52 @@ static class SepThrow
         throw new NotSupportedException(
             $"Buffer or row has reached maximum supported length of {maxLength}. " +
             $"If no such row should exist ensure quotes \" are terminated.");
+    }
+
+    // C# compiler does not support DoesNotReturn in face of try/finally currently
+    //[DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ArgumentException_DuplicateColNamesFound(SepReaderState reader,
+        Dictionary<string, int> colNameToIndexUntilDuplicate,
+        string duplicateColName, int headerColCount,
+        IEqualityComparer<string> colNameComparer,
+        string headerRow)
+    {
+        var colNames = new string[headerColCount];
+        var colIndex = 0;
+        foreach (var colName in colNameToIndexUntilDuplicate.Keys)
+        {
+            colNames[colIndex] = colName;
+            ++colIndex;
+        }
+        for (; colIndex < headerColCount; ++colIndex)
+        {
+            colNames[colIndex] = reader.ToStringDirect(colIndex);
+        }
+        var sb = SepStringBuilderPool.Take();
+        try
+        {
+            var duplicates = new List<(int colIndex, string colName)>();
+            for (colIndex = 0; colIndex < headerColCount; ++colIndex)
+            {
+                var colName = colNames[colIndex];
+                if (colNameComparer.Equals(colName, duplicateColName))
+                {
+                    duplicates.Add((colIndex, colName));
+                }
+            }
+            sb.Append($"Col name '{duplicateColName}' found {duplicates.Count} times at");
+            foreach (var (duplicateColIndex, duplicateColNameFound) in duplicates)
+            {
+                sb.Append($" {duplicateColIndex}:'{duplicateColNameFound}'");
+            }
+            sb.Append($" in header row '{headerRow}'");
+            throw new ArgumentException(sb.ToString());
+        }
+        finally
+        {
+            SepStringBuilderPool.Return(sb);
+        }
     }
 
     [DoesNotReturn]

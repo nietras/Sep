@@ -97,6 +97,5 @@ public class SepReaderHeaderTest
             colNameToIndex.Add(colName, i);
         }
         return new SepReaderHeader(line, colNameToIndex);
-
     }
 }

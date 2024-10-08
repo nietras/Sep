@@ -36,7 +36,8 @@ log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 // Consider where to move this perhaps a new ComparisonTest project
 if (Debugger.IsAttached)
 {
-    UnescapeCompare.CompareUnescape();
+    TrimCompare.CompareTrim();
+    //UnescapeCompare.CompareUnescape();
 }
 #endif
 

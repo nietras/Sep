@@ -1,27 +1,37 @@
 ```
 
-BenchmarkDotNet v0.13.12, Windows 10 (10.0.19044.3086/21H2/November2021Update)
+BenchmarkDotNet v0.14.0, Windows 10 (10.0.19044.3086/21H2/November2021Update)
 AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
-.NET SDK 8.0.202
-  [Host]     : .NET 8.0.3 (8.0.324.11423), X64 RyuJIT AVX2
-  Job-RZQSGR : .NET 8.0.3 (8.0.324.11423), X64 RyuJIT AVX2
+.NET SDK 9.0.100-rc.2.24474.11
+  [Host]     : .NET 8.0.10 (8.0.1024.46610), X64 RyuJIT AVX2
+  Job-YVJTZC : .NET 8.0.10 (8.0.1024.46610), X64 RyuJIT AVX2
+  Job-ZDJCYM : .NET 9.0.0 (9.0.24.47305), X64 RyuJIT AVX2
 
-Job=Job-RZQSGR  Runtime=.NET 8.0  Server=True  
-Toolchain=net80  InvocationCount=Default  IterationTime=350.0000 ms  
+Server=True  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=False  Reader=String  
 
 ```
-| Method    | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
-|---------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-----------:|------------:|
-| Sep______ | Asset | 50000   |    21.051 ms |  1.00 |  29 | 1386.2 |  421.0 |   13.48 MB |        1.00 |
-| Sep_MT___ | Asset | 50000   |     5.993 ms |  0.29 |  29 | 4869.4 |  119.9 |   13.64 MB |        1.01 |
-| Sylvan___ | Asset | 50000   |    29.301 ms |  1.39 |  29 |  995.9 |  586.0 |   13.63 MB |        1.01 |
-| ReadLine_ | Asset | 50000   |    33.868 ms |  1.60 |  29 |  861.6 |  677.4 |   99.74 MB |        7.40 |
-| CsvHelper | Asset | 50000   |    76.599 ms |  3.64 |  29 |  381.0 | 1532.0 |   13.64 MB |        1.01 |
-|           |       |         |              |       |     |        |        |            |             |
-| Sep______ | Asset | 1000000 |   425.355 ms |  1.00 | 583 | 1372.5 |  425.4 |  260.41 MB |        1.00 |
-| Sep_MT___ | Asset | 1000000 |   109.917 ms |  0.26 | 583 | 5311.1 |  109.9 |  261.49 MB |        1.00 |
-| Sylvan___ | Asset | 1000000 |   588.226 ms |  1.38 | 583 |  992.4 |  588.2 |  260.57 MB |        1.00 |
-| ReadLine_ | Asset | 1000000 |   581.137 ms |  1.37 | 583 | 1004.6 |  581.1 | 1991.04 MB |        7.65 |
-| CsvHelper | Asset | 1000000 | 1,535.431 ms |  3.60 | 583 |  380.2 | 1535.4 |  260.58 MB |        1.00 |
+| Method    | Runtime  | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
+|---------- |--------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-------------:|------------:|
+| Sep______ | .NET 8.0 | Asset | 50000   |    21.402 ms |  1.00 |  29 | 1363.5 |  428.0 |   14133102 B |        1.00 |
+| Sep_MT___ | .NET 8.0 | Asset | 50000   |     5.576 ms |  0.26 |  29 | 5233.7 |  111.5 |   14308501 B |        1.01 |
+| Sylvan___ | .NET 8.0 | Asset | 50000   |    29.353 ms |  1.37 |  29 |  994.2 |  587.1 |   14296807 B |        1.01 |
+| ReadLine_ | .NET 8.0 | Asset | 50000   |    34.506 ms |  1.61 |  29 |  845.7 |  690.1 |  104583817 B |        7.40 |
+| CsvHelper | .NET 8.0 | Asset | 50000   |    76.909 ms |  3.59 |  29 |  379.4 | 1538.2 |   14305396 B |        1.01 |
+| Sep______ | .NET 9.0 | Asset | 50000   |    24.444 ms |  1.14 |  29 | 1193.8 |  488.9 |   14133077 B |        1.00 |
+| Sep_MT___ | .NET 9.0 | Asset | 50000   |     8.965 ms |  0.42 |  29 | 3255.0 |  179.3 |   14310332 B |        1.01 |
+| Sylvan___ | .NET 9.0 | Asset | 50000   |    29.814 ms |  1.39 |  29 |  978.8 |  596.3 |            - |        0.00 |
+| ReadLine_ | .NET 9.0 | Asset | 50000   |    51.641 ms |  2.41 |  29 |  565.1 | 1032.8 |  104583864 B |        7.40 |
+| CsvHelper | .NET 9.0 | Asset | 50000   |    75.502 ms |  3.53 |  29 |  386.5 | 1510.0 |            - |        0.00 |
+|           |          |       |         |              |       |     |        |        |              |             |
+| Sep______ | .NET 8.0 | Asset | 1000000 |   429.654 ms |  1.00 | 583 | 1358.7 |  429.7 |  273063216 B |        1.00 |
+| Sep_MT___ | .NET 8.0 | Asset | 1000000 |   102.979 ms |  0.24 | 583 | 5668.9 |  103.0 |  274049328 B |        1.00 |
+| Sylvan___ | .NET 8.0 | Asset | 1000000 |   588.747 ms |  1.37 | 583 |  991.6 |  588.7 |  273226088 B |        1.00 |
+| ReadLine_ | .NET 8.0 | Asset | 1000000 |   578.663 ms |  1.35 | 583 | 1008.8 |  578.7 | 2087762184 B |        7.65 |
+| CsvHelper | .NET 8.0 | Asset | 1000000 | 1,541.094 ms |  3.59 | 583 |  378.8 | 1541.1 |  273234432 B |        1.00 |
+| Sep______ | .NET 9.0 | Asset | 1000000 |   500.250 ms |  1.16 | 583 | 1167.0 |  500.3 |  273062592 B |        1.00 |
+| Sep_MT___ | .NET 9.0 | Asset | 1000000 |   174.802 ms |  0.41 | 583 | 3339.7 |  174.8 |  273973628 B |        1.00 |
+| Sylvan___ | .NET 9.0 | Asset | 1000000 |   631.960 ms |  1.47 | 583 |  923.8 |  632.0 |  273225752 B |        1.00 |
+| ReadLine_ | .NET 9.0 | Asset | 1000000 | 1,064.981 ms |  2.48 | 583 |  548.2 | 1065.0 | 2087764680 B |        7.65 |
+| CsvHelper | .NET 9.0 | Asset | 1000000 | 1,658.890 ms |  3.86 | 583 |  351.9 | 1658.9 |  273234104 B |        1.00 |

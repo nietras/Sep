@@ -1529,6 +1529,18 @@ pipelines or similar.
 ## Frequently Asked Questions (FAQ)
 Ask questions on GitHub and this section will be expanded. :)
 
+ * *Does Sep support [object mapping like
+   CsvHelper](https://joshclose.github.io/CsvHelper/examples/reading/get-class-records/)?*
+   No, Sep is a minimal library and does not support object mapping. First, this
+   is usually supported via reflection, which Sep avoids. Secondly, object
+   mapping often only works well in a few cases without actually writing custom
+   mapping for each property, which then basically amounts to writing the
+   parsing code yourself. If object mapping is a must have, consider writing
+   your own [source
+   generator](https://devblogs.microsoft.com/dotnet/new-c-source-generator-samples/)
+   for it if you want to use Sep. Maybe some day Sep will have a built-in source
+   generator, but not in the foreseeable future.
+
 ### SepReader FAQ
 
 ### SepWriter FAQ

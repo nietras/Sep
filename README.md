@@ -23,8 +23,8 @@ machine learning use cases.
 * **🌃  Modern** - utilizes features such as
 [`Span<T>`](https://learn.microsoft.com/en-us/archive/msdn-magazine/2018/january/csharp-all-about-span-exploring-a-new-net-mainstay),
 [Generic Math](https://devblogs.microsoft.com/dotnet/dotnet-7-generic-math/)
-([`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1)/[`ISpanFormattable`
-](https://learn.microsoft.com/en-us/dotnet/api/system.ispanformattable)), [`ref
+([`ISpanParsable<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanparsable-1)/
+[`ISpanFormattable`](https://learn.microsoft.com/en-us/dotnet/api/system.ispanformattable)), [`ref
 struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/ref-struct),
 [`ArrayPool<T>`](https://learn.microsoft.com/en-us/dotnet/api/system.buffers.arraypool-1)
 and similar from [.NET 7+ and C#
@@ -1529,16 +1529,16 @@ pipelines or similar.
 ## Frequently Asked Questions (FAQ)
 Ask questions on GitHub and this section will be expanded. :)
 
- * *Does Sep support [object mapping like
-   CsvHelper](https://joshclose.github.io/CsvHelper/examples/reading/get-class-records/)?*
-   No, Sep is a minimal library and does not support object mapping. First, this
-   is usually supported via reflection, which Sep avoids. Second, object mapping
-   often only works well in a few cases without actually writing custom mapping
-   for each property, which then basically amounts to writing the parsing code
-   yourself. If object mapping is a must have, consider writing your own [source
-   generator](https://devblogs.microsoft.com/dotnet/new-c-source-generator-samples/)
-   for it if you want to use Sep. Maybe some day Sep will have a built-in source
-   generator, but not in the foreseeable future.
+* *Does Sep support [object mapping like
+  CsvHelper](https://joshclose.github.io/CsvHelper/examples/reading/get-class-records/)?*
+  No, Sep is a minimal library and does not support object mapping. First, this
+  is usually supported via reflection, which Sep avoids. Second, object mapping
+  often only works well in a few cases without actually writing custom mapping
+  for each property, which then basically amounts to writing the parsing code
+  yourself. If object mapping is a must have, consider writing your own [source
+  generator](https://devblogs.microsoft.com/dotnet/new-c-source-generator-samples/)
+  for it if you want to use Sep. Maybe some day Sep will have a built-in source
+  generator, but not in the foreseeable future.
 
 ### SepReader FAQ
 

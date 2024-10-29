@@ -369,8 +369,8 @@ public class SepReaderState : IDisposable
             // Much better code generation given col span always inside buffer
             ref var colRef = ref Unsafe.Add(
                 ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
-            return col.Trim();
+            var col = MemoryMarshal.CreateSpan(ref colRef, colLength);
+            return TrimSpace(col);
         }
         else //if ((_colSpanFlags & UnescapeFlag) != 0)
         {
@@ -389,7 +389,7 @@ public class SepReaderState : IDisposable
 
             var colLength = colEnd - colStart;
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-
+            // TODO: Does this actually work when trim and unescaping-in-place
             if (quoteCountOrNegativeUnescapedLength < 0)
             {
                 var unescapedLength = -quoteCountOrNegativeUnescapedLength;
@@ -399,23 +399,45 @@ public class SepReaderState : IDisposable
             var col = originalCol;
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
-                col = col.Trim();
+                col = TrimSpace(col);
             }
             if (col.Length > 0 && col[0] == SepDefaults.Quote)
             {
+                // TODO: Consider when GetColSpan multiple times...
                 var unescapedLength = SepUnescape.UnescapeInPlace(
                     ref MemoryMarshal.GetReference(col), col.Length);
                 col = col.Slice(0, unescapedLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {
-                col = col.Trim();
+                col = TrimSpace(col);
             }
             // Overlaps
             col.CopyTo(originalCol);
             colInfo.QuoteCount = -col.Length;
             return MemoryMarshal.CreateReadOnlySpan(ref colRef, col.Length);
         }
+    }
+
+    static Span<char> TrimSpace(Span<char> span)
+    {
+        // Only trim the default space character no other whitespace characters
+        const char Space = ' ';
+
+        var start = 0;
+        for (; start < span.Length && span[start] == Space; start++)
+        {
+            //if (span[start] != Space) { break; }
+        }
+
+        var end = span.Length - 1;
+        for (; end >= start && span[end] == Space; end--)
+        {
+            //if (span[end] != Space) { break; }
+        }
+        var length = end - start + 1;
+
+        return span.Slice(start, length);
     }
 
     internal string ToStringDefault(int index)

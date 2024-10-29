@@ -38,6 +38,7 @@ if (Debugger.IsAttached)
 {
     TrimCompare.CompareTrim();
     //UnescapeCompare.CompareUnescape();
+    return;
 }
 #endif
 

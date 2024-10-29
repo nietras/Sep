@@ -19,47 +19,39 @@ public static class TrimCompare
         var tests = new TrimTest[]
         {
             new("a", IsValid: true),
-            new("\"\"", IsValid: true),
-            new("\"\"\"\"", IsValid: true),
-            new("\"\"\"\"\"\"", IsValid: true),
+            new(" a", IsValid: true),
+            new("a ", IsValid: true),
+            new(" a ", IsValid: true),
+            new(" a a ", IsValid: true),
+
             new("\"a\"", IsValid: true),
-            new("\"a\"\"a\"", IsValid: true),
-            new("\"a\"\"a\"\"a\"", IsValid: true),
+            new("\" a\"", IsValid: true),
+            new("\"a \"", IsValid: true),
+            new("\" a \"", IsValid: true),
+            new("\" a a \"", IsValid: true),
 
-            // No start quote
-            new("a\"\"a"),
-            new("a\"a\"a"),
-            new(" \"\" "),
-            new(" \"a\" "),
-            new(" \"\""),
-            new(" \"a\""),
-            new("a\"\"\"a"),
-
-            new("\"a\"a\"a\""),
-            new("\"\" "),
-            new("\"a\" "),
-            new("\"a\"\"\"a"),
-
-            new("\"a\"\"\"a\""),
-            new("\"\"a\""),
-            new("\"a\"a\""),
-            new("\"\"a\"a\"\""),
-
-            new("\"\"\""),
-            new("\"\"\"\"\""),
+            new(" \"a\" ", IsValid: true),
+            new(" \" a\" ", IsValid: true),
+            new(" \"a \" ", IsValid: true),
+            new(" \" a \" ", IsValid: true),
+            new(" \" a a \" ", IsValid: true),
         };
         var runners = new Dictionary<string, Func<TrimTest, string>>()
         {
             { nameof(CsvHelper) + " Trim", t => TrimCsvHelper(TrimOptions.Trim, null, t.ColText) },
             { nameof(CsvHelper) + " InsideQuotes", t => TrimCsvHelper(TrimOptions.InsideQuotes, null, t.ColText) },
-            { nameof(Sylvan), t => TrimSylvan(t.ColText) },
+            { nameof(CsvHelper) + " All¹", t => TrimCsvHelper(TrimOptions.Trim | TrimOptions.InsideQuotes, null, t.ColText) },
+            // Sylvan does not appear to have Trim support
+            //{ nameof(Sylvan), t => TrimSylvan(t.ColText) },
             { nameof(Sep) + " Outer", t => TrimSep(SepTrim.Outer, unescape: false, t.ColText) },
+            { nameof(Sep) + " AfterUnescape", t => TrimSep(SepTrim.AfterUnescape, unescape: true, t.ColText) },
+            { nameof(Sep) + " All²", t => TrimSep(SepTrim.Outer | SepTrim.AfterUnescape, unescape: true, t.ColText) },
         };
         var sb = new StringBuilder();
         var outputCsharp = false;
         sb.Append($"| Input |");
         if (outputCsharp) { sb.Append($" Input (C#) |"); }
-        sb.Append($" Valid |");
+        //sb.Append($" Valid |");
         foreach (var (name, _) in runners)
         {
             sb.Append($" {name} |");
@@ -78,7 +70,7 @@ public static class TrimCompare
             sb.Append($"| `{test.ColText.Replace(" ", "·")}` |");
             var csharpColText = test.ColText.Replace(" ", "·").Replace("\"", "\\\"");
             if (outputCsharp) { sb.Append($" `{csharpColText}` |"); }
-            sb.Append($" {test.IsValid} |");
+            //sb.Append($" {test.IsValid} |");
 
             var csharpColTextResult = TrimSep(SepTrim.Outer, unescape: false, test.ColText).Replace("\"", "\\\"");
             Trace.WriteLine($"new object[] {{ \"{test.ColText.Replace("\"", "\\\"")}\", \"{csharpColTextResult}\" }},");
@@ -106,9 +98,9 @@ public static class TrimCompare
         sb.AppendLine();
         sb.AppendLine($"`·` (middle dot) is whitespace to make this visible");
         sb.AppendLine();
-        sb.AppendLine($"¹ CsvHelper with `BadDataFound = null`");
+        sb.AppendLine($"¹ CsvHelper with `TrimOptions.Trim | TrimOptions.InsideQuotes`");
         sb.AppendLine();
-        sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.Trim)} = true` in `{nameof(SepReaderOptions)}`");
+        sb.AppendLine($"² Sep with `SepTrim.Outer | SepTrim.AfterUnescape, unescape: true` in `{nameof(SepReaderOptions)}`");
 
         var text = sb.ToString();
         Trace.WriteLine(text);

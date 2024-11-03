@@ -14,14 +14,16 @@ static class PackageAssetsTestData
     static readonly Uri PackageAssetsUrl = new("https://raw.githubusercontent.com/joelverhagen/NCsvPerf/main/NCsvPerf/TestData/PackageAssets.csv");
     const string PackageAssetsFileName = @"PackageAssets.csv";
     const string DirectoryNameToFind = "artifacts";
-    static readonly ConcurrentDictionary<bool, LineCache> _quotesOrNotToLineCache = new();
+    static readonly ConcurrentDictionary<(bool quotes, bool spaces), LineCache> _quotesOrNotToLineCache = new();
 
-    internal static LineCache PackageAssets(bool quoteAroundSomeCols = false)
+    internal static LineCache PackageAssets(bool quoteAroundSomeCols = false, bool spacesAroundSomeColsAndInsideQuotes = false)
     {
-        if (!_quotesOrNotToLineCache.TryGetValue(quoteAroundSomeCols, out var lineCache))
+        var key = (quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes);
+        if (!_quotesOrNotToLineCache.TryGetValue(key, out var lineCache))
         {
-            lineCache = new LineCache(GetPackageAssetsFilePath(), quoteAroundSomeCols);
-            _quotesOrNotToLineCache.TryAdd(quoteAroundSomeCols, lineCache);
+            lineCache = new LineCache(GetPackageAssetsFilePath(),
+                quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes);
+            _quotesOrNotToLineCache.TryAdd(key, lineCache);
         }
         return lineCache;
     }
@@ -65,7 +67,7 @@ static class PackageAssetsTestData
         readonly ConcurrentDictionary<int, string> _rowCountToString = new();
         readonly ConcurrentDictionary<int, byte[]> _rowCountToBytes = new();
 
-        public LineCache(string filePath, bool quoteAroundSomeCols)
+        public LineCache(string filePath, bool quoteAroundSomeCols, bool spacesAroundSomeColsAndInsideQuotes)
         {
             _sourceLines = File.ReadAllLines(filePath);
             if (quoteAroundSomeCols)
@@ -75,7 +77,7 @@ static class PackageAssetsTestData
                 {
                     ref var line = ref _sourceLines[i];
                     sb.Clear();
-                    AddQuotesAroundSomeCols(line, sb);
+                    AddQuotesAndMaybeSpacesAroundSomeCols(line, sb, spacesAroundSomeColsAndInsideQuotes);
                     var newLine = sb.ToString();
                     //Debug.Assert(line.Split(',').Length == 25);
                     line = newLine;
@@ -83,7 +85,7 @@ static class PackageAssetsTestData
             }
         }
 
-        static void AddQuotesAroundSomeCols(ReadOnlySpan<char> span, StringBuilder sb)
+        static void AddQuotesAndMaybeSpacesAroundSomeCols(ReadOnlySpan<char> span, StringBuilder sb, bool spaces)
         {
             var col = 0;
             var start = 0;
@@ -105,9 +107,13 @@ static class PackageAssetsTestData
                 }
                 else
                 {
+                    if (spaces) { sb.Append(' '); }
                     sb.Append('"');
+                    if (spaces) { sb.Append(' '); }
                     sb.Append(colSpan);
+                    if (spaces) { sb.Append(' '); }
                     sb.Append('"');
+                    if (spaces) { sb.Append(' '); }
                 }
                 start += foundIndex + 1;
                 ++col;

@@ -347,7 +347,7 @@ public class SepReaderState : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     ReadOnlySpan<char> GetColSpanTrimmed(int index)
     {
         if (_colSpanFlags == TrimOuterFlag)
@@ -414,6 +414,7 @@ public class SepReaderState : IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static Span<char> TrimSpace(Span<char> span)
     {
         // Only trim the default space character no other whitespace characters

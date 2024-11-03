@@ -24,7 +24,8 @@ public abstract class PackageAssetsBench
 {
     readonly ReaderSpec[] _readers;
 
-    protected PackageAssetsBench(string scope, int lineCount, bool quoteAroundSomeCols = false)
+    protected PackageAssetsBench(string scope, int lineCount,
+        bool quoteAroundSomeCols = false, bool spacesAroundSomeColsAndInsideQuotes = false)
     {
         Quotes = quoteAroundSomeCols;
         Scope = scope;
@@ -137,6 +138,66 @@ public class RowPackageAssetsBench : PackageAssetsBench
 }
 
 
+public class SpacesQuotesColsPackageAssetsBench : ColsPackageAssetsBench
+{
+    public SpacesQuotesColsPackageAssetsBench()
+        : base(quoteAroundSomeCols: true, spacesAroundSomeColsAndInsideQuotes: true) { }
+
+    [Benchmark()]
+    public void Sep_TrimOuterUnescape()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true, Trim = SepTrim.Outer })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
+    [Benchmark()]
+    public void Sep_TrimAllUnescape()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true, Trim = SepTrim.All })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
+#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void CsvHelper_TrimAll()
+    {
+        using var reader = Reader.CreateReader();
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            HasHeaderRecord = false,
+            TrimOptions = TrimOptions.Trim | TrimOptions.InsideQuotes,
+#if USE_STRING_POOLING
+            CacheFields = true,
+#endif
+        };
+        using var csvParser = new CsvParser(reader, config);
+        while (csvParser.Read())
+        {
+            // CsvHelper has no Span-based API
+            for (var i = 0; i < csvParser.Count; i++)
+            {
+                var s = csvParser[i];
+            }
+        }
+    }
+}
+
 public class QuotesColsPackageAssetsBench : ColsPackageAssetsBench
 {
     public QuotesColsPackageAssetsBench() : base(quoteAroundSomeCols: true) { }
@@ -148,7 +209,9 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     const int DefaultLineCount = 50_000;
 
     public ColsPackageAssetsBench() : this(false) { }
-    public ColsPackageAssetsBench(bool quoteAroundSomeCols) : base("Cols", DefaultLineCount, quoteAroundSomeCols) { }
+    public ColsPackageAssetsBench(bool quoteAroundSomeCols,
+        bool spacesAroundSomeColsAndInsideQuotes = false)
+        : base("Cols", DefaultLineCount, quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes) { }
 
     delegate string SpanToString(ReadOnlySpan<char> chars);
 
@@ -232,6 +295,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HasHeaderRecord = false,
+            TrimOptions = TrimOptions.None,
 #if USE_STRING_POOLING
             CacheFields = true,
 #endif

@@ -356,10 +356,6 @@ public class SepReaderState : IDisposable
             var colEnds = _colEndsOrColInfos;
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
-            // Above bounds checked is faster than below 🤔
-            //ref var colEndsRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-            //var colStart = Unsafe.Add(ref colEndsRef, index) + 1; // +1 since previous end
-            //var colEnd = Unsafe.Add(ref colEndsRef, index + 1);
 
             A.Assert(colStart >= 0);
             A.Assert(colEnd < _chars.Length);
@@ -372,7 +368,7 @@ public class SepReaderState : IDisposable
             var col = MemoryMarshal.CreateSpan(ref colRef, colLength);
             return TrimSpace(col);
         }
-        else //if ((_colSpanFlags & UnescapeFlag) != 0)
+        else
         {
             // Always certain unescaping here
             A.Assert((_colSpanFlags & UnescapeFlag) != 0);
@@ -389,7 +385,6 @@ public class SepReaderState : IDisposable
 
             var colLength = colEnd - colStart;
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            // TODO: Does this actually work when trim and unescaping-in-place
             if (quoteCountOrNegativeUnescapedLength < 0)
             {
                 var unescapedLength = -quoteCountOrNegativeUnescapedLength;
@@ -403,7 +398,6 @@ public class SepReaderState : IDisposable
             }
             if (col.Length > 0 && col[0] == SepDefaults.Quote)
             {
-                // TODO: Consider when GetColSpan multiple times...
                 var unescapedLength = SepUnescape.UnescapeInPlace(
                     ref MemoryMarshal.GetReference(col), col.Length);
                 col = col.Slice(0, unescapedLength);
@@ -412,7 +406,8 @@ public class SepReaderState : IDisposable
             {
                 col = TrimSpace(col);
             }
-            // Overlaps
+            // Copy to beginning to ensure starts at beginning to allow skipping
+            // trim/unescape if called multiple times. Overlaps but fine.
             col.CopyTo(originalCol);
             colInfo.QuoteCount = -col.Length;
             return MemoryMarshal.CreateReadOnlySpan(ref colRef, col.Length);

@@ -144,6 +144,20 @@ public class SpacesQuotesColsPackageAssetsBench : ColsPackageAssetsBench
         : base(quoteAroundSomeCols: true, spacesAroundSomeColsAndInsideQuotes: true) { }
 
     [Benchmark()]
+    public void Sep_TrimOuter()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false, Trim = SepTrim.Outer })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                var span = row[i].Span;
+            }
+        }
+    }
+
+    [Benchmark()]
     public void Sep_TrimOuterUnescape()
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true, Trim = SepTrim.Outer })

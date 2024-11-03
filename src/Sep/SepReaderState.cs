@@ -384,7 +384,7 @@ public class SepReaderState : IDisposable
             A.Assert(colEnd >= colStart);
 
             var colLength = colEnd - colStart;
-            ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            scoped ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
             if (quoteCountOrNegativeUnescapedLength < 0)
             {
                 var unescapedLength = -quoteCountOrNegativeUnescapedLength;
@@ -394,24 +394,48 @@ public class SepReaderState : IDisposable
             var col = originalCol;
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
-                col = TrimSpace(col);
+                colRef = ref TrimSpace(ref colRef, ref colLength);
+                //col = TrimSpace(col);
             }
-            if (col.Length > 0 && col[0] == SepDefaults.Quote)
+            if (quoteCountOrNegativeUnescapedLength == 2 &&
+                colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
-                var unescapedLength = SepUnescape.UnescapeInPlace(
-                    ref MemoryMarshal.GetReference(col), col.Length);
-                col = col.Slice(0, unescapedLength);
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref colRef, 1), colLength - 2);
+            }
+            else if (colLength > 0 && colRef == SepDefaults.Quote)
+            {
+                colLength = SepUnescape.UnescapeInPlace(
+                    ref colRef, colLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {
-                col = TrimSpace(col);
+                colRef = ref TrimSpace(ref colRef, ref colLength);
+                //col = TrimSpace(col);
             }
             // Copy to beginning to ensure starts at beginning to allow skipping
             // trim/unescape if called multiple times. Overlaps but fine.
+            col = MemoryMarshal.CreateSpan(ref colRef, colLength);
             col.CopyTo(originalCol);
-            colInfo.QuoteCount = -col.Length;
-            return MemoryMarshal.CreateReadOnlySpan(ref colRef, col.Length);
+            colInfo.QuoteCount = -colLength;
+            return col;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static ref char TrimSpace(ref char colRef, ref int colLength)
+    {
+        // Only trim the default space character no other whitespace characters
+        const char Space = ' ';
+
+        var start = 0;
+        for (; start < colLength && Unsafe.Add(ref colRef, start) == Space; start++)
+        { }
+
+        var end = colLength - 1;
+        for (; end >= start && Unsafe.Add(ref colRef, end) == Space; end--)
+        { }
+        colLength = end - start + 1;
+        return ref Unsafe.Add(ref colRef, start);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

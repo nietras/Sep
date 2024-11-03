@@ -43,7 +43,7 @@ public static class TrimCompare
             { nameof(CsvHelper) + " All¹", t => TrimCsvHelper(TrimOptions.Trim | TrimOptions.InsideQuotes, null, t.ColText) },
             // Sylvan does not appear to have Trim support
             //{ nameof(Sylvan), t => TrimSylvan(t.ColText) },
-            { nameof(Sep) + " Outer", t => TrimSep(SepTrim.Outer, unescape: false, t.ColText) },
+            { nameof(Sep) + " Outer", t => TrimSep(SepTrim.Outer, unescape: true, t.ColText) },
             { nameof(Sep) + " AfterUnescape", t => TrimSep(SepTrim.AfterUnescape, unescape: true, t.ColText) },
             { nameof(Sep) + " All²", t => TrimSep(SepTrim.Outer | SepTrim.AfterUnescape, unescape: true, t.ColText) },
         };

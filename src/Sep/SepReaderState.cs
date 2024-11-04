@@ -400,12 +400,12 @@ public class SepReaderState : IDisposable
             if (quoteCountOrNegativeUnescapedLength == 2 &&
                 colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref colRef, 1), colLength - 2);
+                colRef = ref Unsafe.Add(ref colRef, 1);
+                colLength -= 2;
             }
             else if (colLength > 0 && colRef == SepDefaults.Quote)
             {
-                colLength = SepUnescape.UnescapeInPlace(
-                    ref colRef, colLength);
+                colLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {

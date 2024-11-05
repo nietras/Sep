@@ -390,8 +390,6 @@ public class SepReaderState : IDisposable
                 var unescapedLength = -quoteCountOrNegativeUnescapedLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
-            var originalCol = MemoryMarshal.CreateSpan(ref colRef, colLength);
-            bool unescapeInPlace = false;
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
                 colRef = ref TrimSpace(ref colRef, ref colLength);
@@ -404,27 +402,17 @@ public class SepReaderState : IDisposable
             }
             else if (colLength > 0 && colRef == SepDefaults.Quote)
             {
-                var colLengthUnescaped = SepUnescape.UnescapeInPlace(ref colRef, colLength);
-                unescapeInPlace = colLength != colLengthUnescaped;
-                colLength = colLengthUnescaped;
+                // Trim and unescape in-place to allow skipping trim/unescape if
+                // called multiple times.
+                colLength = SepUnescape.TrimUnescapeInPlace(ref colRef, colLength);
+                colInfo.QuoteCount = -colLength;
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {
                 colRef = ref TrimSpace(ref colRef, ref colLength);
             }
-            // Copy to beginning to ensure starts at beginning to allow skipping
-            // trim/unescape if called multiple times. Overlaps but fine.
-            var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
-            if (!unescapeInPlace)
-            {
-                return col;
-            }
-            else
-            {
-                col.CopyTo(originalCol);
-                colInfo.QuoteCount = -colLength;
-                return originalCol.Slice(0, colLength);
-            }
+            return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
         }
     }
 

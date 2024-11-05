@@ -26,6 +26,33 @@ static class SepUnescape
         return (int)unescapedLength;
     }
 
+    internal static int TrimUnescapeInPlace(ref char charRef, int length)
+    {
+        nint unescapedLength = 0;
+        nint quoteCount = 1; // We start just past first quote
+        nint i = 1;
+        for (; i < length && Add(ref charRef, i) == SepDefaults.Space; i++)
+        { }
+        for (; i < length; i++)
+        {
+            var c = Add(ref charRef, i);
+            Add(ref charRef, unescapedLength) = c;
+            nint quote = c == SepDefaults.Quote ? 1 : 0;
+            nint notQuote = quote ^ 1;
+            quoteCount += quote;
+            nint increment = quoteCount & 1 | notQuote;
+            unescapedLength += increment;
+        }
+        for (i = unescapedLength; i < length; i++)
+        {
+            Add(ref charRef, i) = SepDefaults.Quote;
+        }
+        for (; unescapedLength > 0 && Add(ref charRef, unescapedLength - 1) == SepDefaults.Space;
+             --unescapedLength)
+        { }
+        return (int)unescapedLength;
+    }
+
     [ExcludeFromCodeCoverage] // Trial
     internal static int UnescapeInPlaceRefs(ref char charRef, int length)
     {

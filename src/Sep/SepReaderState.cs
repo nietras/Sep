@@ -402,9 +402,8 @@ public class SepReaderState : IDisposable
             }
             else if (colLength > 0 && colRef == SepDefaults.Quote)
             {
-                // Trim and unescape in-place to allow skipping trim/unescape if
-                // called multiple times.
                 colLength = SepUnescape.TrimUnescapeInPlace(ref colRef, colLength);
+                // Skip trim/unescape next time if called multiple times
                 colInfo.QuoteCount = -colLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }

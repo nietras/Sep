@@ -347,7 +347,7 @@ public class SepReaderState : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     ReadOnlySpan<char> GetColSpanTrimmed(int index)
     {
         if (_colSpanFlags == TrimOuterFlag)
@@ -363,10 +363,10 @@ public class SepReaderState : IDisposable
 
             var colLength = colEnd - colStart;
             // Much better code generation given col span always inside buffer
-            ref var colRef = ref Unsafe.Add(
+            scoped ref var colRef = ref Unsafe.Add(
                 ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            var col = MemoryMarshal.CreateSpan(ref colRef, colLength);
-            return TrimSpace(col);
+            colRef = ref TrimSpace(ref colRef, ref colLength);
+            return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
         }
         else
         {
@@ -391,11 +391,10 @@ public class SepReaderState : IDisposable
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
             var originalCol = MemoryMarshal.CreateSpan(ref colRef, colLength);
-            var col = originalCol;
+            bool unescapeInPlace = false;
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
                 colRef = ref TrimSpace(ref colRef, ref colLength);
-                //col = TrimSpace(col);
             }
             if (quoteCountOrNegativeUnescapedLength == 2 &&
                 colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
@@ -405,59 +404,44 @@ public class SepReaderState : IDisposable
             }
             else if (colLength > 0 && colRef == SepDefaults.Quote)
             {
-                colLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
+                var colLengthUnescaped = SepUnescape.UnescapeInPlace(ref colRef, colLength);
+                unescapeInPlace = colLength != colLengthUnescaped;
+                colLength = colLengthUnescaped;
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
             {
                 colRef = ref TrimSpace(ref colRef, ref colLength);
-                //col = TrimSpace(col);
             }
             // Copy to beginning to ensure starts at beginning to allow skipping
             // trim/unescape if called multiple times. Overlaps but fine.
-            col = MemoryMarshal.CreateSpan(ref colRef, colLength);
-            col.CopyTo(originalCol);
-            colInfo.QuoteCount = -colLength;
-            return originalCol.Slice(0, colLength);
+            var col = MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+            if (!unescapeInPlace)
+            {
+                return col;
+            }
+            else
+            {
+                col.CopyTo(originalCol);
+                colInfo.QuoteCount = -colLength;
+                return originalCol.Slice(0, colLength);
+            }
         }
     }
 
+    // Only trim the default space character no other whitespace characters
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ref char TrimSpace(ref char colRef, ref int colLength)
     {
-        // Only trim the default space character no other whitespace characters
-        const char Space = ' ';
-
         var start = 0;
-        for (; start < colLength && Unsafe.Add(ref colRef, start) == Space; start++)
+        for (; start < colLength &&
+             Unsafe.Add(ref colRef, start) == SepDefaults.Space; start++)
         { }
-
         var end = colLength - 1;
-        for (; end >= start && Unsafe.Add(ref colRef, end) == Space; end--)
+        for (; end >= start &&
+             Unsafe.Add(ref colRef, end) == SepDefaults.Space; end--)
         { }
         colLength = end - start + 1;
         return ref Unsafe.Add(ref colRef, start);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static Span<char> TrimSpace(Span<char> span)
-    {
-        // Only trim the default space character no other whitespace characters
-        const char Space = ' ';
-
-        var start = 0;
-        for (; start < span.Length && span[start] == Space; start++)
-        {
-            //if (span[start] != Space) { break; }
-        }
-
-        var end = span.Length - 1;
-        for (; end >= start && span[end] == Space; end--)
-        {
-            //if (span[end] != Space) { break; }
-        }
-        var length = end - start + 1;
-
-        return span.Slice(start, length);
     }
 
     internal string ToStringDefault(int index)

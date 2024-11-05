@@ -28,6 +28,7 @@ public static class SepDefaults
     // Sep does not handle comments currently, this is solely to prevent using
     // `#` as separator
     internal const char Comment = '#';
+    internal const char Space = ' ';
 
     internal const byte LineFeedByte = (byte)LineFeed;
     internal const byte CarriageReturnByte = (byte)CarriageReturn;

@@ -417,7 +417,7 @@ public class SepReaderState : IDisposable
             col = MemoryMarshal.CreateSpan(ref colRef, colLength);
             col.CopyTo(originalCol);
             colInfo.QuoteCount = -colLength;
-            return col;
+            return originalCol.Slice(0, colLength);
         }
     }
 

@@ -72,7 +72,7 @@ public readonly record struct SepReaderOptions
     /// </remarks>
     public bool Unescape { get; init; } = false;
     /// <summary>
-    /// Option for trimming spaces on column access.
+    /// Option for trimming spaces (` ` - ASCII 32) on column access.
     /// </summary>
     /// <remarks>
     /// By default no trimming is done. See <see cref="SepTrim"/> for options.
@@ -80,7 +80,8 @@ public readonly record struct SepReaderOptions
     /// means the <see cref="SepReader.Row.Span" /> will be modified and contain
     /// "garbage" state for trimmed/unescaped cols. This is for efficiency to
     /// avoid allocating secondary memory for trimmed/unescaped columns. Header
-    /// columns/names will also be trimmed.
+    /// columns/names will also be trimmed. Note that only the space ` ` (ASCII
+    /// 32) character is trimmed, not any whitespace character.
     /// </remarks>
     public SepTrim Trim { get; init; } = SepTrim.None;
 }

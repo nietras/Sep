@@ -71,5 +71,16 @@ public readonly record struct SepReaderOptions
     /// Requires <see cref="DisableQuotesParsing"/> to be false.
     /// </remarks>
     public bool Unescape { get; init; } = false;
+    /// <summary>
+    /// Option for trimming spaces on column access.
+    /// </summary>
+    /// <remarks>
+    /// By default no trimming is done. See <see cref="SepTrim"/> for options.
+    /// Note that may happen in-place e.g. if also unescaping, which means the
+    /// <see cref="SepReader.Row.Span" /> will be modified and contain "garbage"
+    /// state after unescaped cols before next col. This is for efficiency to
+    /// avoid allocating secondary memory for trimmed/unescaped columns. Header
+    /// columns/names will also be trimmed.
+    /// </remarks>
     public SepTrim Trim { get; init; } = SepTrim.None;
 }

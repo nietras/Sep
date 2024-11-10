@@ -207,7 +207,7 @@ where each continuation flows fluently from the preceding type. For example,
 That and the APIs for reader and writer is covered in the following sections.
 
 For a complete example, see the [example](#example) above or the
-[ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+[ReadMeTest.cs](src/Sep.XyzTest/ReadMeTest.cs).
 
 ⚠ Note that it is important to understand that Sep `Row`/`Col`/`Cols` are [`ref
 struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/ref-struct)s
@@ -646,7 +646,7 @@ then requires all parameter types for the lambda to be specified. Hence, in this
 case the custom `Enumerate` does not take significantly longer to write and is a
 lot more efficient than using LINQ `.Where` (also avoids allocating a string for
 key for each row) and is easier to debug and perhaps even read. All examples
-above can be seen in [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+above can be seen in [ReadMeTest.cs](src/Sep.XyzTest/ReadMeTest.cs).
 
 There is a strong case for having an enumerate API though and that is for
 parallelized enumeration, which will be discussed next.
@@ -1401,7 +1401,7 @@ upon definition but defers this until a new row has been fully defined and then
 is ended.
 
 ## Example Catalogue
-The following examples are available in [ReadMeTest.cs](src/Sep.Test/ReadMeTest.cs).
+The following examples are available in [ReadMeTest.cs](src/Sep.XyzTest/ReadMeTest.cs).
 
 ### Example - Copy Rows
 ```csharp

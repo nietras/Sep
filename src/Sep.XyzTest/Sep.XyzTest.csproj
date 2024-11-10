@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>nietras.SeparatedValues.Test</RootNamespace>
+    <RootNamespace>nietras.SeparatedValues.XyzTest</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -15,10 +15,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="PublicApiGenerator" Version="11.1.0" />
     <PackageReference Include="MSTest" Version="3.6.2" />
   </ItemGroup>
 

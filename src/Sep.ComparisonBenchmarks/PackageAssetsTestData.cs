@@ -70,14 +70,15 @@ static class PackageAssetsTestData
         public LineCache(string filePath, bool quoteAroundSomeCols, bool spacesAroundSomeColsAndInsideQuotes)
         {
             _sourceLines = File.ReadAllLines(filePath);
-            if (quoteAroundSomeCols)
+            if (quoteAroundSomeCols || spacesAroundSomeColsAndInsideQuotes)
             {
                 var sb = new StringBuilder();
                 for (var i = 0; i < _sourceLines.Length; i++)
                 {
                     ref var line = ref _sourceLines[i];
                     sb.Clear();
-                    AddQuotesAndMaybeSpacesAroundSomeCols(line, sb, spacesAroundSomeColsAndInsideQuotes);
+                    AddQuotesAndMaybeSpacesAroundSomeCols(line, sb,
+                        quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes);
                     var newLine = sb.ToString();
                     //Debug.Assert(line.Split(',').Length == 25);
                     line = newLine;
@@ -85,7 +86,8 @@ static class PackageAssetsTestData
             }
         }
 
-        static void AddQuotesAndMaybeSpacesAroundSomeCols(ReadOnlySpan<char> span, StringBuilder sb, bool spaces)
+        static void AddQuotesAndMaybeSpacesAroundSomeCols(ReadOnlySpan<char> span, StringBuilder sb,
+            bool quotes, bool spaces)
         {
             var col = 0;
             var start = 0;
@@ -100,7 +102,7 @@ static class PackageAssetsTestData
                 {
                     sb.Append(separator);
                 }
-                // These cols are parsed so not adding quotes around
+                // These cols are parsed so not adding quotes or spaces around
                 if (col == 0 || col == 1 || col == 4)
                 {
                     sb.Append(colSpan);
@@ -108,11 +110,11 @@ static class PackageAssetsTestData
                 else
                 {
                     if (spaces) { sb.Append(' '); }
-                    sb.Append('"');
+                    if (quotes) { sb.Append('"'); }
                     if (spaces) { sb.Append(' '); }
                     sb.Append(colSpan);
                     if (spaces) { sb.Append(' '); }
-                    sb.Append('"');
+                    if (quotes) { sb.Append('"'); }
                     if (spaces) { sb.Append(' '); }
                 }
                 start += foundIndex + 1;

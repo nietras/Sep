@@ -6,15 +6,17 @@ using System.IO;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Sylvan.Data.Csv;
 
-namespace nietras.SeparatedValues.ComparisonBenchmarks;
+namespace nietras.SeparatedValues.XyzTest;
 
-public static class UnescapeCompare
+public partial class ReadMeTest
 {
     record UnescapeTest(string ColText, bool IsValid = false);
 
-    public static void CompareUnescape()
+    [TestMethod]
+    public void ReadMeTest_CompareUnescape()
     {
         var tests = new UnescapeTest[]
         {
@@ -112,7 +114,7 @@ public static class UnescapeCompare
 
         var text = sb.ToString();
         Trace.WriteLine(text);
-        File.WriteAllText("UnescapeCompare.md", text, Encoding.UTF8);
+        File.WriteAllText("../../../CompareUnescape.md", text, Encoding.UTF8);
     }
 
     static string UnescapeCsvHelper(BadDataFound? badDataFound, string colText)

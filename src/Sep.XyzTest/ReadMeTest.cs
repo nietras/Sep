@@ -18,7 +18,7 @@ using PublicApiGenerator;
 namespace nietras.SeparatedValues.XyzTest;
 
 [TestClass]
-public class ReadMeTest
+public partial class ReadMeTest
 {
     static readonly string s_testSourceFilePath = SourceFile();
     static readonly string s_rootDirectory = Path.GetDirectoryName(s_testSourceFilePath) + @"../../../";

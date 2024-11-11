@@ -6,15 +6,17 @@ using System.IO;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Sylvan.Data.Csv;
 
-namespace nietras.SeparatedValues.ComparisonBenchmarks;
+namespace nietras.SeparatedValues.XyzTest;
 
-public static class TrimCompare
+public partial class ReadMeTest
 {
     record TrimTest(string ColText, bool IsValid = false);
 
-    public static void CompareTrim()
+    [TestMethod]
+    public void ReadMeTest_CompareTrim()
     {
         var tests = new TrimTest[]
         {
@@ -48,18 +50,13 @@ public static class TrimCompare
             { nameof(Sep) + " All²", t => TrimSep(SepTrim.Outer | SepTrim.AfterUnescape, unescape: true, t.ColText) },
         };
         var sb = new StringBuilder();
-        var outputCsharp = false;
         sb.Append($"| Input |");
-        if (outputCsharp) { sb.Append($" Input (C#) |"); }
-        //sb.Append($" Valid |");
         foreach (var (name, _) in runners)
         {
             sb.Append($" {name} |");
         }
         sb.AppendLine();
         sb.Append($"|-|");
-        if (outputCsharp) { sb.Append($"-|"); }
-        sb.Append($"-|");
         foreach (var (_, _) in runners)
         {
             sb.Append($"-|");
@@ -68,9 +65,6 @@ public static class TrimCompare
         foreach (var test in tests)
         {
             sb.Append($"| `{test.ColText.Replace(" ", "·")}` |");
-            var csharpColText = test.ColText.Replace(" ", "·").Replace("\"", "\\\"");
-            if (outputCsharp) { sb.Append($" `{csharpColText}` |"); }
-            //sb.Append($" {test.IsValid} |");
 
             var csharpColTextResult = TrimSep(SepTrim.Outer, unescape: false, test.ColText).Replace("\"", "\\\"");
             Trace.WriteLine($"new object[] {{ \"{test.ColText.Replace("\"", "\\\"")}\", \"{csharpColTextResult}\" }},");
@@ -104,7 +98,7 @@ public static class TrimCompare
 
         var text = sb.ToString();
         Trace.WriteLine(text);
-        File.WriteAllText("TrimCompare.md", text, Encoding.UTF8);
+        File.WriteAllText("../../../CompareTrim.md", text, Encoding.UTF8);
     }
 
     static string TrimCsvHelper(TrimOptions trimOptions, BadDataFound? badDataFound, string colText)

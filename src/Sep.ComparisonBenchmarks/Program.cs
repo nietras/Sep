@@ -32,16 +32,6 @@ Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 
 log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 
-#if DEBUG
-// Consider where to move this perhaps a new ComparisonTest project
-if (Debugger.IsAttached)
-{
-    TrimCompare.CompareTrim();
-    //UnescapeCompare.CompareUnescape();
-    return;
-}
-#endif
-
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 
 // Use args as switch to run BDN or not e.g. BDN only run when using script

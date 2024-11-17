@@ -185,8 +185,8 @@ public class SepReaderColTest
         ["\"a \" ", "a"],
         [" \" a \" ", "a"],
         [" \" a a \" ", "a a"],
+        [" \"   a  a   \" ", "a  a"],
     ]);
-
 
     [DataTestMethod]
     [DynamicData(nameof(TrimOuterData))]

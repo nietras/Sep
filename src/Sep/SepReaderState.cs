@@ -417,18 +417,18 @@ public class SepReaderState : IDisposable
 
     // Only trim the default space character no other whitespace characters
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ref char TrimSpace(ref char colRef, ref int colLength)
+    static ref char TrimSpace(ref char col, ref int length)
     {
         var start = 0;
-        for (; start < colLength &&
-             Unsafe.Add(ref colRef, start) == SepDefaults.Space; start++)
-        { }
-        var end = colLength - 1;
-        for (; end >= start &&
-             Unsafe.Add(ref colRef, end) == SepDefaults.Space; end--)
-        { }
-        colLength = end - start + 1;
-        return ref Unsafe.Add(ref colRef, start);
+        while (start < length && Unsafe.Add(ref col, start) == SepDefaults.Space)
+        { start++; }
+
+        var end = length - 1;
+        while (end >= start && Unsafe.Add(ref col, end) == SepDefaults.Space)
+        { end--; }
+
+        length = end - start + 1;
+        return ref Unsafe.Add(ref col, start);
     }
 
     internal string ToStringDefault(int index)

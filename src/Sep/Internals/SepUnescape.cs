@@ -31,8 +31,7 @@ static class SepUnescape
         nint unescapedLength = 0;
         nint quoteCount = 1; // We start just past first quote
         nint i = 1;
-        for (; i < length && Add(ref charRef, i) == SepDefaults.Space; i++)
-        { }
+        for (; i < length && Add(ref charRef, i) == SepDefaults.Space; i++) { }
         for (; i < length; i++)
         {
             var c = Add(ref charRef, i);

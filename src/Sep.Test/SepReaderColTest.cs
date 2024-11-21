@@ -94,8 +94,8 @@ public class SepReaderColTest
     }
 #endif
 
-    public static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(new object[][]
-        {
+    public static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(
+        [
             ["a\"\"a", "a\"\"a"],
             ["a\"a\"a", "a\"a\"a"],
             ["·\"\"·", "·\"\"·"],
@@ -103,15 +103,14 @@ public class SepReaderColTest
             ["·\"\"", "·\"\""],
             ["·\"a\"", "·\"a\""],
             ["a\"\"\"a", "a\"\"\"a"],
-        });
+        ]);
 
     [DataTestMethod]
     [DynamicData(nameof(UnescapeData))]
-    public void SepReaderColTest_Unescape_Header_Test(string chars, string expected)
+    public void SepReaderColTest_Unescape_Header_Test(string src, string expected)
     {
-        var src = new string(chars);
-
-        using var reader = Sep.Reader(o => o with { HasHeader = true, Unescape = true }).FromText(src);
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = true, Unescape = true }).FromText(src);
         var actual = reader.Header.ColNames[0];
 
         Assert.AreEqual(expected, actual, src);
@@ -119,10 +118,155 @@ public class SepReaderColTest
 
     [DataTestMethod]
     [DynamicData(nameof(UnescapeData))]
-    public void SepReaderColTest_Unescape_Col_Test(string chars, string expectedCol)
+    public void SepReaderColTest_Unescape_Col_Test(string src, string expectedCol)
     {
-        var src = new string(chars);
-        using var reader = Sep.Reader(o => o with { HasHeader = false, Unescape = true }).FromText(src);
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true }).FromText(src);
+        AssertCol(reader, src, expectedCol);
+    }
+
+    public static IEnumerable<object[]> TrimOuterNoQuotesData =>
+    [
+        ["a", "a"],
+        [" a", "a"],
+        ["a ", "a"],
+        [" a ", "a"],
+        [" a a ", "a a"],
+    ];
+
+    public static IEnumerable<object[]> TrimOuterQuotesData =>
+    [
+        ["\"a\"", "\"a\""],
+        [" \" a\"", "\" a\""],
+        ["\"a \" ", "\"a \""],
+        [" \" a \" ", "\" a \""],
+        [" \" a a \" ", "\" a a \""],
+    ];
+
+    public static IEnumerable<object[]> TrimOuterUnescapeData =>
+        TrimOuterNoQuotesData.Concat(
+    [
+        ["\"a\"", "a"],
+        [" \" a\" ", " a"],
+        [" \"a \"", "a "],
+        ["\" a \" ", " a "],
+        [" \" a a \" ", " a a "],
+    ]);
+
+    public static IEnumerable<object[]> UnescapeTrimAfterUnescapeQuotesData =>
+    [
+        ["\"a\"", "a"],
+        ["\" a\"", "a"],
+        ["\"a \"", "a"],
+        ["\" a \"", "a"],
+        ["\" a a \"", "a a"],
+        ["\"a \" ", "a"],
+        ["\"a \"  ", "a"],
+        ["\"a \"\"\"  ", "a \""],
+        ["\"\"\" a \"\"\"  ", "\" a \""],
+        ["\"  \"\" a \"\"  \"  ", "\" a \""],
+    ];
+
+    public static IEnumerable<object[]> UnescapeTrimAfterUnescapeData =>
+        UnescapeTrimAfterUnescapeQuotesData.Concat(
+    [
+        [" \"a \"", "\"a \""], // Not seen as quotes
+        [" \"a \" ", "\"a \""], // Not seen as quotes
+        [" \"a \"  ", "\"a \""], // Not seen as quotes
+    ]);
+
+    public static IEnumerable<object[]> TrimOuterData =>
+        TrimOuterNoQuotesData.Concat(TrimOuterQuotesData);
+
+    public static IEnumerable<object[]> TrimAllUnescapeData =>
+        TrimOuterNoQuotesData.Concat(UnescapeTrimAfterUnescapeQuotesData).Concat(
+    [
+        [" \"a\" ", "a"],
+        [" \" a\"", "a"],
+        ["\"a \" ", "a"],
+        [" \" a \" ", "a"],
+        [" \" a a \" ", "a a"],
+        [" \"   a  a   \" ", "a  a"],
+    ]);
+
+    [DataTestMethod]
+    [DynamicData(nameof(TrimOuterData))]
+    public void SepReaderColTest_TrimOuter_Header_Test(string src, string expected)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = true, Trim = SepTrim.Outer }).FromText(src);
+        var actual = reader.Header.ColNames[0];
+
+        Assert.AreEqual(expected, actual, src);
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(TrimOuterData))]
+    public void SepReaderColTest_TrimOuter_Col_Test(string src, string expectedCol)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Trim = SepTrim.Outer }).FromText(src);
+        AssertCol(reader, src, expectedCol);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(TrimOuterUnescapeData))]
+    public void SepReaderColTest_TrimOuterUnescape_Header_Test(string src, string expected)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = true, Unescape = true, Trim = SepTrim.Outer }).FromText(src);
+        var actual = reader.Header.ColNames[0];
+
+        Assert.AreEqual(expected, actual, src);
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(TrimOuterUnescapeData))]
+    public void SepReaderColTest_TrimOuterUnescape_Col_Test(string src, string expectedCol)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.Outer }).FromText(src);
+        AssertCol(reader, src, expectedCol);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeTrimAfterUnescapeData))]
+    public void SepReaderColTest_TrimAfterUnescape_Header_Test(string src, string expected)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = true, Unescape = true, Trim = SepTrim.AfterUnescape }).FromText(src);
+        var actual = reader.Header.ColNames[0];
+
+        Assert.AreEqual(expected, actual, src);
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(UnescapeTrimAfterUnescapeData))]
+    public void SepReaderColTest_TrimAfterUnescape_Col_Test(string src, string expectedCol)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.AfterUnescape }).FromText(src);
+        AssertCol(reader, src, expectedCol);
+    }
+
+    [DataTestMethod]
+    [DynamicData(nameof(TrimAllUnescapeData))]
+    public void SepReaderColTest_TrimAllUnescape_Header_Test(string src, string expected)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = true, Unescape = true, Trim = SepTrim.All }).FromText(src);
+        var actual = reader.Header.ColNames[0];
+
+        Assert.AreEqual(expected, actual, src);
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(TrimAllUnescapeData))]
+    public void SepReaderColTest_TrimAllUnescape_Col_Test(string src, string expectedCol)
+    {
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.All }).FromText(src);
+        AssertCol(reader, src, expectedCol);
+    }
+
+    static void AssertCol(SepReader reader, string src, string expectedCol)
+    {
         Assert.IsTrue(reader.MoveNext());
         // Ensure repeated access works
         for (var i = 0; i < 4; i++)

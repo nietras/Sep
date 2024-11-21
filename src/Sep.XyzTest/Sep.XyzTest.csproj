@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>nietras.SeparatedValues.Test</RootNamespace>
+    <RootNamespace>nietras.SeparatedValues.XyzTest</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
@@ -19,7 +19,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest" Version="3.6.3" />
+    <PackageReference Include="PublicApiGenerator" Version="11.1.0" />
+    <PackageReference Include="MSTest" Version="3.6.2" />
+    <PackageReference Include="CsvHelper" Version="33.0.1" />
+    <PackageReference Include="Sylvan.Common" Version="0.4.3" />
+    <PackageReference Include="Sylvan.Data.Csv" Version="1.3.9" />
   </ItemGroup>
 
 </Project>

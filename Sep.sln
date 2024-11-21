@@ -48,6 +48,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ci", "ci", "{655261D2-06EE-
 		.github\workflows\super-linter.yml = .github\workflows\super-linter.yml
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sep.XyzTest", "src\Sep.XyzTest\Sep.XyzTest.csproj", "{4838D044-C1EB-4A13-AB6A-D72F81B70A20}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -74,6 +76,10 @@ Global
 		{690074F4-3B1A-4AFE-8888-DAEA44E4D282}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{690074F4-3B1A-4AFE-8888-DAEA44E4D282}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{690074F4-3B1A-4AFE-8888-DAEA44E4D282}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4838D044-C1EB-4A13-AB6A-D72F81B70A20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4838D044-C1EB-4A13-AB6A-D72F81B70A20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4838D044-C1EB-4A13-AB6A-D72F81B70A20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4838D044-C1EB-4A13-AB6A-D72F81B70A20}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

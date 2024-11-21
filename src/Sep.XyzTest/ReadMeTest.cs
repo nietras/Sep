@@ -346,7 +346,8 @@ public partial class ReadMeTest
             { "PackageAssetsBench.md", new("PackageAssets Benchmark Results", "##### PackageAssets Benchmark Results", "##### PackageAssets", "###### ") },
             { "PackageAssetsBench-GcServer.md", new("PackageAssets Benchmark Results (SERVER GC)", "##### PackageAssets Benchmark Results (SERVER GC)", "##### ", "###### ") },
             { "PackageAssetsBenchQuotes.md", new("PackageAssets with Quotes Benchmark Results", "##### PackageAssets with Quotes Benchmark Results", "##### PackageAssets", "###### ") },
-            { "PackageAssetsBenchQuotes-GcServer.md", new("PackageAssets with Quotes Benchmark Results (SERVER GC)", "##### PackageAssets with Quotes Benchmark Results (SERVER GC)", "#### ", "###### ") },
+            { "PackageAssetsBenchQuotes-GcServer.md", new("PackageAssets with Quotes Benchmark Results (SERVER GC)", "##### PackageAssets with Quotes Benchmark Results (SERVER GC)", "##### ", "###### ") },
+            { "PackageAssetsBenchSpacesQuotes.md", new("PackageAssets with Spaces and Quotes Benchmark Results", "##### PackageAssets with Spaces and Quotes Benchmark Results", "#### ", "###### ") },
             { "FloatsReaderBench.md", new("FloatsReader Benchmark Results", "#### Floats Reader Comparison Benchmarks", "### Writer", "##### ") },
         };
 
@@ -365,14 +366,19 @@ public partial class ReadMeTest
             var all = "";
             foreach (var processorDirectory in processorDirectories)
             {
-                var versions = File.ReadAllText(Path.Combine(processorDirectory, "Versions.txt"));
-                var contents = File.ReadAllText(Path.Combine(processorDirectory, fileName));
-                var processor = LastDirectoryName(processorDirectory);
+                var contentsFilePath = Path.Combine(processorDirectory, fileName);
+                if (File.Exists(contentsFilePath))
+                {
+                    var versionsFilePath = Path.Combine(processorDirectory, "Versions.txt");
+                    var versions = File.ReadAllText(versionsFilePath);
+                    var contents = File.ReadAllText(contentsFilePath);
+                    var processor = LastDirectoryName(processorDirectory);
 
-                var section = $"{prefix}{processor} - {description} ({versions})";
-                var benchmarkTable = GetBenchmarkTable(contents);
-                var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
-                all += readmeContents;
+                    var section = $"{prefix}{processor} - {description} ({versions})";
+                    var benchmarkTable = GetBenchmarkTable(contents);
+                    var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
+                    all += readmeContents;
+                }
             }
             readmeLines = ReplaceReadmeLines(readmeLines, [all], readmeBefore, prefix, 0, readmeEndLine, 0);
         }
@@ -489,8 +495,10 @@ public partial class ReadMeTest
         string readmeStartLineStartsWith, int readmeStartLineOffset,
         string readmeEndLineStartsWith, int readmeEndLineOffset)
     {
+        var readmeLinesSpan = readmeLines.AsSpan(readmeLineBeforeIndex);
         var readmeReplaceStartIndex = Array.FindIndex(readmeLines, readmeLineBeforeIndex,
             l => l.StartsWith(readmeStartLineStartsWith, StringComparison.Ordinal)) + readmeStartLineOffset;
+        Debug.Assert(readmeReplaceStartIndex >= 0);
         var readmeReplaceEndIndex = Array.FindIndex(readmeLines, readmeReplaceStartIndex,
             l => l.StartsWith(readmeEndLineStartsWith, StringComparison.Ordinal)) + readmeEndLineOffset;
 

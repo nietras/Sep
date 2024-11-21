@@ -164,6 +164,7 @@ public class SepReaderColTest
         ["\"a \"  ", "a"],
         ["\"a \"\"\"  ", "a \""],
         ["\"\"\" a \"\"\"  ", "\" a \""],
+        ["\"  \"\" a \"\"  \"  ", "\" a \""],
     ];
 
     public static IEnumerable<object[]> UnescapeTrimAfterUnescapeData =>

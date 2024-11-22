@@ -14,9 +14,9 @@ Try {
     foreach ($parser in $parsers) {
         $env:SEPFORCEPARSER=$parser
         Write-Output "Testing $parser Debug"
-        dotnet test --nologo -c Debug -- /Parallel
+        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug -- /Parallel
         Write-Output "Testing $parser Release"
-        dotnet test --nologo -c Release -- /Parallel
+        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Release -- /Parallel
     }
 } Finally {
     Remove-Item env:SEPFORCEPARSER

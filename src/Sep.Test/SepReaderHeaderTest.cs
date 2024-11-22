@@ -41,7 +41,7 @@ public class SepReaderHeaderTest
 
         Assert.AreEqual(1, header.IndexOf("B"));
         AreEqual([2, 0, 1], header.IndicesOf("C", "A", "B"));
-        AreEqual([1, 2, 0], header.IndicesOf(new[] { "B", "C", "A" }.AsSpan()));
+        AreEqual([1, 2, 0], header.IndicesOf(new[] { "B", "C", "A" }));
         AreEqual([0, 2], header.IndicesOf((ReadOnlySpan<string>)["A", "C"]));
         AreEqual([2, 0], header.IndicesOf((IReadOnlyList<string>)["C", "A"]));
 

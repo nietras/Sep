@@ -1774,7 +1774,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReaderHeader Empty { get; }
         public int IndexOf(string colName) { }
         public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public int[] IndicesOf(System.ReadOnlySpan<string> colNames) { }
+        public int[] IndicesOf([System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public int[] IndicesOf(params string[] colNames) { }
         public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
         public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }

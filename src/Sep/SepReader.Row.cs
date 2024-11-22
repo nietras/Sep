@@ -88,7 +88,7 @@ public partial class SepReader
         // ReadOnlySpan<> and IReadOnlyList<>
         public Cols this[int[] indices] => new(_state, indices);
 
-        public Cols this[ReadOnlySpan<string> colNames]
+        public Cols this[params ReadOnlySpan<string> colNames]
         {
             get
             {

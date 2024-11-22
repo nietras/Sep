@@ -114,7 +114,10 @@ public partial class ReadMeTest
 
         var text = sb.ToString();
         Trace.WriteLine(text);
+#if NET9_0
+        // Only write to file on latest version to avoid multiple accesses
         File.WriteAllText("../../../CompareUnescape.md", text, Encoding.UTF8);
+#endif
     }
 
     static string UnescapeCsvHelper(BadDataFound? badDataFound, string colText)

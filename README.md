@@ -1,6 +1,6 @@
 ﻿# Sep - ~~Possibly~~ the World's Fastest .NET CSV Parser
 ![.NET](https://img.shields.io/badge/net7.0%20net8.0-5C2D91?logo=.NET&labelColor=gray)
-![C#](https://img.shields.io/badge/12.0-239120?logo=csharp&logoColor=white&labelColor=gray)
+![C#](https://img.shields.io/badge/C%23-12.0-239120?labelColor=gray)
 [![Build Status](https://github.com/nietras/Sep/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/nietras/Sep/actions/workflows/dotnet.yml)
 [![Super-Linter](https://github.com/nietras/Sep/actions/workflows/super-linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![codecov](https://codecov.io/gh/nietras/Sep/branch/main/graph/badge.svg?token=WN56CR3X0D)](https://codecov.io/gh/nietras/Sep)
@@ -11,7 +11,6 @@
 ![Size](https://img.shields.io/github/repo-size/nietras/Sep.svg)
 [![License](https://img.shields.io/github/license/nietras/Sep)](https://github.com/nietras/Sep/blob/main/LICENSE)
 [![Blog](https://img.shields.io/badge/blog-nietras.com-4993DD)](https://nietras.com)
-
 
 Modern, minimal, fast, zero allocation, reading and writing of separated values
 (`csv`, `tsv` etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.
@@ -32,8 +31,9 @@ and similar from [.NET 7+ and C#
 and highly efficient implementation.
 * **🔎 Minimal** - a succinct yet expressive API with few options and no hidden
 changes to input or output. What you read/write is what you get. E.g. by default
-there is no "automatic" escaping/unescaping of quotes. For automatic unescaping
-of quotes see [SepReaderOptions](#sepreaderoptions) and [Unescaping](#unescaping).
+there is no "automatic" escaping/unescaping of quotes or trimming of spaces. To
+enable this see [SepReaderOptions](#sepreaderoptions) and
+[Unescaping](#unescaping) and [Trimming](#trimming).
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
@@ -374,6 +374,41 @@ throw exceptions and to use a principle that is both reasonably fast and simple.
 ¹ CsvHelper with `BadDataFound = null`
 
 ² Sep with `Unescape = true` in `SepReaderOptions`
+
+#### Trimming
+Sep supports trimming by the [`SepTrim`](src/Sep/SepTrim.cs) flags enum, which
+has two options as documented there. Below the result of both trimming and
+unescaping is shown in comparison to CsvHelper. Note unescaping is enabled for
+all results shown. It is possible to trim without unescaping too, of course.
+
+As can be seen Sep supports a simple principle of trimming *before* and *after*
+unescaping with trimming before unescaping being important for unescaping if
+there is a starting quote after spaces.
+
+| Input | CsvHelper Trim | CsvHelper InsideQuotes | CsvHelper All¹ | Sep Outer | Sep AfterUnescape | Sep All² |
+|-|-|-|-|-|-|-|
+| `a` | `a` | `a` | `a` | `a` | `a` | `a` |
+| `·a` | `a` | `·a` | `a` | `a` | `a` | `a` |
+| `a·` | `a` | `a·` | `a` | `a` | `a` | `a` |
+| `·a·` | `a` | `·a·` | `a` | `a` | `a` | `a` |
+| `·a·a·` | `a·a` | `·a·a·` | `a·a` | `a·a` | `a·a` | `a·a` |
+| `"a"` | `a` | `a` | `a` | `a` | `a` | `a` |
+| `"·a"` | `·a` | `a` | `a` | `·a` | `a` | `a` |
+| `"a·"` | `a·` | `a` | `a` | `a·` | `a` | `a` |
+| `"·a·"` | `·a·` | `a` | `a` | `·a·` | `a` | `a` |
+| `"·a·a·"` | `·a·a·` | `a·a` | `a·a` | `·a·a·` | `a·a` | `a·a` |
+| `·"a"·` | `a` | `·"a"·` | `a` | `a` | `"a"` | `a` |
+| `·"·a"·` | `·a` | `·"·a"·` | `a` | `·a` | `"·a"` | `a` |
+| `·"a·"·` | `a·` | `·"a·"·` | `a` | `a·` | `"a·"` | `a` |
+| `·"·a·"·` | `·a·` | `·"·a·"·` | `a` | `·a·` | `"·a·"` | `a` |
+| `·"·a·a·"·` | `·a·a·` | `·"·a·a·"·` | `a·a` | `·a·a·` | `"·a·a·"` | `a·a` |
+
+`·` (middle dot) is whitespace to make this visible
+
+¹ CsvHelper with `TrimOptions.Trim | TrimOptions.InsideQuotes`
+
+² Sep with `SepTrim.All = SepTrim.Outer | SepTrim.AfterUnescape` in
+`SepReaderOptions`
 
 
 #### SepReader Debuggability

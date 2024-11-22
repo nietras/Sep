@@ -32,14 +32,6 @@ Action<string> log = t => { Console.WriteLine(t); Trace.WriteLine(t); };
 
 log($"{Environment.Version} args: {args.Length} versions: {GetVersions()}");
 
-#if DEBUG
-// Consider where to move this perhaps a new ComparisonTest project
-if (Debugger.IsAttached)
-{
-    UnescapeCompare.CompareUnescape();
-}
-#endif
-
 await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 
 // Use args as switch to run BDN or not e.g. BDN only run when using script
@@ -76,6 +68,7 @@ if (args.Length > 0)
         { nameof(PackageAssetsBench) + "Quotes" + "-GcServer", new[] { typeof(GcServerQuotesAssetPackageAssetsBench), typeof(GcServerLongQuotesAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), typeof(LongAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), typeof(LongQuotesAssetPackageAssetsBench), } },
+        { nameof(PackageAssetsBench) + "SpacesQuotes", new[] { typeof(SpacesQuotesColsPackageAssetsBench) } },
         { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)

@@ -16,6 +16,8 @@ public readonly record struct SepReaderOptions
         CreateToString = SepToString.Direct;
         DisableFastFloat = false;
         DisableColCountCheck = false;
+        Unescape = false;
+        Trim = SepTrim.None;
     }
 
     /// <summary>
@@ -23,6 +25,18 @@ public readonly record struct SepReaderOptions
     /// is used based on first row in source.
     /// </summary>
     public Sep? Sep { get; init; } = null;
+    /// <summary>
+    /// Specifies initial internal `char` buffer length.
+    /// </summary>
+    /// <remarks>
+    /// The length will likely be rounded up to the nearest power of 2. A
+    /// smaller buffer may end up being used if the underlying source for <see
+    /// cref="System.IO.TextReader"/> is known to be smaller. Prefer to keep the
+    /// default length as that has been tuned for performance and cache sizes.
+    /// Avoid making this unnecessarily large as that will likely not improve
+    /// performance and may waste memory.
+    /// </remarks>
+    public int InitialBufferLength { get; init; } = SepDefaults.InitialBufferLength;
     /// <summary>
     /// Specifies the culture used for parsing. 
     /// May be `null` for default culture.
@@ -69,4 +83,17 @@ public readonly record struct SepReaderOptions
     /// Requires <see cref="DisableQuotesParsing"/> to be false.
     /// </remarks>
     public bool Unescape { get; init; } = false;
+    /// <summary>
+    /// Option for trimming spaces (` ` - ASCII 32) on column access.
+    /// </summary>
+    /// <remarks>
+    /// By default no trimming is done. See <see cref="SepTrim"/> for options.
+    /// Note that trimming may happen in-place e.g. if also unescaping, which
+    /// means the <see cref="SepReader.Row.Span" /> will be modified and contain
+    /// "garbage" state for trimmed/unescaped cols. This is for efficiency to
+    /// avoid allocating secondary memory for trimmed/unescaped columns. Header
+    /// columns/names will also be trimmed. Note that only the space ` ` (ASCII
+    /// 32) character is trimmed, not any whitespace character.
+    /// </remarks>
+    public SepTrim Trim { get; init; } = SepTrim.None;
 }

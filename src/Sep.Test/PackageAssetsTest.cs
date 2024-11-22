@@ -76,6 +76,34 @@ public class PackageAssetsTest
     public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_Empty(SepCreateToString createToString)
+    {
+        var text = string.Empty;
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_Empty_DegreeOfParallism(SepCreateToString createToString)
+    {
+        var text = string.Empty;
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_Empty_RowTryFunc(SepCreateToString createToString)
+    {
+        var text = string.Empty;
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
+    }
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public void PackageAssetsTest_ParallelEnumerate_Empty_RowTryFunc_DegreeOfParallism(SepCreateToString createToString)
+    {
+        var text = string.Empty;
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+    }
 
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]

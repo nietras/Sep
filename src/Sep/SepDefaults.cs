@@ -6,15 +6,23 @@ namespace nietras.SeparatedValues;
 
 public static class SepDefaults
 {
-    const char _separator = ';';
-    //const byte _separatorByte = (byte)_separator;
-
-    public static char Separator => _separator;
+    public static char Separator => ';';
     public static CultureInfo CultureInfo { get; } = CultureInfo.InvariantCulture;
     public static StringComparer ColNameComparer { get; } = StringComparer.Ordinal;
 
     internal static IReadOnlyList<char> AutoDetectSeparators { get; } =
-        new[] { Separator, '\t', '|', ',' };
+        [Separator, '\t', '|', ','];
+
+#if DEBUG
+    // To increase probability of detecting bugs start with short length to
+    // force buffer management paths to be used.
+    internal const int InitialBufferLength = 64;
+#else
+    // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
+    // Benchmarks show below to be a good minimum length.
+    // Currently rented on ArrayPool and will be rounded up to nearest power of 2.
+    internal const int InitialBufferLength = 24 * 1024;
+#endif
 
     internal const int RowLengthMax = 1 << 24;
 
@@ -28,6 +36,7 @@ public static class SepDefaults
     // Sep does not handle comments currently, this is solely to prevent using
     // `#` as separator
     internal const char Comment = '#';
+    internal const char Space = ' ';
 
     internal const byte LineFeedByte = (byte)LineFeed;
     internal const byte CarriageReturnByte = (byte)CarriageReturn;

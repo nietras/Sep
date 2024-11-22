@@ -26,21 +26,11 @@ public sealed partial class SepReader : SepReaderState
     readonly TextReader _reader;
     ISepParser? _parser;
 
-#if DEBUG
-    // To increase probability of detecting bugs start with short length to
-    // force buffer management paths to be used.
-    internal const int CharsMinimumLength = 64;
-#else
-    // Based on L1d typically being 32KB-48KB, so aiming for 16K-24K x sizeof(char).
-    // Benchmarks show below to be a good minimum length.
-    // Currently rented on ArrayPool and will be rounded up to nearest power of 2.
-    internal const int CharsMinimumLength = 24 * 1024;
-#endif
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
 
-    internal SepReader(Info info, SepReaderOptions options, TextReader reader)
-        : base(colUnquoteUnescape: options.Unescape)
+    internal SepReader(Info info, in SepReaderOptions options, TextReader reader)
+        : base(colUnquoteUnescape: options.Unescape, trim: options.Trim)
     {
         _info = info;
         _reader = reader;
@@ -61,10 +51,11 @@ public sealed partial class SepReader : SepReaderState
             // TextReader length can be greater than int.MaxValue so have to
             // constrain it to avoid overflow.
             ? (int)Math.Min(longReaderLength, int.MaxValue) : null;
+        var initialBufferLength = options.InitialBufferLength;
         var bufferLength = maybeReaderLengthEstimate.HasValue
-            ? ((maybeReaderLengthEstimate.Value < CharsMinimumLength)
-               ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : CharsMinimumLength)
-            : CharsMinimumLength;
+            ? ((maybeReaderLengthEstimate.Value < initialBufferLength)
+               ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : initialBufferLength)
+            : initialBufferLength;
 
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);
 
@@ -101,7 +92,7 @@ public sealed partial class SepReader : SepReaderState
         get => new(this);
     }
 
-    internal void Initialize(SepReaderOptions options)
+    internal void Initialize(in SepReaderOptions options)
     {
         // Parse first row/header
         if (MoveNext())

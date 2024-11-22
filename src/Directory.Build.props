@@ -16,6 +16,7 @@
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
     <Nullable>enable</Nullable>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
 
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <ArtifactsPath>$(MSBuildThisFileDirectory)../artifacts</ArtifactsPath>

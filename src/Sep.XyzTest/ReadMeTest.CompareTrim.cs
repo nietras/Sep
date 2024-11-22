@@ -98,7 +98,10 @@ public partial class ReadMeTest
 
         var text = sb.ToString();
         Trace.WriteLine(text);
+#if NET9_0
+        // Only write to file on latest version to avoid multiple accesses
         File.WriteAllText("../../../CompareTrim.md", text, Encoding.UTF8);
+#endif
     }
 
     static string TrimCsvHelper(TrimOptions trimOptions, BadDataFound? badDataFound, string colText)

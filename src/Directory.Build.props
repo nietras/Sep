@@ -10,10 +10,10 @@
     <Copyright>Copyright © nietras A/S 2023</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
-    <TargetFrameworks>net8.0;net7.0</TargetFrameworks>
+    <TargetFrameworks>net9.0;net8.0;net7.0</TargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
 
-    <LangVersion>12.0</LangVersion>
+    <LangVersion>13.0</LangVersion>
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
     <Nullable>enable</Nullable>

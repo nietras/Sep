@@ -15,8 +15,13 @@
     <IsPackable>false</IsPackable>
     <!--<TieredCompilation>false</TieredCompilation>-->
 
-    <!--PackageAssetsBench is much faster using server GC!-->
+    <!--PackageAssetsBench is much faster using server GC!
+        Custom benchmarks will set this to compare.-->
     <!--<ServerGarbageCollection>true</ServerGarbageCollection>-->
+    
+    <!--GC DATAS is default from .NET 9 and severly impacts GC Server benchmark
+        so opting out of it-->
+    <GarbageCollectionAdaptationMode>0</GarbageCollectionAdaptationMode>
   </PropertyGroup>
 
   <ItemGroup>

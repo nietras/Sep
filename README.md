@@ -272,6 +272,18 @@ The following options are available:
 /// </summary>
 public Sep? Sep { get; init; } = null;
 /// <summary>
+/// Specifies initial internal `char` buffer length.
+/// </summary>
+/// <remarks>
+/// The length will likely be rounded up to the nearest power of 2. A
+/// smaller buffer may end up being used if the underlying source for <see
+/// cref="System.IO.TextReader"/> is known to be smaller. Prefer to keep the
+/// default length as that has been tuned for performance and cache sizes.
+/// Avoid making this unnecessarily large as that will likely not improve
+/// performance and may waste memory.
+/// </remarks>
+public int InitialBufferLength { get; init; } = SepDefaults.InitialBufferLength;
+/// <summary>
 /// Specifies the culture used for parsing. 
 /// May be `null` for default culture.
 /// </summary>
@@ -1737,13 +1749,13 @@ namespace nietras.SeparatedValues
     {
         public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
         public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
-        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
-        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
-        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
-        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
-        public static nietras.SeparatedValues.SepReader From(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
-        public static nietras.SeparatedValues.SepReader FromFile(this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
-        public static nietras.SeparatedValues.SepReader FromText(this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
+        public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
+        public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
+        public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
+        public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
+        public static nietras.SeparatedValues.SepReader FromFile(in this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
+        public static nietras.SeparatedValues.SepReader FromText(in this nietras.SeparatedValues.SepReaderOptions options, string text) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select, int degreeOfParallism) { }
@@ -1780,6 +1792,7 @@ namespace nietras.SeparatedValues
         public bool DisableFastFloat { get; init; }
         public bool DisableQuotesParsing { get; init; }
         public bool HasHeader { get; init; }
+        public int InitialBufferLength { get; init; }
         public nietras.SeparatedValues.Sep? Sep { get; init; }
         public nietras.SeparatedValues.SepTrim Trim { get; init; }
         public bool Unescape { get; init; }

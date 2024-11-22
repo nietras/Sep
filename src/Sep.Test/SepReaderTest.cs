@@ -568,7 +568,7 @@ public class SepReaderTest
         // happens when these col infos are to be copied to beginning. This test
         // triggers that issue.
         var colCounts = Enumerable.Range(SepReader.ColEndsInitialLength - 1, 1);
-        var charsLength = (int)BitOperations.RoundUpToPowerOf2(SepReader.CharsMinimumLength);
+        var charsLength = (int)BitOperations.RoundUpToPowerOf2(SepDefaults.InitialBufferLength);
         foreach (var colCount in colCounts)
         {
             var text = new string('A', Math.Max(1, charsLength - colCount + 1))

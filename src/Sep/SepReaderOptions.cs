@@ -26,6 +26,18 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public Sep? Sep { get; init; } = null;
     /// <summary>
+    /// Specifies initial internal `char` buffer length.
+    /// </summary>
+    /// <remarks>
+    /// The length will likely be rounded up to the nearest power of 2. A
+    /// smaller buffer may end up being used if the underlying source for <see
+    /// cref="System.IO.TextReader"/> is known to be smaller. Prefer to keep the
+    /// default length as that has been tuned for performance and cache sizes.
+    /// Avoid making this unnecessarily large as that will likely not improve
+    /// performance and may waste memory.
+    /// </remarks>
+    public int InitialBufferLength { get; init; } = SepDefaults.InitialBufferLength;
+    /// <summary>
     /// Specifies the culture used for parsing. 
     /// May be `null` for default culture.
     /// </summary>

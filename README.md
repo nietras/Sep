@@ -410,7 +410,6 @@ there is a starting quote after spaces.
 ² Sep with `SepTrim.All = SepTrim.Outer | SepTrim.AfterUnescape` in
 `SepReaderOptions`
 
-
 #### SepReader Debuggability
 Debuggability is an important part of any library and while this is still a work
 in progress for Sep, `SepReader` does have a unique feature when looking at it

@@ -1638,7 +1638,7 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.XyzTest")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName=".NET 9.0")]
 namespace nietras.SeparatedValues
 {
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
@@ -1774,7 +1774,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReaderHeader Empty { get; }
         public int IndexOf(string colName) { }
         public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public int[] IndicesOf(System.ReadOnlySpan<string> colNames) { }
+        public int[] IndicesOf([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public int[] IndicesOf(params string[] colNames) { }
         public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
         public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
@@ -1896,7 +1896,7 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
             public void Format<T>(System.Collections.Generic.IReadOnlyList<T> values)
                 where T : System.ISpanFormattable { }
-            public void Format<T>(System.ReadOnlySpan<T> values)
+            public void Format<T>([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<T> values)
                 where T : System.ISpanFormattable { }
             public void Format<T>(System.Span<T> values)
                 where T : System.ISpanFormattable { }
@@ -1904,7 +1904,7 @@ namespace nietras.SeparatedValues
                 where T : System.ISpanFormattable { }
             public void Format<T>(System.ReadOnlySpan<T> values, nietras.SeparatedValues.SepWriter.ColAction<T> format) { }
             public void Set(System.Collections.Generic.IReadOnlyList<string> values) { }
-            public void Set(System.ReadOnlySpan<string> values) { }
+            public void Set([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> values) { }
             public void Set(string[] values) { }
             public void Set(nietras.SeparatedValues.SepReader.Cols cols) { }
         }
@@ -1931,7 +1931,7 @@ namespace nietras.SeparatedValues
     public sealed class SepWriterHeader
     {
         public void Add(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public void Add(System.ReadOnlySpan<string> colNames) { }
+        public void Add([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
         public void Write() { }

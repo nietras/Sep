@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace nietras.SeparatedValues;
@@ -66,7 +67,7 @@ public partial class SepReader
             }
         }
 
-        public Cols this[ReadOnlySpan<int> indices] => new(_state, indices);
+        public Cols this[[UnscopedRef] params ReadOnlySpan<int> indices] => new(_state, indices);
 
         public Cols this[IReadOnlyList<int> indices]
         {
@@ -88,7 +89,7 @@ public partial class SepReader
         // ReadOnlySpan<> and IReadOnlyList<>
         public Cols this[int[] indices] => new(_state, indices);
 
-        public Cols this[ReadOnlySpan<string> colNames]
+        public Cols this[params ReadOnlySpan<string> colNames]
         {
             get
             {

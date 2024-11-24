@@ -89,6 +89,20 @@ public class SepWriterHeaderTest
     }
 
     [TestMethod]
+    public void SepWriterHeaderTest_Add_ReadOnlySpan_Params_Rows_0()
+    {
+        using var writer = CreateWriter();
+        writer.Header.Add("A", "B", "C");
+        var expected =
+@"A;B;C
+";
+        // Header written on Dispose
+        writer.Dispose();
+
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterHeaderTest_Add_String_Rows_0()
     {
         using var writer = CreateWriter();

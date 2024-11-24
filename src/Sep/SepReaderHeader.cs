@@ -53,7 +53,7 @@ public sealed class SepReaderHeader
 
     public int[] IndicesOf(params string[] colNames) => IndicesOf(colNames.AsSpan());
 
-    public int[] IndicesOf(ReadOnlySpan<string> colNames)
+    public int[] IndicesOf(params ReadOnlySpan<string> colNames)
     {
         var colIndices = new int[colNames.Length];
         IndicesOf(colNames, colIndices);

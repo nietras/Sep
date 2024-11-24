@@ -25,7 +25,7 @@ public sealed class SepWriterHeader
         foreach (var colName in colNames) { Add(colName); }
     }
 
-    public void Add(ReadOnlySpan<string> colNames)
+    public void Add(params ReadOnlySpan<string> colNames)
     {
         foreach (var colName in colNames) { Add(colName); }
     }

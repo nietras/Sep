@@ -17,20 +17,20 @@ public partial class SepWriter
 
         public Col this[string colName] => new(_writer!.GetOrAddCol(colName));
 
-        public Cols this[ReadOnlySpan<int> indices]
+        public Cols this[params ReadOnlySpan<int> indices]
         {
             get
             {
                 var cols = _writer!._arrayPool.RentUniqueArrayAsSpan<ColImpl>(indices.Length);
                 for (var i = 0; i < indices.Length; i++)
                 {
-                    cols[i] = _writer!.GetOrAddCol(i);
+                    cols[i] = _writer!.GetOrAddCol(indices[i]);
                 }
                 return new Cols(cols);
             }
         }
 
-        public Cols this[ReadOnlySpan<string> colNames]
+        public Cols this[params ReadOnlySpan<string> colNames]
         {
             get
             {

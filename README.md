@@ -1638,7 +1638,7 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.XyzTest")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v8.0", FrameworkDisplayName=".NET 8.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName=".NET 9.0")]
 namespace nietras.SeparatedValues
 {
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
@@ -1774,7 +1774,7 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReaderHeader Empty { get; }
         public int IndexOf(string colName) { }
         public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public int[] IndicesOf([System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
+        public int[] IndicesOf([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public int[] IndicesOf(params string[] colNames) { }
         public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
         public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }

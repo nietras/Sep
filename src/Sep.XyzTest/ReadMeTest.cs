@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-#if NET8_0
+#if NET9_0
 using PublicApiGenerator;
 #endif
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
@@ -441,8 +441,8 @@ public partial class ReadMeTest
         File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
     }
 
-    // Only update public API in README for .NET 8.0 to keep consistent
-#if NET8_0
+    // Only update public API in README for latest .NET version to keep consistent
+#if NET9_0
     [TestMethod]
     public void ReadMeTest_PublicApi()
     {

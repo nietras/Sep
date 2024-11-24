@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 #if NET9_0
@@ -12,8 +11,8 @@ using PublicApiGenerator;
 #endif
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
 
-// Only parallize on class level to avoid multiple writes to README file
-[assembly: Parallelize(Workers = 0, Scope = ExecutionScope.ClassLevel)]
+// Only parallelize on class level to avoid multiple writes to README file
+[assembly: Parallelize(Workers = 1, Scope = ExecutionScope.ClassLevel)]
 
 namespace nietras.SeparatedValues.XyzTest;
 
@@ -384,8 +383,10 @@ public partial class ReadMeTest
         }
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
-
+#if NET9_0
+        // Only write to file on latest version to avoid multiple accesses
+        File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
+#endif
         static string LastDirectoryName(string d) =>
             d.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Last();
 
@@ -438,7 +439,10 @@ public partial class ReadMeTest
             sourceStartLineOffset: 0, "}", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 4);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
+#if NET9_0
+        // Only write to file on latest version to avoid multiple accesses
+        File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
+#endif
     }
 
     // Only update public API in README for latest .NET version to keep consistent
@@ -454,7 +458,7 @@ public partial class ReadMeTest
             "## Public API Reference", "```csharp", 1, "```", 0);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-        File.WriteAllText(readmeFilePath, newReadme, Encoding.UTF8);
+        File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
     }
 #endif
 

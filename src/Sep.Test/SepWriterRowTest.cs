@@ -29,12 +29,30 @@ public class SepWriterRowTest
         var colNames = new string[] { "A", "B" };
         var colValues0 = new string[] { "1", "2" };
         var colIndices = new int[] { 1, 0 };
-        var colValues1 = new string[] { "11", "22" };
+        var colValues1 = new string[] { "22", "11" };
         Run(row =>
             {
                 row[colNames.AsSpan()].Set(colValues0.AsSpan());
                 row[colIndices.AsSpan()].Set(colValues1.AsSpan());
             }, $"A;B{NL}11;22{NL}");
+    }
+    [TestMethod]
+    public void SepWriterRowTest_Indexer_ColIndices_After_ColNames_Params_Set()
+    {
+        Run(row =>
+        {
+            row["A", "B"].Set("1", "2");
+            row[1, 0].Set("22", "11");
+        }, $"A;B{NL}11;22{NL}");
+    }
+    [TestMethod]
+    public void SepWriterRowTest_Indexer_ColIndices_After_ColNames_Params_Format()
+    {
+        Run(row =>
+        {
+            row["A", "B"].Set("1", "2");
+            row[1, 0].Format(22, 11);
+        }, $"A;B{NL}11;22{NL}");
     }
 
     [TestMethod]
@@ -57,6 +75,17 @@ public class SepWriterRowTest
         Run(row => row["A"].Set("1"), $"A{NL}1{NL}");
         Run(row => { row["A"].Set("1"); row["B"].Set("2"); },
             $"A;B{NL}1;2{NL}");
+    }
+
+    [TestMethod]
+    public void SepWriterRowTest_Indexer_ColNames_Params_ReadOnlySpan_Set()
+    {
+        Run(row => row["A", "B"].Set("1", "2"), $"A;B{NL}1;2{NL}");
+    }
+    [TestMethod]
+    public void SepWriterRowTest_Indexer_ColNames_Params_ReadOnlySpan_Format()
+    {
+        Run(row => row["A", "B"].Format(1, 2), $"A;B{NL}1;2{NL}");
     }
 
     [TestMethod]

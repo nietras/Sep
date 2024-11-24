@@ -1896,7 +1896,7 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
             public void Format<T>(System.Collections.Generic.IReadOnlyList<T> values)
                 where T : System.ISpanFormattable { }
-            public void Format<T>(System.ReadOnlySpan<T> values)
+            public void Format<T>([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<T> values)
                 where T : System.ISpanFormattable { }
             public void Format<T>(System.Span<T> values)
                 where T : System.ISpanFormattable { }
@@ -1904,7 +1904,7 @@ namespace nietras.SeparatedValues
                 where T : System.ISpanFormattable { }
             public void Format<T>(System.ReadOnlySpan<T> values, nietras.SeparatedValues.SepWriter.ColAction<T> format) { }
             public void Set(System.Collections.Generic.IReadOnlyList<string> values) { }
-            public void Set(System.ReadOnlySpan<string> values) { }
+            public void Set([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> values) { }
             public void Set(string[] values) { }
             public void Set(nietras.SeparatedValues.SepReader.Cols cols) { }
         }

@@ -45,7 +45,7 @@ public partial class SepWriter
         // ReadOnlySpan<> and IReadOnlyList<>
         public void Set(string[] values) => Set(values.AsSpan());
 
-        public void Set(ReadOnlySpan<string> values)
+        public void Set(params ReadOnlySpan<string> values)
         {
             SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Length);
             for (var i = 0; i < values.Length; i++)
@@ -71,7 +71,7 @@ public partial class SepWriter
         public void Format<T>(Span<T> values) where T : ISpanFormattable =>
             Format((ReadOnlySpan<T>)values);
 
-        public void Format<T>(ReadOnlySpan<T> values) where T : ISpanFormattable
+        public void Format<T>(params ReadOnlySpan<T> values) where T : ISpanFormattable
         {
             SepCheck.CountOrLengthSameAsCols(_cols.Length, nameof(values), values.Length);
             for (var i = 0; i < values.Length; i++)

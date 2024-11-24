@@ -1931,7 +1931,7 @@ namespace nietras.SeparatedValues
     public sealed class SepWriterHeader
     {
         public void Add(System.Collections.Generic.IReadOnlyList<string> colNames) { }
-        public void Add(System.ReadOnlySpan<string> colNames) { }
+        public void Add([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
         public void Write() { }

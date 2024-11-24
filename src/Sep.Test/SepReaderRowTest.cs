@@ -181,6 +181,9 @@ public class SepReaderRowTest
             AssertCols(expected, row[(IReadOnlyList<string>)names]);
             AssertCols(expected, row[names]);
         }
+
+        // params ReadOnlySpan<int>
+        AssertCols([_colValues[2], _colValues[3]], row[2, 3]);
     }
 
     static void SepReaderRowTest_Row_Indexer_Multiple_Range(ref SepReader.Row row)

@@ -182,7 +182,7 @@ public class SepReaderRowTest
             AssertCols(expected, row[names]);
         }
 
-        // params ReadOnlySpan<int>
+        // params ReadOnlySpan<>
         AssertCols([_colValues[2], _colValues[3]], row[2, 3]);
         AssertCols([_colValues[2], _colValues[3]], row[_colNames[2], _colNames[3]]);
     }

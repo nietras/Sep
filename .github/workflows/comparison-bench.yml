@@ -32,7 +32,7 @@ jobs:
       run: ./comparison-bench.ps1
     - uses: actions/upload-artifact@v4
       with:
-        name: benchmarks
+        name: benchmarks-${{ matrix.os }}
         if-no-files-found: error
         retention-days: 7
         path: ${{ env.BenchmarksDirectory }}

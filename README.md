@@ -873,8 +873,9 @@ The following runtime is used for benchmarking:
 
 NOTE: [Garbage Collection
 DATAS](https://maoni0.medium.com/dynamically-adapting-to-application-sizes-2d72fcb6f1ea)
-mode is disabled since this severely impacts (e.g. 1.7x slower) performance for
-some benchmarks due to the bursty accumulated allocations. That is,
+mode is disabled since this severely impacts (e.g. [1.7x
+slower](https://github.com/dotnet/runtime/issues/109047)) performance for some
+benchmarks due to the bursty accumulated allocations. That is,
 `GarbageCollectionAdaptationMode` is set to `0`.
 
 The following platforms are used for benchmarking:

@@ -79,7 +79,9 @@ if (args.Length > 0)
             var cpuInfo = s.HostEnvironmentInfo.CpuInfo.Value;
             var processorName = ProcessorBrandStringHelper.Prettify(cpuInfo);
             var processorNameInDirectory = processorName
-                .Replace(" Processor", "").Replace(" CPU", "").Replace(" ", ".");
+                .Replace(" Processor", "").Replace(" CPU", "")
+                .Replace(" ", ".").Replace("/", "").Replace("\\", "")
+                .Replace(".Graphics", "");
             log(processorName);
 
             var sourceDirectory = GetSourceDirectory();

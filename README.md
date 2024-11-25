@@ -881,24 +881,24 @@ benchmarks due to the bursty accumulated allocations. That is,
 The following platforms are used for benchmarking:
 
 * `AMD EPYC 7763` (Virtual) X64 Platform Information
-  ``` ini
-  Ubuntu 22.04.5 LTS (Jammy Jellyfish)
+  ```ini
+  OS=Ubuntu 22.04.5 LTS (Jammy Jellyfish)
   AMD EPYC 7763, 1 CPU, 4 logical and 2 physical cores
   ```
 * `AMD Ryzen 7 PRO 7840U` (Laptop on battery) X64 Platform Information
-  ``` ini
-  Windows 11 (10.0.22631.4460/23H2/2023Update/SunValley3)
+  ```ini
+  OS=Windows 11 (10.0.22631.4460/23H2/2023Update/SunValley3)
   AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
   ```
 * `AMD 5950X` (Desktop) X64 Platform Information
-  ``` ini
+  ```ini
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
 * `Apple M1` (Virtual) ARM64 Platform Information
   ```ini
-   macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
-   Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
+  OS=macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
+  Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
   ```
 
 ### Reader Comparison Benchmarks

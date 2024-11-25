@@ -6,10 +6,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-#if NET9_0
 using PublicApiGenerator;
-#endif
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+#pragma warning disable CA1822 // Member does not access instance data and can be marked as static
 
 // Only parallelize on class level to avoid multiple writes to README file
 [assembly: Parallelize(Workers = 1, Scope = ExecutionScope.ClassLevel)]
@@ -335,7 +334,10 @@ public partial class ReadMeTest
         }
     }
 
+#if NET9_0
+    // Only update README on latest .NET version to avoid multiple accesses
     [TestMethod]
+#endif
     public void ReadMeTest_UpdateBenchmarksInMarkdown()
     {
         var readmeFilePath = s_readmeFilePath;
@@ -383,10 +385,8 @@ public partial class ReadMeTest
         }
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-#if NET9_0
-        // Only write to file on latest version to avoid multiple accesses
         File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
-#endif
+
         static string LastDirectoryName(string d) =>
             d.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).Last();
 
@@ -394,7 +394,10 @@ public partial class ReadMeTest
             markdown.Substring(markdown.IndexOf('|'));
     }
 
+#if NET9_0
+    // Only update README on latest .NET version to avoid multiple accesses
     [TestMethod]
+#endif
     public void ReadMeTest_UpdateExampleCodeInMarkdown()
     {
         var testSourceFilePath = s_testSourceFilePath;
@@ -439,15 +442,13 @@ public partial class ReadMeTest
             sourceStartLineOffset: 0, "}", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 4);
 
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
-#if NET9_0
-        // Only write to file on latest version to avoid multiple accesses
         File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
-#endif
     }
 
     // Only update public API in README for latest .NET version to keep consistent
 #if NET9_0
     [TestMethod]
+#endif
     public void ReadMeTest_PublicApi()
     {
         var publicApi = typeof(Sep).Assembly.GeneratePublicApi();
@@ -460,7 +461,6 @@ public partial class ReadMeTest
         var newReadme = string.Join(Environment.NewLine, readmeLines) + Environment.NewLine;
         File.WriteAllText(readmeFilePath, newReadme, System.Text.Encoding.UTF8);
     }
-#endif
 
     static string[] UpdateReadme(string[] sourceLines, string[] readmeLines,
         (string StartLineContains, string ReadmeLineBefore)[] blocksToUpdate,

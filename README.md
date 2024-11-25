@@ -869,24 +869,35 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 ### Runtime and Platforms
 The following runtime is used for benchmarking:
 
-* `NET 8.0.X`
+* `NET 9.0.X`
+
+NOTE: [Garbage Collection
+DATAS](https://maoni0.medium.com/dynamically-adapting-to-application-sizes-2d72fcb6f1ea)
+mode is disabled since this severely impacts (e.g. 1.7x slower) performance for
+some benchmarks due to the bursty accumulated allocations. That is,
+`GarbageCollectionAdaptationMode` is set to `0`.
 
 The following platforms are used for benchmarking:
 
-* `AMD 5950X` X64 Platform Information
+* `AMD EPYC 7763` (Virtual) X64 Platform Information
+  ``` ini
+  Ubuntu 22.04.5 LTS (Jammy Jellyfish)
+  AMD EPYC 7763, 1 CPU, 4 logical and 2 physical cores
+  ```
+* `AMD Ryzen 7 PRO 7840U` (Laptop on battery) X64 Platform Information
+  ``` ini
+  Windows 11 (10.0.22631.4460/23H2/2023Update/SunValley3)
+  AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
+  ```
+* `AMD 5950X` (Desktop) X64 Platform Information
   ``` ini
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
-* `Intel Xeon Silver 4316` X64 Platform Information
-  ``` ini
-  OS=Windows 10 (10.0.17763.3287/1809/October2018Update/Redstone5)
-  Intel Xeon Silver 4316 CPU 2.30GHz, 1 CPU, 40 logical and 20 physical cores
-  ```
-* `Neoverse N1` ARM64 Platform Information (cloud instance)
+* `Apple M1` (Virtual) ARM64 Platform Information
   ```ini
-  OS=ubuntu 22.04
-  Neoverse N1, ARM, 4 vCPU
+   macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
+   Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
   ```
 
 ### Reader Comparison Benchmarks

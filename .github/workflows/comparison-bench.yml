@@ -6,11 +6,16 @@ permissions: read-all
 on:
   workflow_dispatch:
 
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  BenchmarksDirectory: ${{ github.workspace }}/benchmarks
+
 jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
         configuration: [Release]
 
     runs-on: ${{ matrix.os }}
@@ -21,9 +26,13 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build -c ${{ matrix.configuration }} --no-restore 
-    - name: Bench
-      run: dotnet run -c ${{ matrix.configuration }} -f net8.0 --no-restore --project src/Sep.ComparisonBenchmarks/Sep.ComparisonBenchmarks.csproj -- -m --iterationTime 300
+    - name: Comparison Bench
+      shell: pwsh
+      run: ./comparison-bench.ps1
+    - uses: actions/upload-artifact@v4
+      with:
+        name: benchmarks
+        if-no-files-found: error
+        retention-days: 7
+        path: ${{ env.BenchmarksDirectory }}
+

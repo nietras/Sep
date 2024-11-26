@@ -1018,7 +1018,7 @@ not for a decently fast csv-parser.
 With `ParallelEnumerate` (MT) Sep is **>2x faster than Sylvan and up to 9x
 faster than CsvHelper**.
 
-###### AMD.EPYC.7763 - PackageAssets Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### AMD.EPYC.7763 - PackageAssets Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated     | Alloc Ratio |
 |------------- |------ |-------- |-------------:|------:|----:|-------:|-------:|--------------:|------------:|
@@ -1102,7 +1102,7 @@ faster than CsvHelper**.
 | ReadLine_    | Asset | 1000000 | 1,585.514 ms |  2.53 | 583 |   368.2 | 1585.5 | 2038834.79 KB |        7.65 |
 | CsvHelper    | Asset | 1000000 | 1,661.220 ms |  2.65 | 583 |   351.4 | 1661.2 |   266833.3 KB |        1.00 |
 
-###### Apple.M1.(Virtual) - PackageAssets Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### Apple.M1.(Virtual) - PackageAssets Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
 |------------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-------------:|------------:|
@@ -1143,7 +1143,7 @@ With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
 18x faster than CsvHelper**. Breaking 4 GB/s parsing speed on package assets on
 5950X.
 
-###### AMD.EPYC.7763 - PackageAssets Benchmark Results (SERVER GC) (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### AMD.EPYC.7763 - PackageAssets Benchmark Results (SERVER GC) (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
@@ -1191,7 +1191,7 @@ With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
 | ReadLine_ | Asset | 1000000 |   573.815 ms |  1.32 | 583 | 1017.4 |  573.8 | 1991.05 MB |        7.65 |
 | CsvHelper | Asset | 1000000 | 1,504.212 ms |  3.45 | 583 |  388.1 | 1504.2 |  260.58 MB |        1.00 |
 
-###### Apple.M1.(Virtual) - PackageAssets Benchmark Results (SERVER GC) (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### Apple.M1.(Virtual) - PackageAssets Benchmark Results (SERVER GC) (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
@@ -1221,7 +1221,7 @@ looking at the numbers. For each row of 25 columns, there are 24 separators
 Adding quotes around each of the 25 columns will add 50 characters or almost
 triple the total to 76.
 
-###### AMD.EPYC.7763 - PackageAssets with Quotes Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### AMD.EPYC.7763 - PackageAssets with Quotes Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method       | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated     | Alloc Ratio |
 |------------- |------ |-------- |------------:|------:|----:|-------:|-------:|--------------:|------------:|
@@ -1305,7 +1305,7 @@ triple the total to 76.
 | ReadLine_    | Asset | 1000000 | 2,210.209 ms |  3.12 | 667 |  302.1 | 2210.2 | 2442320.25 KB |        9.16 |
 | CsvHelper    | Asset | 1000000 | 1,709.222 ms |  2.42 | 667 |  390.6 | 1709.2 |   266833.3 KB |        1.00 |
 
-###### Apple.M1.(Virtual) - PackageAssets with Quotes Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### Apple.M1.(Virtual) - PackageAssets with Quotes Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method       | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
 |------------- |------ |-------- |------------:|------:|----:|-------:|-------:|-------------:|------------:|
@@ -1338,7 +1338,7 @@ triple the total to 76.
 Here again are benchmark results with server garbage collection, which provides
 significant speedup over workstation garbage collection.
 
-###### AMD.EPYC.7763 - PackageAssets with Quotes Benchmark Results (SERVER GC) (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### AMD.EPYC.7763 - PackageAssets with Quotes Benchmark Results (SERVER GC) (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
@@ -1386,7 +1386,7 @@ significant speedup over workstation garbage collection.
 | ReadLine_ | Asset | 1000000 |   630.49 ms |  1.21 | 667 | 1059.0 |  630.5 | 2385.07 MB |        9.16 |
 | CsvHelper | Asset | 1000000 | 1,559.67 ms |  3.00 | 667 |  428.1 | 1559.7 |  260.58 MB |        1.00 |
 
-###### Apple.M1.(Virtual) - PackageAssets with Quotes Benchmark Results (SERVER GC) (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### Apple.M1.(Virtual) - PackageAssets with Quotes Benchmark Results (SERVER GC) (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
@@ -1412,7 +1412,7 @@ trimming and unescaping in Sep. Sep is about 10x faster than CsvHelper for this.
 Sylvan does not appear to have support automatic trimming and is, therefore, not
 included.
 
-###### AMD.EPYC.7763 - PackageAssets with Spaces and Quotes Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### AMD.EPYC.7763 - PackageAssets with Spaces and Quotes Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
@@ -1445,7 +1445,7 @@ included.
 | CsvHelper_TrimUnescape     | Cols  | 50000 | 96.272 ms | 11.20 | 41 |  433.9 | 1925.4 | 451.52 KB |      432.51 |
 | CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 95.183 ms | 11.07 | 41 |  438.8 | 1903.7 | 445.86 KB |      427.09 |
 
-###### Apple.M1.(Virtual) - PackageAssets with Spaces and Quotes Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+###### Apple.M1.(Virtual) - PackageAssets with Spaces and Quotes Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method                     | Scope | Rows  | Mean     | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |---------:|------:|---:|-------:|-------:|----------:|------------:|
@@ -1530,7 +1530,7 @@ repeated micro-benchmark runs.
 It is a testament to how good the .NET and the .NET GC is that the ReadLine is
 pretty good compared to CsvHelper regardless of allocating a lot of strings.
 
-##### AMD.EPYC.7763 - FloatsReader Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+##### AMD.EPYC.7763 - FloatsReader Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
@@ -1590,7 +1590,7 @@ pretty good compared to CsvHelper regardless of allocating a lot of strings.
 | ReadLine_ | Floats | 25000 | 66.897 ms |  3.36 | 20 |   303.7 | 2675.9 | 73493.12 KB |    9,203.49 |
 | CsvHelper | Floats | 25000 | 97.448 ms |  4.90 | 20 |   208.5 | 3897.9 |  22061.7 KB |    2,762.77 |
 
-##### Apple.M1.(Virtual) - FloatsReader Benchmark Results (Sep 0.0.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
+##### Apple.M1.(Virtual) - FloatsReader Benchmark Results (Sep 0.6.0.0, Sylvan  1.3.9.0, CsvHelper 33.0.1.24)
 
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|

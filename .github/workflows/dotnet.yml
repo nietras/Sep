@@ -30,9 +30,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     - name: Restore dependencies
@@ -60,9 +60,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     - name: Format verify no changes
@@ -77,9 +77,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     - name: Restore dependencies
@@ -93,7 +93,7 @@ jobs:
   pack:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
     - name: Create tag (to set version of nuget package)
@@ -101,7 +101,7 @@ jobs:
       run: |
         git tag v${{ github.event.inputs.version }}
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     # No need to define min ver version globally now since only uploading release 
@@ -136,7 +136,7 @@ jobs:
     if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Download nuget packages
       uses: actions/download-artifact@v4
       with:
@@ -174,7 +174,7 @@ jobs:
         asset_name: Sep.${{ github.event.inputs.version }}.snupkg
         asset_content_type: application/zip
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     - name: Push nupkg package

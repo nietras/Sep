@@ -26,7 +26,7 @@ jobs:
       with:
         fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: global.json
     - name: Comparison Bench

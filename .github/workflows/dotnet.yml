@@ -45,7 +45,8 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         flags: ${{ matrix.os }},${{ matrix.configuration }}
-      
+        token: ${{ secrets.CODECOV_TOKEN }}
+
   format:
     strategy:
       matrix:

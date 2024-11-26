@@ -44,7 +44,12 @@ jobs:
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
-        flags: ${{ matrix.os }},${{ matrix.configuration }}
+        flags: ${{ matrix.os }}
+        token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        flags: ${{ matrix.configuration }}
         token: ${{ secrets.CODECOV_TOKEN }}
 
   format:

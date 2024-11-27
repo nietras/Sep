@@ -26,4 +26,4 @@ jobs:
       - name: Build
         run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Bench
-        run: dotnet run -c ${{ matrix.configuration }} -f net8.0 --no-restore --project src/Sep.Benchmarks/Sep.Benchmarks.csproj -- -m -d --iterationTime 300
+        run: dotnet run -c ${{ matrix.configuration }} -f net9.0 --no-restore --project src/Sep.Benchmarks/Sep.Benchmarks.csproj -- -m -d --iterationTime 300

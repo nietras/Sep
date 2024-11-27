@@ -1,3 +1,3 @@
 {
-  "ignore": ["artifacts/**"]
+  "ignore": ["**/artifacts/**"]
 }

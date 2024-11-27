@@ -35,6 +35,7 @@ jobs:
           VALIDATE_CSHARP: false
           # prettier defaults are very different than current markdown
           VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_GIT_COMMITLINT: false
           FILTER_REGEX_EXCLUDE: "./benchmarks/.*"
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

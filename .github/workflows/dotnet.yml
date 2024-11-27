@@ -6,13 +6,13 @@ permissions: read-all
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to tag and create'
+        description: "Release version to tag and create"
         required: false
 
 env:
@@ -30,27 +30,27 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build -c ${{ matrix.configuration }} --no-restore 
-    - name: Test
-      run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        flags: ${{ matrix.os }}
-        token: ${{ secrets.CODECOV_TOKEN }}
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        flags: ${{ matrix.configuration }}
-        token: ${{ secrets.CODECOV_TOKEN }}
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build -c ${{ matrix.configuration }} --no-restore
+      - name: Test
+        run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          flags: ${{ matrix.os }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          flags: ${{ matrix.configuration }}
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   format:
     strategy:
@@ -60,14 +60,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Format verify no changes
-      run: dotnet format --verify-no-changes
-      
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Format verify no changes
+        run: dotnet format --verify-no-changes
+
   test-parsers:
     strategy:
       matrix:
@@ -77,107 +77,107 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build -c ${{ matrix.configuration }} --no-restore 
-    - name: Test Parsers
-      shell: pwsh
-      run: ./test-parsers.ps1
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build -c ${{ matrix.configuration }} --no-restore
+      - name: Test Parsers
+        shell: pwsh
+        run: ./test-parsers.ps1
 
   pack:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
-    - name: Create tag (to set version of nuget package)
-      if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
-      run: |
-        git tag v${{ github.event.inputs.version }}
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    # No need to define min ver version globally now since only uploading release 
-    # when version and tag is defined.
-    # - name: Install MinVer
-    #   run:  dotnet tool install --global minver-cli --version 4.3.0
-    # - name: Run MinVer
-    #   run:  minver -v d -t v -p preview
-    # - name: Run MinVer (output)
-    #   id: minverrun
-    #   run: |
-    #     echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
-    # - name: Output MinVer
-    #   run: |
-    #     echo "${{ env.MINVERVERSIONOVERRIDE }}"
-    - name: Pack nuget package
-      run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
-    - name: Get version of dll
-      run: (Get-Item ./artifacts/bin/Sep/release_net8.0/Sep.dll).VersionInfo.ProductVersion
-    - uses: actions/upload-artifact@v4
-      with:
-        name: nuget
-        if-no-files-found: error
-        retention-days: 7
-        path: ${{ env.NuGetDirectory }}/*nupkg
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+      - name: Create tag (to set version of nuget package)
+        if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
+        run: |
+          git tag v${{ github.event.inputs.version }}
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      # No need to define min ver version globally now since only uploading release
+      # when version and tag is defined.
+      # - name: Install MinVer
+      #   run:  dotnet tool install --global minver-cli --version 4.3.0
+      # - name: Run MinVer
+      #   run:  minver -v d -t v -p preview
+      # - name: Run MinVer (output)
+      #   id: minverrun
+      #   run: |
+      #     echo "MINVERVERSIONOVERRIDE=$(minver -v d -t v -p preview)" >> $env:GITHUB_ENV
+      # - name: Output MinVer
+      #   run: |
+      #     echo "${{ env.MINVERVERSIONOVERRIDE }}"
+      - name: Pack nuget package
+        run: dotnet pack -c Release --output ${{ env.NuGetDirectory }}
+      - name: Get version of dll
+        run: (Get-Item ./artifacts/bin/Sep/release_net8.0/Sep.dll).VersionInfo.ProductVersion
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ env.NuGetDirectory }}/*nupkg
 
   create-release-push:
-    needs: [ build, pack ]
+    needs: [build, pack]
     runs-on: windows-latest
     permissions:
       contents: write
     if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
-    
+
     steps:
-    - uses: actions/checkout@v4
-    - name: Download nuget packages
-      uses: actions/download-artifact@v4
-      with:
-        name: nuget
-        path: ${{ env.NuGetDirectory }}
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ github.event.inputs.version }}
-        release_name: ${{ github.event.inputs.version }}
-        draft: true
-    - name: Create tag (for release)
-      run: |
-        git tag v${{ github.event.inputs.version }}
-        git push origin v${{ github.event.inputs.version }}
-    - name: Upload nupkg package
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg
-        asset_name: Sep.${{ github.event.inputs.version }}.nupkg
-        asset_content_type: application/zip
-    - name: Upload snupkg package
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
-        asset_name: Sep.${{ github.event.inputs.version }}.snupkg
-        asset_content_type: application/zip
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Push nupkg package
-      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-    - name: Push snupkg package
-      run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - uses: actions/checkout@v4
+      - name: Download nuget packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget
+          path: ${{ env.NuGetDirectory }}
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: ${{ github.event.inputs.version }}
+          draft: true
+      - name: Create tag (for release)
+        run: |
+          git tag v${{ github.event.inputs.version }}
+          git push origin v${{ github.event.inputs.version }}
+      - name: Upload nupkg package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg
+          asset_name: Sep.${{ github.event.inputs.version }}.nupkg
+          asset_content_type: application/zip
+      - name: Upload snupkg package
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg
+          asset_name: Sep.${{ github.event.inputs.version }}.snupkg
+          asset_content_type: application/zip
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Push nupkg package
+        run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Push snupkg package
+        run: dotnet nuget push ${{ env.NuGetDirectory }}/Sep.${{ github.event.inputs.version }}.snupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

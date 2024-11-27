@@ -3,11 +3,11 @@ name: super-linter
 
 permissions: read-all
 
-on:  # yamllint disable-line rule:truthy
+on: # yamllint disable-line rule:truthy
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
@@ -29,10 +29,14 @@ jobs:
           fetch-depth: 0
 
       - name: Super-linter
-        uses: super-linter/super-linter@v6.3.0  # x-release-please-version
+        uses: super-linter/super-linter@v7.2.0 # x-release-please-version
         env:
           # dotnet format not working, checked during build instead
           VALIDATE_CSHARP: false
-          FILTER_REGEX_EXCLUDE: './benchmarks/.*'
+          # prettier defaults are very different than current markdown
+          VALIDATE_MARKDOWN_PRETTIER: false
+          VALIDATE_GIT_COMMITLINT: false
+          VALIDATE_JSCPD: false
+          FILTER_REGEX_EXCLUDE: "./benchmarks/.*"
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

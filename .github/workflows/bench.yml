@@ -16,14 +16,14 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build -c ${{ matrix.configuration }} --no-restore 
-    - name: Bench
-      run: dotnet run -c ${{ matrix.configuration }} -f net8.0 --no-restore --project src/Sep.Benchmarks/Sep.Benchmarks.csproj -- -m -d --iterationTime 300
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build -c ${{ matrix.configuration }} --no-restore
+      - name: Bench
+        run: dotnet run -c ${{ matrix.configuration }} -f net9.0 --no-restore --project src/Sep.Benchmarks/Sep.Benchmarks.csproj -- -m -d --iterationTime 300

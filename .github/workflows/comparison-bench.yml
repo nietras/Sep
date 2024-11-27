@@ -22,20 +22,19 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        global-json-file: global.json
-    - name: Comparison Bench
-      shell: pwsh
-      run: ./comparison-bench.ps1
-    - uses: actions/upload-artifact@v4
-      with:
-        name: benchmarks-${{ matrix.os }}
-        if-no-files-found: error
-        retention-days: 7
-        path: ${{ env.BenchmarksDirectory }}
-
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Comparison Bench
+        shell: pwsh
+        run: ./comparison-bench.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks-${{ matrix.os }}
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ env.BenchmarksDirectory }}

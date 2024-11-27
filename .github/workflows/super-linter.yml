@@ -33,6 +33,8 @@ jobs:
         env:
           # dotnet format not working, checked during build instead
           VALIDATE_CSHARP: false
-          FILTER_REGEX_EXCLUDE: "(^benchmarks/|^artifacts/).*"
+          # prettier defaults are very different than current markdown
+          FIX_MARKDOWN_PRETTIER: false
+          FILTER_REGEX_EXCLUDE: "^benchmarks/.*|^artifacts/.*"
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

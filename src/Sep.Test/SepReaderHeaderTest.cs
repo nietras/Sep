@@ -27,6 +27,9 @@ public class SepReaderHeaderTest
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(1, header.ColNames.Count);
         Assert.AreEqual(0, header.IndexOf(""));
+#if NET9_0_OR_GREATER
+        Assert.AreEqual(0, header.IndexOf("".AsSpan()));
+#endif
         Assert.AreEqual(string.Empty, header.ToString());
     }
 
@@ -38,19 +41,31 @@ public class SepReaderHeaderTest
         Assert.AreEqual(false, header.IsEmpty);
         Assert.AreEqual(3, header.ColNames.Count);
         AreEqual(["A", "B", "C"], header.ColNames);
-
-        Assert.AreEqual(1, header.IndexOf("B"));
+        {
+            Assert.AreEqual(1, header.IndexOf("B"));
+            var tryTrue = header.TryIndexOf("B", out var tryTrueIndex);
+            Assert.IsTrue(tryTrue);
+            Assert.AreEqual(1, tryTrueIndex);
+            var tryFalse = header.TryIndexOf("XX", out var tryFalseIndex);
+            Assert.IsFalse(tryFalse);
+            Assert.AreEqual(0, tryFalseIndex);
+        }
+#if NET9_0_OR_GREATER
+        {
+            Assert.AreEqual(1, header.IndexOf("B".AsSpan()));
+            var tryTrue = header.TryIndexOf("B".AsSpan(), out var tryTrueIndex);
+            Assert.IsTrue(tryTrue);
+            Assert.AreEqual(1, tryTrueIndex);
+            var tryFalse = header.TryIndexOf("XX".AsSpan(), out var tryFalseIndex);
+            Assert.IsFalse(tryFalse);
+            Assert.AreEqual(0, tryFalseIndex);
+        }
+#endif
         AreEqual([2, 0, 1], header.IndicesOf("C", "A", "B"));
         AreEqual([1, 2, 0], header.IndicesOf(new[] { "B", "C", "A" }));
         AreEqual([0, 2], header.IndicesOf((ReadOnlySpan<string>)["A", "C"]));
         AreEqual([2, 0], header.IndicesOf((IReadOnlyList<string>)["C", "A"]));
 
-        var tryTrue = header.TryIndexOf("B", out var tryTrueIndex);
-        Assert.IsTrue(tryTrue);
-        Assert.AreEqual(1, tryTrueIndex);
-        var tryFalse = header.TryIndexOf("XX", out var tryFalseIndex);
-        Assert.IsFalse(tryFalse);
-        Assert.AreEqual(0, tryFalseIndex);
 
         var actualIndices = new int[2];
         header.IndicesOf((ReadOnlySpan<string>)["A", "C"], actualIndices);

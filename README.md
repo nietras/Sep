@@ -1815,7 +1815,7 @@ namespace nietras.SeparatedValues
         public static char Separator { get; }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public sealed class SepReader : nietras.SeparatedValues.SepReaderState
+    public sealed class SepReader : nietras.SeparatedValues.SepReaderState, System.Collections.Generic.IEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerator<nietras.SeparatedValues.SepReader.Row>, System.Collections.IEnumerable, System.Collections.IEnumerator, System.IDisposable
     {
         public nietras.SeparatedValues.SepReader.Row Current { get; }
         public bool HasHeader { get; }

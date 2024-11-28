@@ -112,6 +112,56 @@ public class SepReaderTest
         AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true);
     }
 
+#if NET9_0_OR_GREATER
+    [TestMethod]
+    public void SepReaderTest_Enumerate_As_Enumerable()
+    {
+        var text = """
+                   C1;C2;C3
+                   10;A;20.1
+                   11;B;20.2
+                   """;
+        using var reader = Sep.Reader().FromText(text);
+        var expected = new (string c1, string c2, string c3)[]
+        {
+            ("10", "A", "20.1"),
+            ("11", "B", "20.2"),
+        };
+        // NET9_0_OR_GREATER SepReader implements IEnumerable<>
+        var actual = FromEnumerable(reader).ToArray();
+
+        CollectionAssert.AreEqual(expected, actual);
+
+        static IEnumerable<(string c1, string c2, string c3)> FromEnumerable(
+            IEnumerable<SepReader.Row> rows)
+        {
+            foreach (var row in rows)
+            {
+                yield return (row["C1"].ToString(),
+                              row["C2"].ToString(),
+                              row["C3"].ToString());
+            }
+        }
+    }
+
+    [TestMethod]
+    public void SepReaderTest_NonGenericEnumerable_Throws()
+    {
+        using var reader = Sep.Reader().FromText(string.Empty);
+        var enumerable = (System.Collections.IEnumerable)reader;
+        Assert.ThrowsException<NotSupportedException>(() => enumerable.GetEnumerator());
+    }
+
+    [TestMethod]
+    public void SepReaderTest_NonGenericEnumerator_Throws()
+    {
+        using var reader = Sep.Reader().FromText(string.Empty);
+        var enumerator = (System.Collections.IEnumerator)reader;
+        Assert.ThrowsException<NotSupportedException>(() => enumerator.Current);
+        Assert.ThrowsException<NotSupportedException>(() => enumerator.Reset());
+    }
+#endif
+
     [TestMethod]
     public void SepReaderTest_Enumerate_Rows_2_NewLineAtEnd()
     {

@@ -13,6 +13,10 @@ namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed partial class SepReader : SepReaderState
+#if NET9_0_OR_GREATER
+    , IEnumerable<SepReader.Row>
+    , IEnumerator<SepReader.Row>
+#endif
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -164,6 +168,13 @@ public sealed partial class SepReader : SepReaderState
     }
 
     public SepReader GetEnumerator() => this;
+#if NET9_0_OR_GREATER
+    IEnumerator<Row> IEnumerable<Row>.GetEnumerator() => this;
+    // Legacy not supported
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new NotSupportedException();
+    object System.Collections.IEnumerator.Current => throw new NotSupportedException();
+    void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()

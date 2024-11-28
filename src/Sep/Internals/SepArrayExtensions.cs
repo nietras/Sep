@@ -29,19 +29,18 @@ static class SepArrayExtensions
     internal static int MoveDataToStart<T>(this T[] array, ref int start, ref int end,
         int paddingLengthToClear)
     {
-        if (start > 0)
+        var offset = start;
+        if (offset > 0)
         {
             //L.WriteLine($"{nameof(MoveDataToStart)} Length:{array.Length} start:{start} end:{end}");
-            var lengthToCopy = end - start;
+            var lengthToCopy = end - offset;
             if (lengthToCopy > 0)
-            { Array.Copy(array, start, array, 0, lengthToCopy); }
-            var offset = start;
+            { Array.Copy(array, offset, array, 0, lengthToCopy); }
             end -= offset;
             start = 0;
             if (paddingLengthToClear > 0) { ClearPaddingAfterData(array, end, paddingLengthToClear); }
-            return offset;
         }
-        return 0;
+        return offset;
     }
 
     // Should be called rarely after things settle, so never inline

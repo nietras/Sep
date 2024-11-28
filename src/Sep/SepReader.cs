@@ -377,44 +377,37 @@ public sealed partial class SepReader : SepReaderState
         // and hence always ensure we have the two combined in buffer.
         freeLength -= 1;
 
-        if (freeLength > 0)
-        {
-            var freeSpan = new Span<char>(_chars, _charsDataEnd, freeLength);
-            A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
+        var freeSpan = new Span<char>(_chars, _charsDataEnd, freeLength);
+        A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
 
-            // Read until full or no more data
-            var totalBytesRead = 0;
-            var readCount = 0;
-            while (totalBytesRead < freeLength &&
-                   ((readCount = _reader.Read(freeSpan.Slice(totalBytesRead))) > 0))
-            {
-                _charsDataEnd += readCount;
-                // Ensure carriage return always followed by line feed
-                if (_chars[_charsDataEnd - 1] == CarriageReturn)
-                {
-                    var extraChar = _reader.Peek();
-                    if (extraChar == LineFeed)
-                    {
-                        var readChar = (char)_reader.Read();
-                        A.Assert(extraChar == readChar);
-                        _chars[_charsDataEnd] = readChar;
-                        ++_charsDataEnd;
-                        ++readCount;
-                    }
-                }
-                totalBytesRead += readCount;
-            }
-            if (paddingLength > 0)
-            {
-                _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
-            }
-            //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
-            return totalBytesRead == 0;
-        }
-        else
+        // Read until full or no more data
+        var totalBytesRead = 0;
+        var readCount = 0;
+        while (totalBytesRead < freeLength &&
+               ((readCount = _reader.Read(freeSpan.Slice(totalBytesRead))) > 0))
         {
-            return false;
+            _charsDataEnd += readCount;
+            // Ensure carriage return always followed by line feed
+            if (_chars[_charsDataEnd - 1] == CarriageReturn)
+            {
+                var extraChar = _reader.Peek();
+                if (extraChar == LineFeed)
+                {
+                    var readChar = (char)_reader.Read();
+                    A.Assert(extraChar == readChar);
+                    _chars[_charsDataEnd] = readChar;
+                    ++_charsDataEnd;
+                    ++readCount;
+                }
+            }
+            totalBytesRead += readCount;
         }
+        if (paddingLength > 0)
+        {
+            _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
+        }
+        //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
+        return totalBytesRead == 0;
     }
 
     static bool TryGetTextReaderLength(TextReader reader, out long length)

@@ -29,6 +29,7 @@ public class SepReaderOptionsTest
             Sep = new(','),
             CultureInfo = CultureInfo.CreateSpecificCulture("da-Dk"),
             ColNameComparer = StringComparer.OrdinalIgnoreCase,
+            InitialBufferLength = 1024,
             HasHeader = false,
             CreateToString = SepToString.OnePool(),
             DisableFastFloat = true,
@@ -38,6 +39,7 @@ public class SepReaderOptionsTest
         Assert.AreEqual(new Sep(','), sut.Sep);
         Assert.AreNotSame(CultureInfo.InvariantCulture, sut.CultureInfo);
         Assert.AreNotSame(StringComparer.Ordinal, sut.ColNameComparer);
+        Assert.AreEqual(1024, sut.InitialBufferLength);
         Assert.IsFalse(sut.HasHeader);
         Assert.AreNotSame(SepToString.Direct, sut.CreateToString);
         Assert.IsTrue(sut.DisableFastFloat);

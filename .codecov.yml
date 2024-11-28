@@ -1,0 +1,6 @@
+coverage:
+  status:
+    # Learn more at https://docs.codecov.io/docs/commit-status
+    project: true
+    patch: false
+    changes: false

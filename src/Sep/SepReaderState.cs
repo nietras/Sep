@@ -198,11 +198,6 @@ public class SepReaderState : IDisposable
     void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected)
     {
         var (rowStart, rowEnd) = RowStartEnd();
-        ThrowInvalidDataExceptionColCountMismatch(colCountExpected, rowStart, rowEnd);
-    }
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    void ThrowInvalidDataExceptionColCountMismatch(int colCountExpected, int rowStart, int rowEnd)
-    {
         AssertState(rowStart, rowEnd);
         var row = new string(_chars, rowStart, rowEnd - rowStart);
         SepThrow.InvalidDataException_ColCountMismatch(_currentRowColCount, _rowIndex, _currentRowLineNumberFrom, _currentRowLineNumberTo, row,

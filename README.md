@@ -2001,7 +2001,7 @@ namespace nietras.SeparatedValues
             ".", true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
-        public struct Row
+        public struct Row : System.IDisposable
         {
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
             public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }

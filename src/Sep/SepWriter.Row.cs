@@ -8,6 +8,9 @@ public partial class SepWriter
     public delegate void RowAction(Row row);
 
     public ref struct Row
+#if NET9_0_OR_GREATER
+        : IDisposable
+#endif
     {
         internal SepWriter? _writer;
 

@@ -7,7 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
-public class SepReaderParallelEnumerateTest
+public class SepReaderExtensionsEnumerationTest
 {
     const int PartRowCount = 1000;
     const int TotalRowCount = 2 * PartRowCount;
@@ -22,7 +22,24 @@ public class SepReaderParallelEnumerateTest
     record struct Seq(int Inc, int Dec);
 
     [TestMethod]
-    public void SepReaderParallelEnumerateTest_RowFunc()
+    public void SepReaderExtensionsEnumerationTest_Enumerate_RowFunc()
+    {
+        using var reader = CreateReader();
+        var actual = reader.Enumerate(Parse).ToList();
+        CollectionAssert.AreEqual(s_expected, actual);
+    }
+
+    [TestMethod]
+    public void SepReaderExtensionsEnumerationTest_Enumerate_RowTryFunc()
+    {
+        using var reader = CreateReader();
+        var actual = reader.Enumerate<Seq>(TryParseEven).ToList();
+        var expected = s_expected.Where(s => s.Inc % 2 == 0).ToList();
+        CollectionAssert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
+    public void SepReaderExtensionsEnumerationTest_ParallelEnumerate_RowFunc()
     {
         using var reader = CreateReader();
         var actual = reader.ParallelEnumerate(Parse).ToList();
@@ -30,7 +47,7 @@ public class SepReaderParallelEnumerateTest
     }
 
     [TestMethod]
-    public void SepReaderParallelEnumerateTest_RowTryFunc()
+    public void SepReaderExtensionsEnumerationTest_ParallelEnumerate_RowTryFunc()
     {
         using var reader = CreateReader();
         var actual = reader.ParallelEnumerate<Seq>(TryParseEven).ToList();
@@ -55,7 +72,8 @@ public class SepReaderParallelEnumerateTest
         }
         var csv = sb.ToString();
         // Force small initial buffer length even for Release, to force reader
-        // state swapping and array swapping with increasing row length.
+        // state swapping and array swapping with increasing row length for
+        // ParallelEnumerate.
         return Sep.Reader(o => o with { InitialBufferLength = 128 }).FromText(csv);
     }
 

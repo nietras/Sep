@@ -127,6 +127,8 @@ public class SepReaderColTest
 
     public static IEnumerable<object[]> TrimOuterNoQuotesData =>
     [
+        [" ", ""],
+        ["   ", ""],
         ["a", "a"],
         [" a", "a"],
         ["a ", "a"],

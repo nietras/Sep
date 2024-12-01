@@ -10,8 +10,16 @@ public partial class SepReader
 {
     // Problem here is Row is a ref struct so can't use Action<Row>
     public delegate void RowAction(Row row);
-    public delegate T RowFunc<T>(Row row);
-    public delegate bool RowTryFunc<T>(Row row, out T value);
+    public delegate T RowFunc<T>(Row row)
+#if NET9_0_OR_GREATER
+        where T : allows ref struct
+#endif
+        ;
+    public delegate bool RowTryFunc<T>(Row row, out T value)
+#if NET9_0_OR_GREATER
+        where T : allows ref struct
+#endif
+        ;
 
     [DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
     [DebuggerTypeProxy(typeof(DebugView))]

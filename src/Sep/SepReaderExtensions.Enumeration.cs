@@ -14,10 +14,6 @@ public static partial class SepReaderExtensions
 #endif
 
     public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
-    // error MSB6006: "csc.exe" exited with code -2146232797
-    //#if NET9_0_OR_GREATER
-    //        where T : allows ref struct
-    //#endif
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
@@ -28,10 +24,6 @@ public static partial class SepReaderExtensions
     }
 
     public static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
-    // error MSB6006: "csc.exe" exited with code -2146232797
-    //#if NET9_0_OR_GREATER
-    //        where T : allows ref struct
-    //#endif
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);

@@ -70,8 +70,9 @@ public class SepReaderFuzzTest
     {
         var sb = new StringBuilder(1024 * 1024);
         var previousNewLine = "";
-        foreach (var row in rows)
+        for (var rowIndex = 0; rowIndex < rows.Length; rowIndex++)
         {
+            var row = rows[rowIndex];
             // Use indexing
             var cols = row.Cols;
             for (var colIndex = 0; colIndex < cols.Length; colIndex++)
@@ -85,8 +86,13 @@ public class SepReaderFuzzTest
             var newLine = RandomNewLine(random);
             // Avoid a new line that does not end up actually being a new line
             newLine = newLine == "\n" && previousNewLine == "\r" ? "\r\n" : newLine;
-            sb.Append(newLine);
-            previousNewLine = newLine;
+            // Randomly skip adding new line at end of "file"
+            var appendNewLine = rowIndex < (rows.Length - 1) || random.Next(0, 2) == 0;
+            if (appendNewLine)
+            {
+                sb.Append(newLine);
+                previousNewLine = newLine;
+            }
         }
         var text = sb.ToString();
         return text;

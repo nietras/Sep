@@ -29,6 +29,17 @@ public class SepTest
     }
 
     [TestMethod]
+    public void SepTest_Property()
+    {
+        var sep = new Sep();
+        foreach (var separator in _supportedSeparators)
+        {
+            sep = sep with { Separator = separator };
+            Assert.AreEqual(separator, sep.Separator);
+        }
+    }
+
+    [TestMethod]
     public void SepTest_New()
     {
         foreach (var separator in _supportedSeparators)

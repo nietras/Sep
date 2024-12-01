@@ -260,6 +260,24 @@ public class SepReaderRowTest
         }
     }
 
+    [TestMethod]
+    public void SepReaderRowTest_Row_DebugView_NoHeader()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(_rowText);
+        reader.MoveNext();
+        var rowDebugView = new SepReader.Row.DebugView(reader.Current);
+        var cols = rowDebugView.Cols;
+        Assert.AreEqual(_cols, cols.Length);
+        for (var colIndex = 0; colIndex < cols.Length; colIndex++)
+        {
+            var col = cols[colIndex];
+            Assert.AreEqual(colIndex, col.ColIndex);
+            Assert.IsNull(col.ColName);
+            Assert.AreEqual(_colValues[colIndex], col.ColValue);
+            Assert.AreEqual($"{colIndex:D2}", col.ColIndexName);
+        }
+    }
+
     static void AssertCols(ReadOnlySpan<string> expected, in SepReader.Cols cols)
     {
         Assert.AreEqual(expected.Length, cols.Count);

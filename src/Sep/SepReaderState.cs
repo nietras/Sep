@@ -110,7 +110,7 @@ public class SepReaderState : IDisposable
 
     internal void SwapParsedRowsTo(SepReaderState other)
     {
-        A.Assert(_parsedRowIndex == 0);
+        A.Assert((_rowIndex == 0 && _hasHeader && _parsedRowIndex == 1) || _parsedRowIndex == 0);
         A.Assert(_parsedRowIndex <= _parsedRowsCount);
 
         other._parsedRowIndex = _parsedRowIndex;

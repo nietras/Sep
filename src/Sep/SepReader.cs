@@ -292,8 +292,10 @@ public sealed partial class SepReader : SepReaderState
             }
             else
             {
+                Debug.Assert(_parser is not null);
+                var quoteCount = _parser.QuoteCount;
                 Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
-                    new(_charsDataEnd, _parser?.QuoteCount ?? 0);
+                    new(_charsDataEnd, quoteCount);
             }
             ++_parsingLineNumber;
             _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
@@ -311,6 +313,7 @@ public sealed partial class SepReader : SepReaderState
 
     public string ToString(int index) => ToStringDefault(index);
 
+    [MemberNotNullWhen(false, nameof(_parser))]
     bool EnsureInitializeAndReadData(bool endOfFile)
     {
         var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);

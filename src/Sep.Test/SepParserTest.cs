@@ -21,8 +21,8 @@ public class SepParserTest
 
     public SepParserTest()
     {
-        _chars = new char[1024];
-        _colEndsOrColInfos = new int[1024];
+        _chars = new char[2048];
+        _colEndsOrColInfos = new int[2048];
 
         _state._chars = _chars;
         _state._colEndsOrColInfos = _colEndsOrColInfos;
@@ -220,6 +220,29 @@ public class SepParserTest
             new(ColEnds: [87, 89, 101, 105, 107], LineNumberTo: 6),
             new(ColEnds: [107, 111], LineNumberTo: 7),
         ], new(ColEnds: [111], LineNumberTo: 7, CharsStartIndex: 112, ColEndsStartIndex: 13, ColCount: 0));
+
+        AssertOutput(parser, charsStart, charsEnd, expectedOutput);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
+    public void SepParserTest_ParseColEnds_NewLinesOnly(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        var parser = (ISepParser)parserObject;
+        var charsEnd = _chars.Length - parser.PaddingLength;
+        _chars.AsSpan(0, charsEnd).Fill('\n');
+        _state._currentRowColCount = 0;
+        var parsedRowsLength = _state._parsedRows.Length;
+        Trace.WriteLine($"{nameof(parsedRowsLength)} {parsedRowsLength} {nameof(charsEnd)} {charsEnd}");
+        var rowCount = Math.Min(charsEnd, parsedRowsLength);
+        var charsStart = 0;
+        var lineNumberOffset = 4;
+        var expectedOutput = new ExpectedOutput(
+            Enumerable.Range(0, rowCount)
+                      .Select(i => new ExpectedParsedRow(ColEnds: [Math.Max(0, i - 1), i], i + lineNumberOffset)).ToArray(),
+            new(ColEnds: [19], LineNumberTo: rowCount + lineNumberOffset - 1,
+                CharsStartIndex: rowCount, ColEndsStartIndex: rowCount * 2, ColCount: 0));
 
         AssertOutput(parser, charsStart, charsEnd, expectedOutput);
     }

@@ -8,7 +8,8 @@ namespace nietras.SeparatedValues;
 
 public partial class SepReader
 {
-    // Problem here is Row is a ref struct so can't use Action<Row>
+    // Problem here is Row is a ref struct so can't use Action<Row, although
+    // this is now possible in net9.0+.
     public delegate void RowAction(Row row);
     public delegate T RowFunc<T>(Row row)
 #if NET9_0_OR_GREATER

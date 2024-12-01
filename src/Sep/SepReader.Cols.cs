@@ -7,7 +7,8 @@ namespace nietras.SeparatedValues;
 
 public partial class SepReader
 {
-    // Problem here is Col is a ref struct so can't use Func<Col,T>
+    // Problem here is Col is a ref struct so can't use Func<Col,T>, although
+    // this is now possible in net9.0+.
     public delegate T ColFunc<T>(Col col)
 #if NET9_0_OR_GREATER
         where T : allows ref struct

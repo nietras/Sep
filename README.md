@@ -214,16 +214,17 @@ struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/buil
 (please follow the `ref struct` link and understand how this limits the usage of
 those). This is due to these types being simple *facades* or indirections to the
 underlying reader or writer. That means you cannot use LINQ or create an array
-of all rows like `reader.ToArray()`. However, for .NET9+ the reader is now
+of all rows like `reader.ToArray()`. While for .NET9+ the reader is now
 `IEnumerable<>` since `ref struct`s can now be used in interfaces that have
 [`where T: allows ref
-struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-13.0/ref-struct-interfaces).
-Hence, if you need store per row state or similar you need to parse or copy to
-different types instead. The same applies to `Col`/`Cols` which point to
-internal state that is also reused. This is to avoid repeated allocations for
-each row and get the best possible performance, while still defining a well
-structured and straightforward API that guides users to relevant functionality.
-See [Why SepReader Was Not IEnumerable Until .NET 9 and Is Not LINQ
+struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-13.0/ref-struct-interfaces)
+this still does not mean it is LINQ compatible. Hence, if you need store per row
+state or similar you need to parse or copy to different types instead. The same
+applies to `Col`/`Cols` which point to internal state that is also reused. This
+is to avoid repeated allocations for each row and get the best possible
+performance, while still defining a well structured and straightforward API that
+guides users to relevant functionality. See [Why SepReader Was Not IEnumerable
+Until .NET 9 and Is Not LINQ
 Compatible](#why-sepreader-was-not-ienumerable-until-net-9-and-is-not-linq-compatible)
 for more.
 

@@ -213,10 +213,10 @@ For a complete example, see the [example](#example) above or the
 struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/ref-struct)s
 (please follow the `ref struct` link and understand how this limits the usage of
 those). This is due to these types being simple *facades* or indirections to the
-underlying reader or writer. That means you cannot use LINQ (prior to .NET 9) or
-create an array of all rows like `reader.ToArray()`. However, for .NET9+ the
-reader is now `IEnumerable<>` since `ref struct`s can now be used in interfaces
-that have [`where T: allows ref
+underlying reader or writer. That means you cannot use LINQ or create an array
+of all rows like `reader.ToArray()`. However, for .NET9+ the reader is now
+`IEnumerable<>` since `ref struct`s can now be used in interfaces that have
+[`where T: allows ref
 struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-13.0/ref-struct-interfaces).
 Hence, if you need store per row state or similar you need to parse or copy to
 different types instead. The same applies to `Col`/`Cols` which point to

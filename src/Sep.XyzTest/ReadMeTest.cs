@@ -437,9 +437,9 @@ public partial class ReadMeTest
 #if NET9_0_OR_GREATER
             (nameof(ReadMeTest_IEnumerable_But_Not_LINQ_Compatible) + "()", "The main culprit above is that for example"),
 #endif
-            (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If for .NET prior to 9 you want to use LINQ"),
+            (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
             (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
-            (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep now provides such a convenience "),
+            (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep provides such a convenience "),
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),

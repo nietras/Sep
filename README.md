@@ -223,8 +223,9 @@ different types instead. The same applies to `Col`/`Cols` which point to
 internal state that is also reused. This is to avoid repeated allocations for
 each row and get the best possible performance, while still defining a well
 structured and straightforward API that guides users to relevant functionality.
-See [Why SepReader Was Not IEnumerable Until .NET
-9 and Is Not LINQ Compatible](#why-sepreader-was-not-ienumerable-and-linq-compatible-until-net-9) for more.
+See [Why SepReader Was Not IEnumerable Until .NET 9 and Is Not LINQ
+Compatible](#why-sepreader-was-not-ienumerable-until-net-9-and-is-not-linq-compatible)
+for more.
 
 ⚠ For a full overview of public types and methods see [Public API
 Reference](#public-api-reference).
@@ -542,14 +543,32 @@ having annotated such interfaces it is now possible and you can assign
 `SepReader` to `IEnumerable`, but most if not all of LINQ will still not work as
 shown below.
 ```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
 using var reader = Sep.Reader().FromText(text);
+IEnumerable<SepReader.Row> enumerable = reader;
+// Currently, most LINQ methods do not work for ref types. See below.
+//
+// The type 'SepReader.Row' may not be a ref struct or a type parameter
+// allowing ref structs in order to use it as parameter 'TSource' in the
+// generic type or method 'Enumerable.Select<TSource,
+// TResult>(IEnumerable<TSource>, Func<TSource, TResult>)'
+//
+// enumerable.Select(row => row["Key"].ToString()).ToArray();
 ```
+The issue is that C# defined iterators e.g. via `yield return` will store the
+`Current` property of `IEnumerator<>` as a field on the compiler generated
+enumerator `class`. However, you cannot have a ref type as a field in an
+instance on the managed heap.
 
-If for .NET prior to 9 you want to use LINQ or similar you have to first parse
-or transform the rows into some other type and enumerate it. This is easy to do
-and instead of counting lines you should focus on how such enumeration can be
-easily expressed using C# iterators (aka `yield return`). With local functions
-this can be done inside a method like:
+If you want to use LINQ or similar you have to first parse or transform the rows
+into some other type and enumerate it. This is easy to do and instead of
+counting lines you should focus on how such enumeration can be easily expressed
+using C# iterators (aka `yield return`). With local functions this can be done
+inside a method like:
 ```csharp
 var text = """
            Key;Value

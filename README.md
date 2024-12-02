@@ -560,10 +560,7 @@ IEnumerable<SepReader.Row> enumerable = reader;
 //
 // enumerable.Select(row => row["Key"].ToString()).ToArray();
 ```
-The issue is that C# defined iterators e.g. via `yield return` will store the
-`Current` property of `IEnumerator<>` as a field on the compiler generated
-enumerator `class`. However, you cannot have a ref type as a field in an
-instance on the managed heap.
+Calling `Select` should in principle be possible if this was annotated with `allows ref struct`, but it isn't currently.
 
 If you want to use LINQ or similar you have to first parse or transform the rows
 into some other type and enumerate it. This is easy to do and instead of

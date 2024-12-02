@@ -610,7 +610,7 @@ public class SepReaderState : IDisposable
         }
     }
 
-    internal Span<T> Select<T>(ReadOnlySpan<int> colIndices, ColFunc<T> selector)
+    internal Span<T> ColsSelect<T>(ReadOnlySpan<int> colIndices, ColFunc<T> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
         var length = colIndices.Length;
@@ -622,7 +622,7 @@ public class SepReaderState : IDisposable
         return span;
     }
 
-    internal unsafe Span<T> Select<T>(ReadOnlySpan<int> colIndices, delegate*<Col, T> selector)
+    internal unsafe Span<T> ColsSelect<T>(ReadOnlySpan<int> colIndices, delegate*<Col, T> selector)
     {
         var length = colIndices.Length;
         var span = _arrayPool.RentUniqueArrayAsSpan<T>(length);
@@ -702,7 +702,7 @@ public class SepReaderState : IDisposable
         }
     }
 
-    internal Span<T> Select<T>(int colStart, int colCount, ColFunc<T> selector)
+    internal Span<T> ColsSelect<T>(int colStart, int colCount, ColFunc<T> selector)
     {
         ArgumentNullException.ThrowIfNull(selector);
         var span = _arrayPool.RentUniqueArrayAsSpan<T>(colCount);
@@ -713,7 +713,7 @@ public class SepReaderState : IDisposable
         return span;
     }
 
-    internal unsafe Span<T> Select<T>(int colStart, int colCount, delegate*<Col, T> selector)
+    internal unsafe Span<T> ColsSelect<T>(int colStart, int colCount, delegate*<Col, T> selector)
     {
         var span = _arrayPool.RentUniqueArrayAsSpan<T>(colCount);
         for (var i = 0; i < span.Length; i++)

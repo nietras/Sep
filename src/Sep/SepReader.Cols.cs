@@ -96,12 +96,12 @@ public partial class SepReader
         }
 
         public Span<T> Select<T>(ColFunc<T> selector) => IsIndices()
-            ? _state.Select<T>(_colIndices, selector)
-            : _state.Select<T>(_colStartIfRange, _colIndices.Length, selector);
+            ? _state.ColsSelect<T>(_colIndices, selector)
+            : _state.ColsSelect<T>(_colStartIfRange, _colIndices.Length, selector);
 
         public unsafe Span<T> Select<T>(delegate*<Col, T> selector) => IsIndices()
-            ? _state.Select<T>(_colIndices, selector)
-            : _state.Select<T>(_colStartIfRange, _colIndices.Length, selector);
+            ? _state.ColsSelect<T>(_colIndices, selector)
+            : _state.ColsSelect<T>(_colStartIfRange, _colIndices.Length, selector);
 
         bool IsIndices() => _colStartIfRange < 0;
 

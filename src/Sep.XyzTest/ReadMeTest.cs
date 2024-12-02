@@ -92,6 +92,28 @@ public partial class ReadMeTest
         }
     }
 
+#if NET9_0_OR_GREATER
+    [TestMethod]
+    public void ReadMeTest_IEnumerable_But_Not_LINQ_Compatible()
+    {
+        var text = """
+                   Key;Value
+                   A;1.1
+                   B;2.2
+                   """;
+        using var reader = Sep.Reader().FromText(text);
+        IEnumerable<SepReader.Row> enumerable = reader;
+        // Currently, most LINQ methods do not work for ref types. See below.
+        //
+        // The type 'SepReader.Row' may not be a ref struct or a type parameter
+        // allowing ref structs in order to use it as parameter 'TSource' in the
+        // generic type or method 'Enumerable.Select<TSource,
+        // TResult>(IEnumerable<TSource>, Func<TSource, TResult>)'
+        //
+        // enumerable.Select(row => row["Key"].ToString()).ToArray();
+    }
+#endif
+
     [TestMethod]
     public void ReadMeTest_LocalFunction_YieldReturn()
     {
@@ -412,9 +434,12 @@ public partial class ReadMeTest
         {
             (nameof(ReadMeTest_) + "()", "## Example"),
             (nameof(ReadMeTest_SepReader_Debuggability) + "()", "#### SepReader Debuggability"),
+#if NET9_0_OR_GREATER
+            (nameof(ReadMeTest_IEnumerable_But_Not_LINQ_Compatible) + "()", "The main culprit above is that for example"),
+#endif
             (nameof(ReadMeTest_LocalFunction_YieldReturn) + "()", "If you want to use LINQ"),
             (nameof(ReadMeTest_Enumerate) + "()", "Now if instead refactoring this to something LINQ-compatible"),
-            (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep now provides such a convenience "),
+            (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep provides such a convenience "),
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),

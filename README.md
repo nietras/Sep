@@ -214,14 +214,19 @@ struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/buil
 (please follow the `ref struct` link and understand how this limits the usage of
 those). This is due to these types being simple *facades* or indirections to the
 underlying reader or writer. That means you cannot use LINQ or create an array
-of all rows like `reader.ToArray()` as the reader is not `IEnumerable<>` either
-since `ref struct`s cannot be used in interfaces, which is in fact the point.
-Hence, you need to parse or copy to different types instead. The same applies to
-`Col`/`Cols` which point to internal state that is also reused. This is to avoid
-repeated allocations for each row and get the best possible performance, while
-still defining a well structured and straightforward API that guides users to
-relevant functionality.  See [Why SepReader Is Not IEnumerable and LINQ
-Compatible](#why-sepreader-is-not-ienumerable-and-linq-compatible) for more.
+of all rows like `reader.ToArray()`. While for .NET9+ the reader is now
+`IEnumerable<>` since `ref struct`s can now be used in interfaces that have
+[`where T: allows ref
+struct`](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-13.0/ref-struct-interfaces)
+this still does not mean it is LINQ compatible. Hence, if you need store per row
+state or similar you need to parse or copy to different types instead. The same
+applies to `Col`/`Cols` which point to internal state that is also reused. This
+is to avoid repeated allocations for each row and get the best possible
+performance, while still defining a well structured and straightforward API that
+guides users to relevant functionality. See [Why SepReader Was Not IEnumerable
+Until .NET 9 and Is Not LINQ
+Compatible](#why-sepreader-was-not-ienumerable-until-net-9-and-is-not-linq-compatible)
+for more.
 
 ⚠ For a full overview of public types and methods see [Public API
 Reference](#public-api-reference).
@@ -485,10 +490,11 @@ If you hover over `col` you should see:
 "\"Apple\r\nBanana\r\nOrange\r\nPear\""
 ```
 
-#### Why SepReader Is Not IEnumerable and LINQ Compatible
+#### Why SepReader Was Not IEnumerable Until .NET 9 and Is Not LINQ Compatible
 As mentioned earlier Sep only allows enumeration and access to one row at a time
 and `SepReader.Row` is just a simple *facade* or indirection to the underlying
-reader. This is why it is defined as a `ref struct`. In fact, the following code:
+reader. This is why it is defined as a `ref struct`. In fact, the following
+code:
 ```csharp
 using var reader = Sep.Reader().FromText(text);
 foreach (var row in reader)
@@ -503,9 +509,9 @@ while (reader.MoveNext())
 }
 ```
 where `row` is just a *facade* for exposing row specific functionality. That is,
-`row` is still basically the `reader` underneath. Hence, let's imagine *if*
-`SepReader` did implement `IEnumerable<SepReader.Row>` and the `Row` was *not* a
-`ref struct`. Then, you would be able to write something like below:
+`row` is still basically the `reader` underneath. Hence, let's look at using
+LINQ with `SepReader` implementing `IEnumerable<SepReader.Row>` and the `Row`
+*not* being a `ref struct`. Then, you would be able to write something like below:
 ```csharp
 using var reader = Sep.Reader().FromText(text);
 SepReader.Row[] rows = reader.ToArray();
@@ -528,6 +534,33 @@ all functionality directly and hence only let's you access the current row and
 cols on that. This API, however, is in this authors opinion not ideal and can be
 a bit confusing, which is why Sep is designed like it is. The downside is the
 above caveat.
+
+The main culprit above is that for example `ToArray()` would store a `ref
+struct` in a heap allocated array, the actual enumeration is not a problem and
+hence implementing `IEnumerable<SepReader.Row>` is not the problem as such. The
+problem was that prior to .NET 9 it was not possible to implement this interface
+with `T` being a `ref struct`, but with C# 13 `allows ref struct` and .NET 9
+having annotated such interfaces it is now possible and you can assign
+`SepReader` to `IEnumerable`, but most if not all of LINQ will still not work as
+shown below.
+```csharp
+var text = """
+           Key;Value
+           A;1.1
+           B;2.2
+           """;
+using var reader = Sep.Reader().FromText(text);
+IEnumerable<SepReader.Row> enumerable = reader;
+// Currently, most LINQ methods do not work for ref types. See below.
+//
+// The type 'SepReader.Row' may not be a ref struct or a type parameter
+// allowing ref structs in order to use it as parameter 'TSource' in the
+// generic type or method 'Enumerable.Select<TSource,
+// TResult>(IEnumerable<TSource>, Func<TSource, TResult>)'
+//
+// enumerable.Select(row => row["Key"].ToString()).ToArray();
+```
+Calling `Select` should in principle be possible if this was annotated with `allows ref struct`, but it isn't currently.
 
 If you want to use LINQ or similar you have to first parse or transform the rows
 into some other type and enumerate it. This is easy to do and instead of
@@ -587,8 +620,8 @@ static IEnumerable<T> Enumerate<T>(SepReader reader, SepReader.RowFunc<T> select
 }
 ```
 
-In fact, Sep now provides such a convenience extension method. And, discounting
-the `Enumerate` method, this does have less boilerplate, but not really more
+In fact, Sep provides such a convenience extension method. And, discounting the
+`Enumerate` method, this does have less boilerplate, but not really more
 effective lines of code. The issue here is that this tends to favor factoring
 code in a way that can become very inefficient quickly. Consider if one wanted
 to only enumerate rows matching a predicate on `Key` which meant only 1% of rows

@@ -206,6 +206,49 @@ public class SepWriterRowTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
+    [TestMethod]
+    public void SepWriterRowTest_Escape_OnlyIfContainsSeparator()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with comma,");
+            row["B"].Set("Value without comma");
+        }
+        var expected = $"A;B{NL}\"Value with comma,\";Value without comma{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterRowTest_Escape_DifferentSeparator()
+    {
+        var options = new SepWriterOptions { Escape = true, Sep = new Sep('|') };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with pipe|");
+            row["B"].Set("Value without pipe");
+        }
+        var expected = $"A|B{NL}\"Value with pipe|\"|Value without pipe{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterRowTest_Escape_LineEndings()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with\r carriage return");
+            row["B"].Set("Value with\n line feed");
+            row["C"].Set("Value with\r\n carriage return and line feed");
+        }
+        var expected = $"A;B;C{NL}\"Value with\r carriage return\";\"Value with\n line feed\";\"Value with\r\n carriage return and line feed\"{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static void Run(SepWriter.RowAction action, string expected) =>
         Run(action, actual => Assert.AreEqual(expected, actual));
 

@@ -109,6 +109,92 @@ public class SepWriterColTest
         Run(col => col.Format(ColValue));
     }
 
+    [TestMethod]
+    public void SepWriterColTest_Escape_SpecialCharacters()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with, comma");
+            row["B"].Set("Value with; semicolon");
+            row["C"].Set("Value with\nnewline");
+        }
+        var expected = $"A;B;C{Environment.NewLine}\"Value with, comma\";\"Value with; semicolon\";\"Value with{Environment.NewLine}newline\"{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Escape_NestedQuotes()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("He said \"Hello\"");
+            row["B"].Set("She replied \"Hi\"");
+        }
+        var expected = $"A;B{Environment.NewLine}\"He said \"\"Hello\"\"\";\"She replied \"\"Hi\"\"\"{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Escape_MultilineValues()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Line1\nLine2");
+            row["B"].Set("Single line");
+        }
+        var expected = $"A;B{Environment.NewLine}\"Line1{Environment.NewLine}Line2\";Single line{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Escape_OnlyIfContainsSeparator()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with comma,");
+            row["B"].Set("Value without comma");
+        }
+        var expected = $"A;B{Environment.NewLine}\"Value with comma,\";Value without comma{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Escape_DifferentSeparator()
+    {
+        var options = new SepWriterOptions { Escape = true, Sep = new Sep('|') };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with pipe|");
+            row["B"].Set("Value without pipe");
+        }
+        var expected = $"A|B{Environment.NewLine}\"Value with pipe|\"|Value without pipe{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Escape_LineEndings()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with\r carriage return");
+            row["B"].Set("Value with\n line feed");
+            row["C"].Set("Value with\r\n carriage return and line feed");
+        }
+        var expected = $"A;B;C{Environment.NewLine}\"Value with\r carriage return\";\"Value with\n line feed\";\"Value with\r\n carriage return and line feed\"{Environment.NewLine}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static void Run(SepWriter.ColAction action, string? expectedColValue = ColText, CultureInfo? cultureInfo = null)
     {
         Func<SepWriter>[] createWriters =

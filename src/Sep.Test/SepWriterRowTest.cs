@@ -163,6 +163,49 @@ public class SepWriterRowTest
         row.Dispose();
     }
 
+    [TestMethod]
+    public void SepWriterRowTest_Escape_SpecialCharacters()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Value with, comma");
+            row["B"].Set("Value with; semicolon");
+            row["C"].Set("Value with\nnewline");
+        }
+        var expected = $"A;B;C{NL}\"Value with, comma\";\"Value with; semicolon\";\"Value with{NL}newline\"{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterRowTest_Escape_NestedQuotes()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("He said \"Hello\"");
+            row["B"].Set("She replied \"Hi\"");
+        }
+        var expected = $"A;B{NL}\"He said \"\"Hello\"\"\";\"She replied \"\"Hi\"\"\"{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterRowTest_Escape_MultilineValues()
+    {
+        var options = new SepWriterOptions { Escape = true };
+        using var writer = Sep.Writer(options).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("Line1\nLine2");
+            row["B"].Set("Single line");
+        }
+        var expected = $"A;B{NL}\"Line1{NL}Line2\";Single line{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static void Run(SepWriter.RowAction action, string expected) =>
         Run(action, actual => Assert.AreEqual(expected, actual));
 

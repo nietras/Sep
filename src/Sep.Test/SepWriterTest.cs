@@ -371,6 +371,26 @@ public class SepWriterTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
+    [TestMethod]
+    public void SepWriterTest_NoHeader_OnlyColumnsSetWritten()
+    {
+        using var writer = Sep.Writer(o => o with { WriteHeader = false, DisableColCountCheck = false }).ToText();
+        {
+            using var row = writer.NewRow();
+            row[0].Set("1");
+            row[2].Set("3");
+        }
+        {
+            using var row = writer.NewRow();
+            row[1].Set("2");
+        }
+        var expected =
+@"1;;3
+;2;
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static SepWriter CreateWriter() =>
         Sep.New(';').Writer().ToText();
 

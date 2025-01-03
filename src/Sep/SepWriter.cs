@@ -11,6 +11,7 @@ public sealed partial class SepWriter : IDisposable
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
+    internal readonly bool _disableColCountCheck; // P3afb
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -34,6 +35,7 @@ public sealed partial class SepWriter : IDisposable
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
+        _disableColCountCheck = options.DisableColCountCheck; // P4fd4
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
         Header = new(this);
@@ -69,12 +71,15 @@ public sealed partial class SepWriter : IDisposable
             // Note this prevents writing different number of cols (or less cols
             // than previous row) in case of no header written. Revisit this if
             // variable cols count is needed.
-            for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
+            if (!_disableColCountCheck) // P039d
             {
-                var col = cols[colIndex];
-                if (!col.HasBeenSet)
+                for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
                 {
-                    SepThrow.InvalidOperationException_NotAllColsSet(cols, _colNamesHeader);
+                    var col = cols[colIndex];
+                    if (!col.HasBeenSet)
+                    {
+                        SepThrow.InvalidOperationException_NotAllColsSet(cols, _colNamesHeader);
+                    }
                 }
             }
             A.Assert(!_writeHeader || cols.Count == _colNamesHeader.Length);

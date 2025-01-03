@@ -350,6 +350,27 @@ public class SepWriterTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck()
+    {
+        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true }).ToText();
+        {
+            using var row1 = writer.NewRow();
+            row1["A"].Set("1");
+            row1["B"].Set("2");
+        }
+        {
+            using var row2 = writer.NewRow();
+            row2["B"].Set("3");
+        }
+        var expected =
+@"A;B
+1;2
+;3
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static SepWriter CreateWriter() =>
         Sep.New(';').Writer().ToText();
 

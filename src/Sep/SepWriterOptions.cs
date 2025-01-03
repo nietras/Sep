@@ -11,6 +11,7 @@ public readonly record struct SepWriterOptions
         Sep = sep;
         CultureInfo = SepDefaults.CultureInfo;
         WriteHeader = true;
+        DisableColCountCheck = false;
     }
 
     /// <summary>
@@ -29,4 +30,8 @@ public readonly record struct SepWriterOptions
     /// added by indexing alone.
     /// </summary>
     public bool WriteHeader { get; init; } = true;
+    /// <summary>
+    /// Disables checking if column count is the same for all rows.
+    /// </summary>
+    public bool DisableColCountCheck { get; init; } = false;
 }

@@ -11,6 +11,7 @@ public readonly record struct SepWriterOptions
         Sep = sep;
         CultureInfo = SepDefaults.CultureInfo;
         WriteHeader = true;
+        Escape = false;
     }
 
     /// <summary>
@@ -29,4 +30,9 @@ public readonly record struct SepWriterOptions
     /// added by indexing alone.
     /// </summary>
     public bool WriteHeader { get; init; } = true;
+    /// <summary>
+    /// Specifies whether to escape column values
+    /// when writing. Default is false.
+    /// </summary>
+    public bool Escape { get; init; } = false;
 }

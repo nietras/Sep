@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text;
 
 namespace nietras.SeparatedValues;
 
@@ -11,6 +12,7 @@ public sealed partial class SepWriter : IDisposable
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
+    internal readonly bool _escape; // Added escape option
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -34,6 +36,7 @@ public sealed partial class SepWriter : IDisposable
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
+        _escape = options.Escape; // Initialize escape option
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
         Header = new(this);
@@ -92,9 +95,16 @@ public sealed partial class SepWriter : IDisposable
                     _writer.Write(_sep.Separator);
                 }
                 var sb = col.Text;
-                foreach (var chunk in sb.GetChunks())
+                if (_escape)
                 {
-                    _writer.Write(chunk.Span);
+                    WriteEscaped(sb);
+                }
+                else
+                {
+                    foreach (var chunk in sb.GetChunks())
+                    {
+                        _writer.Write(chunk.Span);
+                    }
                 }
                 notFirst = true;
             }
@@ -102,6 +112,56 @@ public sealed partial class SepWriter : IDisposable
         _writer.WriteLine();
 
         _newRowActive = false;
+    }
+
+    private void WriteEscaped(StringBuilder sb)
+    {
+        var quote = '"';
+        var separator = _sep.Separator;
+        var containsSpecialChar = false;
+
+        foreach (var chunk in sb.GetChunks())
+        {
+            var span = chunk.Span;
+            foreach (var c in span)
+            {
+                if (c == quote || c == separator || c == '\r' || c == '\n')
+                {
+                    containsSpecialChar = true;
+                    break;
+                }
+            }
+            if (containsSpecialChar) break;
+        }
+
+        if (containsSpecialChar)
+        {
+            _writer.Write(quote);
+            foreach (var chunk in sb.GetChunks())
+            {
+                var span = chunk.Span;
+                foreach (var c in span)
+                {
+                    if (c == quote)
+                    {
+                        _writer.Write(quote);
+                        _writer.Write(quote);
+                    }
+                    else
+                    {
+                        _writer.Write(c);
+                    }
+                }
+            }
+            _writer.Write(quote);
+        }
+        else
+        {
+            foreach (var chunk in sb.GetChunks())
+            {
+                _writer.Write(chunk.Span);
+            }
+        }
     }
 
     public void Flush() => _writer.Flush();

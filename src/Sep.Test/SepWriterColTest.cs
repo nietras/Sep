@@ -11,6 +11,8 @@ public class SepWriterColTest
     const int ColValue = 123456;
     const string ColText = "123456";
 
+    static readonly string NL = Environment.NewLine;
+
     [TestMethod]
     public void SepWriterColTest_ColIndex()
     {
@@ -109,83 +111,28 @@ public class SepWriterColTest
         Run(col => col.Format(ColValue));
     }
 
-    [TestMethod]
-    public void SepWriterColTest_Escape_SpecialCharacters()
+    // No escaping needed
+    [DataRow("", "")]
+    [DataRow(" ", " ")]
+    [DataRow("a", "a")]
+    [DataRow(",.|", ",.|")]
+    // Special characters - escaping needed
+    [DataRow(";", "\";\"")]
+    [DataRow("\r", "\"\r\"")]
+    [DataRow("\n", "\"\n\"")]
+    [DataRow("\"", "\"\"\"\"")]
+    [DataRow("\r\n", "\"\r\n\"")]
+    [DataRow("a;b\rc\nd\"e", "\"a;b\rc\nd\"\"e\"")]
+    [DataTestMethod]
+    public void SepWriterColTest_Escape(string textCol, string expectedCol)
     {
         using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
-            row["A"].Set("Value with, comma");
-            row["B"].Set("Value with; semicolon");
-            row["C"].Set("Value with\nnewline");
+            // Use both for col name and col value so both tested
+            row[textCol].Set(textCol);
         }
-        var expected = $"A;B;C{Environment.NewLine}\"Value with, comma\";\"Value with; semicolon\";\"Value with{Environment.NewLine}newline\"{Environment.NewLine}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterColTest_Escape_NestedQuotes()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("He said \"Hello\"");
-            row["B"].Set("She replied \"Hi\"");
-        }
-        var expected = $"A;B{Environment.NewLine}\"He said \"\"Hello\"\"\";\"She replied \"\"Hi\"\"\"{Environment.NewLine}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterColTest_Escape_MultilineValues()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Line1\nLine2");
-            row["B"].Set("Single line");
-        }
-        var expected = $"A;B{Environment.NewLine}\"Line1{Environment.NewLine}Line2\";Single line{Environment.NewLine}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterColTest_Escape_OnlyIfContainsSeparator()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with comma,");
-            row["B"].Set("Value without comma");
-        }
-        var expected = $"A;B{Environment.NewLine}\"Value with comma,\";Value without comma{Environment.NewLine}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterColTest_Escape_DifferentSeparator()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with pipe|");
-            row["B"].Set("Value without pipe");
-        }
-        var expected = $"A|B{Environment.NewLine}\"Value with pipe|\"|Value without pipe{Environment.NewLine}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterColTest_Escape_LineEndings()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with\r carriage return");
-            row["B"].Set("Value with\n line feed");
-            row["C"].Set("Value with\r\n carriage return and line feed");
-        }
-        var expected = $"A;B;C{Environment.NewLine}\"Value with\r carriage return\";\"Value with\n line feed\";\"Value with\r\n carriage return and line feed\"{Environment.NewLine}";
+        var expected = $"{expectedCol}{NL}{expectedCol}{NL}";
         Assert.AreEqual(expected, writer.ToString());
     }
 

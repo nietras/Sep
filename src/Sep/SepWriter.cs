@@ -114,7 +114,7 @@ public sealed partial class SepWriter : IDisposable
         _newRowActive = false;
     }
 
-    private void WriteEscaped(StringBuilder sb)
+    void WriteEscaped(StringBuilder sb)
     {
         var separator = _sep.Separator;
         uint containsSpecialChar = 0;
@@ -122,24 +122,8 @@ public sealed partial class SepWriter : IDisposable
         foreach (var chunk in sb.GetChunks())
         {
             var span = chunk.Span;
-            foreach (uint c in span)
-            {
-                containsSpecialChar |= c == separator ? 1u : 0u;
-                containsSpecialChar |= c == SepDefaults.Quote ? 1u : 0u;
-                containsSpecialChar |= c == SepDefaults.CarriageReturn ? 1u : 0u;
-                containsSpecialChar |= c == SepDefaults.LineFeed ? 1u : 0u;
-                //containsSpecialChar |= ((c == separator ? 1u : 0u)
-                //    | (c == SepDefaults.Quote ? 1u : 0u)
-                //    | (c == SepDefaults.CarriageReturn ? 1u : 0u)
-                //    | (c == SepDefaults.LineFeed ? 1u : 0u));
-                //if (c == SepDefaults.Quote || c == separator ||
-                //    c == SepDefaults.CarriageReturn || c == SepDefaults.LineFeed)
-                //{
-                //    containsSpecialChar = true;
-                //    break;
-                //}
-                if (containsSpecialChar != 0) { break; }
-            }
+            containsSpecialChar |= ContainsSpecialCharacters(separator, span);
+            if (containsSpecialChar != 0) { break; }
         }
 
         if (containsSpecialChar != 0)
@@ -148,18 +132,7 @@ public sealed partial class SepWriter : IDisposable
             foreach (var chunk in sb.GetChunks())
             {
                 var span = chunk.Span;
-                foreach (var c in span)
-                {
-                    if (c == SepDefaults.Quote)
-                    {
-                        _writer.Write(SepDefaults.Quote);
-                        _writer.Write(SepDefaults.Quote);
-                    }
-                    else
-                    {
-                        _writer.Write(c);
-                    }
-                }
+                WriteQuotesEscaped(span);
             }
             _writer.Write(SepDefaults.Quote);
         }
@@ -170,6 +143,58 @@ public sealed partial class SepWriter : IDisposable
                 _writer.Write(chunk.Span);
             }
         }
+    }
+
+    void WriteEscaped(ReadOnlySpan<char> span)
+    {
+        var containsSpecialChar = ContainsSpecialCharacters(_sep.Separator, span);
+        if (containsSpecialChar != 0)
+        {
+            _writer.Write(SepDefaults.Quote);
+            WriteQuotesEscaped(span);
+            _writer.Write(SepDefaults.Quote);
+        }
+        else
+        {
+            _writer.Write(span);
+        }
+    }
+
+    void WriteQuotesEscaped(ReadOnlySpan<char> span)
+    {
+        foreach (var c in span)
+        {
+            _writer.Write(c);
+            if (c == SepDefaults.Quote)
+            {
+                _writer.Write(SepDefaults.Quote);
+            }
+        }
+    }
+
+    static uint ContainsSpecialCharacters(char separator, ReadOnlySpan<char> span)
+    {
+        uint containsSpecialChar = 0;
+        foreach (uint c in span)
+        {
+            containsSpecialChar |= c == separator ? 1u : 0u;
+            containsSpecialChar |= c == SepDefaults.Quote ? 1u : 0u;
+            containsSpecialChar |= c == SepDefaults.CarriageReturn ? 1u : 0u;
+            containsSpecialChar |= c == SepDefaults.LineFeed ? 1u : 0u;
+            //containsSpecialChar |= ((c == separator ? 1u : 0u)
+            //    | (c == SepDefaults.Quote ? 1u : 0u)
+            //    | (c == SepDefaults.CarriageReturn ? 1u : 0u)
+            //    | (c == SepDefaults.LineFeed ? 1u : 0u));
+            //if (c == SepDefaults.Quote || c == separator ||
+            //    c == SepDefaults.CarriageReturn || c == SepDefaults.LineFeed)
+            //{
+            //    containsSpecialChar = true;
+            //    break;
+            //}
+            if (containsSpecialChar != 0) { break; }
+        }
+
+        return containsSpecialChar;
     }
 
     public void Flush() => _writer.Flush();
@@ -205,7 +230,14 @@ public sealed partial class SepWriter : IDisposable
                     _writer.Write(_sep.Separator);
                 }
                 var name = col.Name;
-                _writer.Write(name);
+                if (_escape)
+                {
+                    WriteEscaped(name);
+                }
+                else
+                {
+                    _writer.Write(name);
+                }
                 _colNamesHeader[colIndex] = name;
                 notFirstHeader = true;
             }

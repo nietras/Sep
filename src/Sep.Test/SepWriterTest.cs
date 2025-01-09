@@ -372,21 +372,34 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_NoHeader_OnlyColumnsSetWritten()
+    public void SepWriterTest_DisableColCountCheck_VariousScenarios()
     {
-        using var writer = Sep.Writer(o => o with { WriteHeader = false, DisableColCountCheck = false }).ToText();
+        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true }).ToText();
         {
-            using var row = writer.NewRow();
-            row[0].Set("1");
-            row[2].Set("3");
+            using var row1 = writer.NewRow();
+            row1["A"].Set("1");
         }
         {
-            using var row = writer.NewRow();
-            row[1].Set("2");
+            using var row2 = writer.NewRow();
+            row2["A"].Set("2");
+            row2["B"].Set("3");
+        }
+        {
+            using var row3 = writer.NewRow();
+            row3["C"].Set("4");
+        }
+        {
+            using var row4 = writer.NewRow();
+            row4["A"].Set("5");
+            row4["B"].Set("6");
+            row4["C"].Set("7");
         }
         var expected =
-@"1;;3
-;2;
+@"A
+1
+2;3
+;4
+5;6;7
 ";
         Assert.AreEqual(expected, writer.ToString());
     }

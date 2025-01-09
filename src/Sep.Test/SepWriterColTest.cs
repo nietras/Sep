@@ -112,8 +112,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_SpecialCharacters()
     {
-        var options = new SepWriterOptions { Escape = true };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("Value with, comma");
@@ -127,8 +126,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_NestedQuotes()
     {
-        var options = new SepWriterOptions { Escape = true };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("He said \"Hello\"");
@@ -141,8 +139,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_MultilineValues()
     {
-        var options = new SepWriterOptions { Escape = true };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("Line1\nLine2");
@@ -155,8 +152,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_OnlyIfContainsSeparator()
     {
-        var options = new SepWriterOptions { Escape = true };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("Value with comma,");
@@ -169,8 +165,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_DifferentSeparator()
     {
-        var options = new SepWriterOptions { Escape = true, Sep = new Sep('|') };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("Value with pipe|");
@@ -183,8 +178,7 @@ public class SepWriterColTest
     [TestMethod]
     public void SepWriterColTest_Escape_LineEndings()
     {
-        var options = new SepWriterOptions { Escape = true };
-        using var writer = Sep.Writer(options).ToText();
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
             row["A"].Set("Value with\r carriage return");

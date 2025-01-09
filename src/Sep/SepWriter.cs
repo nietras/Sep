@@ -117,24 +117,32 @@ public sealed partial class SepWriter : IDisposable
     private void WriteEscaped(StringBuilder sb)
     {
         var separator = _sep.Separator;
-        var containsSpecialChar = false;
+        uint containsSpecialChar = 0;
 
         foreach (var chunk in sb.GetChunks())
         {
             var span = chunk.Span;
-            foreach (var c in span)
+            foreach (uint c in span)
             {
-                if (c == SepDefaults.Quote || c == separator ||
-                    c == SepDefaults.CarriageReturn || c == SepDefaults.LineFeed)
-                {
-                    containsSpecialChar = true;
-                    break;
-                }
+                containsSpecialChar |= c == separator ? 1u : 0u;
+                containsSpecialChar |= c == SepDefaults.Quote ? 1u : 0u;
+                containsSpecialChar |= c == SepDefaults.CarriageReturn ? 1u : 0u;
+                containsSpecialChar |= c == SepDefaults.LineFeed ? 1u : 0u;
+                //containsSpecialChar |= ((c == separator ? 1u : 0u)
+                //    | (c == SepDefaults.Quote ? 1u : 0u)
+                //    | (c == SepDefaults.CarriageReturn ? 1u : 0u)
+                //    | (c == SepDefaults.LineFeed ? 1u : 0u));
+                //if (c == SepDefaults.Quote || c == separator ||
+                //    c == SepDefaults.CarriageReturn || c == SepDefaults.LineFeed)
+                //{
+                //    containsSpecialChar = true;
+                //    break;
+                //}
+                if (containsSpecialChar != 0) { break; }
             }
-            if (containsSpecialChar) break;
         }
 
-        if (containsSpecialChar)
+        if (containsSpecialChar != 0)
         {
             _writer.Write(SepDefaults.Quote);
             foreach (var chunk in sb.GetChunks())

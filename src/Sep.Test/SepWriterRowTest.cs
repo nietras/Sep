@@ -164,82 +164,23 @@ public class SepWriterRowTest
     }
 
     [TestMethod]
-    public void SepWriterRowTest_Escape_SpecialCharacters()
+    public void SepWriterRowTest_Escape()
     {
+        // Escape mainly tested in ColTest, here testing multiple cols and rows
         using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
-            row["A"].Set("Value with, comma");
-            row["B"].Set("Value with; semicolon");
-            row["C"].Set("Value with\nnewline");
+            row["A"].Set("a1");
+            row[";B"].Set("b1\r");
+            row["C\n"].Set("\nc1");
         }
-        var expected = $"A;B;C{NL}\"Value with, comma\";\"Value with; semicolon\";\"Value with{NL}newline\"{NL}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterRowTest_Escape_NestedQuotes()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
         {
             using var row = writer.NewRow();
-            row["A"].Set("He said \"Hello\"");
-            row["B"].Set("She replied \"Hi\"");
+            row["A"].Set("a2");
+            row[";B"].Set("\"b2\"");
+            row["C\n"].Set(";c2;");
         }
-        var expected = $"A;B{NL}\"He said \"\"Hello\"\"\";\"She replied \"\"Hi\"\"\"{NL}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterRowTest_Escape_MultilineValues()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Line1\nLine2");
-            row["B"].Set("Single line");
-        }
-        var expected = $"A;B{NL}\"Line1{NL}Line2\";Single line{NL}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterRowTest_Escape_OnlyIfContainsSeparator()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with comma,");
-            row["B"].Set("Value without comma");
-        }
-        var expected = $"A;B{NL}\"Value with comma,\";Value without comma{NL}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterRowTest_Escape_DifferentSeparator()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with pipe|");
-            row["B"].Set("Value without pipe");
-        }
-        var expected = $"A|B{NL}\"Value with pipe|\"|Value without pipe{NL}";
-        Assert.AreEqual(expected, writer.ToString());
-    }
-
-    [TestMethod]
-    public void SepWriterRowTest_Escape_LineEndings()
-    {
-        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("Value with\r carriage return");
-            row["B"].Set("Value with\n line feed");
-            row["C"].Set("Value with\r\n carriage return and line feed");
-        }
-        var expected = $"A;B;C{NL}\"Value with\r carriage return\";\"Value with\n line feed\";\"Value with\r\n carriage return and line feed\"{NL}";
+        var expected = $"A;\";B\";\"C\n\"{NL}a1;\"b1\r\";\"\nc1\"{NL}a2;\"\"\"b2\"\"\";\";c2;\"{NL}";
         Assert.AreEqual(expected, writer.ToString());
     }
 

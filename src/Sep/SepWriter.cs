@@ -116,7 +116,6 @@ public sealed partial class SepWriter : IDisposable
 
     private void WriteEscaped(StringBuilder sb)
     {
-        var quote = '"';
         var separator = _sep.Separator;
         var containsSpecialChar = false;
 
@@ -125,7 +124,8 @@ public sealed partial class SepWriter : IDisposable
             var span = chunk.Span;
             foreach (var c in span)
             {
-                if (c == quote || c == separator || c == '\r' || c == '\n')
+                if (c == SepDefaults.Quote || c == separator ||
+                    c == SepDefaults.CarriageReturn || c == SepDefaults.LineFeed)
                 {
                     containsSpecialChar = true;
                     break;
@@ -136,16 +136,16 @@ public sealed partial class SepWriter : IDisposable
 
         if (containsSpecialChar)
         {
-            _writer.Write(quote);
+            _writer.Write(SepDefaults.Quote);
             foreach (var chunk in sb.GetChunks())
             {
                 var span = chunk.Span;
                 foreach (var c in span)
                 {
-                    if (c == quote)
+                    if (c == SepDefaults.Quote)
                     {
-                        _writer.Write(quote);
-                        _writer.Write(quote);
+                        _writer.Write(SepDefaults.Quote);
+                        _writer.Write(SepDefaults.Quote);
                     }
                     else
                     {
@@ -153,7 +153,7 @@ public sealed partial class SepWriter : IDisposable
                     }
                 }
             }
-            _writer.Write(quote);
+            _writer.Write(SepDefaults.Quote);
         }
         else
         {

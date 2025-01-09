@@ -826,6 +826,11 @@ public CultureInfo? CultureInfo { get; init; }
 /// added by indexing alone.
 /// </summary>
 public bool WriteHeader { get; init; } = true;
+/// <summary>
+/// Specifies whether to escape column values
+/// when writing. Default is false.
+/// </summary>
+public bool Escape { get; init; } = false;
 ```
 
 ## Limitations and Constraints
@@ -1860,8 +1865,8 @@ namespace nietras.SeparatedValues
         public bool MoveNext() { }
         public string ToString(int index) { }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Col
@@ -1875,8 +1880,8 @@ namespace nietras.SeparatedValues
             public bool TryParse<T>(out T value)
                 where T : System.ISpanParsable<T> { }
         }
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Cols
@@ -1900,8 +1905,8 @@ namespace nietras.SeparatedValues
         }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
         [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepReader.Row.DebugView))]
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Row
@@ -2030,8 +2035,8 @@ namespace nietras.SeparatedValues
         public void Flush() { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public override string ToString() { }
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public struct Row : System.IDisposable
@@ -2044,8 +2049,8 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
             public void Dispose() { }
         }
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Col
@@ -2074,8 +2079,8 @@ namespace nietras.SeparatedValues
                 public void AppendLiteral(string value) { }
             }
         }
-        [System.Obsolete("Types with embedded references are not supported in this version of your compiler" +
-            ".", true)]
+        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+            "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
         public readonly struct Cols
@@ -2129,6 +2134,7 @@ namespace nietras.SeparatedValues
         public SepWriterOptions() { }
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool Escape { get; init; }
         public nietras.SeparatedValues.Sep Sep { get; init; }
         public bool WriteHeader { get; init; }
     }

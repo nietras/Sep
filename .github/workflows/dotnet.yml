@@ -31,7 +31,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup .NET
+      - name: Setup .NET (old versions)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: | 
+            7.0.x
+            8.0.x
+      - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -78,7 +84,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup .NET
+      - name: Setup .NET (old versions)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: | 
+            7.0.x
+            8.0.x
+      - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -100,7 +112,13 @@ jobs:
         if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
         run: |
           git tag v${{ github.event.inputs.version }}
-      - name: Setup .NET
+      - name: Setup .NET (old versions)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: | 
+            7.0.x
+            8.0.x
+      - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json

@@ -32,16 +32,21 @@ public readonly record struct SepWriterOptions
     /// </summary>
     public bool WriteHeader { get; init; } = true;
     /// <summary>
-    /// Disables checking if column count is the same for all rows.
+    /// Disables checking if column count is the 
+    /// same for all rows.
     /// </summary>
     /// <remarks>
-    /// When true, any row written will contain only columns that have been set
-    /// for that row regardless of header. If any columns are missing, then
-    /// columns of a row may, therefore, be out of sync with column names. That
-    /// is, there may be gaps. When header is written it is not possible to
-    /// write more columns than in the header column. If a header is not
-    /// written, then any number of columns can be written as long as done
-    /// sequentially.
+    /// When true, any row written will contain 
+    /// only columns that have been set for that 
+    /// row regardless of header. If any columns 
+    /// are missing, then columns of a row may, 
+    /// therefore, be out of sync with column 
+    /// names. That is, there may be gaps. When 
+    /// header is written it is not possible to
+    /// write more columns than in the header 
+    /// column. If a header is not written, then 
+    /// any number of columns can be written as 
+    /// long as done sequentially.
     /// </remarks>
     public bool DisableColCountCheck { get; init; } = false;
     /// <summary>

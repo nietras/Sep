@@ -115,7 +115,7 @@ jobs:
       - name: Setup .NET (old versions)
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: | 
+          dotnet-version: |
             7.0.x
             8.0.x
       - name: Setup .NET (global.json)

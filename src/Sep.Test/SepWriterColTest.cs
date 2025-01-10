@@ -11,6 +11,8 @@ public class SepWriterColTest
     const int ColValue = 123456;
     const string ColText = "123456";
 
+    static readonly string NL = Environment.NewLine;
+
     [TestMethod]
     public void SepWriterColTest_ColIndex()
     {
@@ -107,6 +109,31 @@ public class SepWriterColTest
     public void SepWriterColTest_Format()
     {
         Run(col => col.Format(ColValue));
+    }
+
+    // No escaping needed
+    [DataRow("", "")]
+    [DataRow(" ", " ")]
+    [DataRow("a", "a")]
+    [DataRow(",.|", ",.|")]
+    // Special characters - escaping needed
+    [DataRow(";", "\";\"")]
+    [DataRow("\r", "\"\r\"")]
+    [DataRow("\n", "\"\n\"")]
+    [DataRow("\"", "\"\"\"\"")]
+    [DataRow("\r\n", "\"\r\n\"")]
+    [DataRow("a;b\rc\nd\"e", "\"a;b\rc\nd\"\"e\"")]
+    [DataTestMethod]
+    public void SepWriterColTest_Escape(string textCol, string expectedCol)
+    {
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
+        {
+            using var row = writer.NewRow();
+            // Use both for col name and col value so both tested
+            row[textCol].Set(textCol);
+        }
+        var expected = $"{expectedCol}{NL}{expectedCol}{NL}";
+        Assert.AreEqual(expected, writer.ToString());
     }
 
     static void Run(SepWriter.ColAction action, string? expectedColValue = ColText, CultureInfo? cultureInfo = null)

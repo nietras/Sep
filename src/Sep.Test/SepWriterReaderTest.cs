@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -32,5 +33,26 @@ public class SepWriterReaderTest
         }
         // Assert
         Assert.AreEqual(rowCount, actualRowCount);
+    }
+
+    [TestMethod]
+    public void SepWriterReaderTest_EscapeUnescapeRoundTrip()
+    {
+        string[] columnNames = ["A", ";B", "C\n", "\"D\""];
+        string[] columnValues = ["\ra1", "b1\r\nb2", ";c1;", "\"d1\"\r\n"];
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
+        {
+            using var writeRow = writer.NewRow();
+            writeRow[columnNames].Set(columnValues);
+        }
+
+        using var reader = Sep.Reader(o => o with { Unescape = true }).FromText(writer.ToString());
+        Assert.IsTrue(reader.HasRows);
+        CollectionAssert.AreEqual(columnNames, reader.Header.ColNames.ToArray());
+        foreach (var readRow in reader)
+        {
+            var columnValuesRead = readRow[columnNames].ToStringsArray();
+            CollectionAssert.AreEqual(columnValues, columnValuesRead);
+        }
     }
 }

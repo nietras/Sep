@@ -4,6 +4,10 @@
     <RootNamespace>nietras.SeparatedValues.XyzTest</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsPackable>false</IsPackable>
+
+    <!-- PublicApiGenerator references System.CodeDom which annoying warns about
+         net7.0 so have to suppress all -->
+    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
   </PropertyGroup>
 
   <ItemGroup>

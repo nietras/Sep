@@ -827,9 +827,17 @@ public CultureInfo? CultureInfo { get; init; }
 /// </summary>
 public bool WriteHeader { get; init; } = true;
 /// <summary>
-/// Specifies whether to escape column values
-/// when writing. Default is false.
+/// Specifies whether to escape column values 
+/// when writing.
 /// </summary>
+/// <remarks>
+/// When true, if a column contains a separator 
+/// (e.g. `;`), carriage return (`\r`), line 
+/// feed (`\n` or quote (`"`) then the column 
+/// is prefixed and suffixed with quotes `"` 
+/// and any quote in the column is escaped by
+/// adding an extra quote so it becomes `""`.
+/// </remarks>
 public bool Escape { get; init; } = false;
 ```
 

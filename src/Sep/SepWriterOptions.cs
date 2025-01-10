@@ -31,8 +31,8 @@ public readonly record struct SepWriterOptions
     /// </summary>
     public bool WriteHeader { get; init; } = true;
     /// <summary>
-    /// Specifies whether to escape column values 
-    /// when writing.
+    /// Specifies whether to escape column names 
+    /// and values when writing.
     /// </summary>
     /// <remarks>
     /// When true, if a column contains a separator 
@@ -41,6 +41,8 @@ public readonly record struct SepWriterOptions
     /// is prefixed and suffixed with quotes `"` 
     /// and any quote in the column is escaped by
     /// adding an extra quote so it becomes `""`.
+    /// Note that escape applies to column names 
+    /// too, but only the written name.
     /// </remarks>
     public bool Escape { get; init; } = false;
 }

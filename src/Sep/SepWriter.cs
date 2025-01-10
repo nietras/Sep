@@ -13,7 +13,7 @@ public sealed partial class SepWriter : IDisposable
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
-    internal readonly bool _escape; // Added escape option
+    readonly bool _escape;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -37,7 +37,7 @@ public sealed partial class SepWriter : IDisposable
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
-        _escape = options.Escape; // Initialize escape option
+        _escape = options.Escape;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
         Header = new(this);

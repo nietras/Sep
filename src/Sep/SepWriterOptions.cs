@@ -35,6 +35,7 @@ public readonly record struct SepWriterOptions
     /// Disables checking if column count is the same for all rows.
     /// </summary>
     public bool DisableColCountCheck { get; init; } = false;
+    /// <summary>
     /// Specifies whether to escape column names 
     /// and values when writing.
     /// </summary>

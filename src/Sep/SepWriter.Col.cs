@@ -84,6 +84,138 @@ public partial class SepWriter
             ArrayPool<char>.Shared.Return(_buffer);
             _buffer = null!;
         }
+
+        [InterpolatedStringHandler]
+        public ref struct AppendInterpolatedStringHandler
+        {
+            private ColBuilder _builder;
+            private IFormatProvider? _provider;
+
+            public AppendInterpolatedStringHandler(int literalLength, int formattedCount, ColBuilder builder, IFormatProvider? provider = null)
+            {
+                _builder = builder;
+                _provider = provider;
+            }
+
+            public void AppendLiteral(string value)
+            {
+                _builder.Append(value.AsSpan());
+            }
+
+            public void AppendFormatted<T>(T value)
+            {
+                if (value is IFormattable formattable)
+                {
+                    _builder.Append(formattable.ToString(null, _provider).AsSpan());
+                }
+                else
+                {
+                    _builder.Append(value?.ToString().AsSpan() ?? ReadOnlySpan<char>.Empty);
+                }
+            }
+
+            public void AppendFormatted<T>(T value, string? format)
+            {
+                if (value is IFormattable formattable)
+                {
+                    _builder.Append(formattable.ToString(format, _provider).AsSpan());
+                }
+                else
+                {
+                    _builder.Append(value?.ToString().AsSpan() ?? ReadOnlySpan<char>.Empty);
+                }
+            }
+
+            public void AppendFormatted<T>(T value, int alignment)
+            {
+                AppendFormatted(value, alignment, null);
+            }
+
+            public void AppendFormatted<T>(T value, int alignment, string? format)
+            {
+                string? formattedValue;
+                if (value is IFormattable formattable)
+                {
+                    formattedValue = formattable.ToString(format, _provider);
+                }
+                else
+                {
+                    formattedValue = value?.ToString();
+                }
+
+                if (formattedValue != null)
+                {
+                    if (alignment > 0)
+                    {
+                        _builder.Append(formattedValue.PadLeft(alignment).AsSpan());
+                    }
+                    else if (alignment < 0)
+                    {
+                        _builder.Append(formattedValue.PadRight(-alignment).AsSpan());
+                    }
+                    else
+                    {
+                        _builder.Append(formattedValue.AsSpan());
+                    }
+                }
+            }
+
+            public void AppendFormatted(ReadOnlySpan<char> value)
+            {
+                _builder.Append(value);
+            }
+
+            public void AppendFormatted(ReadOnlySpan<char> value, int alignment = 0, string? format = null)
+            {
+                if (alignment > 0)
+                {
+                    _builder.Append(value.ToString().PadLeft(alignment).AsSpan());
+                }
+                else if (alignment < 0)
+                {
+                    _builder.Append(value.ToString().PadRight(-alignment).AsSpan());
+                }
+                else
+                {
+                    _builder.Append(value);
+                }
+            }
+
+            public void AppendFormatted(string? value)
+            {
+                if (value != null)
+                {
+                    _builder.Append(value.AsSpan());
+                }
+            }
+
+            public void AppendFormatted(string? value, int alignment = 0, string? format = null)
+            {
+                if (value != null)
+                {
+                    if (alignment > 0)
+                    {
+                        _builder.Append(value.PadLeft(alignment).AsSpan());
+                    }
+                    else if (alignment < 0)
+                    {
+                        _builder.Append(value.PadRight(-alignment).AsSpan());
+                    }
+                    else
+                    {
+                        _builder.Append(value.AsSpan());
+                    }
+                }
+            }
+
+            public void AppendFormatted(object? value, int alignment = 0, string? format = null)
+            {
+                if (value != null)
+                {
+                    AppendFormatted(value.ToString().AsSpan(), alignment, format);
+                }
+            }
+        }
     }
 
 #pragma warning disable CA1815 // Override equals and operator equals on value types

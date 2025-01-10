@@ -95,14 +95,14 @@ public sealed partial class SepWriter : IDisposable
                 {
                     _writer.Write(_sep.Separator);
                 }
-                var sb = col.Text;
+                var span = col.GetSpan();
                 if (_escape)
                 {
-                    WriteEscaped(sb);
+                    WriteEscaped(span);
                 }
                 else
                 {
-                    _writer.Write(sb.GetSpan());
+                    _writer.Write(span);
                 }
                 notFirst = true;
             }
@@ -155,26 +155,6 @@ public sealed partial class SepWriter : IDisposable
             _writer.WriteLine();
         }
         _headerWrittenOrSkipped = true;
-    }
-
-    void WriteEscaped(ColBuilder sb)
-    {
-        var separator = _sep.Separator;
-        uint containsSpecialChar = 0;
-
-        var span = sb.GetSpan();
-        containsSpecialChar |= ContainsSpecialCharacters(span, separator);
-
-        if (containsSpecialChar != 0)
-        {
-            _writer.Write(SepDefaults.Quote);
-            WriteQuotesEscaped(span);
-            _writer.Write(SepDefaults.Quote);
-        }
-        else
-        {
-            _writer.Write(span);
-        }
     }
 
     void WriteEscaped(ReadOnlySpan<char> span)
@@ -270,7 +250,7 @@ public sealed partial class SepWriter : IDisposable
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)
         {
-            col.Text.Dispose();
+            col.Dispose();
         }
         _colNameToCol.Clear();
     }

@@ -11,45 +11,30 @@ public partial class SepWriter
     internal sealed class ColImpl
     {
         internal readonly SepWriter _writer;
-
-        public ColImpl(SepWriter writer, int index, string name, ColBuilder text)
-        {
-            _writer = writer;
-            Index = index;
-            Name = name;
-            Text = text;
-        }
-
-        public int Index { get; private set; }
-        public string Name { get; }
-        public ColBuilder Text { get; }
-        public bool HasBeenSet { get; set; } = false;
-
-        public void Clear() { HasBeenSet = false; Text.Clear(); }
-    }
-
-    internal sealed class ColBuilder : IDisposable
-    {
         private const int MinimumLength = 64;
         private char[] _buffer;
         private int _position;
 
-        public ColBuilder()
+        public ColImpl(SepWriter writer, int index, string name)
         {
+            _writer = writer;
+            Index = index;
+            Name = name;
             _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
             _position = 0;
         }
+
+        public int Index { get; private set; }
+        public string Name { get; }
+        public bool HasBeenSet { get; set; } = false;
+
+        public void Clear() { HasBeenSet = false; _position = 0; }
 
         public void Append(ReadOnlySpan<char> value)
         {
             EnsureCapacity(value.Length);
             value.CopyTo(_buffer.AsSpan(_position));
             _position += value.Length;
-        }
-
-        public void Clear()
-        {
-            _position = 0;
         }
 
         public ReadOnlyMemory<char> GetMemory()
@@ -88,10 +73,10 @@ public partial class SepWriter
         [InterpolatedStringHandler]
         public ref struct AppendInterpolatedStringHandler
         {
-            private ColBuilder _builder;
+            private ColImpl _builder;
             private IFormatProvider? _provider;
 
-            public AppendInterpolatedStringHandler(int literalLength, int formattedCount, ColBuilder builder, IFormatProvider? provider = null)
+            public AppendInterpolatedStringHandler(int literalLength, int formattedCount, ColImpl builder, IFormatProvider? provider = null)
             {
                 _builder = builder;
                 _provider = provider;
@@ -253,7 +238,7 @@ public partial class SepWriter
 
         public void Set(ReadOnlySpan<char> span)
         {
-            var text = _impl.Text;
+            var text = _impl;
             text.Clear();
             text.Append(span);
             MarkSet();
@@ -262,9 +247,8 @@ public partial class SepWriter
         public void Format<T>(T value) where T : ISpanFormattable
         {
             var impl = _impl;
-            var text = impl.Text;
-            text.Clear();
-            var handler = new ColBuilder.AppendInterpolatedStringHandler(0, 1, text, impl._writer._cultureInfo);
+            impl.Clear();
+            var handler = new ColImpl.AppendInterpolatedStringHandler(0, 1, impl, impl._writer._cultureInfo);
             handler.AppendFormatted(value);
             MarkSet();
         }
@@ -277,22 +261,20 @@ public partial class SepWriter
 #pragma warning restore CA1815 // Override equals and operator equals on value types
         {
             readonly ColImpl _impl;
-            readonly ColBuilder.AppendInterpolatedStringHandler _handler;
+            readonly ColImpl.AppendInterpolatedStringHandler _handler;
 
             public FormatInterpolatedStringHandler(int literalLength, int formattedCount, Col col)
             {
                 _impl = col._impl;
-                var text = _impl.Text;
-                text.Clear();
-                _handler = new(literalLength, formattedCount, text, _impl._writer._cultureInfo);
+                _impl.Clear();
+                _handler = new(literalLength, formattedCount, _impl, _impl._writer._cultureInfo);
             }
 
             public FormatInterpolatedStringHandler(int literalLength, int formattedCount, Col col, IFormatProvider? provider)
             {
                 _impl = col._impl;
-                var text = _impl.Text;
-                text.Clear();
-                _handler = new(literalLength, formattedCount, text, provider);
+                _impl.Clear();
+                _handler = new(literalLength, formattedCount, _impl, provider);
             }
 
             public void AppendLiteral(string value)

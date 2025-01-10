@@ -167,8 +167,7 @@ public sealed partial class SepWriter : IDisposable
 
         foreach (var chunk in sb.GetChunks())
         {
-            var span = chunk.Span;
-            containsSpecialChar |= ContainsSpecialCharacters(span, separator);
+            containsSpecialChar |= ContainsSpecialCharacters(chunk.Span, separator);
             if (containsSpecialChar != 0) { break; }
         }
 
@@ -177,8 +176,7 @@ public sealed partial class SepWriter : IDisposable
             _writer.Write(SepDefaults.Quote);
             foreach (var chunk in sb.GetChunks())
             {
-                var span = chunk.Span;
-                WriteQuotesEscaped(span);
+                WriteQuotesEscaped(chunk.Span);
             }
             _writer.Write(SepDefaults.Quote);
         }

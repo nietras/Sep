@@ -351,55 +351,58 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck()
+    public void SepWriterTest_DisableColCountCheck_Header()
     {
         using var writer = Sep.Writer(o => o with { DisableColCountCheck = true }).ToText();
         {
-            using var row1 = writer.NewRow();
-            row1["A"].Set("1");
-            row1["B"].Set("2");
+            using var row = writer.NewRow();
+            row["A"].Set("1");
+            row["B"].Set("2");
         }
         {
-            using var row2 = writer.NewRow();
-            row2["B"].Set("3");
+            using var row = writer.NewRow();
+            row["B"].Set("3");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("4");
         }
         var expected =
 @"A;B
 1;2
-;3
+3
+4
 ";
         Assert.AreEqual(expected, writer.ToString());
     }
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck_VariousScenarios()
+    public void SepWriterTest_DisableColCountCheck_NoHeader()
     {
-        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true }).ToText();
+        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true, WriteHeader = false }).ToText();
         {
-            using var row1 = writer.NewRow();
-            row1["A"].Set("1");
+            using var row = writer.NewRow();
+            row["A"].Set("1");
+            row["B"].Set("2");
+
         }
         {
-            using var row2 = writer.NewRow();
-            row2["A"].Set("2");
-            row2["B"].Set("3");
+            using var row = writer.NewRow();
+            row[0].Set("3");
+            row[1].Set("4");
+            row[2].Set("5");
+            row[3].Set("6");
         }
         {
-            using var row3 = writer.NewRow();
-            row3["C"].Set("4");
-        }
-        {
-            using var row4 = writer.NewRow();
-            row4["A"].Set("5");
-            row4["B"].Set("6");
-            row4["C"].Set("7");
+            using var row = writer.NewRow();
+            row["A"].Set("7");
+            row[2].Set("9");
+            row[1].Set("8");
         }
         var expected =
-@"A
-1
-2;3
-;4
-5;6;7
+@"1;2
+3;4;5;6
+7;8;9
 ";
         Assert.AreEqual(expected, writer.ToString());
     }

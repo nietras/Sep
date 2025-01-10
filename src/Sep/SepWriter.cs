@@ -38,7 +38,7 @@ public sealed partial class SepWriter : IDisposable
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
-        _disableColCountCheck = options.DisableColCountCheck; // P4fd4
+        _disableColCountCheck = options.DisableColCountCheck;
         _escape = options.Escape;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
@@ -75,7 +75,7 @@ public sealed partial class SepWriter : IDisposable
             // Note this prevents writing different number of cols (or less cols
             // than previous row) in case of no header written. Revisit this if
             // variable cols count is needed.
-            if (!_disableColCountCheck) // P039d
+            if (!_disableColCountCheck)
             {
                 for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
                 {
@@ -96,23 +96,26 @@ public sealed partial class SepWriter : IDisposable
             for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
             {
                 var col = cols[colIndex];
-                if (notFirst)
+                if (col.HasBeenSet)
                 {
-                    _writer.Write(_sep.Separator);
-                }
-                var sb = col.Text;
-                if (_escape)
-                {
-                    WriteEscaped(sb);
-                }
-                else
-                {
-                    foreach (var chunk in sb.GetChunks())
+                    if (notFirst)
                     {
-                        _writer.Write(chunk.Span);
+                        _writer.Write(_sep.Separator);
                     }
+                    var sb = col.Text;
+                    if (_escape)
+                    {
+                        WriteEscaped(sb);
+                    }
+                    else
+                    {
+                        foreach (var chunk in sb.GetChunks())
+                        {
+                            _writer.Write(chunk.Span);
+                        }
+                    }
+                    notFirst = true;
                 }
-                notFirst = true;
             }
         }
         _writer.WriteLine();

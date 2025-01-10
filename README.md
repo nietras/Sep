@@ -828,8 +828,21 @@ public CultureInfo? CultureInfo { get; init; }
 /// </summary>
 public bool WriteHeader { get; init; } = true;
 /// <summary>
-/// Specifies whether to escape column values 
-/// when writing.
+/// Disables checking if column count is the same for all rows.
+/// </summary>
+/// <remarks>
+/// When true, any row written will contain only columns that have been set
+/// for that row regardless of header. If any columns are missing, then
+/// columns of a row may, therefore, be out of sync with column names. That
+/// is, there may be gaps. When header is written it is not possible to
+/// write more columns than in the header column. If a header is not
+/// written, then any number of columns can be written as long as done
+/// sequentially.
+/// </remarks>
+public bool DisableColCountCheck { get; init; } = false;
+/// <summary>
+/// Specifies whether to escape column names 
+/// and values when writing.
 /// </summary>
 /// <remarks>
 /// When true, if a column contains a separator 
@@ -838,6 +851,8 @@ public bool WriteHeader { get; init; } = true;
 /// is prefixed and suffixed with quotes `"` 
 /// and any quote in the column is escaped by
 /// adding an extra quote so it becomes `""`.
+/// Note that escape applies to column names 
+/// too, but only the written name.
 /// </remarks>
 public bool Escape { get; init; } = false;
 ```
@@ -2143,6 +2158,7 @@ namespace nietras.SeparatedValues
         public SepWriterOptions() { }
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool DisableColCountCheck { get; init; }
         public bool Escape { get; init; }
         public nietras.SeparatedValues.Sep Sep { get; init; }
         public bool WriteHeader { get; init; }

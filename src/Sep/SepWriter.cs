@@ -209,17 +209,16 @@ public sealed partial class SepWriter : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static uint ContainsSpecialCharacters(ReadOnlySpan<char> span, char separator)
     {
-        uint containsSpecialChar = 0;
         foreach (var c in span)
         {
             var se = c == separator ? 1u : 0u;
             var qe = c == SepDefaults.Quote ? 1u : 0u;
             var ce = c == SepDefaults.CarriageReturn ? 1u : 0u;
             var le = c == SepDefaults.LineFeed ? 1u : 0u;
-            containsSpecialChar |= (se | qe) | (ce | le);
-            if (containsSpecialChar != 0) { break; }
+            var containsSpecialChar = (se | qe) | (ce | le);
+            if (containsSpecialChar != 0) { return 1; }
         }
-        return containsSpecialChar;
+        return 0;
 
         // http://0x80.pl/notesen/2023-03-06-swar-find-any.html
         // Tried adopting to 16-bit char (only little endian) (DOES NOT WORK)

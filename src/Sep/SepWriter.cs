@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace nietras.SeparatedValues;
 
@@ -11,6 +13,7 @@ public sealed partial class SepWriter : IDisposable
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
+    readonly bool _escape;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -34,6 +37,7 @@ public sealed partial class SepWriter : IDisposable
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
+        _escape = options.Escape;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
         Header = new(this);
@@ -92,9 +96,16 @@ public sealed partial class SepWriter : IDisposable
                     _writer.Write(_sep.Separator);
                 }
                 var sb = col.Text;
-                foreach (var chunk in sb.GetChunks())
+                if (_escape)
                 {
-                    _writer.Write(chunk.Span);
+                    WriteEscaped(sb);
+                }
+                else
+                {
+                    foreach (var chunk in sb.GetChunks())
+                    {
+                        _writer.Write(chunk.Span);
+                    }
                 }
                 notFirst = true;
             }
@@ -137,13 +148,127 @@ public sealed partial class SepWriter : IDisposable
                     _writer.Write(_sep.Separator);
                 }
                 var name = col.Name;
-                _writer.Write(name);
+
+                if (_escape) { WriteEscaped(name); }
+                else { _writer.Write(name); }
+
                 _colNamesHeader[colIndex] = name;
                 notFirstHeader = true;
             }
             _writer.WriteLine();
         }
         _headerWrittenOrSkipped = true;
+    }
+
+    void WriteEscaped(StringBuilder sb)
+    {
+        var separator = _sep.Separator;
+        uint containsSpecialChar = 0;
+
+        foreach (var chunk in sb.GetChunks())
+        {
+            containsSpecialChar |= ContainsSpecialCharacters(chunk.Span, separator);
+            if (containsSpecialChar != 0) { break; }
+        }
+
+        if (containsSpecialChar != 0)
+        {
+            _writer.Write(SepDefaults.Quote);
+            foreach (var chunk in sb.GetChunks())
+            {
+                WriteQuotesEscaped(chunk.Span);
+            }
+            _writer.Write(SepDefaults.Quote);
+        }
+        else
+        {
+            foreach (var chunk in sb.GetChunks())
+            {
+                _writer.Write(chunk.Span);
+            }
+        }
+    }
+
+    void WriteEscaped(ReadOnlySpan<char> span)
+    {
+        var containsSpecialChar = ContainsSpecialCharacters(span, _sep.Separator);
+        if (containsSpecialChar != 0)
+        {
+            _writer.Write(SepDefaults.Quote);
+            WriteQuotesEscaped(span);
+            _writer.Write(SepDefaults.Quote);
+        }
+        else
+        {
+            _writer.Write(span);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static uint ContainsSpecialCharacters(ReadOnlySpan<char> span, char separator)
+    {
+        foreach (var c in span)
+        {
+            var se = c == separator ? 1u : 0u;
+            var qe = c == SepDefaults.Quote ? 1u : 0u;
+            var ce = c == SepDefaults.CarriageReturn ? 1u : 0u;
+            var le = c == SepDefaults.LineFeed ? 1u : 0u;
+            var containsSpecialChar = (se | qe) | (ce | le);
+            if (containsSpecialChar != 0) { return 1; }
+        }
+        return 0;
+
+        // http://0x80.pl/notesen/2023-03-06-swar-find-any.html
+        // Tried adopting to 16-bit char (only little endian) (DOES NOT WORK)
+        //var specialCharacters = (ulong)separator << 48 | SepDefaults.Quote << 32 | SepDefaults.CarriageReturn << 16 | SepDefaults.LineFeed;
+        //foreach (var c in span)
+        //{
+        //    var broadcast = Broadcast(c);
+        //    var compare = broadcast ^ specialCharacters; // Zero if equal since XOR
+        //    var hasZero = HasZero(compare);
+        //    if (hasZero != 0)
+        //    {
+        //        return 1u;
+        //    }
+        //}
+        //return 0u;
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //static ulong Broadcast(char c) => 0x0001000100010001ul * c;
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //static ulong HasZero(ulong v) => ((v - 0x0001000100010001ul) & ~(v) & 0x8000800080008000);
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //static ulong IndexOfFirstSet(ulong v) => ((((v - 1) & 0x0001000100010001ul) * 0x0001000100010001ul) >> 60) - 1;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void WriteQuotesEscaped(ReadOnlySpan<char> span)
+    {
+        var start = 0;
+        while (start < span.Length)
+        {
+            var remainingSpan = span.Slice(start);
+            var quoteIndex = remainingSpan.IndexOf(SepDefaults.Quote);
+            if (quoteIndex == -1)
+            {
+                _writer.Write(remainingSpan);
+                break;
+            }
+            else
+            {
+                _writer.Write(remainingSpan.Slice(0, quoteIndex + 1));
+                _writer.Write(SepDefaults.Quote);
+                start += quoteIndex + 1;
+            }
+        }
+        // Original basic loop implementation
+        //foreach (var c in span)
+        //{
+        //    _writer.Write(c);
+        //    if (c == SepDefaults.Quote)
+        //    {
+        //        _writer.Write(SepDefaults.Quote);
+        //    }
+        //}
     }
 
     void DisposeManaged()

@@ -163,6 +163,27 @@ public class SepWriterRowTest
         row.Dispose();
     }
 
+    [TestMethod]
+    public void SepWriterRowTest_Escape()
+    {
+        // Escape mainly tested in ColTest, here testing multiple cols and rows
+        using var writer = Sep.Writer(o => o with { Escape = true }).ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("a1");
+            row[";B"].Set("b1\r");
+            row["C\n"].Set("\nc1");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("a2");
+            row[";B"].Set("\"b2\"");
+            row["C\n"].Set(";c2;");
+        }
+        var expected = $"A;\";B\";\"C\n\"{NL}a1;\"b1\r\";\"\nc1\"{NL}a2;\"\"\"b2\"\"\";\";c2;\"{NL}";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
     static void Run(SepWriter.RowAction action, string expected) =>
         Run(action, actual => Assert.AreEqual(expected, actual));
 

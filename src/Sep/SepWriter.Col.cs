@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,7 +12,7 @@ public partial class SepWriter
     {
         internal readonly SepWriter _writer;
 
-        public ColImpl(SepWriter writer, int index, string name, StringBuilder text)
+        public ColImpl(SepWriter writer, int index, string name, ColBuilder text)
         {
             _writer = writer;
             Index = index;
@@ -21,10 +22,68 @@ public partial class SepWriter
 
         public int Index { get; private set; }
         public string Name { get; }
-        public StringBuilder Text { get; }
+        public ColBuilder Text { get; }
         public bool HasBeenSet { get; set; } = false;
 
         public void Clear() { HasBeenSet = false; Text.Clear(); }
+    }
+
+    internal sealed class ColBuilder : IDisposable
+    {
+        private const int MinimumLength = 64;
+        private char[] _buffer;
+        private int _position;
+
+        public ColBuilder()
+        {
+            _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
+            _position = 0;
+        }
+
+        public void Append(ReadOnlySpan<char> value)
+        {
+            EnsureCapacity(value.Length);
+            value.CopyTo(_buffer.AsSpan(_position));
+            _position += value.Length;
+        }
+
+        public void Clear()
+        {
+            _position = 0;
+        }
+
+        public ReadOnlyMemory<char> GetMemory()
+        {
+            return _buffer.AsMemory(0, _position);
+        }
+
+        public ReadOnlySpan<char> GetSpan()
+        {
+            return _buffer.AsSpan(0, _position);
+        }
+
+        private void EnsureCapacity(int additionalLength)
+        {
+            if (_position + additionalLength > _buffer.Length)
+            {
+                GrowBuffer(additionalLength);
+            }
+        }
+
+        private void GrowBuffer(int additionalLength)
+        {
+            int newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
+            char[] newBuffer = ArrayPool<char>.Shared.Rent(newSize);
+            _buffer.AsSpan(0, _position).CopyTo(newBuffer);
+            ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = newBuffer;
+        }
+
+        public void Dispose()
+        {
+            ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = null!;
+        }
     }
 
 #pragma warning disable CA1815 // Override equals and operator equals on value types
@@ -73,7 +132,7 @@ public partial class SepWriter
             var impl = _impl;
             var text = impl.Text;
             text.Clear();
-            var handler = new StringBuilder.AppendInterpolatedStringHandler(0, 1, text, impl._writer._cultureInfo);
+            var handler = new ColBuilder.AppendInterpolatedStringHandler(0, 1, text, impl._writer._cultureInfo);
             handler.AppendFormatted(value);
             MarkSet();
         }
@@ -86,7 +145,7 @@ public partial class SepWriter
 #pragma warning restore CA1815 // Override equals and operator equals on value types
         {
             readonly ColImpl _impl;
-            readonly StringBuilder.AppendInterpolatedStringHandler _handler;
+            readonly ColBuilder.AppendInterpolatedStringHandler _handler;
 
             public FormatInterpolatedStringHandler(int literalLength, int formattedCount, Col col)
             {

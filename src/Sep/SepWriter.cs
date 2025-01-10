@@ -102,10 +102,7 @@ public sealed partial class SepWriter : IDisposable
                 }
                 else
                 {
-                    foreach (var chunk in sb.GetChunks())
-                    {
-                        _writer.Write(chunk.Span);
-                    }
+                    _writer.Write(sb.GetSpan());
                 }
                 notFirst = true;
             }
@@ -160,32 +157,23 @@ public sealed partial class SepWriter : IDisposable
         _headerWrittenOrSkipped = true;
     }
 
-    void WriteEscaped(StringBuilder sb)
+    void WriteEscaped(ColBuilder sb)
     {
         var separator = _sep.Separator;
         uint containsSpecialChar = 0;
 
-        foreach (var chunk in sb.GetChunks())
-        {
-            containsSpecialChar |= ContainsSpecialCharacters(chunk.Span, separator);
-            if (containsSpecialChar != 0) { break; }
-        }
+        var span = sb.GetSpan();
+        containsSpecialChar |= ContainsSpecialCharacters(span, separator);
 
         if (containsSpecialChar != 0)
         {
             _writer.Write(SepDefaults.Quote);
-            foreach (var chunk in sb.GetChunks())
-            {
-                WriteQuotesEscaped(chunk.Span);
-            }
+            WriteQuotesEscaped(span);
             _writer.Write(SepDefaults.Quote);
         }
         else
         {
-            foreach (var chunk in sb.GetChunks())
-            {
-                _writer.Write(chunk.Span);
-            }
+            _writer.Write(span);
         }
     }
 
@@ -282,7 +270,7 @@ public sealed partial class SepWriter : IDisposable
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)
         {
-            SepStringBuilderPool.Return(col.Text);
+            col.Text.Dispose();
         }
         _colNameToCol.Clear();
     }

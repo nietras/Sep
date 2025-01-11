@@ -127,7 +127,6 @@ public partial class SepWriter
         {
             readonly ColImpl _impl;
             DefaultInterpolatedStringHandler _handler;
-            //readonly ColImpl.AppendInterpolatedStringHandler _handler;
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
@@ -140,11 +139,9 @@ public partial class SepWriter
             {
                 _impl = col._impl;
                 _impl.Clear();
-                //_handler = new(literalLength, formattedCount, _impl, _impl._writer._cultureInfo);
                 _handler = new(literalLength, formattedCount, _impl._writer._cultureInfo, _impl._buffer);
                 Position(ref _handler) = _impl._position;
                 ArrayToReturnToPool(ref _handler) = _impl._buffer;
-                //_provider = provider;
             }
 
 
@@ -155,7 +152,6 @@ public partial class SepWriter
                 _handler = new(literalLength, formattedCount, provider, _impl._buffer);
                 Position(ref _handler) = _impl._position;
                 ArrayToReturnToPool(ref _handler) = _impl._buffer;
-                //_handler = new(literalLength, formattedCount, _impl, provider);
             }
 
             public void AppendLiteral(string value)

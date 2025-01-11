@@ -34,7 +34,7 @@ changes to input or output. What you read/write is what you get. E.g. by default
 there is no "automatic" escaping/unescaping of quotes or trimming of spaces. To
 enable this see [SepReaderOptions](#sepreaderoptions) and
 [Unescaping](#unescaping) and [Trimming](#trimming). See
-[SepWriterOptions](#sepwriteroptions) for escaping.
+[SepWriterOptions](#sepwriteroptions) for [Escaping](#escaping).
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
@@ -868,6 +868,32 @@ public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Th
 /// </remarks>
 public bool Escape { get; init; } = false;
 ```
+
+#### Escaping
+Escaping is not enabled by default in Sep, but when it is it gives the same
+results as other popular CSV librares as shown below. Although, CsvHelper
+appears to be escaping spaces as well, which is not necessary.
+
+| Input | CsvHelper | Sylvan | Sep¹ |
+|-|-|-|-|
+| `` | | | |
+| `·` | `"·"` | `·` | `·` |
+| `a` | `a` | `a` | `a` |
+| `;` | `";"` | `";"` | `";"` |
+| `,` | `,` | `,` | `,` |
+| `"` | `""""` | `""""` | `""""` |
+| `\r` | `"\r"` | `"\r"` | `"\r"` |
+| `\n` | `"\n"` | `"\n"` | `"\n"` |
+| `a"aa"aaa` | `"a""aa""aaa"` | `"a""aa""aaa"` | `"a""aa""aaa"` |
+| `a;aa;aaa` | `"a;aa;aaa"` | `"a;aa;aaa"` | `"a;aa;aaa"` |
+
+Separator/delimiter is set to semi-colon `;` (default for Sep)
+
+`·` (middle dot) is whitespace to make this visible
+
+`\r`, `\n` are carriage return and line feed special characters to make these visible
+
+¹ Sep with `Escape = true` in `SepWriterOptions`
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and

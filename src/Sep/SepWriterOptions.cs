@@ -11,6 +11,7 @@ public readonly record struct SepWriterOptions
         Sep = sep;
         CultureInfo = SepDefaults.CultureInfo;
         WriteHeader = true;
+        DisableColCountCheck = false;
         Escape = false;
     }
 
@@ -30,6 +31,31 @@ public readonly record struct SepWriterOptions
     /// added by indexing alone.
     /// </summary>
     public bool WriteHeader { get; init; } = true;
+    /// <summary>
+    /// Disables checking if column count is the 
+    /// same for all rows.
+    /// </summary>
+    /// <remarks>
+    /// When true, the <see cref="ColNotSetOption"/>
+    /// will define how columns that are not set
+    /// are handled. For example, whether to skip
+    /// or write an empty column if a column has
+    /// not been set for a given row.
+    /// <para>
+    /// If any columns are skipped, then columns of
+    /// a row may, therefore, be out of sync with
+    /// column names if <see cref="WriteHeader"/>
+    /// is true.
+    /// </para>
+    /// As such, any number of columns can be
+    /// written as long as done sequentially.
+    /// </remarks>
+    public bool DisableColCountCheck { get; init; } = false;
+    /// <summary>
+    /// Specifies how to handle columns that are 
+    /// not set.
+    /// </summary>
+    public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Throw;
     /// <summary>
     /// Specifies whether to escape column names 
     /// and values when writing.

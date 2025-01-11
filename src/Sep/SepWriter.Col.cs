@@ -2,7 +2,6 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace nietras.SeparatedValues;
 
@@ -73,8 +72,8 @@ public partial class SepWriter
         [InterpolatedStringHandler]
         public ref struct AppendInterpolatedStringHandler
         {
-            private ColImpl _builder;
-            private IFormatProvider? _provider;
+            readonly ColImpl _builder;
+            readonly IFormatProvider? _provider;
 
             public AppendInterpolatedStringHandler(int literalLength, int formattedCount, ColImpl builder, IFormatProvider? provider = null)
             {
@@ -95,7 +94,7 @@ public partial class SepWriter
                 }
                 else
                 {
-                    _builder.Append(value?.ToString().AsSpan() ?? ReadOnlySpan<char>.Empty);
+                    _builder.Append(value?.ToString() ?? ReadOnlySpan<char>.Empty);
                 }
             }
 
@@ -107,7 +106,7 @@ public partial class SepWriter
                 }
                 else
                 {
-                    _builder.Append(value?.ToString().AsSpan() ?? ReadOnlySpan<char>.Empty);
+                    _builder.Append(value?.ToString() ?? ReadOnlySpan<char>.Empty);
                 }
             }
 
@@ -257,7 +256,7 @@ public partial class SepWriter
         [EditorBrowsable(EditorBrowsableState.Never)]
         [InterpolatedStringHandler]
 #pragma warning disable CA1815 // Override equals and operator equals on value types
-        public readonly struct FormatInterpolatedStringHandler
+        public readonly ref struct FormatInterpolatedStringHandler
 #pragma warning restore CA1815 // Override equals and operator equals on value types
         {
             readonly ColImpl _impl;

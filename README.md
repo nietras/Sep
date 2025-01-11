@@ -34,7 +34,7 @@ changes to input or output. What you read/write is what you get. E.g. by default
 there is no "automatic" escaping/unescaping of quotes or trimming of spaces. To
 enable this see [SepReaderOptions](#sepreaderoptions) and
 [Unescaping](#unescaping) and [Trimming](#trimming). See
-[SepWriterOptions](#sepwriteroptions) for escaping.
+[SepWriterOptions](#sepwriteroptions) for [Escaping](#escaping).
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for

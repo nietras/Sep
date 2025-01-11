@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
@@ -22,16 +23,16 @@ if (args.Length > 0)
 {
     var config = (Debugger.IsAttached ? new DebugInProcessConfig() : DefaultConfig.Instance)
         .WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(200))
-        .AddColumn(MBPerSecFromCharsLength())
+        //.AddColumn(MBPerSecFromCharsLength())
         ;
-    //BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args, config);
+    BenchmarkSwitcher.FromAssembly(Assembly.GetExecutingAssembly()).Run(args, config);
     //BenchmarkRunner.Run(typeof(SepReaderBench), config, args);
     //BenchmarkRunner.Run(typeof(SepWriterBench), config, args);
     //BenchmarkRunner.Run(typeof(SepReaderWriterBench), config, args);
     //BenchmarkRunner.Run(typeof(SepEndToEndBench), config, args);
     //BenchmarkRunner.Run(typeof(SepHashBench), config, args);
     //BenchmarkRunner.Run(typeof(SepParseSeparatorsMaskBench), config, args);
-    BenchmarkRunner.Run(typeof(SepParserBench), config, args);
+    //BenchmarkRunner.Run(typeof(SepParserBench), config, args);
     //BenchmarkRunner.Run(typeof(StopwatchBench), config, args);
 }
 else

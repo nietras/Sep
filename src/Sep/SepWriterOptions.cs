@@ -55,11 +55,7 @@ public readonly record struct SepWriterOptions
     /// Specifies how to handle columns that are 
     /// not set.
     /// </summary>
-    /// <remarks>
-    /// Relevant if <see cref="DisableColCountCheck"/> 
-    /// is true.
-    /// </remarks>
-    public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Empty;
+    public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Throw;
     /// <summary>
     /// Specifies whether to escape column names 
     /// and values when writing.

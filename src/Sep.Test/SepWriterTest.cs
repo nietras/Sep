@@ -177,6 +177,32 @@ public class SepWriterTest
     }
 
     [TestMethod]
+    public void SepWriterTest_ColMissingInSecondRow_ColNotSetEmpty()
+    {
+        using var writer = Sep.Writer(
+            o => o with { ColNotSetOption = SepColNotSetOption.Empty }).ToText();
+        {
+            using var row1 = writer.NewRow();
+            row1["A"].Set("1");
+            row1["B"].Set("2");
+        }
+        {
+            var row2 = writer.NewRow();
+            row2["B"].Set("3");
+            var e = AssertThrowsException<InvalidOperationException>(row2,
+                r => { r.Dispose(); });
+            // TODO: Make detailed exception message
+            Assert.AreEqual("Not all expected columns 'A,B' have been set.", e.Message);
+        }
+        // Expected output should only be valid rows
+        var expected =
+@"A;B
+1;2
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterTest_ToString_ToStreamWriter_Throws()
     {
         using var stream = new MemoryStream();
@@ -351,6 +377,47 @@ public class SepWriterTest
     }
 
     [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_Header_LessColumns_Throws()
+    {
+        var options = new SepWriterOptions { DisableColCountCheck = true };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+        }
+        Assert.ThrowsException<InvalidOperationException>(() =>
+        {
+            using var row = writer.NewRow();
+            row["B"].Set("R2C2");
+        });
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_Header_MoreColumns_Ok()
+    {
+        var options = new SepWriterOptions { DisableColCountCheck = true };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R2C1");
+            row["B"].Set("R2C2");
+            row[2].Set("R2C3");
+        };
+        var expected =
+@"A;B
+R1C1;R1C2
+R2C1;R2C2;R2C3
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterTest_DisableColCountCheck_ColNotSetSkip_Header()
     {
         var options = new SepWriterOptions
@@ -426,6 +493,46 @@ R3C1;;R3C3
         Assert.AreEqual(expected, writer.ToString());
     }
 
+
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_NoHeader_LessColumns_Throws()
+    {
+        var options = new SepWriterOptions { WriteHeader = false, DisableColCountCheck = true };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+        }
+        Assert.ThrowsException<InvalidOperationException>(() =>
+        {
+            using var row = writer.NewRow();
+            row["B"].Set("R2C2");
+        });
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_NoHeader_MoreColumns_Ok()
+    {
+        var options = new SepWriterOptions { WriteHeader = false, DisableColCountCheck = true };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R2C1");
+            row["B"].Set("R2C2");
+            row[2].Set("R2C3");
+        };
+        var expected =
+@"R1C1;R1C2
+R2C1;R2C2;R2C3
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
     [TestMethod]
     public void SepWriterTest_DisableColCountCheck_ColNotSetSkip_NoHeader()
     {

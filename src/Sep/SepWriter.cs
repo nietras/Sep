@@ -65,7 +65,6 @@ public sealed partial class SepWriter : IDisposable
     {
         if (!_newRowActive) { SepThrow.InvalidOperationException_WriterDoesNotHaveActiveRow(); }
 
-        A.Assert(!_writeHeader || _colNameToCol.Count == _cols.Count);
         var cols = _cols;
 
         // Header
@@ -73,19 +72,22 @@ public sealed partial class SepWriter : IDisposable
         {
             WriteHeader();
         }
-        else if (!_disableColCountCheck)
+        else if (_colNotSetOption == SepColNotSetOption.Throw || !_disableColCountCheck)
         {
             var colSetCount = 0;
             for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
             {
-                var col = cols[colIndex];
-                colSetCount += col.HasBeenSet ? 1 : 0;
+                var colSet = cols[colIndex].HasBeenSet;
+                colSetCount += colSet ? 1 : 0;
+                if (_colNotSetOption == SepColNotSetOption.Throw && !colSet)
+                {
+                    SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader);
+                }
             }
-            if (colSetCount != _headerOrFirstRowColCount)
+            if (!_disableColCountCheck && colSetCount != _headerOrFirstRowColCount)
             {
                 SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader);
             }
-            A.Assert(!_writeHeader || cols.Count == _colNamesHeader.Length);
         }
 
         // New Row

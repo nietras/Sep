@@ -851,11 +851,7 @@ public bool DisableColCountCheck { get; init; } = false;
 /// Specifies how to handle columns that are 
 /// not set.
 /// </summary>
-/// <remarks>
-/// Relevant if <see cref="DisableColCountCheck"/> 
-/// is true.
-/// </remarks>
-public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Empty;
+public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Throw;
 /// <summary>
 /// Specifies whether to escape column names 
 /// and values when writing.
@@ -1887,8 +1883,9 @@ namespace nietras.SeparatedValues
     }
     public enum SepColNotSetOption : byte
     {
-        Empty = 0,
-        Skip = 1,
+        Throw = 0,
+        Empty = 1,
+        Skip = 2,
     }
     public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepReaderHeader? maybeHeader, int colCount);
     public static class SepDefaults

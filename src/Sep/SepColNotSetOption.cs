@@ -6,6 +6,10 @@
 public enum SepColNotSetOption : byte
 {
     /// <summary>
+    /// Throw exception if a column is not set.
+    /// </summary>
+    Throw,
+    /// <summary>
     /// Write empty column if it is not set.
     /// </summary>
     Empty,

@@ -2104,8 +2104,12 @@ namespace nietras.SeparatedValues
             public void Set(System.IFormatProvider? provider, [System.Runtime.CompilerServices.InterpolatedStringHandlerArgument(new string?[]?[] {
                     "",
                     "provider"})] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }
+            [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
+                "."), true)]
+            [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
             [System.Runtime.CompilerServices.InterpolatedStringHandler]
-            public readonly struct FormatInterpolatedStringHandler
+            [System.Runtime.CompilerServices.IsByRefLike]
+            public struct FormatInterpolatedStringHandler
             {
                 public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col) { }
                 public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col, System.IFormatProvider? provider) { }

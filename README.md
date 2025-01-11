@@ -869,6 +869,33 @@ public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Th
 public bool Escape { get; init; } = false;
 ```
 
+#### Escaping
+Escaping is not enabled by default in Sep, but when it is it gives the same
+results as other popular CSV librares as shown below. Although, CsvHelper
+appears to be escaping spaces as well, which is not necessary.
+
+| Input | CsvHelper | Sylvan | Sep¹ |
+|-|-|-|-|
+| `` | | | |
+| `·` | `"·"` | `·` | `·` |
+| `a` | `a` | `a` | `a` |
+| `;` | `";"` | `";"` | `";"` |
+| `,` | `,` | `,` | `,` |
+| `"` | `""""` | `""""` | `""""` |
+| `\r` | `"\r"` | `"\r"` | `"\r"` |
+| `\n` | `"\n"` | `"\n"` | `"\n"` |
+| `a"aa"aaa` | `"a""aa""aaa"` | `"a""aa""aaa"` | `"a""aa""aaa"` |
+| `a;aa;aaa` | `"a;aa;aaa"` | `"a;aa;aaa"` | `"a;aa;aaa"` |
+
+Separator/delimiter is set to semi-colon `;` (default for Sep)
+
+`·` (middle dot) is whitespace to make this visible
+
+`\r`, `\n` are carriage return and line feed special characters to make these visible
+
+¹ Sep with `Escape = true` in `SepWriterOptions`
+
+
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and
 constraints, since these are not needed for the initial intended usage:

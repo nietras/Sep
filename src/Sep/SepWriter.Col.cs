@@ -54,168 +54,6 @@ public partial class SepWriter
             ArrayPool<char>.Shared.Return(_buffer);
             _buffer = newBuffer;
         }
-
-        //[InterpolatedStringHandler]
-        //public ref struct AppendInterpolatedStringHandler
-        //{
-        //    readonly ColImpl _builder;
-        //    DefaultInterpolatedStringHandler _defaultHandler;
-        //    //readonly IFormatProvider? _provider;
-
-        //    public AppendInterpolatedStringHandler(int literalLength, int formattedCount, ColImpl builder, IFormatProvider? provider = null)
-        //    {
-        //        A.Assert(builder._buffer is not null || (builder._buffer is null && builder._position == 0));
-        //        _builder = builder;
-        //        _defaultHandler = new(literalLength, formattedCount, provider, builder._buffer ?? default);
-        //        ArrayToReturnToPool(ref _defaultHandler) = builder._buffer;
-        //        Position(ref _defaultHandler) = builder._position;
-        //        //_provider = provider;
-        //    }
-
-        //    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
-        //    static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
-        //    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
-        //    static extern ref char[]? ArrayToReturnToPool(ref DefaultInterpolatedStringHandler handler);
-
-        //    public void AppendLiteral(string value)
-        //    {
-        //        _defaultHandler.AppendLiteral(value);
-        //        //_builder.Append(value.AsSpan());
-        //    }
-
-        //    public void AppendFormatted<T>(T value)
-        //    {
-        //        _defaultHandler.AppendFormatted(value);
-        //        //if (value is IFormattable formattable)
-        //        //{
-        //        //    _builder.Append(formattable.ToString(null, _provider).AsSpan());
-        //        //}
-        //        //else
-        //        //{
-        //        //    _builder.Append(value?.ToString() ?? ReadOnlySpan<char>.Empty);
-        //        //}
-        //    }
-
-        //    public void AppendFormatted<T>(T value, string? format)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, format);
-        //        //if (value is IFormattable formattable)
-        //        //{
-        //        //    _builder.Append(formattable.ToString(format, _provider).AsSpan());
-        //        //}
-        //        //else
-        //        //{
-        //        //    _builder.Append(value?.ToString() ?? ReadOnlySpan<char>.Empty);
-        //        //}
-        //    }
-
-        //    public void AppendFormatted<T>(T value, int alignment)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, alignment);
-        //        //AppendFormatted(value, alignment, null);
-        //    }
-
-        //    public void AppendFormatted<T>(T value, int alignment, string? format)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, alignment, format);
-        //        //string? formattedValue;
-        //        //if (value is IFormattable formattable)
-        //        //{
-        //        //    formattedValue = formattable.ToString(format, _provider);
-        //        //}
-        //        //else
-        //        //{
-        //        //    formattedValue = value?.ToString();
-        //        //}
-        //        //if (formattedValue != null)
-        //        //{
-        //        //    if (alignment > 0)
-        //        //    {
-        //        //        _builder.Append(formattedValue.PadLeft(alignment).AsSpan());
-        //        //    }
-        //        //    else if (alignment < 0)
-        //        //    {
-        //        //        _builder.Append(formattedValue.PadRight(-alignment).AsSpan());
-        //        //    }
-        //        //    else
-        //        //    {
-        //        //        _builder.Append(formattedValue.AsSpan());
-        //        //    }
-        //        //}
-        //    }
-
-        //    public void AppendFormatted(ReadOnlySpan<char> value)
-        //    {
-        //        _defaultHandler.AppendFormatted(value);
-        //        //_builder.Append(value);
-        //    }
-
-        //    public void AppendFormatted(ReadOnlySpan<char> value, int alignment = 0, string? format = null)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, alignment, format);
-        //        //if (alignment > 0)
-        //        //{
-        //        //    _builder.Append(value.ToString().PadLeft(alignment).AsSpan());
-        //        //}
-        //        //else if (alignment < 0)
-        //        //{
-        //        //    _builder.Append(value.ToString().PadRight(-alignment).AsSpan());
-        //        //}
-        //        //else
-        //        //{
-        //        //    _builder.Append(value);
-        //        //}
-        //    }
-
-        //    public void AppendFormatted(string? value)
-        //    {
-        //        _defaultHandler.AppendFormatted(value);
-        //        //if (value != null)
-        //        //{
-        //        //    _builder.Append(value.AsSpan());
-        //        //}
-        //    }
-
-        //    public void AppendFormatted(string? value, int alignment = 0, string? format = null)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, alignment, format);
-        //        //if (value != null)
-        //        //{
-        //        //    if (alignment > 0)
-        //        //    {
-        //        //        _builder.Append(value.PadLeft(alignment).AsSpan());
-        //        //    }
-        //        //    else if (alignment < 0)
-        //        //    {
-        //        //        _builder.Append(value.PadRight(-alignment).AsSpan());
-        //        //    }
-        //        //    else
-        //        //    {
-        //        //        _builder.Append(value.AsSpan());
-        //        //    }
-        //        //}
-        //    }
-
-        //    public void AppendFormatted(object? value, int alignment = 0, string? format = null)
-        //    {
-        //        _defaultHandler.AppendFormatted(value, alignment, format);
-        //        //if (value != null)
-        //        //{
-        //        //    AppendFormatted(value.ToString().AsSpan(), alignment, format);
-        //        //}
-        //    }
-
-        //    internal void Finish()
-        //    {
-        //        ref var handlerArrayRef = ref ArrayToReturnToPool(ref _defaultHandler);
-        //        _builder._buffer = handlerArrayRef;
-        //        _builder._position = Position(ref _defaultHandler);
-        //        handlerArrayRef = null;
-        //        _defaultHandler = default;
-        //    }
-        //}
     }
 
 #pragma warning disable CA1815 // Override equals and operator equals on value types
@@ -277,9 +115,6 @@ public partial class SepWriter
                 handler.AppendFormatted(value);
                 handler.Finish();
             }
-            //var handler = new ColImpl.AppendInterpolatedStringHandler(0, 1, impl, impl._writer._cultureInfo);
-            //handler.AppendFormatted(value);
-            //handler.Finish();
             MarkSet();
         }
 
@@ -383,13 +218,13 @@ public partial class SepWriter
                 MarkSet();
             }
 
-            void MarkSet() { _impl.HasBeenSet = true; }//Finish(); }
+            void MarkSet() => _impl.HasBeenSet = true;
 
             internal void Finish()
-            //=> _handler.Finish();
             {
                 ref var handlerArrayRef = ref ArrayToReturnToPool(ref _handler);
-                _impl._buffer = handlerArrayRef;
+                A.Assert(handlerArrayRef is not null);
+                _impl._buffer = handlerArrayRef!;
                 _impl._position = Position(ref _handler);
                 handlerArrayRef = null;
                 _handler = default;

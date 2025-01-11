@@ -82,7 +82,7 @@ static class SepThrow
     }
 
     [DoesNotReturn]
-    internal static void InvalidOperationException_NotAllColsSet(List<ColImpl> cols, string[] colNamesHeader)
+    internal static void InvalidOperationException_NotAllExpectedColsSet(List<ColImpl> cols, string[] colNamesHeader)
     {
         // TODO: Make detailed exception
         if (colNamesHeader.Length == 0)

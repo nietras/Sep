@@ -111,6 +111,26 @@ public class SepWriterColTest
         Run(col => col.Format(ColValue));
     }
 
+    [TestMethod]
+    public void SepWriterColTest_Format_Long()
+    {
+        var f = new LongSpanFormattable();
+        Run(col => col.Format(f), f.Text);
+    }
+
+    public class LongSpanFormattable : ISpanFormattable
+    {
+        public string Text { get; } = new('a', 2048);
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => Text;
+
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            charsWritten = Text.Length;
+            return Text.TryCopyTo(destination);
+        }
+    }
+
     // No escaping needed
     [DataRow("", "")]
     [DataRow(" ", " ")]

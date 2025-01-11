@@ -1,31 +1,21 @@
 ﻿using System;
 using System.Buffers;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace nietras.SeparatedValues;
 
 public partial class SepWriter
 {
-    internal sealed class ColImpl
+    internal sealed class ColImpl(SepWriter writer, int index, string name)
     {
-        internal readonly SepWriter _writer;
         internal const int MinimumLength = 64;
-        internal char[]? _buffer = null;
-        internal int _position;
+        internal readonly SepWriter _writer = writer;
+        internal char[] _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
+        internal int _position = 0;
 
-        public ColImpl(SepWriter writer, int index, string name)
-        {
-            _writer = writer;
-            Index = index;
-            Name = name;
-            _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
-            _position = 0;
-        }
-
-        public int Index { get; private set; }
-        public string Name { get; }
+        public int Index { get; } = index;
+        public string Name { get; } = name;
         public bool HasBeenSet { get; set; } = false;
 
         public void Clear() { HasBeenSet = false; _position = 0; }
@@ -37,49 +27,32 @@ public partial class SepWriter
             _position += value.Length;
         }
 
-        public ReadOnlyMemory<char> GetMemory()
-        {
-            return _buffer.AsMemory(0, _position);
-        }
-
         public ReadOnlySpan<char> GetSpan()
         {
             return _buffer.AsSpan(0, _position);
         }
 
-        [MemberNotNull(nameof(_buffer))]
-        private void EnsureCapacity(int additionalLength)
+        public void Dispose()
         {
-            if (_buffer is null || _position + additionalLength > _buffer.Length)
+            ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = null!;
+        }
+
+        void EnsureCapacity(int additionalLength)
+        {
+            if (_position + additionalLength > _buffer.Length)
             {
                 GrowBuffer(additionalLength);
             }
         }
 
-        [MemberNotNull(nameof(_buffer))]
-        private void GrowBuffer(int additionalLength)
+        void GrowBuffer(int additionalLength)
         {
-            if (_buffer is not null)
-            {
-                int newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
-                char[] newBuffer = ArrayPool<char>.Shared.Rent(newSize);
-                _buffer.AsSpan(0, _position).CopyTo(newBuffer);
-                ArrayPool<char>.Shared.Return(_buffer);
-                _buffer = newBuffer;
-            }
-            else
-            {
-                _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
-            }
-        }
-
-        public void Dispose()
-        {
-            if (_buffer is not null)
-            {
-                ArrayPool<char>.Shared.Return(_buffer);
-                _buffer = null;
-            }
+            int newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
+            char[] newBuffer = ArrayPool<char>.Shared.Rent(newSize);
+            _buffer.AsSpan(0, _position).CopyTo(newBuffer);
+            ArrayPool<char>.Shared.Return(_buffer);
+            _buffer = newBuffer;
         }
 
         //[InterpolatedStringHandler]

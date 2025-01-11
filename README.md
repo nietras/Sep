@@ -895,7 +895,6 @@ Separator/delimiter is set to semi-colon `;` (default for Sep)
 
 ¹ Sep with `Escape = true` in `SepWriterOptions`
 
-
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and
 constraints, since these are not needed for the initial intended usage:

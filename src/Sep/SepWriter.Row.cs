@@ -89,7 +89,7 @@ public partial class SepWriter
     internal ColImpl GetOrAddCol(int colIndex)
     {
         var cols = _cols;
-        if (colIndex == cols.Count && !_writeHeader)
+        if (colIndex == cols.Count && (!_writeHeader || _disableColCountCheck))
         {
             var col = new ColImpl(this, colIndex, string.Empty, SepStringBuilderPool.Take());
             _cols.Add(col);

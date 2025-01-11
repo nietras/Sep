@@ -351,58 +351,162 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck_Header()
+    public void SepWriterTest_DisableColCountCheck_ColNotSetSkip_Header()
     {
-        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true }).ToText();
+        var options = new SepWriterOptions
+        {
+            DisableColCountCheck = true,
+            ColNotSetOption = SepColNotSetOption.Skip,
+        };
+        using var writer = options.ToText();
         {
             using var row = writer.NewRow();
-            row["A"].Set("1");
-            row["B"].Set("2");
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
         }
         {
             using var row = writer.NewRow();
-            row["B"].Set("3");
+            row["B"].Set("R2C2");
         }
         {
             using var row = writer.NewRow();
-            row["A"].Set("4");
+            row["A"].Set("R3C1");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R4C1");
+            row[2].Set("R4C3");
         }
         var expected =
 @"A;B
-1;2
-3
-4
+R1C1;R1C2
+R2C2
+R3C1
+R4C1;R4C3
 ";
         Assert.AreEqual(expected, writer.ToString());
     }
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck_NoHeader()
+    public void SepWriterTest_DisableColCountCheck_ColNotSetEmpty_Header()
     {
-        using var writer = Sep.Writer(o => o with { DisableColCountCheck = true, WriteHeader = false }).ToText();
+        var options = new SepWriterOptions
+        {
+            DisableColCountCheck = true,
+            ColNotSetOption = SepColNotSetOption.Empty,
+        };
+        using var writer = options.ToText();
         {
             using var row = writer.NewRow();
-            row["A"].Set("1");
-            row["B"].Set("2");
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+            row["C"].Set("R1C3");
+        }
+        {
+            using var row = writer.NewRow();
+            row["B"].Set("R2C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R3C1");
+            row["C"].Set("R3C3");
+        }
+        {
+            using var row = writer.NewRow();
+            row["B"].Set("R4C2");
+            row[3].Set("R4C4");
+        }
+        var expected =
+@"A;B;C
+R1C1;R1C2;R1C3
+;R2C2;
+R3C1;;R3C3
+;R4C2;;R4C4
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetSkip_NoHeader()
+    {
+        var options = new SepWriterOptions
+        {
+            WriteHeader = false,
+            DisableColCountCheck = true,
+            ColNotSetOption = SepColNotSetOption.Skip,
+        };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
 
         }
         {
             using var row = writer.NewRow();
-            row[0].Set("3");
-            row[1].Set("4");
-            row[2].Set("5");
-            row[3].Set("6");
+            row[0].Set("R2C1");
+            row[1].Set("R2C2");
+            row[2].Set("R2C3");
+            row[3].Set("R2C4");
         }
         {
             using var row = writer.NewRow();
-            row["A"].Set("7");
-            row[2].Set("9");
-            row[1].Set("8");
+            row["A"].Set("R3C1");
+            row[2].Set("R3C3");
+            row[1].Set("R3C2");
         }
         var expected =
-@"1;2
-3;4;5;6
-7;8;9
+@"R1C1;R1C2
+R2C1;R2C2;R2C3;R2C4
+R3C1;R3C2;R3C3
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DisableColCountCheck_ColNotSetEmpty_NoHeader()
+    {
+        var options = new SepWriterOptions
+        {
+            WriteHeader = false,
+            DisableColCountCheck = true,
+            ColNotSetOption = SepColNotSetOption.Empty,
+        };
+        using var writer = options.ToText();
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R1C1");
+            row["B"].Set("R1C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row["B"].Set("R2C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row[0].Set("R3C1");
+            row[1].Set("R3C2");
+            row[2].Set("R3C3");
+            row[3].Set("R3C4");
+        }
+        {
+            using var row = writer.NewRow();
+            row["A"].Set("R4C1");
+            row[2].Set("R4C3");
+            row[1].Set("R4C2");
+        }
+        {
+            using var row = writer.NewRow();
+            row[2].Set("R5C3");
+        }
+        // Note how empty columns are written depending on previously written
+        // maximum column count
+        var expected =
+@"R1C1;R1C2
+;R2C2
+R3C1;R3C2;R3C3;R3C4
+R4C1;R4C2;R4C3;
+;;R5C3;
 ";
         Assert.AreEqual(expected, writer.ToString());
     }

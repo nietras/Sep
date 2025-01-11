@@ -14,6 +14,7 @@ public class SepWriterOptionsTest
         Assert.AreSame(SepDefaults.CultureInfo, sut.CultureInfo);
         Assert.IsTrue(sut.WriteHeader);
         Assert.IsFalse(sut.DisableColCountCheck);
+        Assert.AreEqual(SepColNotSetOption.Empty, sut.ColNotSetOption);
         Assert.IsFalse(sut.Escape);
     }
 }

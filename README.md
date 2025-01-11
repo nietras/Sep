@@ -832,19 +832,30 @@ public bool WriteHeader { get; init; } = true;
 /// same for all rows.
 /// </summary>
 /// <remarks>
-/// When true, any row written will contain 
-/// only columns that have been set for that 
-/// row regardless of header. If any columns 
-/// are missing, then columns of a row may, 
-/// therefore, be out of sync with column 
-/// names. That is, there may be gaps. When 
-/// header is written it is not possible to
-/// write more columns than in the header 
-/// column. If a header is not written, then 
-/// any number of columns can be written as 
-/// long as done sequentially.
+/// When true, the <see cref="ColNotSetOption"/>
+/// will define how columns that are not set
+/// are handled. For example, whether to skip
+/// or write an empty column if a column has
+/// not been set for a given row.
+/// <para>
+/// If any columns are skipped, then columns of
+/// a row may, therefore, be out of sync with
+/// column names if <see cref="WriteHeader"/>
+/// is true.
+/// </para>
+/// As such, any number of columns can be
+/// written as long as done sequentially.
 /// </remarks>
 public bool DisableColCountCheck { get; init; } = false;
+/// <summary>
+/// Specifies how to handle columns that are 
+/// not set.
+/// </summary>
+/// <remarks>
+/// Relevant if <see cref="DisableColCountCheck"/> 
+/// is true.
+/// </remarks>
+public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Empty;
 /// <summary>
 /// Specifies whether to escape column names 
 /// and values when writing.
@@ -1874,6 +1885,11 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
+    public enum SepColNotSetOption : byte
+    {
+        Empty = 0,
+        Skip = 1,
+    }
     public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepReaderHeader? maybeHeader, int colCount);
     public static class SepDefaults
     {
@@ -2162,6 +2178,7 @@ namespace nietras.SeparatedValues
     {
         public SepWriterOptions() { }
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
+        public nietras.SeparatedValues.SepColNotSetOption ColNotSetOption { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public bool DisableColCountCheck { get; init; }
         public bool Escape { get; init; }

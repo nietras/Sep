@@ -14,6 +14,7 @@ public sealed partial class SepWriter : IDisposable
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
     readonly bool _disableColCountCheck;
+    readonly SepColNotSetOption _colNotSetOption;
     readonly bool _escape;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
@@ -30,6 +31,7 @@ public sealed partial class SepWriter : IDisposable
 
     internal readonly SepArrayPoolAccessIndexed _arrayPool = new();
     internal bool _headerWrittenOrSkipped = false;
+    internal int _headerOrFirstRowColCount = -1;
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
@@ -39,6 +41,7 @@ public sealed partial class SepWriter : IDisposable
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;
         _disableColCountCheck = options.DisableColCountCheck;
+        _colNotSetOption = options.ColNotSetOption;
         _escape = options.Escape;
         _writer = writer;
         _disposeTextWriter = disposeTextWriter;
@@ -70,21 +73,17 @@ public sealed partial class SepWriter : IDisposable
         {
             WriteHeader();
         }
-        else
+        else if (!_disableColCountCheck)
         {
-            // Note this prevents writing different number of cols (or less cols
-            // than previous row) in case of no header written. Revisit this if
-            // variable cols count is needed.
-            if (!_disableColCountCheck)
+            var colSetCount = 0;
+            for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
             {
-                for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
-                {
-                    var col = cols[colIndex];
-                    if (!col.HasBeenSet)
-                    {
-                        SepThrow.InvalidOperationException_NotAllColsSet(cols, _colNamesHeader);
-                    }
-                }
+                var col = cols[colIndex];
+                colSetCount += col.HasBeenSet ? 1 : 0;
+            }
+            if (colSetCount != _headerOrFirstRowColCount)
+            {
+                SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader);
             }
             A.Assert(!_writeHeader || cols.Count == _colNamesHeader.Length);
         }
@@ -96,7 +95,7 @@ public sealed partial class SepWriter : IDisposable
             for (var colIndex = 0; colIndex < cols.Count; ++colIndex)
             {
                 var col = cols[colIndex];
-                if (col.HasBeenSet)
+                if (col.HasBeenSet || _colNotSetOption != SepColNotSetOption.Skip)
                 {
                     if (notFirst)
                     {
@@ -119,7 +118,10 @@ public sealed partial class SepWriter : IDisposable
             }
         }
         _writer.WriteLine();
-
+        if (_headerOrFirstRowColCount == -1)
+        {
+            _headerOrFirstRowColCount = cols.Count;
+        }
         _newRowActive = false;
     }
 
@@ -164,6 +166,7 @@ public sealed partial class SepWriter : IDisposable
                 notFirstHeader = true;
             }
             _writer.WriteLine();
+            _headerOrFirstRowColCount = cols.Count;
         }
         _headerWrittenOrSkipped = true;
     }

@@ -7,59 +7,27 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test.Internals;
 
-public static class DefaultInterpolatedStringHandlerAccessor
-{
-#if NET8_0_OR_GREATER
-    public struct Class
-    {
-        static void StaticPrivateMethod() { }
-        static int StaticPrivateField;
-        public Class(int i) { PrivateField = i; }
-        void PrivateMethod() { }
-        int PrivateField;
-        int PrivateProperty { get => PrivateField; }
-    }
-
-
-    public static void GetSetPrivateField(Class c)
-    {
-        ref int f = ref GetSetPrivateField(ref c);
-        f = 43;
-
-        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "PrivateField")]
-        extern static ref int GetSetPrivateField(ref Class c);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
-    static extern ref int Position(ref this DefaultInterpolatedStringHandler handler);
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
-    static extern ref char[]? ArrayToReturnToPool(ref this DefaultInterpolatedStringHandler handler);
-
-    public static string Test()
-    {
-        var c = new Class(42);
-        GetSetPrivateField(c);
-
-        var buffer = new char[16];
-        var handler = new DefaultInterpolatedStringHandler(literalLength: 10, formattedCount: 2, provider: null, buffer);
-        ref var position = ref handler.Position();
-        position = 2;
-        handler.AppendFormatted(42);
-        return handler.ToStringAndClear();
-    }
-#endif
-}
-
 [TestClass]
 public class InterpolatedStringHandlerTest
 {
 #if NET8_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
+    static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
+    static extern ref char[]? ArrayToReturnToPool(ref DefaultInterpolatedStringHandler handler);
+
     [TestMethod]
     public void InterpolatedStringHandlerTest_DefaultInterpolatedStringHandler_Accessor()
     {
-        DefaultInterpolatedStringHandlerAccessor.Test();
+        var buffer = new char[16];
+        var handler = new DefaultInterpolatedStringHandler(literalLength: 10, formattedCount: 2, provider: null, buffer);
+        ref var position = ref Position(ref handler);
+        position = 2;
+        handler.AppendFormatted(42);
+        var text = handler.ToStringAndClear();
+        Assert.IsNotNull(text);
     }
 #endif
 

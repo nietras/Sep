@@ -80,14 +80,10 @@ public sealed partial class SepWriter : IDisposable
                 var colSet = cols[colIndex].HasBeenSet;
                 colSetCount += colSet ? 1 : 0;
                 if (_colNotSetOption == SepColNotSetOption.Throw && !colSet)
-                {
-                    SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader);
-                }
+                { SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader); }
             }
             if (!_disableColCountCheck && colSetCount != _headerOrFirstRowColCount)
-            {
-                SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader);
-            }
+            { SepThrow.InvalidOperationException_NotAllExpectedColsSet(cols, _colNamesHeader); }
         }
 
         // New Row

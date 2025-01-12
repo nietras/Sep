@@ -4,7 +4,9 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+#if NET9_0_OR_GREATER
 using System.Threading.Tasks;
+#endif
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;

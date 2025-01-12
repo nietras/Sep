@@ -1,4 +1,4 @@
-#define SYNC
+﻿#define SYNC
 using System;
 using System.IO;
 #if !SYNC

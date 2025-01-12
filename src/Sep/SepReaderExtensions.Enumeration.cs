@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace nietras.SeparatedValues;
 
@@ -185,6 +186,30 @@ public static partial class SepReaderExtensions
         foreach (var state in statesStack)
         {
             state.Dispose();
+        }
+    }
+
+    public static async IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, Func<SepReader.Row, ValueTask<T>> select)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(select);
+        await foreach (var row in reader)
+        {
+            yield return await select(row).ConfigureAwait(false);
+        }
+    }
+
+    public static async IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, Func<SepReader.Row, ValueTask<(bool, T)>> trySelect)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(trySelect);
+        await foreach (var row in reader)
+        {
+            var (success, value) = await trySelect(row).ConfigureAwait(false);
+            if (success)
+            {
+                yield return value;
+            }
         }
     }
 }

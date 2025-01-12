@@ -10,6 +10,7 @@ public class SepWriterColTest
     const string ColName = "A";
     const int ColValue = 123456;
     const string ColText = "123456";
+    static readonly string ColTextLong = new('a', 2048);
 
     static readonly string NL = Environment.NewLine;
 
@@ -32,9 +33,21 @@ public class SepWriterColTest
     }
 
     [TestMethod]
+    public void SepWriterColTest_Set_String_Long()
+    {
+        Run(col => col.Set(ColTextLong), ColTextLong);
+    }
+
+    [TestMethod]
     public void SepWriterColTest_Set_Span()
     {
         Run(col => col.Set(ColText.AsSpan()));
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_Span_Long()
+    {
+        Run(col => col.Set(ColTextLong.AsSpan()), ColTextLong);
     }
 
     [TestMethod]
@@ -120,7 +133,7 @@ public class SepWriterColTest
 
     public class LongSpanFormattable : ISpanFormattable
     {
-        public string Text { get; } = new('a', 2048);
+        public string Text { get; } = ColTextLong;
 
         public string ToString(string? format, IFormatProvider? formatProvider) => Text;
 

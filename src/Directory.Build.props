@@ -10,7 +10,6 @@
     <Copyright>Copyright © nietras A/S 2023</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
-    <!--<TargetFrameworks>net9.0;net8.0;net7.0</TargetFrameworks>-->
     <TargetFrameworks>net9.0;net8.0</TargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
 

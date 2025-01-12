@@ -1,5 +1,5 @@
 ﻿# Sep - ~~Possibly~~ the World's Fastest .NET CSV Parser
-![.NET](https://img.shields.io/badge/net7.0%20net8.0%20net9.0-5C2D91?logo=.NET&labelColor=gray)
+![.NET](https://img.shields.io/badge/net8.0%20net9.0-5C2D91?logo=.NET&labelColor=gray)
 ![C#](https://img.shields.io/badge/C%23-13.0-239120?labelColor=gray)
 [![Build Status](https://github.com/nietras/Sep/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/nietras/Sep/actions/workflows/dotnet.yml)
 [![Super-Linter](https://github.com/nietras/Sep/actions/workflows/super-linter.yml/badge.svg)](https://github.com/marketplace/actions/super-linter)

@@ -6,6 +6,9 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
+#if NET9_0_OR_GREATER
+using System.Threading.Tasks;
+#endif
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -55,6 +58,15 @@ public class SepReaderTest
         Assert.AreEqual("X", reader.ToString(0));
         Assert.AreEqual("Y", reader.ToString(1));
     }
+
+#if NET9_0_OR_GREATER
+    [TestMethod]
+    public async ValueTask SepReaderTest_Async_Empty()
+    {
+        using var reader = await Sep.Reader().FromTextAsync("");
+        await foreach (var row in reader) { }
+    }
+#endif
 
     [TestMethod]
     public void SepReaderTest_Enumerate_Empty()

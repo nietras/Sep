@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 #if NET9_0_OR_GREATER
 using System.Threading;
+using System.Threading.Tasks;
 #endif
 
 namespace nietras.SeparatedValues;
@@ -108,11 +109,21 @@ public sealed partial class SepReader : SepReaderState
     object System.Collections.IEnumerator.Current => throw new NotSupportedException();
     void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
 
-    public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    // Async
+    public SepReaderAsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) => new(this, cancellationToken);
+    IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
+
+    public readonly struct SepReaderAsyncEnumerator(SepReader reader, CancellationToken cancellationToken) : IAsyncEnumerator<Row>
     {
-        while (await MoveNextAsync(cancellationToken))
+        public Row Current => reader.Current;
+
+        public ValueTask<bool> MoveNextAsync() => reader.MoveNextAsync(cancellationToken);
+
+        public ValueTask DisposeAsync()
         {
-            yield return Current;
+            // No Async dispose since TextReader has none
+            reader.Dispose();
+            return ValueTask.CompletedTask;
         }
     }
 #endif

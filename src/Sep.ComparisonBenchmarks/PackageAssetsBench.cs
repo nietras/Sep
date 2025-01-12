@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;
@@ -77,6 +78,16 @@ public class RowPackageAssetsBench : PackageAssetsBench
                               .From(Reader.CreateReader());
         foreach (var row in reader) { }
     }
+
+#if NET9_0_OR_GREATER
+    [Benchmark]
+    public async ValueTask Sep_Async()
+    {
+        using var reader = await Sep.Reader(o => o with { HasHeader = false })
+                                    .FromAsync(Reader.CreateReader());
+        await foreach (var row in reader) { }
+    }
+#endif
 
     [Benchmark]
     public void Sep_Unescape()

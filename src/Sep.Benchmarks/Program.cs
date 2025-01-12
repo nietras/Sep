@@ -47,8 +47,10 @@ else
     }
 }
 
+#pragma warning disable CS8321 // Local function is declared but never used
 static IColumn MBPerSecFromCharsLength() => new BytesStatisticColumn("MB/s",
     BytesFromCharsLength, BytesStatisticColumn.FormatMBPerSec);
+#pragma warning restore CS8321 // Local function is declared but never used
 
 static long BytesFromCharsLength(IReadOnlyList<ParameterInstance> parameters)
 {

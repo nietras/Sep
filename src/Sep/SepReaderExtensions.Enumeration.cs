@@ -4,9 +4,6 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-#if NET9_0_OR_GREATER
-using System.Threading.Tasks;
-#endif
 
 namespace nietras.SeparatedValues;
 

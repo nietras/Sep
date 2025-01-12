@@ -75,7 +75,7 @@ public partial class SepWriter
             handler.Finish();
         }
         public void Set(IFormatProvider? provider,
-            [InterpolatedStringHandlerArgument("", "provider")] ref FormatInterpolatedStringHandler handler)
+            [InterpolatedStringHandlerArgument("", nameof(provider))] ref FormatInterpolatedStringHandler handler)
         {
             handler.Finish();
         }

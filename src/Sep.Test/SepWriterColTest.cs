@@ -10,6 +10,7 @@ public class SepWriterColTest
     const string ColName = "A";
     const int ColValue = 123456;
     const string ColText = "123456";
+    static readonly string ColTextLong = new('a', 2048);
 
     static readonly string NL = Environment.NewLine;
 
@@ -32,9 +33,21 @@ public class SepWriterColTest
     }
 
     [TestMethod]
+    public void SepWriterColTest_Set_String_Long()
+    {
+        Run(col => col.Set(ColTextLong), ColTextLong);
+    }
+
+    [TestMethod]
     public void SepWriterColTest_Set_Span()
     {
         Run(col => col.Set(ColText.AsSpan()));
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_Span_Long()
+    {
+        Run(col => col.Set(ColTextLong.AsSpan()), ColTextLong);
     }
 
     [TestMethod]
@@ -59,6 +72,18 @@ public class SepWriterColTest
     public void SepWriterColTest_Set_InterpolatedString_F2_CultureInfoAsParam()
     {
         Run(col => col.Set(CultureInfo.GetCultureInfo("da-DK"), $"{ColValue:F2}"), ColText + ",00");
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_F2_CultureInfoAsConfig_Null()
+    {
+        Run(col => col.Set($"{ColValue:F2}"), ColText + ".00", null);
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_F2_CultureInfoAsParam_Null()
+    {
+        Run(col => col.Set(provider: null, $"{ColValue:F2}"), ColText + ".00");
     }
 
     [TestMethod]
@@ -109,6 +134,26 @@ public class SepWriterColTest
     public void SepWriterColTest_Format()
     {
         Run(col => col.Format(ColValue));
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Format_Long()
+    {
+        var f = new LongSpanFormattable();
+        Run(col => col.Format(f), f.Text);
+    }
+
+    public class LongSpanFormattable : ISpanFormattable
+    {
+        public string Text { get; } = ColTextLong;
+
+        public string ToString(string? format, IFormatProvider? formatProvider) => Text;
+
+        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+        {
+            charsWritten = Text.Length;
+            return Text.TryCopyTo(destination);
+        }
     }
 
     // No escaping needed

@@ -91,7 +91,7 @@ public partial class SepWriter
         var cols = _cols;
         if (colIndex == cols.Count && (!_writeHeader || _disableColCountCheck))
         {
-            var col = new ColImpl(this, colIndex, string.Empty, SepStringBuilderPool.Take());
+            var col = new ColImpl(this, colIndex, string.Empty);
             _cols.Add(col);
         }
         return cols[colIndex];
@@ -122,7 +122,7 @@ public partial class SepWriter
     internal ColImpl AddCol(string colName)
     {
         var colIndex = _colNameToCol.Count;
-        var col = new ColImpl(this, colIndex, colName, SepStringBuilderPool.Take());
+        var col = new ColImpl(this, colIndex, colName);
         _colNameToCol.Add(colName, col);
         _cols.Add(col);
         _colNameCache.Add((colName, colIndex));

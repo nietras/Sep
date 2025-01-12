@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace nietras.SeparatedValues;
 
@@ -99,17 +98,14 @@ public sealed partial class SepWriter : IDisposable
                     {
                         _writer.Write(_sep.Separator);
                     }
-                    var sb = col.Text;
+                    var span = col.GetSpan();
                     if (_escape)
                     {
-                        WriteEscaped(sb);
+                        WriteEscaped(span);
                     }
                     else
                     {
-                        foreach (var chunk in sb.GetChunks())
-                        {
-                            _writer.Write(chunk.Span);
-                        }
+                        _writer.Write(span);
                     }
                     notFirst = true;
                 }
@@ -167,35 +163,6 @@ public sealed partial class SepWriter : IDisposable
             _headerOrFirstRowColCount = cols.Count;
         }
         _headerWrittenOrSkipped = true;
-    }
-
-    void WriteEscaped(StringBuilder sb)
-    {
-        var separator = _sep.Separator;
-        uint containsSpecialChar = 0;
-
-        foreach (var chunk in sb.GetChunks())
-        {
-            containsSpecialChar |= ContainsSpecialCharacters(chunk.Span, separator);
-            if (containsSpecialChar != 0) { break; }
-        }
-
-        if (containsSpecialChar != 0)
-        {
-            _writer.Write(SepDefaults.Quote);
-            foreach (var chunk in sb.GetChunks())
-            {
-                WriteQuotesEscaped(chunk.Span);
-            }
-            _writer.Write(SepDefaults.Quote);
-        }
-        else
-        {
-            foreach (var chunk in sb.GetChunks())
-            {
-                _writer.Write(chunk.Span);
-            }
-        }
     }
 
     void WriteEscaped(ReadOnlySpan<char> span)
@@ -291,7 +258,7 @@ public sealed partial class SepWriter : IDisposable
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)
         {
-            SepStringBuilderPool.Return(col.Text);
+            col.Dispose();
         }
         _colNameToCol.Clear();
     }

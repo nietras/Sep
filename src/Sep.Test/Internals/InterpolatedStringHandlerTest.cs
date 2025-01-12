@@ -10,6 +10,27 @@ namespace nietras.SeparatedValues.Test.Internals;
 [TestClass]
 public class InterpolatedStringHandlerTest
 {
+#if NET8_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
+    static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
+    static extern ref char[]? ArrayToReturnToPool(ref DefaultInterpolatedStringHandler handler);
+
+    [TestMethod]
+    public void InterpolatedStringHandlerTest_DefaultInterpolatedStringHandler_Accessor()
+    {
+        var buffer = new char[16];
+        var handler = new DefaultInterpolatedStringHandler(literalLength: 10, formattedCount: 2, provider: null, buffer);
+        ref var position = ref Position(ref handler);
+        position = 2;
+        handler.AppendFormatted(42);
+        var text = handler.ToStringAndClear();
+        Assert.IsNotNull(text);
+    }
+#endif
+
     [TestMethod]
     public void InterpolatedStringHandlerTest_Log()
     {

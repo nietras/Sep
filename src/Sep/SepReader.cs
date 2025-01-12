@@ -7,17 +7,20 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed partial class SepReader : SepReaderState, IAsyncEnumerable<SepReader.Row>, IAsyncDisposable
+public sealed partial class SepReader : SepReaderState
 #if NET9_0_OR_GREATER
     , IEnumerable<SepReader.Row>
     , IEnumerator<SepReader.Row>
+    , IAsyncEnumerable<SepReader.Row>
 #endif
+    , IAsyncDisposable
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -97,148 +100,6 @@ public sealed partial class SepReader : SepReaderState, IAsyncEnumerable<SepRead
         get => new(this);
     }
 
-    internal void Initialize(in SepReaderOptions options)
-    {
-        // Parse first row/header
-        if (MoveNext())
-        {
-            A.Assert(_parsedRowsCount > 0);
-
-            IsEmpty = false;
-            var firstRowColCount = _parsedRows[0].ColCount;
-            _colCountExpected = firstRowColCount;
-            if (options.HasHeader)
-            {
-                var headerRow = new string(RowSpan());
-                var colNameComparer = options.ColNameComparer;
-                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, colNameComparer);
-                for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
-                {
-                    var colName = ToStringDirect(colIndex);
-                    if (!colNameToIndex.TryAdd(colName, colIndex))
-                    {
-                        SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex,
-                            colName, firstRowColCount, colNameComparer, headerRow);
-                    }
-                }
-                _header = new(headerRow, colNameToIndex);
-
-                HasHeader = true;
-
-                // Check if more data available and hence minimum 1 row after header
-                // What if \n after \r after header only? Where \n lingering after MoveNext?
-                HasRows = _parsedRowsCount > 1 || _charsDataEnd > _charsParseStart || _parsingRowColCount > 0;
-                if (!HasRows)
-                {
-                    HasRows = !FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
-                }
-            }
-            else
-            {
-                // Move back one as no header (since MoveNext called twice then)
-                --_rowIndex;
-                --_parsedRowIndex;
-                _currentRowColEndsOrInfosOffset = 0;
-                _currentRowColCount = -1;
-                A.Assert(_rowIndex == -1);
-                A.Assert(_parsedRowIndex == 0);
-                HasHeader = false;
-                HasRows = true;
-            }
-            A.Assert(_separator != 0);
-        }
-        else
-        {
-            // Nothing in file
-            IsEmpty = true;
-            HasHeader = false;
-            HasRows = false;
-            _colCountExpected = 0;
-            _separator = Sep.Default.Separator;
-        }
-
-        _colNameCache = new (string colName, int colIndex)[_colCountExpected];
-
-        // Header may be null here
-        _toString = options.CreateToString(_header, _colCountExpected);
-
-        // Use empty header if no header
-        _header ??= SepReaderHeader.Empty;
-
-        _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
-    }
-
-    public async ValueTask InitializeAsync(SepReaderOptions options)
-    {
-        // Parse first row/header
-        if (await MoveNextAsync())
-        {
-            A.Assert(_parsedRowsCount > 0);
-
-            IsEmpty = false;
-            var firstRowColCount = _parsedRows[0].ColCount;
-            _colCountExpected = firstRowColCount;
-            if (options.HasHeader)
-            {
-                var headerRow = new string(RowSpan());
-                var colNameComparer = options.ColNameComparer;
-                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, colNameComparer);
-                for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
-                {
-                    var colName = ToStringDirect(colIndex);
-                    if (!colNameToIndex.TryAdd(colName, colIndex))
-                    {
-                        SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex,
-                            colName, firstRowColCount, colNameComparer, headerRow);
-                    }
-                }
-                _header = new(headerRow, colNameToIndex);
-
-                HasHeader = true;
-
-                // Check if more data available and hence minimum 1 row after header
-                // What if \n after \r after header only? Where \n lingering after MoveNext?
-                HasRows = _parsedRowsCount > 1 || _charsDataEnd > _charsParseStart || _parsingRowColCount > 0;
-                if (!HasRows)
-                {
-                    HasRows = !await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength);
-                }
-            }
-            else
-            {
-                // Move back one as no header (since MoveNext called twice then)
-                --_rowIndex;
-                --_parsedRowIndex;
-                _currentRowColEndsOrInfosOffset = 0;
-                _currentRowColCount = -1;
-                A.Assert(_rowIndex == -1);
-                A.Assert(_parsedRowIndex == 0);
-                HasHeader = false;
-                HasRows = true;
-            }
-            A.Assert(_separator != 0);
-        }
-        else
-        {
-            // Nothing in file
-            IsEmpty = true;
-            HasHeader = false;
-            HasRows = false;
-            _colCountExpected = 0;
-            _separator = Sep.Default.Separator;
-        }
-
-        _colNameCache = new (string colName, int colIndex)[_colCountExpected];
-
-        // Header may be null here
-        _toString = options.CreateToString(_header, _colCountExpected);
-
-        // Use empty header if no header
-        _header ??= SepReaderHeader.Empty;
-
-        _colCountExpected = options.DisableColCountCheck ? -1 : _colCountExpected;
-    }
-
     public SepReader GetEnumerator() => this;
 #if NET9_0_OR_GREATER
     IEnumerator<Row> IEnumerable<Row>.GetEnumerator() => this;
@@ -248,31 +109,6 @@ public sealed partial class SepReader : SepReaderState, IAsyncEnumerable<SepRead
     void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
 #endif
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool MoveNext()
-    {
-        do
-        {
-            if (MoveNextAlreadyParsed())
-            {
-                return true;
-            }
-        } while (ParseNewRows());
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public async ValueTask<bool> MoveNextAsync()
-    {
-        do
-        {
-            if (MoveNextAlreadyParsed())
-            {
-                return true;
-            }
-        } while (await ParseNewRowsAsync());
-        return false;
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool HasParsedRows() => _parsedRowIndex < _parsedRowsCount;
@@ -840,6 +676,7 @@ public sealed partial class SepReader : SepReaderState, IAsyncEnumerable<SepRead
         DisposeManaged();
     }
 
+#if NET9_0_OR_GREATER
     public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         while (await MoveNextAsync())
@@ -847,4 +684,5 @@ public sealed partial class SepReader : SepReaderState, IAsyncEnumerable<SepRead
             yield return Current;
         }
     }
+#endif
 }

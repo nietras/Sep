@@ -35,7 +35,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
@@ -78,7 +77,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        configuration: [Debug, Release]
 
     runs-on: ${{ matrix.os }}
 
@@ -88,7 +86,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4
@@ -96,8 +93,6 @@ jobs:
           global-json-file: global.json
       - name: Restore dependencies
         run: dotnet restore
-      - name: Build
-        run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Test Parsers
         shell: pwsh
         run: ./test-parsers.ps1
@@ -116,7 +111,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
-            7.0.x
             8.0.x
       - name: Setup .NET (global.json)
         uses: actions/setup-dotnet@v4

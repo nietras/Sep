@@ -39,32 +39,6 @@ public static partial class SepReaderExtensions
         }
     }
 
-#if NET9_0_OR_GREATER
-    public static async IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, Func<SepReader.Row, ValueTask<T>> select)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(select);
-        await foreach (var row in reader)
-        {
-            yield return await select(row).ConfigureAwait(false);
-        }
-    }
-
-    public static async IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, Func<SepReader.Row, ValueTask<(bool, T)>> trySelect)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(trySelect);
-        await foreach (var row in reader)
-        {
-            var (success, value) = await trySelect(row).ConfigureAwait(false);
-            if (success)
-            {
-                yield return value;
-            }
-        }
-    }
-#endif
-
     public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
         ArgumentNullException.ThrowIfNull(reader);

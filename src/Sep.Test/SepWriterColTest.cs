@@ -75,6 +75,18 @@ public class SepWriterColTest
     }
 
     [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_F2_CultureInfoAsConfig_Null()
+    {
+        Run(col => col.Set($"{ColValue:F2}"), ColText + ".00", null);
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_F2_CultureInfoAsParam_Null()
+    {
+        Run(col => col.Set(provider: null, $"{ColValue:F2}"), ColText + ".00");
+    }
+
+    [TestMethod]
     public void SepWriterColTest_Set_InterpolatedString_AppendLiteral()
     {
         Run(col => col.Set($"{ColValue} {"Literal"}"), ColText + " Literal");

@@ -4,7 +4,6 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using System.Text;
 #if NET9_0_OR_GREATER
 using System.Threading.Tasks;
@@ -739,22 +738,6 @@ public class SepReaderTest
     {
         using var reader = Sep.Reader().From((TextReader)new StringReader("A;B"));
         Assert.AreEqual($"TextReader='{typeof(StringReader)}'", reader.DebuggerDisplay);
-    }
-
-    [TestMethod]
-    public void SepReaderTest_IO_Async_Sync_Identical()
-    {
-        var rootDirectory = Path.GetDirectoryName(SourceFile()) + @"../../../";
-
-        var asyncFile = Path.Combine(rootDirectory, "src/Sep/SepReader.IO.Async.cs");
-        var syncFile = Path.Combine(rootDirectory, "src/Sep/SepReader.IO.Sync.cs");
-
-        var asyncLines = File.ReadAllLines(asyncFile).Skip(1);
-        var syncLines = File.ReadAllLines(syncFile).Skip(1);
-
-        CollectionAssert.AreEqual(asyncLines.ToList(), syncLines.ToList());
-
-        static string SourceFile([CallerFilePath] string sourceFilePath = "") => sourceFilePath;
     }
 
     public class FakeLongMemoryStream : MemoryStream

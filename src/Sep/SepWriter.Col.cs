@@ -9,7 +9,11 @@ public partial class SepWriter
 {
     internal sealed class ColImpl(SepWriter writer, int index, string name)
     {
-        internal const int MinimumLength = 64;
+#if DEBUG
+        internal const int MinimumLength = 4;
+#else
+        internal const int MinimumLength = 256;
+#endif
         internal readonly SepWriter _writer = writer;
         internal char[] _buffer = ArrayPool<char>.Shared.Rent(MinimumLength);
         internal int _position = 0;
@@ -27,10 +31,7 @@ public partial class SepWriter
             _position += value.Length;
         }
 
-        public ReadOnlySpan<char> GetSpan()
-        {
-            return _buffer.AsSpan(0, _position);
-        }
+        public ReadOnlySpan<char> GetSpan() => _buffer.AsSpan(0, _position);
 
         public void Dispose()
         {
@@ -48,8 +49,8 @@ public partial class SepWriter
 
         void GrowBuffer(int additionalLength)
         {
-            int newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
-            char[] newBuffer = ArrayPool<char>.Shared.Rent(newSize);
+            var newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
+            var newBuffer = ArrayPool<char>.Shared.Rent(newSize);
             _buffer.AsSpan(0, _position).CopyTo(newBuffer);
             ArrayPool<char>.Shared.Return(_buffer);
             _buffer = newBuffer;
@@ -62,36 +63,24 @@ public partial class SepWriter
     {
         readonly ColImpl _impl;
 
-        internal Col(ColImpl impl)
-        {
-            _impl = impl;
-        }
+        internal Col(ColImpl impl) => _impl = impl;
 
         internal int ColIndex => _impl.Index;
         internal string ColName => _impl.Name;
 
 #pragma warning disable CA1822 // Mark members as static
-#pragma warning disable IDE0060 // Remove unused parameter
 #pragma warning disable CA1045 // Do not pass types by reference
         public void Set([InterpolatedStringHandlerArgument("")] ref FormatInterpolatedStringHandler handler)
-#pragma warning restore CA1045 // Do not pass types by reference
-#pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore CA1822 // Mark members as static
         {
             handler.Finish();
         }
-
-#pragma warning disable CA1822 // Mark members as static
-#pragma warning disable IDE0060 // Remove unused parameter
         public void Set(IFormatProvider? provider,
-#pragma warning disable CA1045 // Do not pass types by reference
             [InterpolatedStringHandlerArgument("", "provider")] ref FormatInterpolatedStringHandler handler)
-#pragma warning restore CA1045 // Do not pass types by reference
-#pragma warning restore IDE0060 // Remove unused parameter
-#pragma warning restore CA1822 // Mark members as static
         {
             handler.Finish();
         }
+#pragma warning restore CA1045 // Do not pass types by reference
+#pragma warning restore CA1822 // Mark members as static
 
         public void Set(ReadOnlySpan<char> span)
         {
@@ -118,38 +107,36 @@ public partial class SepWriter
             MarkSet();
         }
 
-        /// <summary>Provides a handler used by the language compiler to append interpolated strings into <see cref="Col"/> instances.</summary>
+        /// <summary>
+        /// Provides a handler used by the language compiler to append
+        /// interpolated strings into <see cref="Col"/> instances.
+        /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
         [InterpolatedStringHandler]
-#pragma warning disable CA1815 // Override equals and operator equals on value types
         public ref struct FormatInterpolatedStringHandler
-#pragma warning restore CA1815 // Override equals and operator equals on value types
         {
             readonly ColImpl _impl;
             DefaultInterpolatedStringHandler _handler;
 
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
-            static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
-            static extern ref char[]? ArrayToReturnToPool(ref DefaultInterpolatedStringHandler handler);
-
-            public FormatInterpolatedStringHandler(int literalLength, int formattedCount, Col col)
+            public FormatInterpolatedStringHandler(int literalLength, int formattedCount,
+                Col col)
             {
                 _impl = col._impl;
                 _impl.Clear();
-                _handler = new(literalLength, formattedCount, _impl._writer._cultureInfo, _impl._buffer);
+                _handler = new(literalLength, formattedCount,
+                    _impl._writer._cultureInfo, _impl._buffer);
                 Position(ref _handler) = _impl._position;
                 ArrayToReturnToPool(ref _handler) = _impl._buffer;
             }
 
 
-            public FormatInterpolatedStringHandler(int literalLength, int formattedCount, Col col, IFormatProvider? provider)
+            public FormatInterpolatedStringHandler(int literalLength, int formattedCount,
+                Col col, IFormatProvider? provider)
             {
                 _impl = col._impl;
                 _impl.Clear();
-                _handler = new(literalLength, formattedCount, provider, _impl._buffer);
+                _handler = new(literalLength, formattedCount,
+                    provider ?? _impl._writer._cultureInfo, _impl._buffer);
                 Position(ref _handler) = _impl._position;
                 ArrayToReturnToPool(ref _handler) = _impl._buffer;
             }
@@ -223,8 +210,25 @@ public partial class SepWriter
                 _impl._buffer = handlerArrayRef!;
                 _impl._position = Position(ref _handler);
                 handlerArrayRef = null;
-                _handler = default;
+                // Do not call *Clear() on handler as Col takes ownership of
+                // array from ArrayPool.
             }
+
+            // Avoid recreating DefaultInterpolatedStringHandler while being
+            // able to reuse array from ArrayPool by using UnsafeAccessor to
+            // access internal state of this. This works fine for net8.0 and
+            // net9.0 but there are no guarantees if this could change in the
+            // future, if so consider using #if NET10_0_OR_GREATER or similar to
+            // address any changes or consider then copying the entire
+            // DefaultInterpolatedStringHandler source code and adopt for needs.
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]
+            static extern ref char[]? ArrayToReturnToPool(ref DefaultInterpolatedStringHandler handler);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
+            static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
         }
 
         void MarkSet() => _impl.HasBeenSet = true;

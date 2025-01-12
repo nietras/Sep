@@ -110,19 +110,31 @@ public sealed partial class SepReader : SepReaderState
     void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
 
     // Async
-    public SepReaderAsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) => new(this, cancellationToken);
-    IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
+    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
+        new(this, cancellationToken);
+    IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(CancellationToken cancellationToken) =>
+        GetAsyncEnumerator(cancellationToken);
 
-    public readonly struct SepReaderAsyncEnumerator(SepReader reader, CancellationToken cancellationToken) : IAsyncEnumerator<Row>
+    public readonly struct AsyncEnumerator
+        : IAsyncEnumerator<Row>
     {
-        public Row Current => reader.Current;
+        readonly SepReader _reader;
+        readonly CancellationToken _cancellationToken;
 
-        public ValueTask<bool> MoveNextAsync() => reader.MoveNextAsync(cancellationToken);
+        internal AsyncEnumerator(SepReader reader, CancellationToken cancellationToken)
+        {
+            _reader = reader;
+            _cancellationToken = cancellationToken;
+        }
+
+        public Row Current => _reader.Current;
+
+        public ValueTask<bool> MoveNextAsync() => _reader.MoveNextAsync(_cancellationToken);
 
         public ValueTask DisposeAsync()
         {
             // No Async dispose since TextReader has none
-            reader.Dispose();
+            _reader.Dispose();
             return ValueTask.CompletedTask;
         }
     }

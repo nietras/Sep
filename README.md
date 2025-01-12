@@ -1929,12 +1929,17 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepReaderHeader Header { get; }
         public bool IsEmpty { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
-        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(nietras.SeparatedValues.SepReader.<GetAsyncEnumerator>d__43))]
-        public System.Collections.Generic.IAsyncEnumerator<nietras.SeparatedValues.SepReader.Row> GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default) { }
+        public nietras.SeparatedValues.SepReader.AsyncEnumerator GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
         public bool MoveNext() { }
         public System.Threading.Tasks.ValueTask<bool> MoveNextAsync(System.Threading.CancellationToken cancellationToken) { }
         public string ToString(int index) { }
+        public readonly struct AsyncEnumerator : System.Collections.Generic.IAsyncEnumerator<nietras.SeparatedValues.SepReader.Row>, System.IAsyncDisposable
+        {
+            public nietras.SeparatedValues.SepReader.Row Current { get; }
+            public System.Threading.Tasks.ValueTask DisposeAsync() { }
+            public System.Threading.Tasks.ValueTask<bool> MoveNextAsync() { }
+        }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]

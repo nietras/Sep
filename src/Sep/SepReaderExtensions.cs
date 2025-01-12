@@ -103,7 +103,7 @@ public static partial class SepReaderExtensions
         }
     }
 
-    public static async Task<SepReader> FromTextAsync(this SepReaderOptions options, string text)
+    public static async ValueTask<SepReader> FromTextAsync(this SepReaderOptions options, string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         var reader = new StringReader(text);
@@ -111,21 +111,21 @@ public static partial class SepReaderExtensions
         return await FromWithInfoAsync(new(text, display), options, reader);
     }
 
-    public static async Task<SepReader> FromFileAsync(this SepReaderOptions options, string filePath)
+    public static async ValueTask<SepReader> FromFileAsync(this SepReaderOptions options, string filePath)
     {
         var reader = new StreamReader(filePath, s_streamReaderOptions);
         Func<SepReader.Info, string> display = static info => $"File='{info.Source}'";
         return await FromWithInfoAsync(new(filePath, display), options, reader);
     }
 
-    public static async Task<SepReader> FromAsync(this SepReaderOptions options, byte[] buffer)
+    public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, byte[] buffer)
     {
         var reader = new StreamReader(new MemoryStream(buffer));
         Func<SepReader.Info, string> display = static info => $"Bytes Length={((byte[])info.Source).Length}";
         return await FromWithInfoAsync(new(buffer, display), options, reader);
     }
 
-    public static async Task<SepReader> FromAsync(this SepReaderOptions options, string name, Func<string, Stream> nameToStream)
+    public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, string name, Func<string, Stream> nameToStream)
     {
         ArgumentNullException.ThrowIfNull(nameToStream);
         var reader = new StreamReader(nameToStream(name));
@@ -133,14 +133,14 @@ public static partial class SepReaderExtensions
         return await FromWithInfoAsync(new(name, display), options, reader);
     }
 
-    public static async Task<SepReader> FromAsync(this SepReaderOptions options, Stream stream)
+    public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, Stream stream)
     {
         var reader = new StreamReader(stream);
         Func<SepReader.Info, string> display = static info => $"Stream='{info.Source}'";
         return await FromWithInfoAsync(new(stream, display), options, reader);
     }
 
-    public static async Task<SepReader> FromAsync(this SepReaderOptions options, string name, Func<string, TextReader> nameToReader)
+    public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, string name, Func<string, TextReader> nameToReader)
     {
         ArgumentNullException.ThrowIfNull(nameToReader);
         var reader = nameToReader(name);
@@ -148,7 +148,7 @@ public static partial class SepReaderExtensions
         return await FromWithInfoAsync(new(name, display), options, reader);
     }
 
-    public static async Task<SepReader> FromAsync(this SepReaderOptions options, TextReader reader)
+    public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, TextReader reader)
     {
         Func<SepReader.Info, string> display = static info => $"TextReader='{info.Source}'";
         return await FromWithInfoAsync(new(reader, display), options, reader);

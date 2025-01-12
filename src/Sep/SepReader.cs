@@ -11,8 +11,6 @@ using System.Text;
 #if NET9_0_OR_GREATER
 using System.Threading;
 #endif
-using System.Threading.Tasks;
-using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
@@ -119,71 +117,10 @@ public sealed partial class SepReader : SepReaderState
     }
 #endif
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool HasParsedRows() => _parsedRowIndex < _parsedRowsCount;
-
-
-
     public string ToString(int index) => ToStringDefault(index);
 
-    [MemberNotNullWhen(false, nameof(_parser))]
-    bool EnsureInitializeAndReadData(bool endOfFile)
-    {
-        var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
-        CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
-
-        if (_parser == null)
-        {
-            TryDetectSeparatorInitializeParser(nothingLeftToRead);
-
-            CheckPoint($"{nameof(TryDetectSeparatorInitializeParser)} AFTER");
-        }
-
-        if (_parser == null || _charsParseStart >= _charsDataEnd)
-        {
-            if (nothingLeftToRead)
-            {
-                // Make sure room for any col at end of file
-                CheckColInfosCapacityMaybeDouble(paddingLength: 0);
-                // If nothing has been read, then at end of file.
-                endOfFile = true;
-            }
-        }
-        else
-        {
-            CheckColInfosCapacityMaybeDouble(_parser.PaddingLength);
-        }
-        return endOfFile;
-    }
-
-    async ValueTask<bool> EnsureInitializeAndReadDataAsync()
-    {
-        var nothingLeftToRead = await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength);
-        CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
-
-        if (_parser == null)
-        {
-            TryDetectSeparatorInitializeParser(nothingLeftToRead);
-
-            CheckPoint($"{nameof(TryDetectSeparatorInitializeParser)} AFTER");
-        }
-
-        if (_parser == null || _charsParseStart >= _charsDataEnd)
-        {
-            if (nothingLeftToRead)
-            {
-                // Make sure room for any col at end of file
-                CheckColInfosCapacityMaybeDouble(paddingLength: 0);
-                // If nothing has been read, then at end of file.
-                return true;
-            }
-        }
-        else
-        {
-            CheckColInfosCapacityMaybeDouble(_parser.PaddingLength);
-        }
-        return false;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool HasParsedRows() => _parsedRowIndex < _parsedRowsCount;
 
     void CheckColInfosCapacityMaybeDouble(int paddingLength)
     {
@@ -211,111 +148,6 @@ public sealed partial class SepReader : SepReaderState
         var newColEndsSpan = _colEndsOrColInfos.AsSpan().Slice(0, lengthInIntegers);
         previousColEndsSpan.CopyTo(newColEndsSpan);
         ArrayPool<int>.Shared.Return(previousColEnds);
-        //Console.WriteLine($"CurrentRowColInfosStartIndex = {_currentRowColEndsOrInfosStartIndex} CurrentRowColCount = {_currentRowColCount} New ColInfos Length = {_colEndsOrColInfos.Length}");
-    }
-
-    bool FillAndMaybeDoubleCharsBuffer(int paddingLength)
-    {
-        A.Assert(_charsDataStart == 0);
-
-        var offset = SepArrayExtensions.CheckFreeMaybeDoubleLength(
-            ref _chars, ref _charsDataStart, ref _charsDataEnd,
-            _charsMinimumFreeLength, paddingLength);
-        if (_chars.Length > RowLengthMax)
-        {
-            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax);
-        }
-        A.Assert(offset == 0);
-
-        // Read to free buffer area
-        var freeLength = _chars.Length - _charsDataEnd - paddingLength;
-        // Read 1 less than free length to ensure we always read \n after \r,
-        // and hence always ensure we have the two combined in buffer.
-        freeLength -= 1;
-
-        var freeSpan = new Span<char>(_chars, _charsDataEnd, freeLength);
-        A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
-
-        // Read until full or no more data
-        var totalBytesRead = 0;
-        var readCount = 0;
-        while (totalBytesRead < freeLength &&
-               ((readCount = _reader.Read(freeSpan.Slice(totalBytesRead))) > 0))
-        {
-            _charsDataEnd += readCount;
-            // Ensure carriage return always followed by line feed
-            if (_chars[_charsDataEnd - 1] == CarriageReturn)
-            {
-                var extraChar = _reader.Peek();
-                if (extraChar == LineFeed)
-                {
-                    var readChar = (char)_reader.Read();
-                    A.Assert(extraChar == readChar);
-                    _chars[_charsDataEnd] = readChar;
-                    ++_charsDataEnd;
-                    ++readCount;
-                }
-            }
-            totalBytesRead += readCount;
-        }
-        if (paddingLength > 0)
-        {
-            _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
-        }
-        //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
-        return totalBytesRead == 0;
-    }
-
-    async ValueTask<bool> FillAndMaybeDoubleCharsBufferAsync(int paddingLength)
-    {
-        A.Assert(_charsDataStart == 0);
-
-        var offset = SepArrayExtensions.CheckFreeMaybeDoubleLength(
-            ref _chars, ref _charsDataStart, ref _charsDataEnd,
-            _charsMinimumFreeLength, paddingLength);
-        if (_chars.Length > RowLengthMax)
-        {
-            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax);
-        }
-        A.Assert(offset == 0);
-
-        // Read to free buffer area
-        var freeLength = _chars.Length - _charsDataEnd - paddingLength;
-        // Read 1 less than free length to ensure we always read \n after \r,
-        // and hence always ensure we have the two combined in buffer.
-        freeLength -= 1;
-
-        var freeMemory = new Memory<char>(_chars, _charsDataEnd, freeLength);
-        A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
-
-        // Read until full or no more data
-        var totalBytesRead = 0;
-        var readCount = 0;
-        while (totalBytesRead < freeLength &&
-               ((readCount = await _reader.ReadAsync(freeMemory.Slice(totalBytesRead))) > 0))
-        {
-            _charsDataEnd += readCount;
-            // Ensure carriage return always followed by line feed
-            if (_chars[_charsDataEnd - 1] == CarriageReturn)
-            {
-                var extraChar = _reader.Peek();
-                if (extraChar == LineFeed)
-                {
-                    var readChar = (char)_reader.Read();
-                    A.Assert(extraChar == readChar);
-                    _chars[_charsDataEnd] = readChar;
-                    ++_charsDataEnd;
-                    ++readCount;
-                }
-            }
-            totalBytesRead += readCount;
-        }
-        if (paddingLength > 0)
-        {
-            _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
-        }
-        //Console.WriteLine($"Read: {readCount} BufferSize: {freeSpan.Length} Buffer Length: {_chars.BufferLength}");
-        return totalBytesRead == 0;
     }
 
     static bool TryGetTextReaderLength(TextReader reader, out long length)

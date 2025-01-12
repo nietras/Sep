@@ -1921,7 +1921,7 @@ namespace nietras.SeparatedValues
         public static char Separator { get; }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public sealed class SepReader : nietras.SeparatedValues.SepReaderState, System.Collections.Generic.IEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerator<nietras.SeparatedValues.SepReader.Row>, System.Collections.IEnumerable, System.Collections.IEnumerator, System.IDisposable
+    public sealed class SepReader : nietras.SeparatedValues.SepReaderState, System.Collections.Generic.IAsyncEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerator<nietras.SeparatedValues.SepReader.Row>, System.Collections.IEnumerable, System.Collections.IEnumerator, System.IDisposable
     {
         public nietras.SeparatedValues.SepReader.Row Current { get; }
         public bool HasHeader { get; }
@@ -1929,8 +1929,11 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepReaderHeader Header { get; }
         public bool IsEmpty { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(nietras.SeparatedValues.SepReader.<GetAsyncEnumerator>d__43))]
+        public System.Collections.Generic.IAsyncEnumerator<nietras.SeparatedValues.SepReader.Row> GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
         public bool MoveNext() { }
+        public System.Threading.Tasks.ValueTask<bool> MoveNextAsync(System.Threading.CancellationToken cancellationToken) { }
         public string ToString(int index) { }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
@@ -2008,13 +2011,24 @@ namespace nietras.SeparatedValues
     {
         public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
         public static System.Collections.Generic.IEnumerable<T> Enumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(nietras.SeparatedValues.SepReaderExtensions.<EnumerateAsync>d__27<T>))]
+        public static System.Collections.Generic.IAsyncEnumerable<T> EnumerateAsync<T>(this nietras.SeparatedValues.SepReader reader, System.Func<nietras.SeparatedValues.SepReader.Row, System.Threading.Tasks.ValueTask<System.ValueTuple<bool, T>>> trySelect) { }
+        [System.Runtime.CompilerServices.AsyncIteratorStateMachine(typeof(nietras.SeparatedValues.SepReaderExtensions.<EnumerateAsync>d__26<T>))]
+        public static System.Collections.Generic.IAsyncEnumerable<T> EnumerateAsync<T>(this nietras.SeparatedValues.SepReader reader, System.Func<nietras.SeparatedValues.SepReader.Row, System.Threading.Tasks.ValueTask<T>> select) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
         public static nietras.SeparatedValues.SepReader FromFile(in this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromFileAsync(this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
         public static nietras.SeparatedValues.SepReader FromText(in this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromTextAsync(this nietras.SeparatedValues.SepReaderOptions options, string text) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select, int degreeOfParallism) { }

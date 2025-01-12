@@ -154,20 +154,21 @@ public static partial class SepReaderExtensions
         return await FromWithInfoAsync(new(reader, display), options, reader);
     }
 
-    internal static async Task<SepReader> FromWithInfoAsync(SepReader.Info info, SepReaderOptions options, TextReader reader)
+    internal static async ValueTask<SepReader> FromWithInfoAsync(SepReader.Info info, SepReaderOptions options, TextReader reader)
     {
         ArgumentNullException.ThrowIfNull(reader);
         SepReader? sepReader = null;
         try
         {
             sepReader = new SepReader(info, options, reader);
-            await sepReader.InitializeAsync(options);
+            await sepReader.InitializeAsync(options, default);
             return sepReader;
         }
         catch (Exception)
         {
-            await sepReader?.DisposeAsync();
-            await reader.DisposeAsync();
+            // There is no DisposeAsync on TextReader so none on SepReader either
+            sepReader?.Dispose();
+            reader.Dispose();
             throw;
         }
     }

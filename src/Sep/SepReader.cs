@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Buffers;
+#if NET9_0_OR_GREATER
 using System.Collections.Generic;
+#endif
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
+#if NET9_0_OR_GREATER
 using System.Threading;
+#endif
 using System.Threading.Tasks;
 using static nietras.SeparatedValues.SepDefaults;
 
@@ -20,7 +23,6 @@ public sealed partial class SepReader : SepReaderState
     , IEnumerator<SepReader.Row>
     , IAsyncEnumerable<SepReader.Row>
 #endif
-    , IAsyncDisposable
 {
     internal readonly record struct Info(object Source, Func<Info, string> DebuggerDisplay);
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
@@ -107,248 +109,20 @@ public sealed partial class SepReader : SepReaderState
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new NotSupportedException();
     object System.Collections.IEnumerator.Current => throw new NotSupportedException();
     void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
-#endif
 
+    public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        while (await MoveNextAsync(cancellationToken))
+        {
+            yield return Current;
+        }
+    }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool HasParsedRows() => _parsedRowIndex < _parsedRowsCount;
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal bool ParseNewRows()
-    {
-        _parsedRowsCount = 0;
-        _parsedRowIndex = 0;
-        _currentRowColCount = -1;
-        _currentRowColEndsOrInfosOffset = 0;
 
-        CheckPoint($"{nameof(ParseNewRows)} BEGINNING");
-
-        // Move data to start
-        if (_parsingRowCharsStartIndex > 0)
-        {
-            A.Assert(_parser != null);
-            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, _parser.PaddingLength);
-
-            // Adjust parse start
-            A.Assert(_charsParseStart >= offset);
-            _charsParseStart -= offset;
-
-            A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
-
-            // Adjust found current row col infos, note includes col count since +1
-            if (_colUnquoteUnescape == 0)
-            {
-                ref var colEndsRef = ref GetColsRefAs<int>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colEnd = ref Unsafe.Add(ref colEndsRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colEnd -= offset;
-                }
-            }
-            else
-            {
-                ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colInfo.ColEnd -= offset;
-                }
-            }
-        }
-        if (_parsingRowColEndsOrInfosStartIndex > 0)
-        {
-            var intsPerColInfo = GetIntegersPerColInfo();
-            var colInfosSpan = _colEndsOrColInfos.AsSpan();
-            var length = (_parsingRowColCount + 1) * intsPerColInfo;
-            var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length);
-            var destination = colInfosSpan.Slice(0, length);
-            source.CopyTo(destination);
-            _parsingRowColEndsOrInfosStartIndex = 0;
-        }
-
-        // Ensure start conditions
-        _colEndsOrColInfos[0] = -1;
-        if (_colUnquoteUnescape != 0)
-        {
-            // QuoteCount initialize hack
-            _colEndsOrColInfos[1] = 0;
-        }
-
-        _charsDataStart = 0;
-
-        // Reset
-#if DEBUG
-        _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
-#endif
-
-        var endOfFile = false;
-    LOOP:
-        CheckPoint($"{nameof(_parser)} BEFORE");
-
-        if (_parser is not null)
-        {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
-            else { _parser.ParseColInfos(this); }
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-        if (endOfFile)
-        {
-            CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
-            goto RETURN;
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-
-        if (_parsedRowsCount > 0) { return true; }
-
-        endOfFile = EnsureInitializeAndReadData(endOfFile);
-        if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
-        {
-            ++_parsingRowColCount;
-            var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
-            if (_colUnquoteUnescape == 0)
-            {
-                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
-            }
-            else
-            {
-                Debug.Assert(_parser is not null);
-                var quoteCount = _parser.QuoteCount;
-                Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
-                    new(_charsDataEnd, quoteCount);
-            }
-            ++_parsingLineNumber;
-            _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
-            ++_parsedRowsCount;
-
-            _parsingRowColCount = 0;
-            _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
-            _parsingRowCharsStartIndex = _charsDataEnd;
-            goto RETURN;
-        }
-        if (_parsedRowsCount <= 0) { goto LOOP; }
-    RETURN:
-        return _parsedRowsCount > 0;
-    }
-
-    internal async ValueTask<bool> ParseNewRowsAsync()
-    {
-        _parsedRowsCount = 0;
-        _parsedRowIndex = 0;
-        _currentRowColCount = -1;
-        _currentRowColEndsOrInfosOffset = 0;
-
-        CheckPoint($"{nameof(ParseNewRows)} BEGINNING");
-
-        // Move data to start
-        if (_parsingRowCharsStartIndex > 0)
-        {
-            A.Assert(_parser != null);
-            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, _parser.PaddingLength);
-
-            // Adjust parse start
-            A.Assert(_charsParseStart >= offset);
-            _charsParseStart -= offset;
-
-            A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
-
-            // Adjust found current row col infos, note includes col count since +1
-            if (_colUnquoteUnescape == 0)
-            {
-                ref var colEndsRef = ref GetColsRefAs<int>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colEnd = ref Unsafe.Add(ref colEndsRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colEnd -= offset;
-                }
-            }
-            else
-            {
-                ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colInfo.ColEnd -= offset;
-                }
-            }
-        }
-        if (_parsingRowColEndsOrInfosStartIndex > 0)
-        {
-            var intsPerColInfo = GetIntegersPerColInfo();
-            var colInfosSpan = _colEndsOrColInfos.AsSpan();
-            var length = (_parsingRowColCount + 1) * intsPerColInfo;
-            var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length);
-            var destination = colInfosSpan.Slice(0, length);
-            source.CopyTo(destination);
-            _parsingRowColEndsOrInfosStartIndex = 0;
-        }
-
-        // Ensure start conditions
-        _colEndsOrColInfos[0] = -1;
-        if (_colUnquoteUnescape != 0)
-        {
-            // QuoteCount initialize hack
-            _colEndsOrColInfos[1] = 0;
-        }
-
-        _charsDataStart = 0;
-
-        // Reset
-#if DEBUG
-        _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
-#endif
-
-        var endOfFile = false;
-    LOOP:
-        CheckPoint($"{nameof(_parser)} BEFORE");
-
-        if (_parser is not null)
-        {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
-            else { _parser.ParseColInfos(this); }
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-        if (endOfFile)
-        {
-            CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
-            goto RETURN;
-        }
-
-        CheckPoint($"{nameof(_parser)} AFTER");
-
-        if (_parsedRowsCount > 0) { return true; }
-
-        endOfFile = await EnsureInitializeAndReadDataAsync();
-        if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
-        {
-            ++_parsingRowColCount;
-            var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
-            if (_colUnquoteUnescape == 0)
-            {
-                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
-            }
-            else
-            {
-                Debug.Assert(_parser is not null);
-                var quoteCount = _parser.QuoteCount;
-                Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
-                    new(_charsDataEnd, quoteCount);
-            }
-            ++_parsingLineNumber;
-            _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);
-            ++_parsedRowsCount;
-
-            _parsingRowColCount = 0;
-            _parsingRowColEndsOrInfosStartIndex = colInfoIndex + 1;
-            _parsingRowCharsStartIndex = _charsDataEnd;
-            goto RETURN;
-        }
-        if (_parsedRowsCount <= 0) { goto LOOP; }
-    RETURN:
-        return _parsedRowsCount > 0;
-    }
 
     public string ToString(int index) => ToStringDefault(index);
 
@@ -669,20 +443,4 @@ public sealed partial class SepReader : SepReaderState
         _reader.Dispose();
         base.DisposeManaged();
     }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _reader.DisposeAsync();
-        DisposeManaged();
-    }
-
-#if NET9_0_OR_GREATER
-    public async IAsyncEnumerator<Row> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        while (await MoveNextAsync())
-        {
-            yield return Current;
-        }
-    }
-#endif
 }

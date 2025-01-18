@@ -897,11 +897,8 @@ Separator/delimiter is set to semi-colon `;` (default for Sep)
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and
-constraints, since these are not needed for the initial intended usage:
+constraints:
 
-* Automatic escaping and unescaping quotes is not supported. Use
-   [`Trim`](https://learn.microsoft.com/en-us/dotnet/api/system.memoryextensions.trim)
-   extension method to remove surrounding quotes, for example.
 * Comments `#` are not directly supported. You can skip a row by:
    ```csharp
    foreach (var row in reader)
@@ -914,8 +911,6 @@ constraints, since these are not needed for the initial intended usage:
    }
    ```
    This does not allow skipping a header row starting with `#` though.
-* `SepWriter` is not yet fully featured and one cannot skip writing a header
-   currently.
 
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:

@@ -9,23 +9,25 @@ namespace nietras.SeparatedValues.Test;
 public partial class SepReaderTest
 {
     [TestMethod]
-    public void SepReaderTest_NoHeader_Rows_0_NewLine()
+    public async ValueTask SepReaderTest_NoHeader_Rows_0_NewLine()
     {
-        var text = Environment.NewLine;
-        using var reader = Sep.Reader().FromText(text);
-        AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
-        Assert.AreEqual(1, reader.Header.ColNames.Count);
-        Assert.IsFalse(reader.MoveNext());
+        await FromSyncAsync(Environment.NewLine, options: new(), reader =>
+        {
+            AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
+            Assert.AreEqual(1, reader.Header.ColNames.Count);
+            Assert.IsFalse(reader.MoveNext());
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Rows_1_NewLine()
+    public async ValueTask SepReaderTest_NoHeader_Rows_1_NewLine()
     {
-        var text = Environment.NewLine;
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-        AssertState(reader, isEmpty: false, hasHeader: false, hasRows: true);
-        Assert.IsTrue(reader.MoveNext());
-        Assert.AreEqual(1, reader.Current.ColCount);
+        await FromSyncAsync(Environment.NewLine, options: new() { HasHeader = false }, reader =>
+        {
+            AssertState(reader, isEmpty: false, hasHeader: false, hasRows: true);
+            Assert.IsTrue(reader.MoveNext());
+            Assert.AreEqual(1, reader.Current.ColCount);
+        });
     }
 
     [TestMethod]

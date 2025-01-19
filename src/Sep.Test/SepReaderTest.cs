@@ -13,6 +13,24 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public partial class SepReaderTest
 {
+    // Except FromFile below since do not want to hit file system for all those small tests
+    static readonly IReadOnlyList<Func<SepReaderOptions, string, SepReader>> s_fromFuncsSync = [
+        (o, t) => o.FromText(t),
+        (o, t) => o.From(new StringReader(t)),
+        (o, t) => o.From(Encoding.UTF8.GetBytes(t)),
+        (o, t) => o.From(new MemoryStream(Encoding.UTF8.GetBytes(t))),
+        (o, t) => o.From("name", n => new StringReader(t)),
+        (o, t) => o.From("name", n => new MemoryStream(Encoding.UTF8.GetBytes(t))),
+    ];
+    static readonly IReadOnlyList<Func<SepReaderOptions, string, ValueTask<SepReader>>> s_fromFuncsAsync = [
+        (o, t) => o.FromTextAsync(t),
+        (o, t) => o.FromAsync(new StringReader(t)),
+        (o, t) => o.FromAsync(Encoding.UTF8.GetBytes(t)),
+        (o, t) => o.FromAsync(new MemoryStream(Encoding.UTF8.GetBytes(t))),
+        (o, t) => o.FromAsync("name", n => new StringReader(t)),
+        (o, t) => o.FromAsync("name", n => new MemoryStream(Encoding.UTF8.GetBytes(t))),
+    ];
+
     record Values(string c1, string c2, string c3);
 
     [TestMethod]
@@ -56,13 +74,6 @@ public partial class SepReaderTest
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("X", reader.ToString(0));
         Assert.AreEqual("Y", reader.ToString(1));
-    }
-
-    [TestMethod]
-    public async ValueTask SepReaderTest_Async_Empty()
-    {
-        using var reader = await Sep.Reader().FromTextAsync("");
-        await foreach (var row in reader) { }
     }
 
     [TestMethod]
@@ -860,5 +871,21 @@ public partial class SepReaderTest
     {
         Assert.AreEqual(0, header.ColNames.Count);
         Assert.IsTrue(header.IsEmpty);
+    }
+
+    static async ValueTask FromSyncAsync(string text, SepReaderOptions options, Action<SepReader> assert)
+    {
+        // Sync
+        foreach (var fromFuncSync in s_fromFuncsSync)
+        {
+            using var reader = fromFuncSync(options, text);
+            assert(reader);
+        }
+        // Async
+        foreach (var fromFuncAsync in s_fromFuncsAsync)
+        {
+            using var reader = await fromFuncAsync(options, text);
+            assert(reader);
+        }
     }
 }

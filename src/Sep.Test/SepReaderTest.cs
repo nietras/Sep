@@ -746,23 +746,16 @@ public partial class SepReaderTest
         public override long Length => fakeLength;
     }
 
-    static
-#if NET9_0_OR_GREATER
-    async
-#endif
-    ValueTask AssertEnumerateSyncAsync(
+    static async ValueTask AssertEnumerateSyncAsync(
         string text, Values[] expected,
         bool isEmpty = false, bool hasHeader = true, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
     {
         AssertEnumerateSync(text, expected, isEmpty, hasHeader, hasRows,
             disableQuotesParsing, colName1, colName2, colName3);
-#if NET9_0_OR_GREATER
+
         await AssertEnumerateAsync(text, expected, isEmpty, hasHeader, hasRows,
             disableQuotesParsing, colName1, colName2, colName3);
-#else
-        return ValueTask.CompletedTask;
-#endif
     }
 
     static void AssertEnumerateSync(string text, Values[] expected,
@@ -799,7 +792,6 @@ public partial class SepReaderTest
         }
     }
 
-#if NET9_0_OR_GREATER
     static async ValueTask AssertEnumerateAsync(string text, Values[] expected,
         bool isEmpty, bool hasHeader, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
@@ -836,7 +828,6 @@ public partial class SepReaderTest
         }
         return results;
     }
-#endif
 
     static void AssertEnumerateResults(SepReader reader,
         bool isEmpty, bool hasHeader, bool hasRows,

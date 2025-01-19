@@ -31,7 +31,7 @@ public partial class SepReaderTest
         (o, t) => o.FromAsync("name", n => new MemoryStream(Encoding.UTF8.GetBytes(t))),
     ];
 
-    record Values(string c1, string c2, string c3);
+    record Values(string C1, string C2, string C3);
 
     [TestMethod]
     public void SepReaderTest_AssetsQuotes()

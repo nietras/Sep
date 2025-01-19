@@ -741,16 +741,9 @@ public partial class SepReaderTest
         Assert.AreEqual($"TextReader='{typeof(StringReader)}'", reader.DebuggerDisplay);
     }
 
-    public class FakeLongMemoryStream : MemoryStream
+    class FakeLongMemoryStream(byte[] buffer, long fakeLength) : MemoryStream(buffer)
     {
-        readonly long _fakeLength;
-
-        public FakeLongMemoryStream(byte[] buffer, long fakeLength) : base(buffer)
-        {
-            _fakeLength = fakeLength;
-        }
-
-        public override long Length => _fakeLength;
+        public override long Length => fakeLength;
     }
 
     static
@@ -773,39 +766,49 @@ public partial class SepReaderTest
     }
 
     static void AssertEnumerateSync(string text, Values[] expected,
-        bool isEmpty = false, bool hasHeader = true, bool hasRows = true, bool disableQuotesParsing = false,
+        bool isEmpty, bool hasHeader, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
     {
-        using var reader = Sep.Reader(o => o with { DisableQuotesParsing = disableQuotesParsing })
+        using var reader = Sep
+            .Reader(o => o with { DisableQuotesParsing = disableQuotesParsing, HasHeader = hasHeader })
             .FromText(text);
 
-        var actual = EnumerateSync(reader, colName1, colName2, colName3).ToList();
+        var actual = EnumerateSync(reader, hasHeader, colName1, colName2, colName3).ToList();
 
         AssertEnumerateResults(reader, isEmpty,
             hasHeader, hasRows, colName1, colName2, colName3,
             expected, actual);
     }
 
-    static IEnumerable<Values> EnumerateSync(SepReader reader,
+    static IEnumerable<Values> EnumerateSync(SepReader reader, bool hasHeader,
         string colName1, string colName2, string colName3)
     {
-        foreach (var row in reader)
+        if (hasHeader)
         {
-            yield return new(row[colName1].ToString(),
-                             row[colName2].ToString(),
-                             row[colName3].ToString());
+            foreach (var row in reader)
+            {
+                yield return new(row[colName1].ToString(), row[colName2].ToString(), row[colName3].ToString());
+            }
+        }
+        else
+        {
+            foreach (var row in reader)
+            {
+                yield return new(row[0].ToString(), row[1].ToString(), row[2].ToString());
+            }
         }
     }
 
 #if NET9_0_OR_GREATER
     static async ValueTask AssertEnumerateAsync(string text, Values[] expected,
-        bool isEmpty = false, bool hasHeader = true, bool hasRows = true, bool disableQuotesParsing = false,
+        bool isEmpty, bool hasHeader, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
     {
-        using var reader = await Sep.Reader(o => o with { DisableQuotesParsing = disableQuotesParsing })
+        using var reader = await Sep
+            .Reader(o => o with { DisableQuotesParsing = disableQuotesParsing, HasHeader = hasHeader })
             .FromTextAsync(text);
 
-        var actual = await EnumerateAsync(reader, colName1, colName2, colName3);
+        var actual = await EnumerateAsync(reader, hasHeader, colName1, colName2, colName3);
 
         AssertEnumerateResults(reader, isEmpty,
             hasHeader, hasRows, colName1, colName2, colName3,
@@ -813,15 +816,23 @@ public partial class SepReaderTest
     }
 
     static async ValueTask<List<Values>> EnumerateAsync(
-        SepReader reader,
+        SepReader reader, bool hasHeader,
         string colName1, string colName2, string colName3)
     {
         var results = new List<Values>();
-        await foreach (var row in reader)
+        if (hasHeader)
         {
-            results.Add(new(row[colName1].ToString(),
-                            row[colName2].ToString(),
-                            row[colName3].ToString()));
+            await foreach (var row in reader)
+            {
+                results.Add(new(row[colName1].ToString(), row[colName2].ToString(), row[colName3].ToString()));
+            }
+        }
+        else
+        {
+            await foreach (var row in reader)
+            {
+                results.Add(new(row[0].ToString(), row[1].ToString(), row[2].ToString()));
+            }
         }
         return results;
     }
@@ -848,17 +859,10 @@ public partial class SepReaderTest
 
     static void AssertHeader(SepReaderHeader header, string colName1, string colName2, string colName3)
     {
-        if (header.ColNames.Count > 0)
-        {
-            Assert.AreEqual(3, header.ColNames.Count);
-            Assert.AreEqual(0, header.IndexOf(colName1));
-            Assert.AreEqual(1, header.IndexOf(colName2));
-            Assert.AreEqual(2, header.IndexOf(colName3));
-        }
-        else
-        {
-            AssertHeaderEmpty(header);
-        }
+        Assert.AreEqual(3, header.ColNames.Count);
+        Assert.AreEqual(0, header.IndexOf(colName1));
+        Assert.AreEqual(1, header.IndexOf(colName2));
+        Assert.AreEqual(2, header.IndexOf(colName3));
     }
 
     static void AssertHeaderEmpty(SepReaderHeader header)

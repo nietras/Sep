@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -30,99 +29,99 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Empty()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Empty()
     {
         var text = string.Empty;
-        var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: true, hasHeader: false, hasRows: false);
+        var expected = Array.Empty<Values>();
+        await AssertEnumerateSyncAsync(text, expected, isEmpty: true, hasHeader: false, hasRows: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Rows_1()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Rows_1()
     {
         var text = """
                    10;A;20.1
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "A", "20.1"),
+            new("10", "A", "20.1"),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Rows_2()
-    {
-        var text = """
-                   10;A;20.1
-                   11;B;20.2
-                   """;
-        var expected = new (string c1, string c2, string c3)[]
-        {
-            ("10", "A", "20.1"),
-            ("11", "B", "20.2"),
-        };
-        AssertEnumerate(text, expected);
-    }
-
-    [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Rows_2_NewLineAtEnd()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Rows_2()
     {
         var text = """
                    10;A;20.1
                    11;B;20.2
-
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "A", "20.1"),
-            ("11", "B", "20.2"),
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_1()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Rows_2_NewLineAtEnd()
+    {
+        var text = """
+                   10;A;20.1
+                   11;B;20.2
+
+                   """;
+        var expected = new Values[]
+        {
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
+        };
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Quotes_Rows_1()
     {
         var text = """
                    10;"A;";20";"11
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A;\"", "20\";\"11"),
+            new("10", "\"A;\"", "20\";\"11"),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2()
     {
         var text = """
                    10;"A;";20";"11
                    "11";";"B;"20;00"
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A;\"", "20\";\"11"),
-            ("\"11\"", "\";\"B", "\"20;00\""),
+            new("10", "\"A;\"", "20\";\"11"),
+            new("\"11\"", "\";\"B", "\"20;00\""),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2_NewLineAtEnd()
+    public async ValueTask SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2_NewLineAtEnd()
     {
         var text = """
                    10;"A;";20";"11
                    "11";";"B;"20;00"
 
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A;\"", "20\";\"11"),
-            ("\"11\"", "\";\"B", "\"20;00\""),
+            new("10", "\"A;\"", "20\";\"11"),
+            new("\"11\"", "\";\"B", "\"20;00\""),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
     [DataTestMethod]
@@ -183,27 +182,5 @@ public partial class SepReaderTest
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(initialColCountCapacity, row.ColCount);
-    }
-
-    static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,
-        bool isEmpty = false, bool hasHeader = false, bool hasRows = true)
-    {
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-
-        var actual = Enumerate(reader).ToArray();
-
-        AssertState(reader, isEmpty, hasHeader, hasRows);
-        AssertHeaderEmpty(reader.Header);
-        CollectionAssert.AreEqual(expected, actual);
-    }
-
-    static IEnumerable<(string c1, string c2, string c3)> Enumerate(SepReader reader)
-    {
-        foreach (var row in reader)
-        {
-            yield return (row[0].ToString(),
-                          row[1].ToString(),
-                          row[2].ToString());
-        }
     }
 }

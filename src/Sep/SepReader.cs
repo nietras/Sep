@@ -205,7 +205,6 @@ public sealed partial class SepReader : SepReaderState
             var sep = maybeSep.Value;
             _separator = sep.Separator;
             _parser = SepParserFactory.CreateBest(new(sep, _disableQuotesParsing));
-            // TODO: Initialize other members
             _charsPaddingLength = _parser.PaddingLength;
         }
     }

@@ -622,7 +622,7 @@ public partial class SepReaderTest
     [DataTestMethod]
     [DataRow(true)]
     [DataRow(false)]
-    public void SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
+    public async ValueTask SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
     {
 #if SEPREADERTRACE // Don't run really long with tracing enabled 😅
         const int lineEndingCount = 167;
@@ -636,9 +636,14 @@ public partial class SepReaderTest
         if (!even) { sb.Append(' '); };
         sb.Insert(lineEndingStartIndex, lineEnding, lineEndingCount);
         var text = sb.ToString();
-
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-        foreach (var row in reader) { }
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+            foreach (var row in reader) { }
+        }
+        {
+            using var reader = await Sep.Reader(o => o with { HasHeader = false }).FromTextAsync(text);
+            await foreach (var row in reader) { }
+        }
     }
 
     [TestMethod]

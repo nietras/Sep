@@ -42,10 +42,7 @@ public sealed partial class SepReader
                 {
                     var colName = ToStringDirect(colIndex);
                     if (!colNameToIndex.TryAdd(colName, colIndex))
-                    {
-                        SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex,
-                            colName, firstRowColCount, colNameComparer, headerRow);
-                    }
+                    { SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex, colName, firstRowColCount, colNameComparer, headerRow); }
                 }
                 _header = new(headerRow, colNameToIndex);
 
@@ -301,9 +298,7 @@ public sealed partial class SepReader
             ref _chars, ref _charsDataStart, ref _charsDataEnd,
             _charsMinimumFreeLength, paddingLength);
         if (_chars.Length > RowLengthMax)
-        {
-            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax);
-        }
+        { SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax); }
         A.Assert(offset == 0);
 
         // Read to free buffer area

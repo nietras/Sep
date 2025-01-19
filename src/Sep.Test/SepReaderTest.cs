@@ -79,7 +79,7 @@ public partial class SepReaderTest
     [TestMethod]
     public async ValueTask SepReaderTest_From_Empty()
     {
-        await FromSyncAsync(string.Empty, options: new(), reader =>
+        await FromAnySyncAsync(string.Empty, options: new(), reader =>
         {
             AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
             Assert.AreEqual(0, reader.Header.ColNames.Count);
@@ -90,7 +90,7 @@ public partial class SepReaderTest
     [TestMethod]
     public async ValueTask SepReaderTest_From_NewLine()
     {
-        await FromSyncAsync(Environment.NewLine, options: new(), reader =>
+        await FromAnySyncAsync(Environment.NewLine, options: new(), reader =>
         {
             AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
             Assert.AreEqual(1, reader.Header.ColNames.Count);
@@ -713,57 +713,75 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromText()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromText()
     {
-        using var reader = Sep.Reader().FromText("A;B");
-        Assert.AreEqual("String Length=3", reader.DebuggerDisplay);
+        var t = "A;B";
+        await FromSyncAsync(new(), o => o.FromText(t), o => o.FromTextAsync(t), r =>
+        {
+            Assert.AreEqual("String Length=3", r.DebuggerDisplay);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromFile()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromFile()
     {
         var filePath = Path.GetTempFileName();
         File.WriteAllText(filePath, "A;B");
-        using (var reader = Sep.Reader().FromFile(filePath))
+        await FromSyncAsync(new(), o => o.FromFile(filePath), o => o.FromFileAsync(filePath), r =>
         {
-            Assert.AreEqual($"File='{filePath}'", reader.DebuggerDisplay);
-        }
+            Assert.AreEqual($"File='{filePath}'", r.DebuggerDisplay);
+        });
         File.Delete(filePath);
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromBytes()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromBytes()
     {
-        using var reader = Sep.Reader().From(Encoding.UTF8.GetBytes("A;B"));
-        Assert.AreEqual($"Bytes Length=3", reader.DebuggerDisplay);
+        var bytes = Encoding.UTF8.GetBytes("A;B");
+        await FromSyncAsync(new(), o => o.From(bytes), o => o.FromAsync(bytes), r =>
+        {
+            Assert.AreEqual($"Bytes Length=3", r.DebuggerDisplay);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromNameStream()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromNameStream()
     {
         var name = "TEST";
-        using var reader = Sep.Reader().From(name, n => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
-        Assert.AreEqual($"Stream Name='{name}'", reader.DebuggerDisplay);
+        var func = (string n) => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
+        await FromSyncAsync(new(), o => o.From(name, func), o => o.FromAsync(name, func), r =>
+        {
+            Assert.AreEqual($"Stream Name='{name}'", r.DebuggerDisplay);
+        });
     }
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromStream()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromStream()
     {
-        using var reader = Sep.Reader().From((Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
-        Assert.AreEqual($"Stream='{typeof(MemoryStream)}'", reader.DebuggerDisplay);
+        var func = () => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.AreEqual($"Stream='{typeof(MemoryStream)}'", r.DebuggerDisplay);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromNameTextReader()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromNameTextReader()
     {
         var name = "TEST";
-        using var reader = Sep.Reader().From(name, n => (TextReader)new StringReader("A;B"));
-        Assert.AreEqual($"TextReader Name='{name}'", reader.DebuggerDisplay);
+        var func = (string n) => (TextReader)new StringReader("A;B");
+        await FromSyncAsync(new(), o => o.From(name, func), o => o.FromAsync(name, func), r =>
+        {
+            Assert.AreEqual($"TextReader Name='{name}'", r.DebuggerDisplay);
+        });
     }
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromTextReader()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromTextReader()
     {
-        using var reader = Sep.Reader().From((TextReader)new StringReader("A;B"));
-        Assert.AreEqual($"TextReader='{typeof(StringReader)}'", reader.DebuggerDisplay);
+        var func = () => (TextReader)new StringReader("A;B");
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.AreEqual($"TextReader='{typeof(StringReader)}'", r.DebuggerDisplay);
+        });
     }
 
     class FakeLongMemoryStream(byte[] buffer, long fakeLength) : MemoryStream(buffer)
@@ -887,7 +905,7 @@ public partial class SepReaderTest
         Assert.IsTrue(header.IsEmpty);
     }
 
-    static async ValueTask FromSyncAsync(string text, SepReaderOptions options, Action<SepReader> assert)
+    static async ValueTask FromAnySyncAsync(string text, SepReaderOptions options, Action<SepReader> assert)
     {
         // Sync
         foreach (var fromFuncSync in s_fromFuncsSync)
@@ -899,6 +917,24 @@ public partial class SepReaderTest
         foreach (var fromFuncAsync in s_fromFuncsAsync)
         {
             using var reader = await fromFuncAsync(options, text);
+            assert(reader);
+        }
+    }
+
+    static async ValueTask FromSyncAsync(
+        SepReaderOptions options,
+        Func<SepReaderOptions, SepReader> fromFuncSync,
+        Func<SepReaderOptions, ValueTask<SepReader>> fromFuncAsync,
+        Action<SepReader> assert)
+    {
+        // Sync
+        {
+            using var reader = fromFuncSync(options);
+            assert(reader);
+        }
+        // Async
+        {
+            using var reader = await fromFuncAsync(options);
             assert(reader);
         }
     }

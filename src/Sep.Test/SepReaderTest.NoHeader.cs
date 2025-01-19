@@ -11,7 +11,7 @@ public partial class SepReaderTest
     [TestMethod]
     public async ValueTask SepReaderTest_NoHeader_From_Empty()
     {
-        await FromSyncAsync(string.Empty, options: new() { HasHeader = false }, reader =>
+        await FromAnySyncAsync(string.Empty, options: new() { HasHeader = false }, reader =>
         {
             AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
             Assert.IsFalse(reader.MoveNext());
@@ -21,7 +21,7 @@ public partial class SepReaderTest
     [TestMethod]
     public async ValueTask SepReaderTest_NoHeader_From_NewLine()
     {
-        await FromSyncAsync(Environment.NewLine, options: new() { HasHeader = false }, reader =>
+        await FromAnySyncAsync(Environment.NewLine, options: new() { HasHeader = false }, reader =>
         {
             AssertState(reader, isEmpty: false, hasHeader: false, hasRows: true);
             Assert.IsTrue(reader.MoveNext());

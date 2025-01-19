@@ -7,11 +7,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
-[TestClass]
-public class SepReaderNoHeaderTest
+public partial class SepReaderTest
 {
     [TestMethod]
-    public void SepReaderNoHeaderTest_Rows_0_NewLine()
+    public void SepReaderTest_NoHeader_Rows_0_NewLine()
     {
         var text = Environment.NewLine;
         using var reader = Sep.Reader().FromText(text);
@@ -21,7 +20,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Rows_1_NewLine()
+    public void SepReaderTest_NoHeader_Rows_1_NewLine()
     {
         var text = Environment.NewLine;
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
@@ -31,7 +30,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Empty()
+    public void SepReaderTest_NoHeader_Enumerate_Empty()
     {
         var text = string.Empty;
         var expected = Array.Empty<(string c1, string c2, string c3)>();
@@ -39,7 +38,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Rows_1()
+    public void SepReaderTest_NoHeader_Enumerate_Rows_1()
     {
         var text = """
                    10;A;20.1
@@ -52,7 +51,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Rows_2()
+    public void SepReaderTest_NoHeader_Enumerate_Rows_2()
     {
         var text = """
                    10;A;20.1
@@ -67,7 +66,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Rows_2_NewLineAtEnd()
+    public void SepReaderTest_NoHeader_Enumerate_Rows_2_NewLineAtEnd()
     {
         var text = """
                    10;A;20.1
@@ -83,7 +82,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Quotes_Rows_1()
+    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_1()
     {
         var text = """
                    10;"A;";20";"11
@@ -96,7 +95,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Quotes_Rows_2()
+    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2()
     {
         var text = """
                    10;"A;";20";"11
@@ -111,7 +110,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_Enumerate_Quotes_Rows_2_NewLineAtEnd()
+    public void SepReaderTest_NoHeader_Enumerate_Quotes_Rows_2_NewLineAtEnd()
     {
         var text = """
                    10;"A;";20";"11
@@ -125,13 +124,10 @@ public class SepReaderNoHeaderTest
         };
         AssertEnumerate(text, expected);
     }
-
-    public static IEnumerable<object[]> ColCountMismatchData =>
-        SepReaderTest.ColCountMismatchData;
 
     [DataTestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
-    public void SepReaderNoHeaderTest_ColumnCountMismatch(string text, string message, int[] _)
+    public void SepReaderTest_NoHeader_ColumnCountMismatch(string text, string message, int[] _)
     {
         Contract.Assume(message is not null);
         var e = Assert.ThrowsException<InvalidDataException>(() =>
@@ -148,7 +144,7 @@ public class SepReaderNoHeaderTest
 
     [DataTestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
-    public void SepReaderNoHeaderTest_ColumnCountMismatch_DisableColCountCheck(
+    public void SepReaderTest_NoHeader_ColumnCountMismatch_DisableColCountCheck(
         string text, string _, int[] expectedColCounts)
     {
         Contract.Assume(expectedColCounts != null);
@@ -167,7 +163,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_ColsInitialLength()
+    public void SepReaderTest_NoHeader_ColsInitialLength()
     {
         var initialColCountCapacity = SepReader.ColEndsInitialLength - 1; // -1 since col ends is 1 longer due to having row start
         var text = new string(';', initialColCountCapacity - 1);
@@ -178,7 +174,7 @@ public class SepReaderNoHeaderTest
     }
 
     [TestMethod]
-    public void SepReaderNoHeaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
+    public void SepReaderTest_NoHeader_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
         var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = new string(';', initialColCountCapacity - 1);
@@ -197,21 +193,8 @@ public class SepReaderNoHeaderTest
         var actual = Enumerate(reader).ToArray();
 
         AssertState(reader, isEmpty, hasHeader, hasRows);
-        AssertHeader(reader.Header);
+        AssertHeaderEmpty(reader.Header);
         CollectionAssert.AreEqual(expected, actual);
-    }
-
-    static void AssertState(SepReader reader, bool isEmpty, bool hasHeader, bool hasRows)
-    {
-        Assert.AreEqual(isEmpty, reader.IsEmpty, nameof(reader.IsEmpty));
-        Assert.AreEqual(hasHeader, reader.HasHeader, nameof(reader.IsEmpty));
-        Assert.AreEqual(hasRows, reader.HasRows, nameof(reader.HasRows));
-    }
-
-    static void AssertHeader(SepReaderHeader header)
-    {
-        Assert.AreEqual(0, header.ColNames.Count);
-        Assert.AreEqual(true, header.IsEmpty);
     }
 
     static IEnumerable<(string c1, string c2, string c3)> Enumerate(SepReader reader)

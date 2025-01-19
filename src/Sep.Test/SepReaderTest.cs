@@ -834,14 +834,15 @@ public partial class SepReaderTest
         List<Values> actual)
     {
         AssertState(reader, isEmpty, hasHeader, hasRows);
-        AssertHeader(reader.Header, colName1, colName2, colName3);
+        if (hasHeader) { AssertHeader(reader.Header, colName1, colName2, colName3); }
+        else { AssertHeaderEmpty(reader.Header); }
         CollectionAssert.AreEqual(expected, actual);
     }
 
     static void AssertState(SepReader reader, bool isEmpty, bool hasHeader, bool hasRows)
     {
         Assert.AreEqual(isEmpty, reader.IsEmpty, nameof(reader.IsEmpty));
-        Assert.AreEqual(hasHeader, reader.HasHeader, nameof(reader.IsEmpty));
+        Assert.AreEqual(hasHeader, reader.HasHeader, nameof(reader.HasHeader));
         Assert.AreEqual(hasRows, reader.HasRows, nameof(reader.HasRows));
     }
 
@@ -854,5 +855,15 @@ public partial class SepReaderTest
             Assert.AreEqual(1, header.IndexOf(colName2));
             Assert.AreEqual(2, header.IndexOf(colName3));
         }
+        else
+        {
+            AssertHeaderEmpty(header);
+        }
+    }
+
+    static void AssertHeaderEmpty(SepReaderHeader header)
+    {
+        Assert.AreEqual(0, header.ColNames.Count);
+        Assert.IsTrue(header.IsEmpty);
     }
 }

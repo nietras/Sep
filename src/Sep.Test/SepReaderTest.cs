@@ -58,14 +58,12 @@ public partial class SepReaderTest
         Assert.AreEqual("Y", reader.ToString(1));
     }
 
-#if NET9_0_OR_GREATER
     [TestMethod]
     public async ValueTask SepReaderTest_Async_Empty()
     {
         using var reader = await Sep.Reader().FromTextAsync("");
         await foreach (var row in reader) { }
     }
-#endif
 
     [TestMethod]
     public async ValueTask SepReaderTest_Enumerate_Empty()

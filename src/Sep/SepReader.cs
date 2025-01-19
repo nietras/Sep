@@ -8,9 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-#if NET9_0_OR_GREATER
 using System.Threading;
 using System.Threading.Tasks;
+#if NET9_0_OR_GREATER
 #endif
 
 namespace nietras.SeparatedValues;
@@ -110,13 +110,17 @@ public sealed partial class SepReader : SepReaderState
     void System.Collections.IEnumerator.Reset() => throw new NotSupportedException();
 
     // Async
-    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
-        new(this, cancellationToken);
     IAsyncEnumerator<Row> IAsyncEnumerable<Row>.GetAsyncEnumerator(CancellationToken cancellationToken) =>
         GetAsyncEnumerator(cancellationToken);
+#endif
+    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
+        new(this, cancellationToken);
 
     public readonly struct AsyncEnumerator
+#if NET9_0_OR_GREATER
+        // Interface requires .NET 9 for allows ref struct
         : IAsyncEnumerator<Row>
+#endif
     {
         readonly SepReader _reader;
         readonly CancellationToken _cancellationToken;
@@ -138,7 +142,6 @@ public sealed partial class SepReader : SepReaderState
             return ValueTask.CompletedTask;
         }
     }
-#endif
 
     public string ToString(int index) => ToStringDefault(index);
 

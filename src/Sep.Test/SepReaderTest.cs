@@ -180,6 +180,40 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
+    public async ValueTask SepReaderTest_AsyncEnumerate_As_AsyncEnumerable()
+    {
+        var text = """
+                   C1;C2;C3
+                   10;A;20.1
+                   11;B;20.2
+                   """;
+        using var reader = await Sep.Reader().FromTextAsync(text);
+        var expected = new Values[]
+        {
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
+        };
+        // NET9_0_OR_GREATER SepReader implements IAsyncEnumerable<>
+        var index = 0;
+        await foreach (var actual in FromAsyncEnumerable(reader))
+        {
+            Assert.AreEqual(expected[index], actual);
+            ++index;
+        }
+
+        static async IAsyncEnumerable<Values> FromAsyncEnumerable(
+            IAsyncEnumerable<SepReader.Row> rows)
+        {
+            await foreach (var row in rows)
+            {
+                yield return new(row["C1"].ToString(),
+                                 row["C2"].ToString(),
+                                 row["C3"].ToString());
+            }
+        }
+    }
+
+    [TestMethod]
     public void SepReaderTest_NonGenericEnumerable_Throws()
     {
         using var reader = Sep.Reader().FromText(string.Empty);

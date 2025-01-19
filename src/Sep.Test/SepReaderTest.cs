@@ -77,15 +77,29 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_Enumerate_Empty()
+    public async ValueTask SepReaderTest_From_Empty()
     {
-        var text = string.Empty;
-        var expected = Array.Empty<Values>();
-        await AssertEnumerateSyncAsync(text, expected, isEmpty: true, hasHeader: false, hasRows: false);
+        await FromSyncAsync(string.Empty, options: new(), reader =>
+        {
+            AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
+            Assert.AreEqual(0, reader.Header.ColNames.Count);
+            Assert.IsFalse(reader.MoveNext());
+        });
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_Enumerate_Rows_0()
+    public async ValueTask SepReaderTest_From_NewLine()
+    {
+        await FromSyncAsync(Environment.NewLine, options: new(), reader =>
+        {
+            AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
+            Assert.AreEqual(1, reader.Header.ColNames.Count);
+            Assert.IsFalse(reader.MoveNext());
+        });
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_Enumerate_Rows_0_HeaderOnly()
     {
         var text = "C1;C2;C3";
         var expected = Array.Empty<Values>();

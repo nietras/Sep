@@ -9,18 +9,17 @@ namespace nietras.SeparatedValues.Test;
 public partial class SepReaderTest
 {
     [TestMethod]
-    public async ValueTask SepReaderTest_NoHeader_Rows_0_NewLine()
+    public async ValueTask SepReaderTest_NoHeader_From_Empty()
     {
-        await FromSyncAsync(Environment.NewLine, options: new(), reader =>
+        await FromSyncAsync(string.Empty, options: new() { HasHeader = false }, reader =>
         {
-            AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
-            Assert.AreEqual(1, reader.Header.ColNames.Count);
+            AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
             Assert.IsFalse(reader.MoveNext());
         });
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_NoHeader_Rows_1_NewLine()
+    public async ValueTask SepReaderTest_NoHeader_From_NewLine()
     {
         await FromSyncAsync(Environment.NewLine, options: new() { HasHeader = false }, reader =>
         {

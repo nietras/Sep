@@ -123,7 +123,7 @@ public class SepWriterTest
     public void SepWriterTest_EndRowWithoutNewRow_Throws()
     {
         using var writer = CreateWriter();
-        var e = Assert.ThrowsException<InvalidOperationException>(() => writer.EndRow(default));
+        var e = Assert.ThrowsException<InvalidOperationException>(() => writer.EndRow());
         Assert.AreEqual("Writer does not have an active row. " +
                         "Ensure 'NewRow()' has been called and that the row is only disposed once. " +
                         "I.e. prefer 'using var row = writer.NewRow();'", e.Message);

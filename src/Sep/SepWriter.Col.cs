@@ -32,6 +32,7 @@ public partial class SepWriter
         }
 
         public ReadOnlySpan<char> GetSpan() => _buffer.AsSpan(0, _position);
+        public ReadOnlyMemory<char> GetMemory() => _buffer.AsMemory(0, _position);
 
         public void Dispose()
         {

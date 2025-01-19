@@ -2105,19 +2105,21 @@ namespace nietras.SeparatedValues
         AfterUnescape = 2,
         All = 3,
     }
-    public sealed class SepWriter : System.IDisposable
+    public sealed class SepWriter : System.IAsyncDisposable, System.IDisposable
     {
         public nietras.SeparatedValues.SepWriterHeader Header { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public void Flush() { }
+        public System.Threading.Tasks.Task Flush(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public override string ToString() { }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
-        public struct Row : System.IDisposable
+        public struct Row : System.IAsyncDisposable, System.IDisposable
         {
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
             public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }
@@ -2126,6 +2128,7 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepWriter.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
             public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
             public void Dispose() { }
+            public System.Threading.Tasks.ValueTask DisposeAsync() { }
         }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]

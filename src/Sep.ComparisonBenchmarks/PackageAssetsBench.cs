@@ -4,9 +4,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-#if NET9_0_OR_GREATER
 using System.Threading.Tasks;
-#endif
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;
@@ -81,7 +79,6 @@ public class RowPackageAssetsBench : PackageAssetsBench
         foreach (var row in reader) { }
     }
 
-#if NET9_0_OR_GREATER
     [Benchmark]
     public async ValueTask Sep_Async()
     {
@@ -89,7 +86,6 @@ public class RowPackageAssetsBench : PackageAssetsBench
                                     .FromAsync(Reader.CreateReader());
         await foreach (var row in reader) { }
     }
-#endif
 
     [Benchmark]
     public void Sep_Unescape()

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -13,6 +14,12 @@ public class SepWriterTest
     public void SepWriterTest_NoRow()
     {
         using var writer = CreateWriter();
+        Assert.AreEqual("", writer.ToString());
+    }
+    [TestMethod]
+    public async ValueTask SepWriterTest_NoRow_Async()
+    {
+        await using var writer = CreateWriter();
         Assert.AreEqual("", writer.ToString());
     }
 
@@ -38,6 +45,20 @@ public class SepWriterTest
 ";
         Assert.AreEqual(expected, writer.ToString());
     }
+    [TestMethod]
+    public async ValueTask SepWriterTest_EmptyRow_Async()
+    {
+        await using var writer = CreateWriter();
+        {
+            await using var row = writer.NewRow();
+        }
+        var expected =
+@"
+
+";
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
 
     [TestMethod]
     public void SepWriterTest_OneRowOneCol()

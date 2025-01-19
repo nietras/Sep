@@ -5,7 +5,7 @@ using System.Text;
 
 namespace nietras.SeparatedValues;
 
-public static class SepWriterExtensions
+public static partial class SepWriterExtensions
 {
     static readonly FileStreamOptions s_streamWriterOptions = new()
     {

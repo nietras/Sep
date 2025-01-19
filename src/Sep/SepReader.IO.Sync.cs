@@ -102,7 +102,7 @@ public sealed partial class SepReader
 #if SYNC
     public bool MoveNext()
 #else
-    public async ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken)
+    public async ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default)
 #endif
     {
         do

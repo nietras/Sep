@@ -631,19 +631,23 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
+    public async ValueTask SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
         var colCount = SepReader.ColEndsInitialLength;
         var text = "A" + Environment.NewLine + new string(';', colCount - 1);
-        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
-        Assert.IsTrue(reader.MoveNext());
-        var row = reader.Current;
-        Assert.AreEqual(colCount, row.ColCount);
-        Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+
+        await FromSyncAsync(new() { DisableColCountCheck = true },
+            o => o.FromText(text), o => o.FromTextAsync(text), reader =>
+        {
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            Assert.AreEqual(colCount, row.ColCount);
+            Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
+    public async ValueTask SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
     {
         // At any time during parsing there may be an incomplete row e.g. a
         // parsing row, when then new rows are about to be parsed e.g. in
@@ -662,22 +666,38 @@ public partial class SepReaderTest
             var text = new string('A', Math.Max(1, charsLength - colCount + 1))
                 + new string(';', colCount - 1) + Environment.NewLine
                 + new string(';', colCount * 2);
-            using var reader = Sep
-                .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
-                .FromText(text);
-            while (reader.MoveNext()) { }
+            {
+                using var reader = Sep
+                    .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
+                    .FromText(text);
+                while (reader.MoveNext()) { }
+            }
+            {
+                using var reader = await Sep
+                    .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
+                    .FromTextAsync(text);
+                while (await reader.MoveNextAsync()) { }
+            }
         }
     }
 
 #if !SEPREADERTRACE // Causes OOMs in Debug due to tracing
     [TestMethod]
-    public void SepReaderTest_TooLongRow_Throws()
+    public async ValueTask SepReaderTest_TooLongRow_Throws()
     {
         var maxLength = SepDefaults.RowLengthMax + 1;
         var text = new string('a', maxLength);
-        var e = Assert.ThrowsException<NotSupportedException>(() =>
-            Sep.Reader().FromText(text));
-        Assert.AreEqual($"Buffer or row has reached maximum supported length of 16777216. If no such row should exist ensure quotes \" are terminated.", e.Message);
+        var expected = $"Buffer or row has reached maximum supported length of 16777216. If no such row should exist ensure quotes \" are terminated.";
+        {
+            var e = Assert.ThrowsException<NotSupportedException>(() =>
+                Sep.Reader().FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<NotSupportedException>(async () =>
+                await Sep.Reader().FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 #endif
 
@@ -699,17 +719,19 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_TextReaderLengthLongerThan32Bit()
+    public async ValueTask SepReaderTest_TextReaderLengthLongerThan32Bit()
     {
         const string text = """
                             A;B
                             1;2
                             """;
         var utf8Bytes = Encoding.UTF8.GetBytes(text);
-        using var fakeLongStream = new FakeLongMemoryStream(utf8Bytes, int.MaxValue + 1L);
-        using var reader = Sep.Auto.Reader().From(fakeLongStream);
+        var func = () => new FakeLongMemoryStream(utf8Bytes, int.MaxValue + 1L);
 
-        Assert.AreEqual(true, reader.MoveNext());
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.IsTrue(r.MoveNext());
+        });
     }
 
     [TestMethod]

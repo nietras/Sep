@@ -338,30 +338,52 @@ public partial class SepReaderTest
     [DataTestMethod]
     [DataRow("A;B;C;A;D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;A;D;E'")]
     [DataRow("A;B;C;A;D;A;E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row 'A;B;C;A;D;A;E;A'")]
-    public void SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() => Sep.Reader().FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader().FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader().FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [DataTestMethod]
     [DataRow("A;B;C;\"A\";D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;\"A\";D;E'")]
     [DataRow("\"A\";B;C;A;D;\"A\";E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row '\"A\";B;C;A;D;\"A\";E;A'")]
-    public void SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
-            Sep.Reader(o => o with { Unescape = true }).FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader(o => o with { Unescape = true }).FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader(o => o with { Unescape = true }).FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [DataTestMethod]
     [DataRow("A;B;C;a;D;E", "Col name 'a' found 2 times at 0:'A' 3:'a' in header row 'A;B;C;a;D;E'")]
     [DataRow("a;B;C;A;D;A;E;a", "Col name 'A' found 4 times at 0:'a' 3:'A' 5:'A' 7:'a' in header row 'a;B;C;A;D;A;E;a'")]
-    public void SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
-            Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [TestMethod]

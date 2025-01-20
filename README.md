@@ -2112,7 +2112,7 @@ namespace nietras.SeparatedValues
         public void Dispose() { }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public void Flush() { }
-        public System.Threading.Tasks.Task Flush(System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public override string ToString() { }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +

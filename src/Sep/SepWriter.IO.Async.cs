@@ -13,7 +13,7 @@ public partial class SepWriter
 #if SYNC
     public void Flush() => _writer.Flush();
 #else
-    public Task Flush(CancellationToken cancellationToken = default) =>
+    public Task FlushAsync(CancellationToken cancellationToken = default) =>
         _writer.FlushAsync(cancellationToken);
 #endif
 

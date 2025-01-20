@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -44,18 +45,28 @@ public class SepWriterHeaderTest
     }
 
     [TestMethod]
-    public void SepWriterHeaderTest_Add_Array_Rows_0()
+    public async ValueTask SepWriterHeaderTest_Add_Array_Rows_0()
     {
-        using var writer = CreateWriter();
         var colNames = new string[] { "A", "B", "C" };
-        writer.Header.Add(colNames);
         var expected =
 @"A;B;C
 ";
-        // Header written on Dispose
-        writer.Dispose();
+        {
+            using var writer = CreateWriter();
+            writer.Header.Add(colNames);
+            // Header written on Dispose
+            writer.Dispose();
 
-        Assert.AreEqual(expected, writer.ToString());
+            Assert.AreEqual(expected, writer.ToString());
+        }
+        {
+            await using var writer = CreateWriter();
+            writer.Header.Add(colNames);
+            // Header written on Dispose
+            await writer.DisposeAsync();
+
+            Assert.AreEqual(expected, writer.ToString());
+        }
     }
 
     [TestMethod]

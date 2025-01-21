@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace nietras.SeparatedValues;
 
@@ -10,9 +11,10 @@ public partial class SepWriter
     public ref struct Row
 #if NET9_0_OR_GREATER
         : IDisposable
+        , IAsyncDisposable
 #endif
     {
-        internal SepWriter? _writer;
+        SepWriter? _writer;
 
         internal Row(SepWriter writer) => _writer = writer;
 
@@ -81,8 +83,18 @@ public partial class SepWriter
 
         public void Dispose()
         {
-            _writer?.EndRow(this);
+            _writer?.EndRow();
             _writer = null;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            if (_writer is not null)
+            {
+                return _writer.EndRowAsync(default);
+            }
+            _writer = null;
+            return ValueTask.CompletedTask;
         }
     }
 

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace nietras.SeparatedValues;
 
@@ -44,6 +46,8 @@ public sealed class SepWriterHeader
     }
 
     public void Write() => _writer.WriteHeader();
+    public ValueTask WriteAsync(CancellationToken cancellationToken = default) =>
+        _writer.WriteHeaderAsync(cancellationToken);
 
     internal string DebuggerDisplay =>
         $"Count = {DebugColNames().Length} State = '{(_writer._headerWrittenOrSkipped ? (_writer._writeHeader ? "Written" : "Skipped") :

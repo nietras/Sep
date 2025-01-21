@@ -5,7 +5,7 @@ using System.Text;
 
 namespace nietras.SeparatedValues;
 
-public static class SepWriterExtensions
+public static partial class SepWriterExtensions
 {
     static readonly FileStreamOptions s_streamWriterOptions = new()
     {
@@ -61,8 +61,10 @@ public static class SepWriterExtensions
 
     public static SepWriter To(this SepWriterOptions options, TextWriter writer, bool leaveOpen)
     {
-        Action<TextWriter> disposeTextWriter = leaveOpen ? static w => { } : static w => w.Dispose();
+        ISepTextWriterDisposer textWriterDisposer = leaveOpen
+            ? NoopSepTextWriterDisposer.Instance
+            : SepTextWriterDisposer.Instance;
         ArgumentNullException.ThrowIfNull(writer);
-        return new SepWriter(options, writer, disposeTextWriter);
+        return new SepWriter(options, writer, textWriterDisposer);
     }
 }

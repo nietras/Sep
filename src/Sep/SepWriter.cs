@@ -108,7 +108,7 @@ public sealed partial class SepWriter : IDisposable
         //static ulong IndexOfFirstSet(ulong v) => ((((v - 1) & 0x0001000100010001ul) * 0x0001000100010001ul) >> 60) - 1;
     }
 
-    public ValueTask DisposeAsync() => DisposeManagedAsync();
+    public ValueTask DisposeAsync() => DisposeManagedAsync(default);
 
     #region Dispose
     bool _disposed;

@@ -117,12 +117,14 @@ public class SepWriterTest
                        "I.e. prefer 'using var row = writer.NewRow();'";
         {
             using var writer = CreateWriter();
-            var e = Assert.ThrowsException<InvalidOperationException>(() => writer.EndRow());
+            var e = Assert.ThrowsException<InvalidOperationException>(
+                () => writer.EndRow());
             Assert.AreEqual(expected, e.Message);
         }
         {
             await using var writer = CreateWriter();
-            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () => await writer.EndRowAsync());
+            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                async () => await writer.EndRowAsync(default));
             Assert.AreEqual(expected, e.Message);
         }
     }

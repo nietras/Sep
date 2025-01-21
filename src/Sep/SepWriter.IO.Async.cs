@@ -20,7 +20,7 @@ public partial class SepWriter
 #if SYNC
     internal void EndRow()
 #else
-    internal async ValueTask EndRowAsync()
+    internal async ValueTask EndRowAsync(CancellationToken cancellationToken)
 #endif
     {
         if (!_newRowActive) { SepThrow.InvalidOperationException_WriterDoesNotHaveActiveRow(); }
@@ -33,7 +33,7 @@ public partial class SepWriter
 #if SYNC
             WriteHeader();
 #else
-            await WriteHeaderAsync();
+            await WriteHeaderAsync(cancellationToken);
 #endif
         }
         else if (_colNotSetOption == SepColNotSetOption.Throw || !_disableColCountCheck)
@@ -77,7 +77,7 @@ public partial class SepWriter
 #if SYNC
                         WriteEscaped(span);
 #else
-                        await WriteEscapedAsync(span);
+                        await WriteEscapedAsync(span, cancellationToken);
 #endif
                     }
                     else
@@ -85,7 +85,7 @@ public partial class SepWriter
 #if SYNC
                         _writer.Write(span);
 #else
-                        await _writer.WriteAsync(span);
+                        await _writer.WriteAsync(span, cancellationToken);
 #endif
                     }
                     notFirst = true;
@@ -107,7 +107,7 @@ public partial class SepWriter
 #if SYNC
     internal void WriteHeader()
 #else
-    internal async ValueTask WriteHeaderAsync()
+    internal async ValueTask WriteHeaderAsync(CancellationToken cancellationToken)
 #endif
     {
         if (_writeHeader)
@@ -138,8 +138,8 @@ public partial class SepWriter
                 if (_escape) { WriteEscaped(name); }
                 else { _writer.Write(name); }
 #else
-                if (_escape) { await WriteEscapedAsync(name.AsMemory()); }
-                else { await _writer.WriteAsync(name); }
+                if (_escape) { await WriteEscapedAsync(name.AsMemory(), cancellationToken); }
+                else { await _writer.WriteAsync(name.AsMemory(), cancellationToken); }
 #endif
                 _colNamesHeader[colIndex] = name;
                 notFirstHeader = true;
@@ -157,7 +157,7 @@ public partial class SepWriter
 #if SYNC
     void WriteEscaped(ReadOnlySpan<char> span)
 #else
-    async ValueTask WriteEscapedAsync(ReadOnlyMemory<char> span)
+    async ValueTask WriteEscapedAsync(ReadOnlyMemory<char> span, CancellationToken cancellationToken)
 #endif
     {
 #if SYNC
@@ -172,7 +172,7 @@ public partial class SepWriter
             WriteQuotesEscaped(span);
 #else
             await _writer.WriteAsync(SepDefaults.Quote);
-            await WriteQuotesEscapedAsync(span);
+            await WriteQuotesEscapedAsync(span, cancellationToken);
 #endif
 #if SYNC
             _writer.Write(SepDefaults.Quote);
@@ -185,7 +185,7 @@ public partial class SepWriter
 #if SYNC
             _writer.Write(span);
 #else
-            await _writer.WriteAsync(span);
+            await _writer.WriteAsync(span, cancellationToken);
 #endif
         }
     }
@@ -194,7 +194,7 @@ public partial class SepWriter
 #if SYNC
     void WriteQuotesEscaped(ReadOnlySpan<char> span)
 #else
-    async ValueTask WriteQuotesEscapedAsync(ReadOnlyMemory<char> span)
+    async ValueTask WriteQuotesEscapedAsync(ReadOnlyMemory<char> span, CancellationToken cancellationToken)
 #endif
     {
         var start = 0;
@@ -211,7 +211,7 @@ public partial class SepWriter
 #if SYNC
                 _writer.Write(remainingSpan);
 #else
-                await _writer.WriteAsync(remainingSpan);
+                await _writer.WriteAsync(remainingSpan, cancellationToken);
 #endif
                 break;
             }
@@ -221,7 +221,7 @@ public partial class SepWriter
                 _writer.Write(remainingSpan.Slice(0, quoteIndex + 1));
                 _writer.Write(SepDefaults.Quote);
 #else
-                await _writer.WriteAsync(remainingSpan.Slice(0, quoteIndex + 1));
+                await _writer.WriteAsync(remainingSpan.Slice(0, quoteIndex + 1), cancellationToken);
                 await _writer.WriteAsync(SepDefaults.Quote);
 #endif
                 start += quoteIndex + 1;
@@ -241,7 +241,7 @@ public partial class SepWriter
 #if SYNC
     void DisposeManaged()
 #else
-    async ValueTask DisposeManagedAsync()
+    async ValueTask DisposeManagedAsync(CancellationToken cancellationToken)
 #endif
     {
         if (!_headerWrittenOrSkipped && _cols.Count > 0)
@@ -249,7 +249,7 @@ public partial class SepWriter
 #if SYNC
             WriteHeader();
 #else
-            await WriteHeaderAsync();
+            await WriteHeaderAsync(cancellationToken);
 #endif
         }
 

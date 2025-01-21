@@ -91,7 +91,7 @@ public partial class SepWriter
         {
             if (_writer is not null)
             {
-                return _writer.EndRowAsync();
+                return _writer.EndRowAsync(default);
             }
             _writer = null;
             return ValueTask.CompletedTask;

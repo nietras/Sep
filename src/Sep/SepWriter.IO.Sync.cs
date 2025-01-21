@@ -68,24 +68,24 @@ public partial class SepWriter
 #endif
                     }
 #if SYNC
-                    var span = col.GetSpan();
+                    var chars = col.GetSpan();
 #else
-                    var span = col.GetMemory();
+                    var chars = col.GetMemory();
 #endif
                     if (_escape)
                     {
 #if SYNC
-                        WriteEscaped(span);
+                        WriteEscaped(chars);
 #else
-                        await WriteEscapedAsync(span, cancellationToken);
+                        await WriteEscapedAsync(chars, cancellationToken);
 #endif
                     }
                     else
                     {
 #if SYNC
-                        _writer.Write(span);
+                        _writer.Write(chars);
 #else
-                        await _writer.WriteAsync(span, cancellationToken);
+                        await _writer.WriteAsync(chars, cancellationToken);
 #endif
                     }
                     notFirst = true;
@@ -155,24 +155,24 @@ public partial class SepWriter
     }
 
 #if SYNC
-    void WriteEscaped(ReadOnlySpan<char> span)
+    void WriteEscaped(ReadOnlySpan<char> chars)
 #else
-    async ValueTask WriteEscapedAsync(ReadOnlyMemory<char> span, CancellationToken cancellationToken)
+    async ValueTask WriteEscapedAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
 #endif
     {
 #if SYNC
-        var containsSpecialChar = ContainsSpecialCharacters(span, _sep.Separator);
+        var containsSpecialChar = ContainsSpecialCharacters(chars, _sep.Separator);
 #else
-        var containsSpecialChar = ContainsSpecialCharacters(span.Span, _sep.Separator);
+        var containsSpecialChar = ContainsSpecialCharacters(chars.Span, _sep.Separator);
 #endif
         if (containsSpecialChar != 0)
         {
 #if SYNC
             _writer.Write(SepDefaults.Quote);
-            WriteQuotesEscaped(span);
+            WriteQuotesEscaped(chars);
 #else
             await _writer.WriteAsync(SepDefaults.Quote);
-            await WriteQuotesEscapedAsync(span, cancellationToken);
+            await WriteQuotesEscapedAsync(chars, cancellationToken);
 #endif
 #if SYNC
             _writer.Write(SepDefaults.Quote);
@@ -183,45 +183,45 @@ public partial class SepWriter
         else
         {
 #if SYNC
-            _writer.Write(span);
+            _writer.Write(chars);
 #else
-            await _writer.WriteAsync(span, cancellationToken);
+            await _writer.WriteAsync(chars, cancellationToken);
 #endif
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #if SYNC
-    void WriteQuotesEscaped(ReadOnlySpan<char> span)
+    void WriteQuotesEscaped(ReadOnlySpan<char> chars)
 #else
-    async ValueTask WriteQuotesEscapedAsync(ReadOnlyMemory<char> span, CancellationToken cancellationToken)
+    async ValueTask WriteQuotesEscapedAsync(ReadOnlyMemory<char> chars, CancellationToken cancellationToken)
 #endif
     {
         var start = 0;
-        while (start < span.Length)
+        while (start < chars.Length)
         {
-            var remainingSpan = span.Slice(start);
+            var remainingChars = chars.Slice(start);
 #if SYNC
-            var quoteIndex = remainingSpan.IndexOf(SepDefaults.Quote);
+            var quoteIndex = remainingChars.IndexOf(SepDefaults.Quote);
 #else
-            var quoteIndex = remainingSpan.Span.IndexOf(SepDefaults.Quote);
+            var quoteIndex = remainingChars.Span.IndexOf(SepDefaults.Quote);
 #endif
             if (quoteIndex == -1)
             {
 #if SYNC
-                _writer.Write(remainingSpan);
+                _writer.Write(remainingChars);
 #else
-                await _writer.WriteAsync(remainingSpan, cancellationToken);
+                await _writer.WriteAsync(remainingChars, cancellationToken);
 #endif
                 break;
             }
             else
             {
 #if SYNC
-                _writer.Write(remainingSpan.Slice(0, quoteIndex + 1));
+                _writer.Write(remainingChars.Slice(0, quoteIndex + 1));
                 _writer.Write(SepDefaults.Quote);
 #else
-                await _writer.WriteAsync(remainingSpan.Slice(0, quoteIndex + 1), cancellationToken);
+                await _writer.WriteAsync(remainingChars.Slice(0, quoteIndex + 1), cancellationToken);
                 await _writer.WriteAsync(SepDefaults.Quote);
 #endif
                 start += quoteIndex + 1;

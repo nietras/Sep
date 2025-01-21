@@ -227,15 +227,6 @@ public partial class SepWriter
                 start += quoteIndex + 1;
             }
         }
-        // Original basic loop implementation
-        //foreach (var c in span)
-        //{
-        //    _writer.Write(c);
-        //    if (c == SepDefaults.Quote)
-        //    {
-        //        _writer.Write(SepDefaults.Quote);
-        //    }
-        //}
     }
 
 #if SYNC

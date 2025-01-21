@@ -21,7 +21,7 @@ public sealed partial class SepWriter : IDisposable
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
 #pragma warning restore CA2213 // Disposable fields should be disposed
-    readonly Action<TextWriter> _disposeTextWriter;
+    readonly ISepTextWriterDisposer _textWriterDisposer;
     internal readonly List<(string ColName, int ColIndex)> _colNameCache = new(DefaultCapacity);
 
     // TODO: Add Stack<ColImpl> for remove/add cols when manipulating
@@ -36,7 +36,7 @@ public sealed partial class SepWriter : IDisposable
     bool _newRowActive = false;
     int _cacheIndex = 0;
 
-    internal SepWriter(SepWriterOptions options, TextWriter writer, Action<TextWriter> disposeTextWriter)
+    internal SepWriter(SepWriterOptions options, TextWriter writer, ISepTextWriterDisposer textWriterDisposer)
     {
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
@@ -45,7 +45,7 @@ public sealed partial class SepWriter : IDisposable
         _colNotSetOption = options.ColNotSetOption;
         _escape = options.Escape;
         _writer = writer;
-        _disposeTextWriter = disposeTextWriter;
+        _textWriterDisposer = textWriterDisposer;
         Header = new(this);
     }
 

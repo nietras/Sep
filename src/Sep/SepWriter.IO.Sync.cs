@@ -254,10 +254,9 @@ public partial class SepWriter
         }
 
 #if SYNC
-        _disposeTextWriter(_writer);
+        _textWriterDisposer.Dispose(_writer);
 #else
-        // TODO TODO TODO !!!
-        _disposeTextWriter(_writer);
+        await _textWriterDisposer.DisposeAsync(_writer);
 #endif
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)

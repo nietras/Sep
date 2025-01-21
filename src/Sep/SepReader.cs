@@ -32,6 +32,7 @@ public sealed partial class SepReader : SepReaderState
     readonly Info _info;
     char _separator;
     readonly bool _disableQuotesParsing;
+    readonly bool _continueOnCaptureContext;
     readonly TextReader _reader;
     ISepParser? _parser;
 
@@ -46,6 +47,7 @@ public sealed partial class SepReader : SepReaderState
         _cultureInfo = options.CultureInfo;
         _createToString = options.CreateToString;
         _disableQuotesParsing = options.DisableQuotesParsing;
+        _continueOnCaptureContext = options.AsyncContinueOnCaptureContext;
         _arrayPool = new();
 
         var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??

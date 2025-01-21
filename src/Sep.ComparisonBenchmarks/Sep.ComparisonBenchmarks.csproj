@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>nietras.SeparatedValues.Benchmarks</RootNamespace>
     <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
   </PropertyGroup>
   
   <PropertyGroup>

@@ -288,7 +288,7 @@ dotnet_diagnostic.CA1851.severity = warning
 dotnet_diagnostic.CA1834.severity = warning
 
 # CA2007: Do not directly await a Task
-dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA2007.severity = warning
 
 # CA2008: Do not create tasks without passing a TaskScheduler
 dotnet_diagnostic.CA2008.severity = warning

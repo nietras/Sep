@@ -96,4 +96,10 @@ public readonly record struct SepReaderOptions
     /// 32) character is trimmed, not any whitespace character.
     /// </remarks>
     public SepTrim Trim { get; init; } = SepTrim.None;
+    /// <summary>
+    /// Forwarded to <see
+    /// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+    /// similar when async methods are called.
+    /// </summary>
+    public bool AsyncContinueOnCaptureContext { get; init; } = false;
 }

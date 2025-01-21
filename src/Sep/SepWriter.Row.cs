@@ -14,7 +14,7 @@ public partial class SepWriter
         , IAsyncDisposable
 #endif
     {
-        internal SepWriter? _writer;
+        SepWriter? _writer;
 
         internal Row(SepWriter writer) => _writer = writer;
 

@@ -308,48 +308,78 @@ public class SepWriterTest
     [DataRow(true)]
     [DataRow(false)]
     [DataTestMethod]
-    public void SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
+    public async ValueTask SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
     {
-        var stream = new MemoryStream();
-        using (var writer = Sep.Writer().To(stream, leaveOpen))
         {
-            using var row = writer.NewRow();
-            row["A"].Format(1);
+            var stream = new MemoryStream();
+            using (var writer = Sep.Writer().To(stream, leaveOpen))
+            {
+                using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStream(leaveOpen, stream);
         }
-        Assert.AreEqual(stream.CanRead && stream.CanWrite && stream.CanSeek, leaveOpen);
-        var actual = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.AreEqual("""
+        {
+            var stream = new MemoryStream();
+            await using (var writer = Sep.Writer().To(stream, leaveOpen))
+            {
+                await using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStream(leaveOpen, stream);
+        }
+        static void AssertStream(bool leaveOpen, MemoryStream stream)
+        {
+            Assert.AreEqual(stream.CanRead && stream.CanWrite && stream.CanSeek, leaveOpen);
+            var actual = Encoding.UTF8.GetString(stream.ToArray());
+            Assert.AreEqual("""
                         A
                         1
                         
                         """, actual);
+        }
     }
 
     [DataRow(true)]
     [DataRow(false)]
     [DataTestMethod]
-    public void SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
+    public async ValueTask SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
     {
-        var textWriter = new StringWriter();
-        using (var writer = Sep.Writer().To(textWriter, leaveOpen))
         {
-            using var row = writer.NewRow();
-            row["A"].Format(1);
+            var textWriter = new StringWriter();
+            using (var writer = Sep.Writer().To(textWriter, leaveOpen))
+            {
+                using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStringWriter(leaveOpen, textWriter);
         }
-        var actual = textWriter.ToString();
-        Assert.AreEqual("""
+        {
+            var textWriter = new StringWriter();
+            await using (var writer = Sep.Writer().To(textWriter, leaveOpen))
+            {
+                await using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStringWriter(leaveOpen, textWriter);
+        }
+        static void AssertStringWriter(bool leaveOpen, StringWriter textWriter)
+        {
+            var actual = textWriter.ToString();
+            Assert.AreEqual("""
                         A
                         1
                         
                         """, actual);
-        if (!leaveOpen)
-        {
-            Assert.ThrowsException<ObjectDisposedException>(
-                () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
-        }
-        else
-        {
-            textWriter.Write("2");
+            if (!leaveOpen)
+            {
+                Assert.ThrowsException<ObjectDisposedException>(
+                    () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
+            }
+            else
+            {
+                textWriter.Write("2");
+            }
         }
     }
 

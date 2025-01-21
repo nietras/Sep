@@ -2213,6 +2213,7 @@ namespace nietras.SeparatedValues
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
         public void Write() { }
+        public System.Threading.Tasks.ValueTask WriteAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }
     public readonly struct SepWriterOptions : System.IEquatable<nietras.SeparatedValues.SepWriterOptions>
     {

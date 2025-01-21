@@ -11,37 +11,42 @@ public class SepWriterHeaderTest
     // SepWriterHeader tests are all done through SepWriter
 
     [TestMethod]
-    public void SepWriterHeaderTest_DebuggerDisplay_WriteHeader_true()
+    public async ValueTask SepWriterHeaderTest_DebuggerDisplay_WriteHeader_true()
     {
-        using var writer = CreateWriter();
-
-        Assert.AreEqual("Count = 0 State = 'Not yet written'", writer.Header.DebuggerDisplay);
-
-        var colNames = new string[] { "A", "B", "C" };
-        writer.Header.Add(colNames);
-
-        Assert.AreEqual("Count = 3 State = 'Not yet written'", writer.Header.DebuggerDisplay);
-
-        writer.Header.Write();
-
-        Assert.AreEqual("Count = 3 State = 'Written'", writer.Header.DebuggerDisplay);
+        var expected =
+@"A;B;C
+";
+        {
+            using var writer = CreateWriter();
+            AssertHeaderAndPrepare(writer, "Not yet written");
+            writer.Header.Write();
+            AssertHeaderFinal(expected, writer, "Written");
+        }
+        {
+            await using var writer = CreateWriter();
+            AssertHeaderAndPrepare(writer, "Not yet written");
+            await writer.Header.WriteAsync();
+            AssertHeaderFinal(expected, writer, "Written");
+        }
     }
 
     [TestMethod]
-    public void SepWriterHeaderTest_DebuggerDisplay_WriteHeader_false()
+    public async ValueTask SepWriterHeaderTest_DebuggerDisplay_WriteHeader_false()
     {
-        using var writer = Sep.New(';').Writer(o => o with { WriteHeader = false }).ToText();
-
-        Assert.AreEqual("Count = 0 State = 'To be skipped'", writer.Header.DebuggerDisplay);
-
-        var colNames = new string[] { "A", "B", "C" };
-        writer.Header.Add(colNames);
-
-        Assert.AreEqual("Count = 3 State = 'To be skipped'", writer.Header.DebuggerDisplay);
-
-        writer.Header.Write();
-
-        Assert.AreEqual("Count = 3 State = 'Skipped'", writer.Header.DebuggerDisplay);
+        var expected = @"";
+        var options = new SepWriterOptions(new(';')) { WriteHeader = false };
+        {
+            using var writer = options.ToText();
+            AssertHeaderAndPrepare(writer, "To be skipped");
+            writer.Header.Write();
+            AssertHeaderFinal(expected, writer, "Skipped");
+        }
+        {
+            await using var writer = options.ToText();
+            AssertHeaderAndPrepare(writer, "To be skipped");
+            await writer.Header.WriteAsync();
+            AssertHeaderFinal(expected, writer, "Skipped");
+        }
     }
 
     [TestMethod]
@@ -196,7 +201,22 @@ public class SepWriterHeaderTest
         CollectionAssert.AreEqual(colNames, debugView.ColNames);
     }
 
-
     static SepWriter CreateWriter() =>
         Sep.New(';').Writer().ToText();
+
+    static void AssertHeaderAndPrepare(SepWriter writer, string state)
+    {
+        Assert.AreEqual($"Count = 0 State = '{state}'", writer.Header.DebuggerDisplay);
+
+        var colNames = new string[] { "A", "B", "C" };
+        writer.Header.Add(colNames);
+
+        Assert.AreEqual($"Count = 3 State = '{state}'", writer.Header.DebuggerDisplay);
+    }
+
+    static void AssertHeaderFinal(string expected, SepWriter writer, string state)
+    {
+        Assert.AreEqual($"Count = 3 State = '{state}'", writer.Header.DebuggerDisplay);
+        Assert.AreEqual(expected, writer.ToString());
+    }
 }

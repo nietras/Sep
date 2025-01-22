@@ -19,6 +19,7 @@ public class SepReaderOptionsTest
         Assert.AreSame(SepToString.Direct, sut.CreateToString);
         Assert.IsFalse(sut.DisableFastFloat);
         Assert.IsFalse(sut.DisableColCountCheck);
+        Assert.IsFalse(sut.AsyncContinueOnCapturedContext);
     }
 
     [TestMethod]
@@ -34,6 +35,7 @@ public class SepReaderOptionsTest
             CreateToString = SepToString.OnePool(),
             DisableFastFloat = true,
             DisableColCountCheck = true,
+            AsyncContinueOnCapturedContext = true,
         };
 
         Assert.AreEqual(new Sep(','), sut.Sep);
@@ -44,5 +46,6 @@ public class SepReaderOptionsTest
         Assert.AreNotSame(SepToString.Direct, sut.CreateToString);
         Assert.IsTrue(sut.DisableFastFloat);
         Assert.IsTrue(sut.DisableColCountCheck);
+        Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
     }
 }

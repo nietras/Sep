@@ -25,7 +25,7 @@ public sealed partial class SepReader
 #if SYNC
         if (MoveNext())
 #else
-        if (await MoveNextAsync(cancellationToken))
+        if (await MoveNextAsync(cancellationToken).ConfigureAwait(_continueOnCapturedContext))
 #endif
         {
             A.Assert(_parsedRowsCount > 0);
@@ -56,7 +56,8 @@ public sealed partial class SepReader
 #if SYNC
                     HasRows = !FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
 #else
-                    HasRows = !await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken);
+                    HasRows = !await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken)
+                        .ConfigureAwait(_continueOnCapturedContext);
 #endif
                 }
             }
@@ -111,7 +112,8 @@ public sealed partial class SepReader
 #if SYNC
         } while (ParseNewRows());
 #else
-        } while (await ParseNewRowsAsync(cancellationToken));
+        } while (await ParseNewRowsAsync(cancellationToken)
+            .ConfigureAwait(_continueOnCapturedContext));
 #endif
         return false;
     }
@@ -216,7 +218,8 @@ public sealed partial class SepReader
 #if SYNC
         endOfFile = EnsureInitializeAndReadData(endOfFile);
 #else
-        endOfFile = await EnsureInitializeAndReadDataAsync(endOfFile, cancellationToken);
+        endOfFile = await EnsureInitializeAndReadDataAsync(endOfFile, cancellationToken)
+            .ConfigureAwait(_continueOnCapturedContext);
 #endif
         if (endOfFile && _parsingRowCharsStartIndex < _charsDataEnd && _charsParseStart == _charsDataEnd)
         {
@@ -258,7 +261,8 @@ public sealed partial class SepReader
         var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
         CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
 #else
-        var nothingLeftToRead = await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken);
+        var nothingLeftToRead = await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken)
+            .ConfigureAwait(_continueOnCapturedContext);
         CheckPoint($"{nameof(FillAndMaybeDoubleCharsBufferAsync)} AFTER");
 #endif
         if (_parser == null)
@@ -322,7 +326,8 @@ public sealed partial class SepReader
                ((readCount = _reader.Read(freeChars.Slice(totalBytesRead))) > 0))
 #else
         while (totalBytesRead < freeLength &&
-                ((readCount = await _reader.ReadAsync(freeChars.Slice(totalBytesRead), cancellationToken)) > 0))
+                ((readCount = await _reader.ReadAsync(freeChars.Slice(totalBytesRead), cancellationToken)
+                    .ConfigureAwait(_continueOnCapturedContext)) > 0))
 #endif
         {
             _charsDataEnd += readCount;

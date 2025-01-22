@@ -71,4 +71,10 @@ public readonly record struct SepWriterOptions
     /// too, but only the written name.
     /// </remarks>
     public bool Escape { get; init; } = false;
+    /// <summary>
+    /// Forwarded to <see
+    /// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+    /// similar when async methods are called.
+    /// </summary>
+    public bool AsyncContinueOnCapturedContext { get; init; } = false;
 }

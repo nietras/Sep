@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using static nietras.SeparatedValues.SepWriter;
 
 namespace nietras.SeparatedValues;
@@ -79,6 +80,15 @@ static class SepThrow
             $"Writer does not have an active row. " +
             $"Ensure '{nameof(SepWriter.NewRow)}()' has been called and that the row is only disposed once. " +
             $"I.e. prefer 'using var row = writer.NewRow();'");
+    }
+
+    [DoesNotReturn]
+    internal static void InvalidOperationException_SyncEndRowCalledWhenValidCancellationToken()
+    {
+        throw new InvalidOperationException(
+            $"'{nameof(SepWriter.NewRow)}()' called with '{nameof(CancellationToken)}' " +
+            $"be sure to dispose the asynchronously with 'await' like " +
+            $"'await using var row = writer.NewRow(cancellationToken);'");
     }
 
     [DoesNotReturn]

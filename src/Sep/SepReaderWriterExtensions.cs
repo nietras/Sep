@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.Contracts;
+using System.Threading;
 
 namespace nietras.SeparatedValues;
 
@@ -8,6 +9,14 @@ public static class SepReaderWriterExtensions
     {
         Contract.Assume(writer is not null);
         var row = writer.NewRow();
+        rowToCopy.CopyTo(row);
+        return row;
+    }
+
+    public static SepWriter.Row NewRow(this SepWriter writer, SepReader.Row rowToCopy, CancellationToken cancellationToken)
+    {
+        Contract.Assume(writer is not null);
+        var row = writer.NewRow(cancellationToken);
         rowToCopy.CopyTo(row);
         return row;
     }

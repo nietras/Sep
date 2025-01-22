@@ -2089,6 +2089,7 @@ namespace nietras.SeparatedValues
     {
         public static void CopyTo(this nietras.SeparatedValues.SepReader.Row readerRow, nietras.SeparatedValues.SepWriter.Row writerRow) { }
         public static nietras.SeparatedValues.SepWriter.Row NewRow(this nietras.SeparatedValues.SepWriter writer, nietras.SeparatedValues.SepReader.Row rowToCopy) { }
+        public static nietras.SeparatedValues.SepWriter.Row NewRow(this nietras.SeparatedValues.SepWriter writer, nietras.SeparatedValues.SepReader.Row rowToCopy, System.Threading.CancellationToken cancellationToken) { }
     }
     public readonly struct SepSpec : System.IEquatable<nietras.SeparatedValues.SepSpec>
     {
@@ -2127,6 +2128,7 @@ namespace nietras.SeparatedValues
         public void Flush() { }
         public System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
+        public nietras.SeparatedValues.SepWriter.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
         public override string ToString() { }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]

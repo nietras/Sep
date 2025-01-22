@@ -124,7 +124,7 @@ public class SepWriterTest
         {
             await using var writer = CreateWriter();
             var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
-                async () => await writer.EndRowAsync(default));
+                async () => await writer.EndRowAsync());
             Assert.AreEqual(expected, e.Message);
         }
     }

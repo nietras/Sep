@@ -1,8 +1,8 @@
 ﻿#define SYNC
 using System;
 using System.Runtime.CompilerServices;
-#if !SYNC
 using System.Threading;
+#if !SYNC
 using System.Threading.Tasks;
 #endif
 
@@ -20,11 +20,15 @@ public partial class SepWriter
 #if SYNC
     internal void EndRow()
 #else
-    internal async ValueTask EndRowAsync(CancellationToken cancellationToken)
+    internal async ValueTask EndRowAsync()
 #endif
     {
         if (!_newRowActive) { SepThrow.InvalidOperationException_WriterDoesNotHaveActiveRow(); }
-
+#if SYNC
+        if (_newRowCancellationToken != CancellationToken.None) { SepThrow.InvalidOperationException_SyncEndRowCalledWhenValidCancellationToken(); }
+#else
+        var cancellationToken = _newRowCancellationToken;
+#endif
         var cols = _cols;
 
         // Header
@@ -107,6 +111,7 @@ public partial class SepWriter
             _headerOrFirstRowColCount = cols.Count;
         }
         _newRowActive = false;
+        _newRowCancellationToken = CancellationToken.None;
     }
 
 #if SYNC

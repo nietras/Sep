@@ -17,7 +17,7 @@ public sealed partial class SepWriter : IDisposable
     readonly bool _disableColCountCheck;
     readonly SepColNotSetOption _colNotSetOption;
     readonly bool _escape;
-    readonly bool _continueOnCaptureContext;
+    readonly bool _continueOnCapturedContext;
     // _writer dispose handled by _disposeTextWriter
 #pragma warning disable CA2213 // Disposable fields should be disposed
     readonly TextWriter _writer;
@@ -45,7 +45,7 @@ public sealed partial class SepWriter : IDisposable
         _disableColCountCheck = options.DisableColCountCheck;
         _colNotSetOption = options.ColNotSetOption;
         _escape = options.Escape;
-        _continueOnCaptureContext = options.AsyncContinueOnCaptureContext;
+        _continueOnCapturedContext = options.AsyncContinueOnCapturedContext;
         _writer = writer;
         _textWriterDisposer = textWriterDisposer;
         Header = new(this);

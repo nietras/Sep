@@ -348,6 +348,12 @@ public bool Unescape { get; init; } = false;
 /// 32) character is trimmed, not any whitespace character.
 /// </remarks>
 public SepTrim Trim { get; init; } = SepTrim.None;
+/// <summary>
+/// Forwarded to <see
+/// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+/// similar when async methods are called.
+/// </summary>
+public bool AsyncContinueOnCapturedContext { get; init; } = false;
 ```
 
 #### Unescaping
@@ -867,6 +873,12 @@ public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Th
 /// too, but only the written name.
 /// </remarks>
 public bool Escape { get; init; } = false;
+/// <summary>
+/// Forwarded to <see
+/// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+/// similar when async methods are called.
+/// </summary>
+public bool AsyncContinueOnCapturedContext { get; init; } = false;
 ```
 
 #### Escaping
@@ -2056,6 +2068,7 @@ namespace nietras.SeparatedValues
     {
         public SepReaderOptions() { }
         public SepReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
         public System.Collections.Generic.IEqualityComparer<string> ColNameComparer { get; init; }
         public nietras.SeparatedValues.SepCreateToString CreateToString { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
@@ -2219,6 +2232,7 @@ namespace nietras.SeparatedValues
     {
         public SepWriterOptions() { }
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
         public nietras.SeparatedValues.SepColNotSetOption ColNotSetOption { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public bool DisableColCountCheck { get; init; }

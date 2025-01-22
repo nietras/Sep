@@ -76,5 +76,5 @@ public readonly record struct SepWriterOptions
     /// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
     /// similar when async methods are called.
     /// </summary>
-    public bool AsyncContinueOnCaptureContext { get; init; } = false;
+    public bool AsyncContinueOnCapturedContext { get; init; } = false;
 }

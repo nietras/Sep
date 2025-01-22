@@ -101,5 +101,5 @@ public readonly record struct SepReaderOptions
     /// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
     /// similar when async methods are called.
     /// </summary>
-    public bool AsyncContinueOnCaptureContext { get; init; } = false;
+    public bool AsyncContinueOnCapturedContext { get; init; } = false;
 }

@@ -34,7 +34,7 @@ public partial class SepWriter
             WriteHeader();
 #else
             await WriteHeaderAsync(cancellationToken)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
         }
         else if (_colNotSetOption == SepColNotSetOption.Throw || !_disableColCountCheck)
@@ -66,7 +66,7 @@ public partial class SepWriter
                         _writer.Write(_sep.Separator);
 #else
                         await _writer.WriteAsync(_sep.Separator)
-                            .ConfigureAwait(_continueOnCaptureContext);
+                            .ConfigureAwait(_continueOnCapturedContext);
 #endif
                     }
 #if SYNC
@@ -80,7 +80,7 @@ public partial class SepWriter
                         WriteEscaped(chars);
 #else
                         await WriteEscapedAsync(chars, cancellationToken)
-                            .ConfigureAwait(_continueOnCaptureContext);
+                            .ConfigureAwait(_continueOnCapturedContext);
 #endif
                     }
                     else
@@ -89,7 +89,7 @@ public partial class SepWriter
                         _writer.Write(chars);
 #else
                         await _writer.WriteAsync(chars, cancellationToken)
-                            .ConfigureAwait(_continueOnCaptureContext);
+                            .ConfigureAwait(_continueOnCapturedContext);
 #endif
                     }
                     notFirst = true;
@@ -100,7 +100,7 @@ public partial class SepWriter
         _writer.WriteLine();
 #else
         await _writer.WriteLineAsync()
-            .ConfigureAwait(_continueOnCaptureContext);
+            .ConfigureAwait(_continueOnCapturedContext);
 #endif
         if (_headerOrFirstRowColCount == -1)
         {
@@ -135,7 +135,7 @@ public partial class SepWriter
                     _writer.Write(_sep.Separator);
 #else
                     await _writer.WriteAsync(_sep.Separator)
-                        .ConfigureAwait(_continueOnCaptureContext);
+                        .ConfigureAwait(_continueOnCapturedContext);
 #endif
                 }
                 var name = col.Name;
@@ -147,12 +147,12 @@ public partial class SepWriter
                 if (_escape)
                 {
                     await WriteEscapedAsync(name.AsMemory(), cancellationToken)
-                        .ConfigureAwait(_continueOnCaptureContext);
+                        .ConfigureAwait(_continueOnCapturedContext);
                 }
                 else
                 {
                     await _writer.WriteAsync(name.AsMemory(), cancellationToken)
-                        .ConfigureAwait(_continueOnCaptureContext);
+                        .ConfigureAwait(_continueOnCapturedContext);
                 }
 #endif
                 _colNamesHeader[colIndex] = name;
@@ -162,7 +162,7 @@ public partial class SepWriter
             _writer.WriteLine();
 #else
             await _writer.WriteLineAsync()
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
             _headerOrFirstRowColCount = cols.Count;
         }
@@ -187,15 +187,15 @@ public partial class SepWriter
             WriteQuotesEscaped(chars);
 #else
             await _writer.WriteAsync(SepDefaults.Quote)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
             await WriteQuotesEscapedAsync(chars, cancellationToken)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
 #if SYNC
             _writer.Write(SepDefaults.Quote);
 #else
             await _writer.WriteAsync(SepDefaults.Quote)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
         }
         else
@@ -204,7 +204,7 @@ public partial class SepWriter
             _writer.Write(chars);
 #else
             await _writer.WriteAsync(chars, cancellationToken)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
         }
     }
@@ -231,7 +231,7 @@ public partial class SepWriter
                 _writer.Write(remainingChars);
 #else
                 await _writer.WriteAsync(remainingChars, cancellationToken)
-                    .ConfigureAwait(_continueOnCaptureContext);
+                    .ConfigureAwait(_continueOnCapturedContext);
 #endif
                 break;
             }
@@ -242,9 +242,9 @@ public partial class SepWriter
                 _writer.Write(SepDefaults.Quote);
 #else
                 await _writer.WriteAsync(remainingChars.Slice(0, quoteIndex + 1), cancellationToken)
-                    .ConfigureAwait(_continueOnCaptureContext);
+                    .ConfigureAwait(_continueOnCapturedContext);
                 await _writer.WriteAsync(SepDefaults.Quote)
-                    .ConfigureAwait(_continueOnCaptureContext);
+                    .ConfigureAwait(_continueOnCapturedContext);
 #endif
                 start += quoteIndex + 1;
             }
@@ -263,7 +263,7 @@ public partial class SepWriter
             WriteHeader();
 #else
             await WriteHeaderAsync(cancellationToken)
-                .ConfigureAwait(_continueOnCaptureContext);
+                .ConfigureAwait(_continueOnCapturedContext);
 #endif
         }
 
@@ -271,7 +271,7 @@ public partial class SepWriter
         _textWriterDisposer.Dispose(_writer);
 #else
         await _textWriterDisposer.DisposeAsync(_writer)
-            .ConfigureAwait(_continueOnCaptureContext);
+            .ConfigureAwait(_continueOnCapturedContext);
 #endif
         _arrayPool.Dispose();
         foreach (var col in _colNameToCol.Values)

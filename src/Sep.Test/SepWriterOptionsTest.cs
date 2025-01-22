@@ -16,6 +16,6 @@ public class SepWriterOptionsTest
         Assert.IsFalse(sut.DisableColCountCheck);
         Assert.AreEqual(SepColNotSetOption.Throw, sut.ColNotSetOption);
         Assert.IsFalse(sut.Escape);
-        Assert.IsFalse(sut.AsyncContinueOnCaptureContext);
+        Assert.IsFalse(sut.AsyncContinueOnCapturedContext);
     }
 }

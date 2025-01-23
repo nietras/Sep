@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace nietras.SeparatedValues;
@@ -35,6 +36,7 @@ public sealed partial class SepWriter : IDisposable
     internal bool _headerWrittenOrSkipped = false;
     internal int _headerOrFirstRowColCount = -1;
     bool _newRowActive = false;
+    CancellationToken _newRowCancellationToken = CancellationToken.None;
     int _cacheIndex = 0;
 
     internal SepWriter(SepWriterOptions options, TextWriter writer, ISepTextWriterDisposer textWriterDisposer)
@@ -56,11 +58,14 @@ public sealed partial class SepWriter : IDisposable
 
     public Row NewRow()
     {
-        if (_newRowActive) { SepThrow.InvalidOperationException_WriterAlreadyHasActiveRow(); }
-        _newRowActive = true;
-        _cacheIndex = 0;
-        _arrayPool.Reset();
-        foreach (var col in _cols) { col.Clear(); }
+        PrepareNewRow();
+        return new(this);
+    }
+
+    public Row NewRow(CancellationToken cancellationToken)
+    {
+        PrepareNewRow();
+        _newRowCancellationToken = cancellationToken;
         return new(this);
     }
 
@@ -72,6 +77,17 @@ public sealed partial class SepWriter : IDisposable
         }
         SepThrow.NotSupportedException_ToStringOnNotStringWriter(_writer);
         return null;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void PrepareNewRow()
+    {
+        if (_newRowActive) { SepThrow.InvalidOperationException_WriterAlreadyHasActiveRow(); }
+        _newRowActive = true;
+        A.Assert(_newRowCancellationToken == CancellationToken.None);
+        _cacheIndex = 0;
+        _arrayPool.Reset();
+        foreach (var col in _cols) { col.Clear(); }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

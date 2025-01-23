@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -221,7 +222,8 @@ public class SepWriterColTest
             {
                 await using var writer = createWriter();
                 {
-                    await using var row = writer.NewRow();
+                    var cts = new CancellationTokenSource();
+                    await using var row = writer.NewRow(cts.Token);
                     action(row[ColName]);
                 }
                 AssertCol(expectedColValue, writer);

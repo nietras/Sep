@@ -18,4 +18,15 @@ public class SepWriterOptionsTest
         Assert.IsFalse(sut.Escape);
         Assert.IsFalse(sut.AsyncContinueOnCapturedContext);
     }
+
+    [TestMethod]
+    public void SepWriterOptionsTest_Override()
+    {
+        // Assert any not otherwise tested
+        var sut = new SepWriterOptions()
+        {
+            AsyncContinueOnCapturedContext = true,
+        };
+        Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
+    }
 }

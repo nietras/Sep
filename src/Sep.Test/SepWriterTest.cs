@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -127,6 +128,20 @@ public class SepWriterTest
                 async () => await writer.EndRowAsync());
             Assert.AreEqual(expected, e.Message);
         }
+    }
+
+    [TestMethod]
+    public void SepWriterTest_NewRowWithCancellationToken_Dispose_Throws()
+    {
+        var expected = "'NewRow()' called with 'CancellationToken', if async use was intented, " +
+                       "be sure to dispose this asynchronously with 'await' like " +
+                       "'await using var row = writer.NewRow(cancellationToken);'";
+
+        using var writer = Sep.New(';').Writer().ToText();
+        var cts = new CancellationTokenSource();
+        var e = Assert.ThrowsException<InvalidOperationException>(
+            () => { using (writer.NewRow(cts.Token)) { } });
+        Assert.AreEqual(expected, e.Message);
     }
 
     [TestMethod]

@@ -86,8 +86,8 @@ static class SepThrow
     internal static void InvalidOperationException_SyncEndRowCalledWhenValidCancellationToken()
     {
         throw new InvalidOperationException(
-            $"'{nameof(SepWriter.NewRow)}()' called with '{nameof(CancellationToken)}' " +
-            $"be sure to dispose the asynchronously with 'await' like " +
+            $"'{nameof(SepWriter.NewRow)}()' called with '{nameof(CancellationToken)}'" +
+            $", if async use was intented, be sure to dispose this asynchronously with 'await' like " +
             $"'await using var row = writer.NewRow(cancellationToken);'");
     }
 

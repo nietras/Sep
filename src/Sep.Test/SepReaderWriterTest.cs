@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -9,9 +11,9 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepReaderWriterTest
 {
-    readonly Dictionary<string, Action<string>> _assertCopyColumns = new() {
-        { nameof(AssertCopyColumnsManual), AssertCopyColumnsManual },
-        { nameof(AssertCopyColumnsNewRow), AssertCopyColumnsNewRow },
+    readonly Dictionary<string, Func<string, ValueTask>> _assertCopyColumns = new() {
+        { nameof(AssertCopyColumnsManualSyncAsync), AssertCopyColumnsManualSyncAsync },
+        { nameof(AssertCopyColumnsNewRowSyncAsync), AssertCopyColumnsNewRowSyncAsync },
     };
 
     // Header only copied if any other rows, this is due to how API is designed
@@ -27,11 +29,11 @@ public class SepReaderWriterTest
 123;456
 789;012
 ")]
-    public void SepReaderWriterTest_CopyColumnsIfAnyRows(string text) =>
-        AssertCopyColumns(text);
+    public async ValueTask SepReaderWriterTest_CopyColumnsIfAnyRows(string text) =>
+        await AssertCopyColumnsSyncAsync(text);
 
     [TestMethod]
-    public void SepReaderWriterTest_CopyColumnsIfAnyRows_Long()
+    public async ValueTask SepReaderWriterTest_CopyColumnsIfAnyRows_Long()
     {
 #if SEPREADERTRACE // Don't run really long with tracing enabled 😅
         var lengths = new[] { 32, 64, 128, 512, 1024 };
@@ -51,7 +53,7 @@ public class SepReaderWriterTest
                 ++i;
             }
             var text = sb.ToString();
-            AssertCopyColumns(text);
+            await AssertCopyColumnsSyncAsync(text);
         }
     }
 
@@ -129,16 +131,22 @@ public class SepReaderWriterTest
         }
     }
 
-    void AssertCopyColumns(string text)
+    async ValueTask AssertCopyColumnsSyncAsync(string text)
     {
         ArgumentNullException.ThrowIfNull(text);
         foreach (var assertCopyColumns in _assertCopyColumns)
         {
-            assertCopyColumns.Value(text);
+            await assertCopyColumns.Value(text);
         }
     }
 
-    static void AssertCopyColumnsManual(string text)
+    static async ValueTask AssertCopyColumnsManualSyncAsync(string text)
+    {
+        AssertCopyColumnsNewRowSync(text);
+        await AssertCopyColumnsNewRowAsync(text);
+    }
+
+    static void AssertCopyColumnsManualSync(string text)
     {
         // Act
         using var reader = Sep.Reader().FromText(text);
@@ -156,7 +164,32 @@ public class SepReaderWriterTest
         AreEqual(text, actual);
     }
 
-    static void AssertCopyColumnsNewRow(string text)
+    static async ValueTask AssertCopyColumnsManualAsync(string text)
+    {
+        // Act
+        using var reader = await Sep.Reader().FromTextAsync(text);
+        await using var writer = reader.Spec.Writer().ToText();
+        var colNames = reader.Header.ColNames.ToArray();
+        await foreach (var readRow in reader)
+        {
+            var readCols = readRow[colNames];
+
+            await using var writeRow = writer.NewRow();
+            writeRow[colNames].Set(readCols);
+        }
+        await writer.FlushAsync();
+        // Assert
+        var actual = writer.ToString();
+        AreEqual(text, actual);
+    }
+
+    static async ValueTask AssertCopyColumnsNewRowSyncAsync(string text)
+    {
+        AssertCopyColumnsNewRowSync(text);
+        await AssertCopyColumnsNewRowAsync(text);
+    }
+
+    static void AssertCopyColumnsNewRowSync(string text)
     {
         // Act
         using var reader = Sep.Reader().FromText(text);
@@ -165,6 +198,22 @@ public class SepReaderWriterTest
         {
             using var writeRow = writer.NewRow(readRow);
         }
+        // Assert
+        var actual = writer.ToString();
+        AreEqual(text, actual);
+    }
+
+    static async ValueTask AssertCopyColumnsNewRowAsync(string text)
+    {
+        // Act
+        using var reader = await Sep.Reader().FromTextAsync(text);
+        await using var writer = reader.Spec.Writer().ToText();
+        var cts = new CancellationTokenSource();
+        await foreach (var readRow in reader)
+        {
+            await using var writeRow = writer.NewRow(readRow, cts.Token);
+        }
+        await writer.FlushAsync(cts.Token);
         // Assert
         var actual = writer.ToString();
         AreEqual(text, actual);

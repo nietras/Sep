@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -33,6 +34,23 @@ public class PackageAssetsTest
     [DataTestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_WithQuotes_Unescape(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString, unescape: true);
+
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public async ValueTask PackageAssetsTest_Read_NoQuotes_Async(SepCreateToString createToString) => await VerifyReadAsync(NoQuotes, createToString);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public async ValueTask PackageAssetsTest_Read_NoQuotes_Unescape_Async(SepCreateToString createToString) => await VerifyReadAsync(NoQuotes, createToString, unescape: true);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public async ValueTask PackageAssetsTest_Read_WithQuotes_Async(SepCreateToString createToString) => await VerifyReadAsync(WithQuotes, createToString);
+
+    [DataTestMethod]
+    [DynamicData(nameof(ToStrings))]
+    public async ValueTask PackageAssetsTest_Read_WithQuotes_Unescape_Async(SepCreateToString createToString) => await VerifyReadAsync(WithQuotes, createToString, unescape: true);
 
 
     [DataTestMethod]
@@ -184,13 +202,33 @@ public class PackageAssetsTest
         var rowIndex = 0;
         foreach (var row in reader)
         {
-            var expectedCols = expected[rowIndex];
-            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.AreEqual(expectedCols.Length, row.ColCount);
-            CollectionAssert.AreEqual(expectedCols, row[..].ToStringsArray());
+            AssertCols(row, rowIndex, unescape, expected);
             ++rowIndex;
         }
         Assert.AreEqual(expected.Count, rowIndex);
+    }
+
+    static async ValueTask VerifyReadAsync(string text, SepCreateToString createToString, bool unescape = false)
+    {
+        var expected = ReadLineSplitAsList(text);
+        using var reader = await Sep
+            .Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape })
+            .FromTextAsync(text);
+        var rowIndex = 0;
+        await foreach (var row in reader)
+        {
+            AssertCols(row, rowIndex, unescape, expected);
+            ++rowIndex;
+        }
+        Assert.AreEqual(expected.Count, rowIndex);
+    }
+
+    static void AssertCols(SepReader.Row row, int rowIndex, bool unescape, List<string[]> expected)
+    {
+        var expectedCols = expected[rowIndex];
+        expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
+        Assert.AreEqual(expectedCols.Length, row.ColCount);
+        CollectionAssert.AreEqual(expectedCols, row[..].ToStringsArray());
     }
 
     static void VerifyEnumerate(string text, SepCreateToString createToString,

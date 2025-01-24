@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -161,6 +162,16 @@ public class SepWriterRowTest
         var row = writer.NewRow();
         row.Dispose();
         row.Dispose();
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterRowTest_DisposeAsync_Twice()
+    {
+        await using var writer = Sep.Writer().ToText();
+        var row = writer.NewRow();
+        // Cannot call DisposeAsync twice, since row ref struct so simulate by sync dispose first
+        row.Dispose();
+        await row.DisposeAsync();
     }
 
     [TestMethod]

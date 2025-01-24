@@ -16,5 +16,17 @@ public class SepWriterOptionsTest
         Assert.IsFalse(sut.DisableColCountCheck);
         Assert.AreEqual(SepColNotSetOption.Throw, sut.ColNotSetOption);
         Assert.IsFalse(sut.Escape);
+        Assert.IsFalse(sut.AsyncContinueOnCapturedContext);
+    }
+
+    [TestMethod]
+    public void SepWriterOptionsTest_Override()
+    {
+        // Assert any not otherwise tested
+        var sut = new SepWriterOptions()
+        {
+            AsyncContinueOnCapturedContext = true,
+        };
+        Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
     }
 }

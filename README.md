@@ -348,6 +348,12 @@ public bool Unescape { get; init; } = false;
 /// 32) character is trimmed, not any whitespace character.
 /// </remarks>
 public SepTrim Trim { get; init; } = SepTrim.None;
+/// <summary>
+/// Forwarded to <see
+/// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+/// similar when async methods are called.
+/// </summary>
+public bool AsyncContinueOnCapturedContext { get; init; } = false;
 ```
 
 #### Unescaping
@@ -867,6 +873,12 @@ public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Th
 /// too, but only the written name.
 /// </remarks>
 public bool Escape { get; init; } = false;
+/// <summary>
+/// Forwarded to <see
+/// cref="System.Threading.Tasks.ValueTask.ConfigureAwait(bool)"/> or
+/// similar when async methods are called.
+/// </summary>
+public bool AsyncContinueOnCapturedContext { get; init; } = false;
 ```
 
 #### Escaping
@@ -1916,7 +1928,7 @@ namespace nietras.SeparatedValues
         public static char Separator { get; }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public sealed class SepReader : nietras.SeparatedValues.SepReaderState, System.Collections.Generic.IEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerator<nietras.SeparatedValues.SepReader.Row>, System.Collections.IEnumerable, System.Collections.IEnumerator, System.IDisposable
+    public sealed class SepReader : nietras.SeparatedValues.SepReaderState, System.Collections.Generic.IAsyncEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerable<nietras.SeparatedValues.SepReader.Row>, System.Collections.Generic.IEnumerator<nietras.SeparatedValues.SepReader.Row>, System.Collections.IEnumerable, System.Collections.IEnumerator, System.IDisposable
     {
         public nietras.SeparatedValues.SepReader.Row Current { get; }
         public bool HasHeader { get; }
@@ -1924,9 +1936,17 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepReaderHeader Header { get; }
         public bool IsEmpty { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
+        public nietras.SeparatedValues.SepReader.AsyncEnumerator GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepReader GetEnumerator() { }
         public bool MoveNext() { }
+        public System.Threading.Tasks.ValueTask<bool> MoveNextAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public string ToString(int index) { }
+        public readonly struct AsyncEnumerator : System.Collections.Generic.IAsyncEnumerator<nietras.SeparatedValues.SepReader.Row>, System.IAsyncDisposable
+        {
+            public nietras.SeparatedValues.SepReader.Row Current { get; }
+            public System.Threading.Tasks.ValueTask DisposeAsync() { }
+            public System.Threading.Tasks.ValueTask<bool> MoveNextAsync() { }
+        }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]
@@ -2008,8 +2028,15 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream) { }
         public static nietras.SeparatedValues.SepReader From(in this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, byte[] buffer, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, System.IO.TextReader reader, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.Stream> nameToStream, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromAsync(this nietras.SeparatedValues.SepReaderOptions options, string name, System.Func<string, System.IO.TextReader> nameToReader, System.Threading.CancellationToken cancellationToken = default) { }
         public static nietras.SeparatedValues.SepReader FromFile(in this nietras.SeparatedValues.SepReaderOptions options, string filePath) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromFileAsync(this nietras.SeparatedValues.SepReaderOptions options, string filePath, System.Threading.CancellationToken cancellationToken = default) { }
         public static nietras.SeparatedValues.SepReader FromText(in this nietras.SeparatedValues.SepReaderOptions options, string text) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepReader> FromTextAsync(this nietras.SeparatedValues.SepReaderOptions options, string text, System.Threading.CancellationToken cancellationToken = default) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowTryFunc<T> trySelect) { }
         public static System.Collections.Generic.IEnumerable<T> ParallelEnumerate<T>(this nietras.SeparatedValues.SepReader reader, nietras.SeparatedValues.SepReader.RowFunc<T> select, int degreeOfParallism) { }
@@ -2041,6 +2068,7 @@ namespace nietras.SeparatedValues
     {
         public SepReaderOptions() { }
         public SepReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
         public System.Collections.Generic.IEqualityComparer<string> ColNameComparer { get; init; }
         public nietras.SeparatedValues.SepCreateToString CreateToString { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
@@ -2061,6 +2089,7 @@ namespace nietras.SeparatedValues
     {
         public static void CopyTo(this nietras.SeparatedValues.SepReader.Row readerRow, nietras.SeparatedValues.SepWriter.Row writerRow) { }
         public static nietras.SeparatedValues.SepWriter.Row NewRow(this nietras.SeparatedValues.SepWriter writer, nietras.SeparatedValues.SepReader.Row rowToCopy) { }
+        public static nietras.SeparatedValues.SepWriter.Row NewRow(this nietras.SeparatedValues.SepWriter writer, nietras.SeparatedValues.SepReader.Row rowToCopy, System.Threading.CancellationToken cancellationToken) { }
     }
     public readonly struct SepSpec : System.IEquatable<nietras.SeparatedValues.SepSpec>
     {
@@ -2090,19 +2119,22 @@ namespace nietras.SeparatedValues
         AfterUnescape = 2,
         All = 3,
     }
-    public sealed class SepWriter : System.IDisposable
+    public sealed class SepWriter : System.IAsyncDisposable, System.IDisposable
     {
         public nietras.SeparatedValues.SepWriterHeader Header { get; }
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public void Flush() { }
+        public System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
+        public nietras.SeparatedValues.SepWriter.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
         public override string ToString() { }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]
         [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
         [System.Runtime.CompilerServices.IsByRefLike]
-        public struct Row : System.IDisposable
+        public struct Row : System.IAsyncDisposable, System.IDisposable
         {
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
             public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }
@@ -2111,6 +2143,7 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepWriter.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
             public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
             public void Dispose() { }
+            public System.Threading.Tasks.ValueTask DisposeAsync() { }
         }
         [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
             "."), true)]
@@ -2195,11 +2228,13 @@ namespace nietras.SeparatedValues
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
         public void Write() { }
+        public System.Threading.Tasks.ValueTask WriteAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }
     public readonly struct SepWriterOptions : System.IEquatable<nietras.SeparatedValues.SepWriterOptions>
     {
         public SepWriterOptions() { }
         public SepWriterOptions(nietras.SeparatedValues.Sep sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
         public nietras.SeparatedValues.SepColNotSetOption ColNotSetOption { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public bool DisableColCountCheck { get; init; }

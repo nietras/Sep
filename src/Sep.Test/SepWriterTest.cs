@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -9,13 +11,6 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepWriterTest
 {
-    [TestMethod]
-    public void SepWriterTest_NoRow()
-    {
-        using var writer = CreateWriter();
-        Assert.AreEqual("", writer.ToString());
-    }
-
     [TestMethod]
     public void SepWriterTest_Spec()
     {
@@ -26,87 +21,83 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_EmptyRow()
+    public async ValueTask SepWriterTest_NoRow()
     {
-        using var writer = CreateWriter();
-        {
-            using var row = writer.NewRow();
-        }
+        await AssertWriterSyncAsync("");
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterTest_EmptyRow()
+    {
         var expected =
 @"
 
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        await AssertWriterSyncAsync(expected, r => { });
     }
 
     [TestMethod]
-    public void SepWriterTest_OneRowOneCol()
+    public async ValueTask SepWriterTest_OneRowOneCol()
     {
-        using var writer = CreateWriter();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("1");
-        }
         var expected =
 @"A
 1
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        await AssertWriterSyncAsync(expected, r => { r["A"].Set("1"); });
     }
 
     [TestMethod]
-    public void SepWriterTest_TwoRowsThreeCols()
+    public async ValueTask SepWriterTest_TwoRowsThreeCols()
     {
-        using var writer = CreateWriter();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("1");
-            row["B"].Format(2);
-            row["C"].Set($"{2 * 17}");
-        }
-        {
-            using var row = writer.NewRow();
-            // Order of cols is not important after first row/header written
-            row["C"].Set(new Span<char>(['6', '5']));
-            row["B"].Format(3);
-            row["A"].Set($"{23,3}");
-        }
         var expected =
 @"A;B;C
 1;2;34
  23;3;65
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        await AssertWriterSyncAsync(expected,
+            row =>
+            {
+                row["A"].Set("1");
+                row["B"].Format(2);
+                row["C"].Set($"{2 * 17}");
+            },
+            row =>
+            {
+                // Order of cols is not important after first row/header written
+                row["C"].Set(new Span<char>(['6', '5']));
+                row["B"].Format(3);
+                row["A"].Set($"{23,3}");
+            });
     }
 
     [TestMethod]
-    public void SepWriterTest_TwoRowsThreeCols_ReadAfterWriteDoesNotClearStringBuilder()
+    public async ValueTask SepWriterTest_TwoRowsThreeCols_ReadAfterWriteDoesNotClearStringBuilder()
     {
-        using var writer = CreateWriter();
-        {
-            using var row = writer.NewRow();
-            row["A"].Set("1");
-            row["B"].Format(2);
-            row["C"].Set($"{2 * 17}");
-            var a = row["A"];
-            var b = row["B"];
-            var c = row["C"];
-        }
-        {
-            using var row = writer.NewRow();
-            row["A"].Set($"{23,3}");
-            row[1].Format(3);
-            row["C"].Set(new Span<char>(['6', '5']));
-            var a = row[0];
-            var b = row[1];
-            var c = row[2];
-        }
         var expected =
 @"A;B;C
 1;2;34
  23;3;65
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        await AssertWriterSyncAsync(expected,
+            row =>
+            {
+                row["A"].Set("1");
+                row["B"].Format(2);
+                row["C"].Set($"{2 * 17}");
+                var a = row["A"];
+                var b = row["B"];
+                var c = row["C"];
+            },
+            row =>
+            {
+                // Order of cols is not important after first row/header written
+                row["A"].Set($"{23,3}");
+                row[1].Format(3);
+                row["C"].Set(new Span<char>(['6', '5']));
+                var a = row[0];
+                var b = row[1];
+                var c = row[2];
+            });
     }
 
 
@@ -120,13 +111,37 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_EndRowWithoutNewRow_Throws()
+    public async ValueTask SepWriterTest_EndRowWithoutNewRow_Throws()
     {
-        using var writer = CreateWriter();
-        var e = Assert.ThrowsException<InvalidOperationException>(() => writer.EndRow(default));
-        Assert.AreEqual("Writer does not have an active row. " +
-                        "Ensure 'NewRow()' has been called and that the row is only disposed once. " +
-                        "I.e. prefer 'using var row = writer.NewRow();'", e.Message);
+        var expected = "Writer does not have an active row. " +
+                       "Ensure 'NewRow()' has been called and that the row is only disposed once. " +
+                       "I.e. prefer 'using var row = writer.NewRow();'";
+        {
+            using var writer = CreateWriter();
+            var e = Assert.ThrowsException<InvalidOperationException>(
+                () => writer.EndRow());
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            await using var writer = CreateWriter();
+            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+                async () => await writer.EndRowAsync());
+            Assert.AreEqual(expected, e.Message);
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterTest_NewRowWithCancellationToken_Dispose_Throws()
+    {
+        var expected = "'NewRow()' called with 'CancellationToken', if async use was intented, " +
+                       "be sure to dispose this asynchronously with 'await' like " +
+                       "'await using var row = writer.NewRow(cancellationToken);'";
+
+        using var writer = Sep.New(';').Writer().ToText();
+        var cts = new CancellationTokenSource();
+        var e = Assert.ThrowsException<InvalidOperationException>(
+            () => { using (writer.NewRow(cts.Token)) { } });
+        Assert.AreEqual(expected, e.Message);
     }
 
     [TestMethod]
@@ -152,54 +167,91 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_ColMissingInSecondRow()
+    public async ValueTask SepWriterTest_ColMissingInSecondRow()
     {
-        using var writer = CreateWriter();
-        {
-            using var row1 = writer.NewRow();
-            row1["A"].Set("1");
-            row1["B"].Set("2");
-        }
-        {
-            var row2 = writer.NewRow();
-            row2["B"].Set("3");
-            var e = AssertThrowsException<InvalidOperationException>(row2,
-                r => { r.Dispose(); });
-            // TODO: Make detailed exception message
-            Assert.AreEqual("Not all expected columns 'A,B' have been set.", e.Message);
-        }
+        var expectedMessage = "Not all expected columns 'A,B' have been set.";
         // Expected output should only be valid rows
         var expected =
 @"A;B
 1;2
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        {
+            using var writer = CreateWriter();
+            {
+                using var row1 = writer.NewRow();
+                row1["A"].Set("1");
+                row1["B"].Set("2");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2["B"].Set("3");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.Dispose(); });
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
+        {
+            await using var writer = CreateWriter();
+            {
+                await using var row1 = writer.NewRow();
+                row1["A"].Set("1");
+                row1["B"].Set("2");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2["B"].Set("3");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.DisposeAsync().GetAwaiter().GetResult(); }); // Call sync due to row ref struct
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
     }
 
     [TestMethod]
-    public void SepWriterTest_ColMissingInSecondRow_ColNotSetEmpty()
+    public async ValueTask SepWriterTest_ColMissingInSecondRow_ColNotSetEmpty()
     {
-        using var writer = Sep.Writer(
-            o => o with { ColNotSetOption = SepColNotSetOption.Empty }).ToText();
-        {
-            using var row1 = writer.NewRow();
-            row1["A"].Set("1");
-            row1["B"].Set("2");
-        }
-        {
-            var row2 = writer.NewRow();
-            row2["B"].Set("3");
-            var e = AssertThrowsException<InvalidOperationException>(row2,
-                r => { r.Dispose(); });
-            // TODO: Make detailed exception message
-            Assert.AreEqual("Not all expected columns 'A,B' have been set.", e.Message);
-        }
+        var expectedMessage = "Not all expected columns 'A,B' have been set.";
         // Expected output should only be valid rows
         var expected =
 @"A;B
 1;2
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        {
+            using var writer = Sep.Writer(
+                o => o with { ColNotSetOption = SepColNotSetOption.Empty }).ToText();
+            {
+                using var row1 = writer.NewRow();
+                row1["A"].Set("1");
+                row1["B"].Set("2");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2["B"].Set("3");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.Dispose(); });
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
+        {
+            await using var writer = Sep.Writer(
+                o => o with { ColNotSetOption = SepColNotSetOption.Empty }).ToText();
+            {
+                await using var row1 = writer.NewRow();
+                row1["A"].Set("1");
+                row1["B"].Set("2");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2["B"].Set("3");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.DisposeAsync().GetAwaiter().GetResult(); });
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
     }
 
     [TestMethod]
@@ -222,6 +274,20 @@ public class SepWriterTest
         }
         Assert.AreEqual(0, stream.Position);
         writer.Flush();
+        Assert.AreNotEqual(0, stream.Position);
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterTest_FlushAsync()
+    {
+        await using var stream = new MemoryStream();
+        await using var writer = Sep.Writer().To(stream);
+        await using (var row = writer.NewRow())
+        {
+            row["A"].Set("123");
+        }
+        Assert.AreEqual(0, stream.Position);
+        await writer.FlushAsync();
         Assert.AreNotEqual(0, stream.Position);
     }
 
@@ -257,48 +323,78 @@ public class SepWriterTest
     [DataRow(true)]
     [DataRow(false)]
     [DataTestMethod]
-    public void SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
+    public async ValueTask SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
     {
-        var stream = new MemoryStream();
-        using (var writer = Sep.Writer().To(stream, leaveOpen))
         {
-            using var row = writer.NewRow();
-            row["A"].Format(1);
+            var stream = new MemoryStream();
+            using (var writer = Sep.Writer().To(stream, leaveOpen))
+            {
+                using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStream(leaveOpen, stream);
         }
-        Assert.AreEqual(stream.CanRead && stream.CanWrite && stream.CanSeek, leaveOpen);
-        var actual = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.AreEqual("""
+        {
+            var stream = new MemoryStream();
+            await using (var writer = Sep.Writer().To(stream, leaveOpen))
+            {
+                await using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStream(leaveOpen, stream);
+        }
+        static void AssertStream(bool leaveOpen, MemoryStream stream)
+        {
+            Assert.AreEqual(stream.CanRead && stream.CanWrite && stream.CanSeek, leaveOpen);
+            var actual = Encoding.UTF8.GetString(stream.ToArray());
+            Assert.AreEqual("""
                         A
                         1
                         
                         """, actual);
+        }
     }
 
     [DataRow(true)]
     [DataRow(false)]
     [DataTestMethod]
-    public void SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
+    public async ValueTask SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
     {
-        var textWriter = new StringWriter();
-        using (var writer = Sep.Writer().To(textWriter, leaveOpen))
         {
-            using var row = writer.NewRow();
-            row["A"].Format(1);
+            var textWriter = new StringWriter();
+            using (var writer = Sep.Writer().To(textWriter, leaveOpen))
+            {
+                using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStringWriter(leaveOpen, textWriter);
         }
-        var actual = textWriter.ToString();
-        Assert.AreEqual("""
+        {
+            var textWriter = new StringWriter();
+            await using (var writer = Sep.Writer().To(textWriter, leaveOpen))
+            {
+                await using var row = writer.NewRow();
+                row["A"].Format(1);
+            }
+            AssertStringWriter(leaveOpen, textWriter);
+        }
+        static void AssertStringWriter(bool leaveOpen, StringWriter textWriter)
+        {
+            var actual = textWriter.ToString();
+            Assert.AreEqual("""
                         A
                         1
                         
                         """, actual);
-        if (!leaveOpen)
-        {
-            Assert.ThrowsException<ObjectDisposedException>(
-                () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
-        }
-        else
-        {
-            textWriter.Write("2");
+            if (!leaveOpen)
+            {
+                Assert.ThrowsException<ObjectDisposedException>(
+                    () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
+            }
+            else
+            {
+                textWriter.Write("2");
+            }
         }
     }
 
@@ -354,43 +450,80 @@ public class SepWriterTest
     }
 
     [TestMethod]
-    public void SepWriterTest_WriteHeader_False_ColMissingInSecondRow()
+    public async ValueTask SepWriterTest_WriteHeader_False_ColMissingInSecondRow()
     {
-        using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
-        {
-            using var row1 = writer.NewRow();
-            row1[0].Set("A");
-            row1[1].Set("B");
-        }
-        {
-            var row2 = writer.NewRow();
-            row2[1].Set("Y");
-            var e = AssertThrowsException<InvalidOperationException>(row2,
-                r => { r.Dispose(); });
-            Assert.AreEqual("Not all expected columns have been set.", e.Message);
-        }
         // Expected output should only be valid rows
+        var expectedMessage = "Not all expected columns have been set.";
         var expected =
 @"A;B
 ";
-        Assert.AreEqual(expected, writer.ToString());
+        {
+            using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
+            {
+                using var row1 = writer.NewRow();
+                row1[0].Set("A");
+                row1[1].Set("B");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2[1].Set("Y");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.Dispose(); });
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
+        {
+            await using var writer = Sep.Writer(o => o with { WriteHeader = false }).ToText();
+            {
+                await using var row1 = writer.NewRow();
+                row1[0].Set("A");
+                row1[1].Set("B");
+            }
+            {
+                var row2 = writer.NewRow();
+                row2[1].Set("Y");
+                var e = AssertThrowsException<InvalidOperationException>(row2,
+                    r => { r.DisposeAsync().GetAwaiter().GetResult(); }); // Call sync due to row ref struct
+                Assert.AreEqual(expectedMessage, e.Message);
+            }
+            Assert.AreEqual(expected, writer.ToString());
+        }
     }
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_Header_LessColumns_Throws()
+    public async ValueTask SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_Header_LessColumns_Throws()
     {
+        var expected = "Not all expected columns 'A,B' have been set.";
         var options = new SepWriterOptions { DisableColCountCheck = true };
-        using var writer = options.ToText();
         {
-            using var row = writer.NewRow();
-            row["A"].Set("R1C1");
-            row["B"].Set("R1C2");
+            using var writer = options.ToText();
+            {
+                using var row = writer.NewRow();
+                row["A"].Set("R1C1");
+                row["B"].Set("R1C2");
+            }
+            var e = Assert.ThrowsException<InvalidOperationException>(() =>
+            {
+                using var row = writer.NewRow();
+                row["B"].Set("R2C2");
+            });
+            Assert.AreEqual(expected, e.Message);
         }
-        Assert.ThrowsException<InvalidOperationException>(() =>
         {
-            using var row = writer.NewRow();
-            row["B"].Set("R2C2");
-        });
+            await using var writer = options.ToText();
+            {
+                using var row = writer.NewRow();
+                row["A"].Set("R1C1");
+                row["B"].Set("R1C2");
+            }
+            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            {
+                await using var row = writer.NewRow();
+                row["B"].Set("R2C2");
+            });
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [TestMethod]
@@ -495,20 +628,35 @@ R3C1;;R3C3
 
 
     [TestMethod]
-    public void SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_NoHeader_LessColumns_Throws()
+    public async ValueTask SepWriterTest_DisableColCountCheck_ColNotSetDefaultThrow_NoHeader_LessColumns_Throws()
     {
         var options = new SepWriterOptions { WriteHeader = false, DisableColCountCheck = true };
-        using var writer = options.ToText();
         {
-            using var row = writer.NewRow();
-            row["A"].Set("R1C1");
-            row["B"].Set("R1C2");
+            using var writer = options.ToText();
+            {
+                using var row = writer.NewRow();
+                row["A"].Set("R1C1");
+                row["B"].Set("R1C2");
+            }
+            Assert.ThrowsException<InvalidOperationException>(() =>
+            {
+                using var row = writer.NewRow();
+                row["B"].Set("R2C2");
+            });
         }
-        Assert.ThrowsException<InvalidOperationException>(() =>
         {
-            using var row = writer.NewRow();
-            row["B"].Set("R2C2");
-        });
+            await using var writer = options.ToText();
+            {
+                using var row = writer.NewRow();
+                row["A"].Set("R1C1");
+                row["B"].Set("R1C2");
+            }
+            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            {
+                await using var row = writer.NewRow();
+                row["B"].Set("R2C2");
+            });
+        }
     }
 
     [TestMethod]
@@ -622,6 +770,34 @@ R4C1;R4C2;R4C3;
         Sep.New(';').Writer().ToText();
 
     delegate void WriterRowAction(SepWriter.Row row);
+
+    static async ValueTask AssertWriterSyncAsync(string expected, params WriterRowAction[] actions)
+    {
+        AssertWriterSync(expected, actions);
+        await AssertWriterAsync(expected, actions);
+    }
+
+    static void AssertWriterSync(string expected, WriterRowAction[] actions)
+    {
+        using var writer = CreateWriter();
+        foreach (var action in actions)
+        {
+            using var row = writer.NewRow();
+            action(row);
+        }
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    static async ValueTask AssertWriterAsync(string expected, WriterRowAction[] actions)
+    {
+        await using var writer = CreateWriter();
+        foreach (var action in actions)
+        {
+            await using var row = writer.NewRow();
+            action(row);
+        }
+        Assert.AreEqual(expected, writer.ToString());
+    }
 
     static TException AssertThrowsException<TException>(SepWriter.Row row,
         WriterRowAction action)

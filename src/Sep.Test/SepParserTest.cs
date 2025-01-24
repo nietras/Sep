@@ -234,7 +234,7 @@ public class SepParserTest
         _chars.AsSpan(0, charsEnd).Fill('\n');
         _state._currentRowColCount = 0;
         var parsedRowsLength = _state._parsedRows.Length;
-        Trace.WriteLine($"{nameof(parsedRowsLength)} {parsedRowsLength} {nameof(charsEnd)} {charsEnd}");
+
         var rowCount = Math.Min(charsEnd, parsedRowsLength);
         var charsStart = 0;
         var lineNumberOffset = 4;
@@ -331,7 +331,8 @@ public class SepParserTest
         Assert.AreEqual(expectedParsingRow.ColCount, s._parsingRowColCount, nameof(s._parsingRowColCount));
     }
 
-    int TraceParseState(SepReaderState s)
+    [Conditional("SEPREADERTRACE")]
+    void TraceParseState(SepReaderState s)
     {
         var sb = new StringBuilder();
         var indent = "        ";
@@ -347,7 +348,6 @@ public class SepParserTest
         var colEndsParsing = _colEndsOrColInfos.AsSpan().Slice(colEndsFrom, s._parsingRowColCount + 1);
         sb.AppendLine($"{indent}}}, new({nameof(ExpectedParsingRow.ColEnds)}: new[]{{ {string.Join(", ", colEndsParsing.ToArray())} }}, {nameof(ExpectedParsingRow.LineNumberTo)}: {s._parsingLineNumber}, {nameof(ExpectedParsingRow.CharsStartIndex)}: {s._parsingRowCharsStartIndex}, {nameof(ExpectedParsingRow.ColEndsStartIndex)}: {s._parsingRowColEndsOrInfosStartIndex}, {nameof(ExpectedParsingRow.ColCount)}: {s._parsingRowColCount}));");
         Trace.WriteLine(sb.ToString());
-        return colEndsFrom;
     }
 
     static void AreEqual(ReadOnlySpan<int> expected, int[] actual, int actualFrom, int actualTo)

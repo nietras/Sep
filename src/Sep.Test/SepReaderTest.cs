@@ -5,13 +5,34 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
-public class SepReaderTest
+public partial class SepReaderTest
 {
+    // Except FromFile below since do not want to hit file system for all those small tests
+    static readonly IReadOnlyList<Func<SepReaderOptions, string, SepReader>> s_fromFuncsSync = [
+        (o, t) => o.FromText(t),
+        (o, t) => o.From(new StringReader(t)),
+        (o, t) => o.From(Encoding.UTF8.GetBytes(t)),
+        (o, t) => o.From(new MemoryStream(Encoding.UTF8.GetBytes(t))),
+        (o, t) => o.From("name", n => new StringReader(t)),
+        (o, t) => o.From("name", n => new MemoryStream(Encoding.UTF8.GetBytes(t))),
+    ];
+    static readonly IReadOnlyList<Func<SepReaderOptions, string, ValueTask<SepReader>>> s_fromFuncsAsync = [
+        (o, t) => o.FromTextAsync(t),
+        (o, t) => o.FromAsync(new StringReader(t)),
+        (o, t) => o.FromAsync(Encoding.UTF8.GetBytes(t)),
+        (o, t) => o.FromAsync(new MemoryStream(Encoding.UTF8.GetBytes(t))),
+        (o, t) => o.FromAsync("name", n => new StringReader(t)),
+        (o, t) => o.FromAsync("name", n => new MemoryStream(Encoding.UTF8.GetBytes(t))),
+    ];
+
+    record Values(string C1, string C2, string C3);
+
     [TestMethod]
     public void SepReaderTest_AssetsQuotes()
     {
@@ -56,60 +77,74 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Empty()
+    public async ValueTask SepReaderTest_From_Empty()
     {
-        var text = string.Empty;
-        var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: true, hasHeader: false, hasRows: false);
+        await FromAnySyncAsync(string.Empty, options: new(), reader =>
+        {
+            AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
+            Assert.AreEqual(0, reader.Header.ColNames.Count);
+            Assert.IsFalse(reader.MoveNext());
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Rows_0()
+    public async ValueTask SepReaderTest_From_NewLine()
+    {
+        await FromAnySyncAsync(Environment.NewLine, options: new(), reader =>
+        {
+            AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
+            Assert.AreEqual(1, reader.Header.ColNames.Count);
+            Assert.IsFalse(reader.MoveNext());
+        });
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_Enumerate_Rows_0_HeaderOnly()
     {
         var text = "C1;C2;C3";
-        var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: false);
+        var expected = Array.Empty<Values>();
+        await AssertEnumerateSyncAsync(text, expected, isEmpty: false, hasHeader: true, hasRows: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Rows_0_NewLineAtEnd()
+    public async ValueTask SepReaderTest_Enumerate_Rows_0_NewLineAtEnd()
     {
         var text = """
                    C1;C2;C3
 
                    """;
-        var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: false);
+        var expected = Array.Empty<Values>();
+        await AssertEnumerateSyncAsync(text, expected, isEmpty: false, hasHeader: true, hasRows: false);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Rows_1()
+    public async ValueTask SepReaderTest_Enumerate_Rows_1()
     {
         var text = """
                    C1;C2;C3
                    ;;
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("", "", ""),
+            new("", "", ""),
         };
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true);
+        await AssertEnumerateSyncAsync(text, expected, isEmpty: false, hasHeader: true, hasRows: true);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Rows_2()
+    public async ValueTask SepReaderTest_Enumerate_Rows_2()
     {
         var text = """
                    C1;C2;C3
                    10;A;20.1
                    11;B;20.2
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "A", "20.1"),
-            ("11", "B", "20.2"),
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
         };
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true);
+        await AssertEnumerateSyncAsync(text, expected, isEmpty: false, hasHeader: true, hasRows: true);
     }
 
 #if NET9_0_OR_GREATER
@@ -122,24 +157,58 @@ public class SepReaderTest
                    11;B;20.2
                    """;
         using var reader = Sep.Reader().FromText(text);
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "A", "20.1"),
-            ("11", "B", "20.2"),
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
         };
         // NET9_0_OR_GREATER SepReader implements IEnumerable<>
         var actual = FromEnumerable(reader).ToArray();
 
         CollectionAssert.AreEqual(expected, actual);
 
-        static IEnumerable<(string c1, string c2, string c3)> FromEnumerable(
+        static IEnumerable<Values> FromEnumerable(
             IEnumerable<SepReader.Row> rows)
         {
             foreach (var row in rows)
             {
-                yield return (row["C1"].ToString(),
-                              row["C2"].ToString(),
-                              row["C3"].ToString());
+                yield return new(row["C1"].ToString(),
+                                 row["C2"].ToString(),
+                                 row["C3"].ToString());
+            }
+        }
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_AsyncEnumerate_As_AsyncEnumerable()
+    {
+        var text = """
+                   C1;C2;C3
+                   10;A;20.1
+                   11;B;20.2
+                   """;
+        using var reader = await Sep.Reader().FromTextAsync(text);
+        var expected = new Values[]
+        {
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
+        };
+        // NET9_0_OR_GREATER SepReader implements IAsyncEnumerable<>
+        var index = 0;
+        await foreach (var actual in FromAsyncEnumerable(reader))
+        {
+            Assert.AreEqual(expected[index], actual);
+            ++index;
+        }
+
+        static async IAsyncEnumerable<Values> FromAsyncEnumerable(
+            IAsyncEnumerable<SepReader.Row> rows)
+        {
+            await foreach (var row in rows)
+            {
+                yield return new(row["C1"].ToString(),
+                                 row["C2"].ToString(),
+                                 row["C3"].ToString());
             }
         }
     }
@@ -163,7 +232,7 @@ public class SepReaderTest
 #endif
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Rows_2_NewLineAtEnd()
+    public async ValueTask SepReaderTest_Enumerate_Rows_2_NewLineAtEnd()
     {
         var text = """
                    C1;C2;C3
@@ -171,42 +240,44 @@ public class SepReaderTest
                    11;B;20.2
 
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "A", "20.1"),
-            ("11", "B", "20.2"),
+            new("10", "A", "20.1"),
+            new("11", "B", "20.2"),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_0()
+    public async ValueTask SepReaderTest_Enumerate_Quotes_Rows_0()
     {
         var text = "\"C1;;;\";\"C;\"2;\";;C3\"";
-        var expected = Array.Empty<(string c1, string c2, string c3)>();
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: false, disableQuotesParsing: false,
-                        "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
+        var expected = Array.Empty<Values>();
+        await AssertEnumerateSyncAsync(text, expected,
+            isEmpty: false, hasHeader: true, hasRows: false, disableQuotesParsing: false,
+            "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_2()
+    public async ValueTask SepReaderTest_Enumerate_Quotes_Rows_2()
     {
         var text = """
                    "C1;;;";"C;"2;";;C3"
                    10;"A;";20";"11
                    "11";";"B;"20;00"
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A;\"", "20\";\"11"),
-            ("\"11\"", "\";\"B", "\"20;00\""),
+            new("10", "\"A;\"", "20\";\"11"),
+            new("\"11\"", "\";\"B", "\"20;00\""),
         };
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: false,
-                        "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
+        await AssertEnumerateSyncAsync(text, expected,
+            isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: false,
+            "\"C1;;;\"", "\"C;\"2", "\";;C3\"");
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_2_NewLineAtEnd()
+    public async ValueTask SepReaderTest_Enumerate_Quotes_Rows_2_NewLineAtEnd()
     {
         var text = """
                    C1;C2;C3
@@ -214,16 +285,16 @@ public class SepReaderTest
                    "11";";"B;"20;00"
 
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A;\"", "20\";\"11"),
-            ("\"11\"", "\";\"B", "\"20;00\""),
+            new("10", "\"A;\"", "20\";\"11"),
+            new("\"11\"", "\";\"B", "\"20;00\""),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_Rows_3_LongCols()
+    public async ValueTask SepReaderTest_Enumerate_Quotes_Rows_3_LongCols()
     {
         var longColA = new string('A', 10000);
         var longColB = new string('B', 20000);
@@ -233,29 +304,30 @@ public class SepReaderTest
                     10;"{longColA};";20";"11
                     "11";";"{longColB};"20;{longCol0}"
                     """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", $"\"{longColA};\"", "20\";\"11"),
-            ("\"11\"", $"\";\"{longColB}", $"\"20;{longCol0}\""),
+            new("10", $"\"{longColA};\"", "20\";\"11"),
+            new("\"11\"", $"\";\"{longColB}", $"\"20;{longCol0}\""),
         };
-        AssertEnumerate(text, expected);
+        await AssertEnumerateSyncAsync(text, expected);
     }
 
     [TestMethod]
-    public void SepReaderTest_Enumerate_Quotes_DisableQuotesParsing()
+    public async ValueTask SepReaderTest_Enumerate_Quotes_DisableQuotesParsing()
     {
         var text = """
                    C1","C2",C3"
                    10,"A,"20"
                    "11","B,20"
                    """;
-        var expected = new (string c1, string c2, string c3)[]
+        var expected = new Values[]
         {
-            ("10", "\"A", "\"20\""),
-            ("\"11\"", "\"B", "20\""),
+            new("10", "\"A", "\"20\""),
+            new("\"11\"", "\"B", "20\""),
         };
-        AssertEnumerate(text, expected, isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: true,
-                        "C1\"", "\"C2\"", "C3\"");
+        await AssertEnumerateSyncAsync(text, expected,
+            isEmpty: false, hasHeader: true, hasRows: true, disableQuotesParsing: true,
+            "C1\"", "\"C2\"", "C3\"");
     }
 
     [TestMethod]
@@ -300,30 +372,52 @@ public class SepReaderTest
     [DataTestMethod]
     [DataRow("A;B;C;A;D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;A;D;E'")]
     [DataRow("A;B;C;A;D;A;E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row 'A;B;C;A;D;A;E;A'")]
-    public void SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() => Sep.Reader().FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader().FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader().FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [DataTestMethod]
     [DataRow("A;B;C;\"A\";D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;\"A\";D;E'")]
     [DataRow("\"A\";B;C;A;D;\"A\";E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row '\"A\";B;C;A;D;\"A\";E;A'")]
-    public void SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
-            Sep.Reader(o => o with { Unescape = true }).FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader(o => o with { Unescape = true }).FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader(o => o with { Unescape = true }).FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [DataTestMethod]
     [DataRow("A;B;C;a;D;E", "Col name 'a' found 2 times at 0:'A' 3:'a' in header row 'A;B;C;a;D;E'")]
     [DataRow("a;B;C;A;D;A;E;a", "Col name 'A' found 4 times at 0:'a' 3:'A' 5:'A' 7:'a' in header row 'a;B;C;A;D;A;E;a'")]
-    public void SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
+    public async ValueTask SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
-            Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text));
-        Assert.AreEqual(expected, e.Message);
+        {
+            var e = Assert.ThrowsException<ArgumentException>(
+                () => Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+                async () => await Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 
     [TestMethod]
@@ -562,7 +656,7 @@ public class SepReaderTest
     [DataTestMethod]
     [DataRow(true)]
     [DataRow(false)]
-    public void SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
+    public async ValueTask SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
     {
 #if SEPREADERTRACE // Don't run really long with tracing enabled 😅
         const int lineEndingCount = 167;
@@ -576,9 +670,14 @@ public class SepReaderTest
         if (!even) { sb.Append(' '); };
         sb.Insert(lineEndingStartIndex, lineEnding, lineEndingCount);
         var text = sb.ToString();
-
-        using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-        foreach (var row in reader) { }
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
+            foreach (var row in reader) { }
+        }
+        {
+            using var reader = await Sep.Reader(o => o with { HasHeader = false }).FromTextAsync(text);
+            await foreach (var row in reader) { }
+        }
     }
 
     [TestMethod]
@@ -593,19 +692,23 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
+    public async ValueTask SepReaderTest_ExceedingColsInitialLength_WorksByDoublingCapacity()
     {
         var colCount = SepReader.ColEndsInitialLength;
         var text = "A" + Environment.NewLine + new string(';', colCount - 1);
-        using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
-        Assert.IsTrue(reader.MoveNext());
-        var row = reader.Current;
-        Assert.AreEqual(colCount, row.ColCount);
-        Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+
+        await FromSyncAsync(new() { DisableColCountCheck = true },
+            o => o.FromText(text), o => o.FromTextAsync(text), reader =>
+        {
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            Assert.AreEqual(colCount, row.ColCount);
+            Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
+    public async ValueTask SepReaderTest_ColInfosLength_ArgumentOutOfRangeException_Issue_108()
     {
         // At any time during parsing there may be an incomplete row e.g. a
         // parsing row, when then new rows are about to be parsed e.g. in
@@ -624,22 +727,38 @@ public class SepReaderTest
             var text = new string('A', Math.Max(1, charsLength - colCount + 1))
                 + new string(';', colCount - 1) + Environment.NewLine
                 + new string(';', colCount * 2);
-            using var reader = Sep
-                .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
-                .FromText(text);
-            while (reader.MoveNext()) { }
+            {
+                using var reader = Sep
+                    .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
+                    .FromText(text);
+                while (reader.MoveNext()) { }
+            }
+            {
+                using var reader = await Sep
+                    .Reader(o => o with { HasHeader = false, DisableColCountCheck = true })
+                    .FromTextAsync(text);
+                while (await reader.MoveNextAsync()) { }
+            }
         }
     }
 
 #if !SEPREADERTRACE // Causes OOMs in Debug due to tracing
     [TestMethod]
-    public void SepReaderTest_TooLongRow_Throws()
+    public async ValueTask SepReaderTest_TooLongRow_Throws()
     {
         var maxLength = SepDefaults.RowLengthMax + 1;
         var text = new string('a', maxLength);
-        var e = Assert.ThrowsException<NotSupportedException>(() =>
-            Sep.Reader().FromText(text));
-        Assert.AreEqual($"Buffer or row has reached maximum supported length of 16777216. If no such row should exist ensure quotes \" are terminated.", e.Message);
+        var expected = $"Buffer or row has reached maximum supported length of 16777216. If no such row should exist ensure quotes \" are terminated.";
+        {
+            var e = Assert.ThrowsException<NotSupportedException>(() =>
+                Sep.Reader().FromText(text));
+            Assert.AreEqual(expected, e.Message);
+        }
+        {
+            var e = await Assert.ThrowsExceptionAsync<NotSupportedException>(async () =>
+                await Sep.Reader().FromTextAsync(text));
+            Assert.AreEqual(expected, e.Message);
+        }
     }
 #endif
 
@@ -661,124 +780,245 @@ public class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_TextReaderLengthLongerThan32Bit()
+    public async ValueTask SepReaderTest_TextReaderLengthLongerThan32Bit()
     {
         const string text = """
                             A;B
                             1;2
                             """;
         var utf8Bytes = Encoding.UTF8.GetBytes(text);
-        using var fakeLongStream = new FakeLongMemoryStream(utf8Bytes, int.MaxValue + 1L);
-        using var reader = Sep.Auto.Reader().From(fakeLongStream);
+        var func = () => new FakeLongMemoryStream(utf8Bytes, int.MaxValue + 1L);
 
-        Assert.AreEqual(true, reader.MoveNext());
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.IsTrue(r.MoveNext());
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromText()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromText()
     {
-        using var reader = Sep.Reader().FromText("A;B");
-        Assert.AreEqual("String Length=3", reader.DebuggerDisplay);
+        var t = "A;B";
+        await FromSyncAsync(new(), o => o.FromText(t), o => o.FromTextAsync(t), r =>
+        {
+            Assert.AreEqual("String Length=3", r.DebuggerDisplay);
+        });
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromFile()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromFile()
     {
         var filePath = Path.GetTempFileName();
         File.WriteAllText(filePath, "A;B");
-        using (var reader = Sep.Reader().FromFile(filePath))
+        await FromSyncAsync(new(), o => o.FromFile(filePath), o => o.FromFileAsync(filePath), r =>
         {
-            Assert.AreEqual($"File='{filePath}'", reader.DebuggerDisplay);
-        }
+            Assert.AreEqual($"File='{filePath}'", r.DebuggerDisplay);
+        });
         File.Delete(filePath);
     }
 
     [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromBytes()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromBytes()
     {
-        using var reader = Sep.Reader().From(Encoding.UTF8.GetBytes("A;B"));
-        Assert.AreEqual($"Bytes Length=3", reader.DebuggerDisplay);
-    }
-
-    [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromNameStream()
-    {
-        var name = "TEST";
-        using var reader = Sep.Reader().From(name, n => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
-        Assert.AreEqual($"Stream Name='{name}'", reader.DebuggerDisplay);
-    }
-    [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromStream()
-    {
-        using var reader = Sep.Reader().From((Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B")));
-        Assert.AreEqual($"Stream='{typeof(MemoryStream)}'", reader.DebuggerDisplay);
-    }
-
-    [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromNameTextReader()
-    {
-        var name = "TEST";
-        using var reader = Sep.Reader().From(name, n => (TextReader)new StringReader("A;B"));
-        Assert.AreEqual($"TextReader Name='{name}'", reader.DebuggerDisplay);
-    }
-    [TestMethod]
-    public void SepReaderTest_DebuggerDisplay_FromTextReader()
-    {
-        using var reader = Sep.Reader().From((TextReader)new StringReader("A;B"));
-        Assert.AreEqual($"TextReader='{typeof(StringReader)}'", reader.DebuggerDisplay);
-    }
-
-    public class FakeLongMemoryStream : MemoryStream
-    {
-        readonly long _fakeLength;
-
-        public FakeLongMemoryStream(byte[] buffer, long fakeLength) : base(buffer)
+        var bytes = Encoding.UTF8.GetBytes("A;B");
+        await FromSyncAsync(new(), o => o.From(bytes), o => o.FromAsync(bytes), r =>
         {
-            _fakeLength = fakeLength;
-        }
-
-        public override long Length => _fakeLength;
+            Assert.AreEqual($"Bytes Length=3", r.DebuggerDisplay);
+        });
     }
 
-    static void AssertEnumerate(string text, (string c1, string c2, string c3)[] expected,
+    [TestMethod]
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromNameStream()
+    {
+        var name = "TEST";
+        var func = (string n) => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
+        await FromSyncAsync(new(), o => o.From(name, func), o => o.FromAsync(name, func), r =>
+        {
+            Assert.AreEqual($"Stream Name='{name}'", r.DebuggerDisplay);
+        });
+    }
+    [TestMethod]
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromStream()
+    {
+        var func = () => (Stream)new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.AreEqual($"Stream='{typeof(MemoryStream)}'", r.DebuggerDisplay);
+        });
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromNameTextReader()
+    {
+        var name = "TEST";
+        var func = (string n) => (TextReader)new StringReader("A;B");
+        await FromSyncAsync(new(), o => o.From(name, func), o => o.FromAsync(name, func), r =>
+        {
+            Assert.AreEqual($"TextReader Name='{name}'", r.DebuggerDisplay);
+        });
+    }
+    [TestMethod]
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromTextReader()
+    {
+        var func = () => (TextReader)new StringReader("A;B");
+        await FromSyncAsync(new(), o => o.From(func()), o => o.FromAsync(func()), r =>
+        {
+            Assert.AreEqual($"TextReader='{typeof(StringReader)}'", r.DebuggerDisplay);
+        });
+    }
+
+    class FakeLongMemoryStream(byte[] buffer, long fakeLength) : MemoryStream(buffer)
+    {
+        public override long Length => fakeLength;
+    }
+
+    static async ValueTask AssertEnumerateSyncAsync(
+        string text, Values[] expected,
         bool isEmpty = false, bool hasHeader = true, bool hasRows = true, bool disableQuotesParsing = false,
         string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
     {
-        using var reader = Sep.Reader(o => o with { DisableQuotesParsing = disableQuotesParsing }).FromText(text);
+        AssertEnumerateSync(text, expected, isEmpty, hasHeader, hasRows,
+            disableQuotesParsing, colName1, colName2, colName3);
 
-        var actual = Enumerate(reader, colName1, colName2, colName3).ToArray();
+        await AssertEnumerateAsync(text, expected, isEmpty, hasHeader, hasRows,
+            disableQuotesParsing, colName1, colName2, colName3);
+    }
 
+    static void AssertEnumerateSync(string text, Values[] expected,
+        bool isEmpty, bool hasHeader, bool hasRows = true, bool disableQuotesParsing = false,
+        string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
+    {
+        using var reader = Sep
+            .Reader(o => o with { DisableQuotesParsing = disableQuotesParsing, HasHeader = hasHeader })
+            .FromText(text);
+
+        var actual = EnumerateSync(reader, hasHeader, colName1, colName2, colName3).ToList();
+
+        AssertEnumerateResults(reader, isEmpty,
+            hasHeader, hasRows, colName1, colName2, colName3,
+            expected, actual);
+    }
+
+    static IEnumerable<Values> EnumerateSync(SepReader reader, bool hasHeader,
+        string colName1, string colName2, string colName3)
+    {
+        if (hasHeader)
+        {
+            foreach (var row in reader)
+            {
+                yield return new(row[colName1].ToString(), row[colName2].ToString(), row[colName3].ToString());
+            }
+        }
+        else
+        {
+            foreach (var row in reader)
+            {
+                yield return new(row[0].ToString(), row[1].ToString(), row[2].ToString());
+            }
+        }
+    }
+
+    static async ValueTask AssertEnumerateAsync(string text, Values[] expected,
+        bool isEmpty, bool hasHeader, bool hasRows = true, bool disableQuotesParsing = false,
+        string colName1 = "C1", string colName2 = "C2", string colName3 = "C3")
+    {
+        using var reader = await Sep
+            .Reader(o => o with { DisableQuotesParsing = disableQuotesParsing, HasHeader = hasHeader })
+            .FromTextAsync(text);
+
+        var actual = await EnumerateAsync(reader, hasHeader, colName1, colName2, colName3);
+
+        AssertEnumerateResults(reader, isEmpty,
+            hasHeader, hasRows, colName1, colName2, colName3,
+            expected, actual);
+    }
+
+    static async ValueTask<List<Values>> EnumerateAsync(
+        SepReader reader, bool hasHeader,
+        string colName1, string colName2, string colName3)
+    {
+        var results = new List<Values>();
+        if (hasHeader)
+        {
+            await foreach (var row in reader)
+            {
+                results.Add(new(row[colName1].ToString(), row[colName2].ToString(), row[colName3].ToString()));
+            }
+        }
+        else
+        {
+            await foreach (var row in reader)
+            {
+                results.Add(new(row[0].ToString(), row[1].ToString(), row[2].ToString()));
+            }
+        }
+        return results;
+    }
+
+    static void AssertEnumerateResults(SepReader reader,
+        bool isEmpty, bool hasHeader, bool hasRows,
+        string colName1, string colName2, string colName3,
+        Values[] expected,
+        List<Values> actual)
+    {
         AssertState(reader, isEmpty, hasHeader, hasRows);
-        AssertHeader(reader.Header, colName1, colName2, colName3);
+        if (hasHeader) { AssertHeader(reader.Header, colName1, colName2, colName3); }
+        else { AssertHeaderEmpty(reader.Header); }
         CollectionAssert.AreEqual(expected, actual);
     }
 
     static void AssertState(SepReader reader, bool isEmpty, bool hasHeader, bool hasRows)
     {
         Assert.AreEqual(isEmpty, reader.IsEmpty, nameof(reader.IsEmpty));
-        Assert.AreEqual(hasHeader, reader.HasHeader, nameof(reader.IsEmpty));
+        Assert.AreEqual(hasHeader, reader.HasHeader, nameof(reader.HasHeader));
         Assert.AreEqual(hasRows, reader.HasRows, nameof(reader.HasRows));
     }
 
     static void AssertHeader(SepReaderHeader header, string colName1, string colName2, string colName3)
     {
-        if (header.ColNames.Count > 0)
+        Assert.AreEqual(3, header.ColNames.Count);
+        Assert.AreEqual(0, header.IndexOf(colName1));
+        Assert.AreEqual(1, header.IndexOf(colName2));
+        Assert.AreEqual(2, header.IndexOf(colName3));
+    }
+
+    static void AssertHeaderEmpty(SepReaderHeader header)
+    {
+        Assert.AreEqual(0, header.ColNames.Count);
+        Assert.IsTrue(header.IsEmpty);
+    }
+
+    static async ValueTask FromAnySyncAsync(string text, SepReaderOptions options, Action<SepReader> assert)
+    {
+        // Sync
+        foreach (var fromFuncSync in s_fromFuncsSync)
         {
-            Assert.AreEqual(3, header.ColNames.Count);
-            Assert.AreEqual(0, header.IndexOf(colName1));
-            Assert.AreEqual(1, header.IndexOf(colName2));
-            Assert.AreEqual(2, header.IndexOf(colName3));
+            using var reader = fromFuncSync(options, text);
+            assert(reader);
+        }
+        // Async
+        foreach (var fromFuncAsync in s_fromFuncsAsync)
+        {
+            using var reader = await fromFuncAsync(options, text);
+            assert(reader);
         }
     }
 
-    static IEnumerable<(string c1, string c2, string c3)> Enumerate(SepReader reader,
-        string colName1, string colName2, string colName3)
+    static async ValueTask FromSyncAsync(
+        SepReaderOptions options,
+        Func<SepReaderOptions, SepReader> fromFuncSync,
+        Func<SepReaderOptions, ValueTask<SepReader>> fromFuncAsync,
+        Action<SepReader> assert)
     {
-        foreach (var row in reader)
+        // Sync
         {
-            yield return (row[colName1].ToString(),
-                          row[colName2].ToString(),
-                          row[colName3].ToString());
+            using var reader = fromFuncSync(options);
+            assert(reader);
+        }
+        // Async
+        {
+            using var reader = await fromFuncAsync(options);
+            assert(reader);
         }
     }
 }

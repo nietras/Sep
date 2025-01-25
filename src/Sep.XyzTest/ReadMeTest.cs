@@ -463,6 +463,7 @@ public partial class ReadMeTest
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
             (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "### Example - Copy Rows (Async)"),
+            (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "## Async Support"),
             (nameof(ReadMeTest_Example_Skip_Empty_Rows) + "()", "### Example - Skip Empty Rows"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_Enumerate) + "()", "### Example - Use Extension Method Enumerate within async/await Context"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_CustomIterator) + "()", "### Example - Use Local Function within async/await Context"),

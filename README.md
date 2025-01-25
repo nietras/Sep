@@ -38,13 +38,17 @@ enable this see [SepReaderOptions](#sepreaderoptions) and
 * **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
-fast parsing of floating points. Reads or writes one row at a time efficiently
-with [detailed benchmarks](#comparison-benchmarks) to prove it.
+fast parsing of floating points. See [detailed
+benchmarks](#comparison-benchmarks) for cross-platform results.
 * **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
   parsing that is [up to 35x faster than
   CsvHelper](#floats-reader-comparison-benchmarks), see
   [ParallelEnumerate](#parallelenumerate-and-enumerate) and
-  [benchmarks](#comparison-benchmarks) .
+  [benchmarks](#comparison-benchmarks).
+* **🌀 Async support** - efficient `ValueTask` based `async/await` support.
+  Requires C# 13.0+ since `SepReader.Row` is a `ref struct`. Includes
+  `IAsyncEnumerable<>` for `SepReader` (again only for .NET 9.0+ due to `ref
+  struct`). See [Async Support](#async-support) for details.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.
@@ -906,6 +910,66 @@ Separator/delimiter is set to semi-colon `;` (default for Sep)
 `\r`, `\n` are carriage return and line feed special characters to make these visible
 
 ¹ Sep with `Escape = true` in `SepWriterOptions`
+
+## Async Support
+Sep supports efficient `ValueTask` based asynchronous reading and writing.
+
+However, given both `SepReader.Row` and `SepWriter.Row` are `ref struct`s, as
+they point to internal state and should only be used one at a time,
+`async/await` usage is only supported on C# 13.0+ as this has support for **"ref
+and unsafe in iterators and async methods"** as covered in [What's new in C#
+13](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-13). Please
+consult details in that for limitations and constraints due to this.
+
+Similarly, `SepReader` only implements `IAsyncEnumerable<SepReader.Row>` (and
+`IEnumerable<SepReader.Row>`) for .NET 9.0+/C# 13.0+ since then the interfaces
+have been annotated with `allows ref struct` for `T`.
+
+Async support is provided on the existing `SepReader` and `SepWriter` types
+similar to how `TextReader` and `TextWriter` support both sync and async usage.
+This means you as a developer are responsible for calling async methods and
+using `await` when necessary. See below for a simple example and consult tests
+on GitHub for more examples.
+
+```csharp
+var text = """
+           A;B;C;D;E;F
+           Sep;🚀;1;1.2;0.1;0.5
+           CSV;✅;2;2.2;0.2;1.5
+           
+           """; // Empty line at end is for line ending
+
+using var reader = await Sep.Reader().FromTextAsync(text);
+await using var writer = reader.Spec.Writer().ToText();
+await foreach (var readRow in reader)
+{
+    await using var writeRow = writer.NewRow(readRow);
+}
+Assert.AreEqual(text, writer.ToString());
+```
+
+Note how for `SepReader` the `FromTextAsync` is suffixed with `Async` to
+indicate async creation, this is due to the reader having to read the first row
+of the source at creation to determine both separator and, if file has a header,
+column names of the header. The `From*Async` call then has to be `await`ed.
+After that rows can be enumerated asynchronously simply by putting `await`
+before `foreach`. If one forgets to do that the rows will be enumerated
+synchronously.
+
+For `SepWriter` the usage is kind of reversed. `To*` methods have no `Async`
+variants, since creation is synchronous. That is, `StreamWriter` is created by a
+simple constructor call. Nothing is written until a header or row is defined and
+`Dispose`/`DisposeAsync` is called on the row. 
+
+For reader nothing needs to be asynchronously disposed, so `using` does not
+require `await`. However, for `SepWriter` dispose may have to write/flush data
+to underlying `TextWriter` and hence it should be using `DisposeAsync`, so you
+must use `await using`.
+
+To support cancellation many methods have overloads that accept a
+`CancellationToken` like the `From*Async` methods for creating a `SepReader` or
+for example `NewRow` for `SepWriter`. Consult [Public API
+Reference](#public-api-reference) for full set of available methods.
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and
@@ -1794,11 +1858,11 @@ foreach (var row in reader)
 CollectionAssert.AreEqual(expected, actual);
 ```
 
-### Example - Use Extension Method Enumerate within async/await Context
+### Example - Use Extension Method Enumerate within async/await Context (prior to C# 13.0)
 Since `SepReader.Row` is a `ref struct` as covered above, one has to avoid
-referencing it directly in async context. This can be done in a number of ways,
-but one way is to use `Enumerate` extension method to parse/extract data from
-row like shown below.
+referencing it directly in async context for C# prior to 13.0. This can be done
+in a number of ways, but one way is to use `Enumerate` extension method to
+parse/extract data from row like shown below.
 
 ```csharp
 var text = """

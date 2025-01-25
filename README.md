@@ -1748,6 +1748,24 @@ foreach (var readRow in reader)
 Assert.AreEqual(text, writer.ToString());
 ```
 
+### Example - Copy Rows (Async)
+```csharp
+var text = """
+           A;B;C;D;E;F
+           Sep;🚀;1;1.2;0.1;0.5
+           CSV;✅;2;2.2;0.2;1.5
+           
+           """; // Empty line at end is for line ending
+
+using var reader = await Sep.Reader().FromTextAsync(text);
+await using var writer = reader.Spec.Writer().ToText();
+await foreach (var readRow in reader)
+{
+    await using var writeRow = writer.NewRow(readRow);
+}
+Assert.AreEqual(text, writer.ToString());
+```
+
 ### Example - Skip Empty Rows
 ```csharp
 var text = """

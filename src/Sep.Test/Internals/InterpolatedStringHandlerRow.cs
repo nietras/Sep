@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
@@ -28,13 +29,14 @@ public class InterpolatedStringHandlerRow
     [InterpolatedStringHandler]
     public ref struct TraceInterpolatedStringHandler
     {
+        static readonly Action<string> Log = t => { };
         // Storage for the built-up string
         readonly StringBuilder _builder;
 
         public TraceInterpolatedStringHandler(int literalLength, int formattedCount)
         {
             _builder = new StringBuilder(literalLength);
-            Trace.WriteLine($"\tliteral length: {literalLength}, formattedCount: {formattedCount}");
+            Log($"\tliteral length: {literalLength}, formattedCount: {formattedCount}");
         }
 
         public TraceInterpolatedStringHandler(int literalLength, int formattedCount, InterpolatedStringHandlerRow row)
@@ -42,15 +44,15 @@ public class InterpolatedStringHandlerRow
             Contract.Assume(row is not null);
             row._stringBuilder.Clear();
             _builder = row._stringBuilder;
-            Trace.WriteLine($"\tliteral length: {literalLength}, formattedCount: {formattedCount} REUSE");
+            Log($"\tliteral length: {literalLength}, formattedCount: {formattedCount} REUSE");
         }
 
         public void AppendLiteral(string s)
         {
-            Trace.WriteLine($"\tAppendLiteral called: {{{s}}}");
+            Log($"\tAppendLiteral called: {{{s}}}");
 
             _builder.Append(s);
-            Trace.WriteLine($"\tAppended the literal string");
+            Log($"\tAppended the literal string");
         }
 
         public void AppendFormatted<T>(T t)

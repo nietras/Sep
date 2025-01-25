@@ -11,7 +11,7 @@ on:
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
   DOTNET_NOLOGO: true
-  OutputDirectory: ${{ github.workspace }}/output
+  ArtifactsDirectory: ${{ github.workspace }}/artifacts
 
 jobs:
   build:
@@ -36,10 +36,10 @@ jobs:
         run: ./publish-tester.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: output-${{ matrix.os }}
+          name: artifacts-${{ matrix.os }}
           if-no-files-found: error
           retention-days: 7
-          path: ${{ env.OutputDirectory }}
+          path: ${{ env.ArtifactsDirectory }}
       - name: Run Tester
         shell: pwsh
         run: ./artifacts/bin/Sep.Tester/release_net9.0_win-x64/native/Sep.Tester.exe

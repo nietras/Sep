@@ -1,0 +1,45 @@
+name: nativeaot
+
+permissions: read-all
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_NOLOGO: true
+  OutputDirectory: ${{ github.workspace }}/output
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        os: [windows-latest]
+        configuration: [Release]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Publish Tester
+        shell: pwsh
+        run: ./publish-tester.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ matrix.os }}
+          if-no-files-found: error
+          retention-days: 7
+          path: ${{ env.OutputDirectory }}
+      - name: Run Tester
+        shell: pwsh
+        run: ./artifacts/bin/Sep.Tester/release_net9.0_win-x64/native/Sep.Tester.exe

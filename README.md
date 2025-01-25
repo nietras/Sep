@@ -959,7 +959,7 @@ synchronously.
 For `SepWriter` the usage is kind of reversed. `To*` methods have no `Async`
 variants, since creation is synchronous. That is, `StreamWriter` is created by a
 simple constructor call. Nothing is written until a header or row is defined and
-`Dispose`/`DisposeAsync` is called on the row. 
+`Dispose`/`DisposeAsync` is called on the row.
 
 For reader nothing needs to be asynchronously disposed, so `using` does not
 require `await`. However, for `SepWriter` dispose may have to write/flush data
@@ -970,6 +970,13 @@ To support cancellation many methods have overloads that accept a
 `CancellationToken` like the `From*Async` methods for creating a `SepReader` or
 for example `NewRow` for `SepWriter`. Consult [Public API
 Reference](#public-api-reference) for full set of available methods.
+
+Additionally, both [SepReaderOptions](#sepreaderoptions) and
+[SepWriterOptions](#sepWriteroptions) feature the `bool
+AsyncContinueOnCapturedContext` option that is forwarded to internal
+`ConfigureAwait` calls, see the [ConfigureAwait
+FAQ](https://devblogs.microsoft.com/dotnet/configureawait-faq/) for details on
+that.
 
 ## Limitations and Constraints
 Sep is designed to be minimal and fast. As such, it has some limitations and

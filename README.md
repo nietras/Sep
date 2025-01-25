@@ -11,6 +11,7 @@
 ![Size](https://img.shields.io/github/repo-size/nietras/Sep.svg)
 [![License](https://img.shields.io/github/license/nietras/Sep)](https://github.com/nietras/Sep/blob/main/LICENSE)
 [![Blog](https://img.shields.io/badge/blog-nietras.com-4993DD)](https://nietras.com)
+![GitHub Repo stars](https://img.shields.io/github/stars/nietras/Sep?style=flat)
 
 Modern, minimal, fast, zero allocation, reading and writing of separated values
 (`csv`, `tsv` etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.
@@ -971,7 +972,7 @@ for example `NewRow` for `SepWriter`. Consult [Public API
 Reference](#public-api-reference) for full set of available methods.
 
 Additionally, both [SepReaderOptions](#sepreaderoptions) and
-[SepWriterOptions](#sepWriteroptions) feature the `bool
+[SepWriterOptions](#sepwriteroptions) feature the `bool
 AsyncContinueOnCapturedContext` option that is forwarded to internal
 `ConfigureAwait` calls, see the [ConfigureAwait
 FAQ](https://devblogs.microsoft.com/dotnet/configureawait-faq/) for details on

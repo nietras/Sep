@@ -46,9 +46,8 @@ benchmarks](#comparison-benchmarks) for cross-platform results.
   [ParallelEnumerate](#parallelenumerate-and-enumerate) and
   [benchmarks](#comparison-benchmarks).
 * **🌀 Async support** - efficient `ValueTask` based `async/await` support.
-  Requires C# 13.0+ since `SepReader.Row` is a `ref struct`. Includes
-  `IAsyncEnumerable<>` for `SepReader` (again only for .NET 9.0+ due to `ref
-  struct`). See [Async Support](#async-support) for details.
+  Requires C# 13.0+ and for .NET 9.0+ includes `SepReader` implementing
+  `IAsyncEnumerable<>`. See [Async Support](#async-support) for details.
 * **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
 writing arrays of values (e.g. features) easily without repeated allocations.

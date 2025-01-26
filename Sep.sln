@@ -31,6 +31,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{32021D88-4
 		publish-tester.ps1 = publish-tester.ps1
 		README.md = README.md
 		rename.ps1 = rename.ps1
+		SECURITY.md = SECURITY.md
 		test-parsers.ps1 = test-parsers.ps1
 		test-x64-x86.ps1 = test-x64-x86.ps1
 	EndProjectSection

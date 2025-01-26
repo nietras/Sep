@@ -2053,11 +2053,7 @@ namespace nietras.SeparatedValues
             public System.Threading.Tasks.ValueTask<bool> MoveNextAsync() { }
         }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public readonly struct Col
+        public readonly ref struct Col
         {
             public System.ReadOnlySpan<char> Span { get; }
             public T Parse<T>()
@@ -2068,11 +2064,7 @@ namespace nietras.SeparatedValues
             public bool TryParse<T>(out T value)
                 where T : System.ISpanParsable<T> { }
         }
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public readonly struct Cols
+        public readonly ref struct Cols
         {
             public int Count { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
@@ -2093,11 +2085,7 @@ namespace nietras.SeparatedValues
         }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
         [System.Diagnostics.DebuggerTypeProxy(typeof(nietras.SeparatedValues.SepReader.Row.DebugView))]
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public readonly struct Row
+        public readonly ref struct Row
         {
             public int ColCount { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
@@ -2235,26 +2223,7 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepWriter.Row NewRow() { }
         public nietras.SeparatedValues.SepWriter.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
         public override string ToString() { }
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public struct Row : System.IAsyncDisposable, System.IDisposable
-        {
-            public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
-            public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }
-            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<int> indices] { get; }
-            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<string> colNames] { get; }
-            public nietras.SeparatedValues.SepWriter.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
-            public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
-            public void Dispose() { }
-            public System.Threading.Tasks.ValueTask DisposeAsync() { }
-        }
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public readonly struct Col
+        public readonly ref struct Col
         {
             public void Format<T>(T value)
                 where T : System.ISpanFormattable { }
@@ -2263,12 +2232,8 @@ namespace nietras.SeparatedValues
             public void Set(System.IFormatProvider? provider, [System.Runtime.CompilerServices.InterpolatedStringHandlerArgument(new string?[]?[] {
                     "",
                     "provider"})] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }
-            [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-                "."), true)]
-            [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
             [System.Runtime.CompilerServices.InterpolatedStringHandler]
-            [System.Runtime.CompilerServices.IsByRefLike]
-            public struct FormatInterpolatedStringHandler
+            public ref struct FormatInterpolatedStringHandler
             {
                 public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col) { }
                 public FormatInterpolatedStringHandler(int literalLength, int formattedCount, nietras.SeparatedValues.SepWriter.Col col, System.IFormatProvider? provider) { }
@@ -2284,11 +2249,7 @@ namespace nietras.SeparatedValues
                 public void AppendLiteral(string value) { }
             }
         }
-        [System.Obsolete(("Types with embedded references are not supported in this version of your compiler" +
-            "."), true)]
-        [System.Runtime.CompilerServices.CompilerFeatureRequired("RefStructs")]
-        [System.Runtime.CompilerServices.IsByRefLike]
-        public readonly struct Cols
+        public readonly ref struct Cols
         {
             public int Count { get; }
             public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
@@ -2305,6 +2266,17 @@ namespace nietras.SeparatedValues
             public void Set([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> values) { }
             public void Set(string[] values) { }
             public void Set(nietras.SeparatedValues.SepReader.Cols cols) { }
+        }
+        public ref struct Row : System.IAsyncDisposable, System.IDisposable
+        {
+            public nietras.SeparatedValues.SepWriter.Col this[int colIndex] { get; }
+            public nietras.SeparatedValues.SepWriter.Col this[string colName] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<int> indices] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.ReadOnlySpan<string> colNames] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[System.Collections.Generic.IReadOnlyList<string> colNames] { get; }
+            public nietras.SeparatedValues.SepWriter.Cols this[string[] colNames] { get; }
+            public void Dispose() { }
+            public System.Threading.Tasks.ValueTask DisposeAsync() { }
         }
         public delegate void ColAction(nietras.SeparatedValues.SepWriter.Col col);
         public delegate void ColAction<T>(nietras.SeparatedValues.SepWriter.Col col, T value);

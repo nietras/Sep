@@ -16,7 +16,11 @@ public static partial class SepWriterExtensions
 
     public static SepWriterOptions Writer(this Sep sep) => new(sep);
     public static SepWriterOptions Writer(this SepSpec spec) =>
-        new SepWriterOptions(spec.Sep) with { CultureInfo = spec.CultureInfo };
+        new SepWriterOptions(spec.Sep) with
+        {
+            CultureInfo = spec.CultureInfo,
+            AsyncContinueOnCapturedContext = spec.AsyncContinueOnCapturedContext
+        };
 
     public static SepWriterOptions Writer(this Sep sep, Func<SepWriterOptions, SepWriterOptions> configure)
     {

@@ -205,7 +205,7 @@ public class SepWriterColTest
         [
             () => Sep.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
             () => Sep.Default.Writer(o => o with { CultureInfo = cultureInfo ?? SepDefaults.CultureInfo }).ToText(),
-            () => new SepSpec(Sep.Default, cultureInfo ?? SepDefaults.CultureInfo).Writer(o => o with { }).ToText(),
+            () => new SepSpec(Sep.Default, cultureInfo ?? SepDefaults.CultureInfo, false).Writer(o => o with { }).ToText(),
         ];
         foreach (var createWriter in createWriters)
         {

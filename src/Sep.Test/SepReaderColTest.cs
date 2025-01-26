@@ -295,11 +295,11 @@ public class SepReaderColTest
             () => Sep.Reader(useConfigure).FromText(text),
             () => Sep.Default.Reader(useConfigure).FromText(text),
             () => ((Sep?)null).Reader(useConfigure).FromText(text),
-            () => new SepSpec(Sep.Default, null).Reader(useConfigure).FromText(text),
+            () => new SepSpec(Sep.Default, null, false).Reader(useConfigure).FromText(text),
         };
         if (configure is null)
         {
-            createReaders.Add(() => new SepSpec(Sep.Default, null).Reader().FromText(text));
+            createReaders.Add(() => new SepSpec(Sep.Default, null, false).Reader().FromText(text));
         }
 
         foreach (var createReader in createReaders)

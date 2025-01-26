@@ -53,7 +53,7 @@ public sealed partial class SepWriter : IDisposable
         Header = new(this);
     }
 
-    public SepSpec Spec => new(_sep, _cultureInfo);
+    public SepSpec Spec => new(_sep, _cultureInfo, _continueOnCapturedContext);
     public SepWriterHeader Header { get; }
 
     public Row NewRow()

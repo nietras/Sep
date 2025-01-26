@@ -17,7 +17,11 @@ public static partial class SepReaderExtensions
     public static SepReaderOptions Reader(this Sep sep) => new(sep);
     public static SepReaderOptions Reader(this Sep? sep) => new(sep);
     public static SepReaderOptions Reader(this SepSpec spec) =>
-        new SepReaderOptions(spec.Sep) with { CultureInfo = spec.CultureInfo };
+        new SepReaderOptions(spec.Sep) with
+        {
+            CultureInfo = spec.CultureInfo,
+            AsyncContinueOnCapturedContext = spec.AsyncContinueOnCapturedContext
+        };
 
     public static SepReaderOptions Reader(this Sep sep, Func<SepReaderOptions, SepReaderOptions> configure)
     {

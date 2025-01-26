@@ -1120,6 +1120,13 @@ Additionally, as Sep supports multi-threaded parsing via `ParallelEnumerate`
 benchmarks results with `_MT` in the method name are multi-threaded. These show
 Sep provides unparalleled performance compared to any other CSV parser.
 
+The overhead of Sep async support is also benchmarked and can be seen with
+`_Async` in the method name. Note that this is the absolute best case for async
+given there is no real IO involved and hence no actual asynchronous work or
+continuations (thus no `Task` allocations) since benchmarks run from memory
+only. This is fine as the main purpose of the benchmark is to gauge the overhead
+of the async code path.
+
 #### NCsvPerf PackageAssets Reader Comparison Benchmarks
 [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
    parser in

@@ -14,6 +14,8 @@
          https://github.com/dotnet/runtimelab/issues/1269 ([NativeAOT] Best way to track down app size bloat?) -->
     <IlcInvariantGlobalization>true</IlcInvariantGlobalization>
     <IlcDisableReflection>true</IlcDisableReflection>
+    <IlcGenerateMstatFile>true</IlcGenerateMstatFile>
+    <IlcGenerateDgmlFile>true</IlcGenerateDgmlFile>
   </PropertyGroup>
 
   <PropertyGroup>

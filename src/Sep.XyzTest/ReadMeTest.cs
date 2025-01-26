@@ -269,6 +269,25 @@ public partial class ReadMeTest
     }
 
     [TestMethod]
+    public async ValueTask ReadMeTest_Example_Copy_Rows_Async()
+    {
+        var text = """
+                   A;B;C;D;E;F
+                   Sep;🚀;1;1.2;0.1;0.5
+                   CSV;✅;2;2.2;0.2;1.5
+                   
+                   """; // Empty line at end is for line ending
+
+        using var reader = await Sep.Reader().FromTextAsync(text);
+        await using var writer = reader.Spec.Writer().ToText();
+        await foreach (var readRow in reader)
+        {
+            await using var writeRow = writer.NewRow(readRow);
+        }
+        Assert.AreEqual(text, writer.ToString());
+    }
+
+    [TestMethod]
     public void ReadMeTest_Example_Skip_Empty_Rows()
     {
         var text = """
@@ -443,6 +462,8 @@ public partial class ReadMeTest
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
+            (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "### Example - Copy Rows (Async)"),
+            (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "## Async Support"),
             (nameof(ReadMeTest_Example_Skip_Empty_Rows) + "()", "### Example - Skip Empty Rows"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_Enumerate) + "()", "### Example - Use Extension Method Enumerate within async/await Context"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_CustomIterator) + "()", "### Example - Use Local Function within async/await Context"),

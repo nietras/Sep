@@ -20,7 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MSTest" Version="3.7.1" />
+    <PackageReference Include="MSTest" Version="3.7.2" />
   </ItemGroup>
 
 </Project>

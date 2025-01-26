@@ -6,6 +6,9 @@ public readonly record struct SepSpec
 {
     public SepSpec() : this(Sep.Default, SepDefaults.CultureInfo, false) { }
 
+    public SepSpec(Sep sep, CultureInfo? cultureInfo)
+        : this(sep, cultureInfo, false) { }
+
     public SepSpec(Sep sep, CultureInfo? cultureInfo, bool asyncContinueOnCapturedContext)
     {
         Sep = sep;

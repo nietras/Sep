@@ -90,7 +90,7 @@ public sealed partial class SepReader : SepReaderState
     }
 
     public bool IsEmpty { get; private set; }
-    public SepSpec Spec => new(new(_separator), _cultureInfo);
+    public SepSpec Spec => new(new(_separator), _cultureInfo, _continueOnCapturedContext);
     public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
     public bool HasRows { get; private set; }
     public SepReaderHeader Header => _header;

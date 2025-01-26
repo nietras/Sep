@@ -18,3 +18,33 @@ updates:
     schedule:
       # Check for updates to GitHub Actions every week
       interval: "daily"
+
+  - package-ecosystem: nuget
+    directory: /src/Sep.Benchmarks
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /src/Sep.ComparisonBenchmarks
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /src/Sep.Test
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /src/Sep.Tester
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /src/Sep.XyzTest
+    schedule:
+      interval: daily
+
+  - package-ecosystem: nuget
+    directory: /src/Sep
+    schedule:
+      interval: daily

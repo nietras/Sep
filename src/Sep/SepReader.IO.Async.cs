@@ -319,42 +319,75 @@ public sealed partial class SepReader
         A.Assert(freeLength > 0, $"Free span at end of buffer length {freeLength} not greater than 0");
 
         // Read until full or no more data
-        var totalBytesRead = 0;
+        var totalReadCount = 0;
         var readCount = 0;
+
+        // If trailing char is '\r' ensire added to buffer
+        if (_trailingChar == CarriageReturn)
+        {
 #if SYNC
-        while (totalBytesRead < freeLength &&
-               ((readCount = _reader.Read(freeChars.Slice(totalBytesRead))) > 0))
+            freeChars[0] = CarriageReturn;
 #else
-        while (totalBytesRead < freeLength &&
-                ((readCount = await _reader.ReadAsync(freeChars.Slice(totalBytesRead), cancellationToken)
+            freeChars.Span[0] = CarriageReturn;
+#endif
+            _trailingChar = '\0';
+            ++totalReadCount;
+            ++_charsDataEnd;
+        }
+
+#if SYNC
+        while (totalReadCount < freeLength &&
+               ((readCount = _reader.Read(freeChars.Slice(totalReadCount))) > 0))
+#else
+        while (totalReadCount < freeLength &&
+                ((readCount = await _reader.ReadAsync(freeChars.Slice(totalReadCount), cancellationToken)
                     .ConfigureAwait(_continueOnCapturedContext)) > 0))
 #endif
         {
             _charsDataEnd += readCount;
+            totalReadCount += readCount;
             // Ensure carriage return always followed by line feed
             if (_chars[_charsDataEnd - 1] == CarriageReturn)
             {
-                var extraChar = _reader.Peek();
-                if (extraChar == LineFeed)
+                // Do not use freeChars as this has length exactly 1 less than
+                // available so we can here read that extra char after a
+                // carriage return.
+#if SYNC
+                var extraReadChars = _chars.AsSpan(_charsDataEnd, length: 1);
+                var extraReadCount = _reader.Read(extraReadChars);
+#else
+                var extraReadChars = _chars.AsMemory(_charsDataEnd, length: 1);
+                var extraReadCount = await _reader.ReadAsync(extraReadChars, cancellationToken)
+                    .ConfigureAwait(_continueOnCapturedContext);
+#endif
+                if (extraReadCount > 0)
                 {
-                    var readChar = (char)_reader.Read();
-                    //#if SYNC
-                    //                    var readChar = (char)_reader.Read();
-                    //#else
-                    //                    var readChar = (char)await _reader.ReadAsync();
-                    //#endif
-                    A.Assert(extraChar == readChar);
-                    _chars[_charsDataEnd] = readChar;
-                    ++_charsDataEnd;
-                    ++readCount;
+                    A.Assert(extraReadCount == 1);
+#if SYNC
+                    var readChar = extraReadChars[0];
+#else
+                    var readChar = extraReadChars.Span[0];
+#endif
+                    if (readChar != CarriageReturn)
+                    {
+                        ++_charsDataEnd;
+                        ++totalReadCount;
+                    }
+                    else
+                    {
+                        // Reset read char
+                        _chars[_charsDataEnd] = '\0';
+                        // Set aside next carriage return for next read
+                        A.Assert(readChar == CarriageReturn);
+                        _trailingChar = readChar;
+                    }
                 }
             }
-            totalBytesRead += readCount;
         }
         if (paddingLength > 0)
         {
             _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
         }
-        return totalBytesRead == 0;
+        return totalReadCount == 0 && _trailingChar != CarriageReturn;
     }
 }

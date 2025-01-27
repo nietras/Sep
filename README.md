@@ -2188,6 +2188,7 @@ namespace nietras.SeparatedValues
     public readonly struct SepSpec : System.IEquatable<nietras.SeparatedValues.SepSpec>
     {
         public SepSpec() { }
+        public SepSpec(nietras.SeparatedValues.Sep sep, System.Globalization.CultureInfo? cultureInfo) { }
         public SepSpec(nietras.SeparatedValues.Sep sep, System.Globalization.CultureInfo? cultureInfo, bool asyncContinueOnCapturedContext) { }
         public bool AsyncContinueOnCapturedContext { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }

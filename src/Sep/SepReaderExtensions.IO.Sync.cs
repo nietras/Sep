@@ -12,6 +12,24 @@ namespace nietras.SeparatedValues;
 public static partial class SepReaderExtensions
 {
 #if SYNC
+    static readonly FileStreamOptions s_streamReaderOptionsSync = new()
+    {
+        Access = FileAccess.Read,
+        Mode = FileMode.Open,
+        Options = FileOptions.SequentialScan,
+        // Consider whether to define larger BufferSize
+    };
+#else
+    static readonly FileStreamOptions s_streamReaderOptionsAsync = new()
+    {
+        Access = FileAccess.Read,
+        Mode = FileMode.Open,
+        Options = FileOptions.SequentialScan | FileOptions.Asynchronous,
+        // Consider whether to define larger BufferSize
+    };
+#endif
+
+#if SYNC
     public static SepReader FromText(this in SepReaderOptions options, string text)
 #else
     public static async ValueTask<SepReader> FromTextAsync(this SepReaderOptions options, string text, CancellationToken cancellationToken = default)
@@ -33,7 +51,11 @@ public static partial class SepReaderExtensions
     public static async ValueTask<SepReader> FromFileAsync(this SepReaderOptions options, string filePath, CancellationToken cancellationToken = default)
 #endif
     {
-        var reader = new StreamReader(filePath, s_streamReaderOptions);
+#if SYNC
+        var reader = new StreamReader(filePath, s_streamReaderOptionsSync);
+#else
+        var reader = new StreamReader(filePath, s_streamReaderOptionsAsync);
+#endif
         Func<SepReader.Info, string> display = static info => $"File='{info.Source}'";
 #if SYNC
         return FromWithInfo(new(filePath, display), options, reader);

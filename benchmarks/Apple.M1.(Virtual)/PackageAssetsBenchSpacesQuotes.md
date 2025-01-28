@@ -4,9 +4,9 @@ BenchmarkDotNet v0.14.0, macOS Sonoma 14.7.2 (23H311) [Darwin 23.6.0]
 Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
 .NET SDK 9.0.102
   [Host]     : .NET 9.0.1 (9.0.124.61010), Arm64 RyuJIT AdvSIMD
-  Job-ILBOFO : .NET 9.0.1 (9.0.124.61010), Arm64 RyuJIT AdvSIMD
+  Job-KNSVKR : .NET 9.0.1 (9.0.124.61010), Arm64 RyuJIT AdvSIMD
 
-Job=Job-ILBOFO  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-KNSVKR  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
@@ -14,9 +14,9 @@ Quotes=True  Reader=String
 ```
 | Method                     | Scope | Rows  | Mean     | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |---------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 | 12.75 ms |  1.00 | 41 | 3269.7 |  254.9 |   1.09 KB |        1.00 |
-| Sep_Trim                   | Cols  | 50000 | 16.65 ms |  1.31 | 41 | 2502.5 |  333.1 |   1.03 KB |        0.95 |
-| Sep_TrimUnescape           | Cols  | 50000 | 16.27 ms |  1.28 | 41 | 2561.5 |  325.4 |   1.03 KB |        0.95 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 | 20.01 ms |  1.57 | 41 | 2082.3 |  400.3 |   1.37 KB |        1.26 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 88.95 ms |  6.98 | 41 |  468.5 | 1779.1 | 451.61 KB |      415.50 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 87.80 ms |  6.89 | 41 |  474.7 | 1755.9 | 445.86 KB |      410.21 |
+| Sep_                       | Cols  | 50000 | 13.51 ms |  1.00 | 41 | 3085.8 |  270.1 |    1.1 KB |        1.00 |
+| Sep_Trim                   | Cols  | 50000 | 16.78 ms |  1.24 | 41 | 2484.2 |  335.5 |   1.03 KB |        0.94 |
+| Sep_TrimUnescape           | Cols  | 50000 | 17.90 ms |  1.33 | 41 | 2327.7 |  358.1 |   1.37 KB |        1.25 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 | 21.65 ms |  1.60 | 41 | 1924.5 |  433.1 |   1.37 KB |        1.25 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 95.06 ms |  7.04 | 41 |  438.4 | 1901.1 |  451.6 KB |      410.32 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 93.41 ms |  6.92 | 41 |  446.1 | 1868.2 | 445.93 KB |      405.18 |

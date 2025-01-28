@@ -4,9 +4,9 @@ BenchmarkDotNet v0.14.0, Windows 10 (10.0.19044.3086/21H2/November2021Update)
 AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
 .NET SDK 9.0.102
   [Host]     : .NET 9.0.1 (9.0.124.61010), X64 RyuJIT AVX2
-  Job-WRHRFC : .NET 9.0.1 (9.0.124.61010), X64 RyuJIT AVX2
+  Job-RANURT : .NET 9.0.1 (9.0.124.61010), X64 RyuJIT AVX2
 
-Job=Job-WRHRFC  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-RANURT  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=False  Reader=String  
@@ -14,9 +14,9 @@ Quotes=False  Reader=String
 ```
 | Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s    | ns/row | Allocated     | Alloc Ratio |
 |------------- |------ |-------- |-------------:|------:|----:|--------:|-------:|--------------:|------------:|
-| Sep______    | Row   | 50000   |     2.257 ms |  1.00 |  29 | 12929.6 |   45.1 |       1.02 KB |        1.00 |
-| Sep_Async    | Row   | 50000   |     2.727 ms |  1.21 |  29 | 10699.8 |   54.5 |       1.02 KB |        1.00 |
-| Sep_Unescape | Row   | 50000   |     2.391 ms |  1.06 |  29 | 12204.9 |   47.8 |       1.02 KB |        1.00 |
+| Sep______    | Row   | 50000   |     2.230 ms |  1.00 |  29 | 13088.4 |   44.6 |       1.09 KB |        1.00 |
+| Sep_Async    | Row   | 50000   |     2.379 ms |  1.07 |  29 | 12264.0 |   47.6 |       1.02 KB |        0.93 |
+| Sep_Unescape | Row   | 50000   |     2.305 ms |  1.03 |  29 | 12657.6 |   46.1 |       1.02 KB |        0.93 |
 | Sylvan___    | Row   | 50000   |     2.993 ms |  1.33 |  29 |  9750.2 |   59.9 |       7.65 KB |        7.52 |
 | ReadLine_    | Row   | 50000   |    12.106 ms |  5.36 |  29 |  2410.5 |  242.1 |   88608.25 KB |   87,077.59 |
 | CsvHelper    | Row   | 50000   |    43.313 ms | 19.19 |  29 |   673.7 |  866.3 |      20.04 KB |       19.69 |

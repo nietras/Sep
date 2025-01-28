@@ -1,12 +1,12 @@
 ```
 
-BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4602/23H2/2023Update/SunValley3)
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4751/23H2/2023Update/SunValley3)
 AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
 .NET SDK 9.0.101
   [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  Job-VCJIGY : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Job-QAHTUF : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
-Job=Job-VCJIGY  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-QAHTUF  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
@@ -14,9 +14,9 @@ Quotes=True  Reader=String
 ```
 | Method       | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated     | Alloc Ratio |
 |------------- |------ |-------- |------------:|------:|----:|-------:|-------:|--------------:|------------:|
-| Sep______    | Row   | 50000   |    10.60 ms |  1.00 |  33 | 3148.6 |  212.0 |       1.21 KB |        1.00 |
-| Sep_Async    | Row   | 50000   |    10.78 ms |  1.02 |  33 | 3095.6 |  215.6 |       1.21 KB |        1.00 |
-| Sep_Unescape | Row   | 50000   |    10.49 ms |  0.99 |  33 | 3181.3 |  209.8 |       1.21 KB |        1.00 |
+| Sep______    | Row   | 50000   |    10.41 ms |  1.00 |  33 | 3206.3 |  208.2 |       1.21 KB |        1.00 |
+| Sep_Async    | Row   | 50000   |    10.75 ms |  1.03 |  33 | 3105.5 |  215.0 |       1.17 KB |        0.97 |
+| Sep_Unescape | Row   | 50000   |    10.32 ms |  0.99 |  33 | 3233.3 |  206.5 |       1.21 KB |        1.00 |
 | Sylvan___    | Row   | 50000   |    26.60 ms |  2.51 |  33 | 1254.7 |  532.0 |       7.72 KB |        6.39 |
 | ReadLine_    | Row   | 50000   |    24.43 ms |  2.30 |  33 | 1366.2 |  488.6 |  108778.79 KB |   90,048.08 |
 | CsvHelper    | Row   | 50000   |    71.27 ms |  6.72 |  33 |  468.3 | 1425.5 |      23.22 KB |       19.22 |

@@ -4,9 +4,9 @@ BenchmarkDotNet v0.14.0, Ubuntu 24.04.1 LTS (Noble Numbat)
 AMD EPYC 7763, 1 CPU, 4 logical and 2 physical cores
 .NET SDK 9.0.100
   [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
-  Job-OIQWSK : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
+  Job-CZUNEQ : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
 
-Job=Job-OIQWSK  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-CZUNEQ  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Server=True  Toolchain=net90  InvocationCount=Default  
 IterationTime=350ms  MaxIterationCount=15  MinIterationCount=5  
 WarmupCount=6  Quotes=True  Reader=String  
@@ -14,14 +14,14 @@ WarmupCount=6  Quotes=True  Reader=String
 ```
 | Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
 |---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
-| Sep______ | Asset | 50000   |    40.58 ms |  1.00 |  33 |  820.3 |  811.5 |   13.48 MB |        1.00 |
-| Sep_MT___ | Asset | 50000   |    22.12 ms |  0.55 |  33 | 1504.7 |  442.4 |   13.53 MB |        1.00 |
-| Sylvan___ | Asset | 50000   |    65.08 ms |  1.60 |  33 |  511.4 | 1301.7 |   13.63 MB |        1.01 |
-| ReadLine_ | Asset | 50000   |    67.34 ms |  1.66 |  33 |  494.3 | 1346.7 |  119.44 MB |        8.86 |
-| CsvHelper | Asset | 50000   |   118.82 ms |  2.93 |  33 |  280.1 | 2376.4 |   13.64 MB |        1.01 |
+| Sep______ | Asset | 50000   |    39.11 ms |  1.00 |  33 |  851.0 |  782.2 |   13.48 MB |        1.00 |
+| Sep_MT___ | Asset | 50000   |    23.02 ms |  0.59 |  33 | 1445.6 |  460.5 |   13.53 MB |        1.00 |
+| Sylvan___ | Asset | 50000   |    64.15 ms |  1.64 |  33 |  518.8 | 1283.0 |   13.63 MB |        1.01 |
+| ReadLine_ | Asset | 50000   |    69.84 ms |  1.79 |  33 |  476.5 | 1396.8 |  119.44 MB |        8.86 |
+| CsvHelper | Asset | 50000   |   119.33 ms |  3.05 |  33 |  278.9 | 2386.7 |   13.64 MB |        1.01 |
 |           |       |         |             |       |     |        |        |            |             |
-| Sep______ | Asset | 1000000 |   819.13 ms |  1.00 | 665 |  812.8 |  819.1 |  260.41 MB |        1.00 |
-| Sep_MT___ | Asset | 1000000 |   428.63 ms |  0.52 | 665 | 1553.3 |  428.6 |  263.24 MB |        1.01 |
-| Sylvan___ | Asset | 1000000 | 1,324.33 ms |  1.62 | 665 |  502.7 | 1324.3 |  260.57 MB |        1.00 |
-| ReadLine_ | Asset | 1000000 | 1,473.27 ms |  1.80 | 665 |  451.9 | 1473.3 | 2385.08 MB |        9.16 |
-| CsvHelper | Asset | 1000000 | 2,389.26 ms |  2.92 | 665 |  278.7 | 2389.3 |  260.58 MB |        1.00 |
+| Sep______ | Asset | 1000000 |   851.15 ms |  1.00 | 665 |  782.2 |  851.1 |  260.41 MB |        1.00 |
+| Sep_MT___ | Asset | 1000000 |   433.22 ms |  0.51 | 665 | 1536.9 |  433.2 |  262.82 MB |        1.01 |
+| Sylvan___ | Asset | 1000000 | 1,328.75 ms |  1.56 | 665 |  501.1 | 1328.7 |  260.57 MB |        1.00 |
+| ReadLine_ | Asset | 1000000 | 1,477.57 ms |  1.74 | 665 |  450.6 | 1477.6 | 2385.07 MB |        9.16 |
+| CsvHelper | Asset | 1000000 | 2,519.43 ms |  2.96 | 665 |  264.3 | 2519.4 |  260.59 MB |        1.00 |

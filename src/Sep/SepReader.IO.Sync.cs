@@ -100,22 +100,29 @@ public sealed partial class SepReader
 #if SYNC
     public bool MoveNext()
 #else
-    public async ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default)
+    public ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default)
 #endif
     {
+#if SYNC
         do
         {
-            if (MoveNextAlreadyParsed())
-            {
-                return true;
-            }
-#if SYNC
+            if (MoveNextAlreadyParsed()) { return true; }
         } while (ParseNewRows());
-#else
-        } while (await ParseNewRowsAsync(cancellationToken)
-            .ConfigureAwait(_continueOnCapturedContext));
-#endif
         return false;
+#else
+        if (MoveNextAlreadyParsed()) { return ValueTask.FromResult(true); }
+        return Impl(cancellationToken);
+
+        async ValueTask<bool> Impl(CancellationToken cancellationToken)
+        {
+            while (await ParseNewRowsAsync(cancellationToken)
+                .ConfigureAwait(_continueOnCapturedContext))
+            {
+                if (MoveNextAlreadyParsed()) { return true; }
+            }
+            return false;
+        }
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]

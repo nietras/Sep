@@ -5,7 +5,6 @@ namespace nietras.SeparatedValues;
 
 public static partial class SepReaderExtensions
 {
-
     public static SepReaderOptions Reader(this Sep sep) => new(sep);
     public static SepReaderOptions Reader(this Sep? sep) => new(sep);
     public static SepReaderOptions Reader(this SepSpec spec) =>

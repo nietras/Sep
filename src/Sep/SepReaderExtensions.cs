@@ -1,18 +1,10 @@
 ﻿using System;
 using System.Diagnostics.Contracts;
-using System.IO;
 
 namespace nietras.SeparatedValues;
 
 public static partial class SepReaderExtensions
 {
-    static readonly FileStreamOptions s_streamReaderOptions = new()
-    {
-        Access = FileAccess.Read,
-        Mode = FileMode.Open,
-        Options = FileOptions.SequentialScan,
-        // Consider whether to define larger BufferSize
-    };
 
     public static SepReaderOptions Reader(this Sep sep) => new(sep);
     public static SepReaderOptions Reader(this Sep? sep) => new(sep);

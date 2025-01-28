@@ -346,7 +346,9 @@ public sealed partial class SepReader
         {
             _charsDataEnd += readCount;
             totalReadCount += readCount;
-            // Ensure carriage return always followed by line feed
+            // Ensure char after carriage return always available e.g. to ensure
+            // `\r\n` read as one line ending, unless next char is another
+            // carriage return then set it aside as trailing '\r'.
             if (_chars[_charsDataEnd - 1] == CarriageReturn)
             {
                 // Do not use freeChars as this has (length - 1) and here we

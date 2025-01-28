@@ -322,15 +322,15 @@ public sealed partial class SepReader
         var totalReadCount = 0;
         var readCount = 0;
 
-        // If trailing char is '\r' ensire added to buffer
-        if (_trailingChar == CarriageReturn)
+        // If trailing carriage return, add to buffer before read
+        if (_trailingCarriageReturn)
         {
 #if SYNC
             freeChars[0] = CarriageReturn;
 #else
             freeChars.Span[0] = CarriageReturn;
 #endif
-            _trailingChar = '\0';
+            _trailingCarriageReturn = false;
             ++totalReadCount;
             ++_charsDataEnd;
         }
@@ -349,9 +349,9 @@ public sealed partial class SepReader
             // Ensure carriage return always followed by line feed
             if (_chars[_charsDataEnd - 1] == CarriageReturn)
             {
-                // Do not use freeChars as this has length exactly 1 less than
-                // available so we can here read that extra char after a
-                // carriage return.
+                // Do not use freeChars as this has (length - 1) and here we
+                // need to read that extra char after a carriage return, so use
+                // original chars to avoid out-of-bounds exception.
 #if SYNC
                 var extraReadChars = _chars.AsSpan(_charsDataEnd, length: 1);
                 var extraReadCount = _reader.Read(extraReadChars);
@@ -377,9 +377,9 @@ public sealed partial class SepReader
                     {
                         // Reset read char
                         _chars[_charsDataEnd] = '\0';
-                        // Set aside next carriage return for next read
                         A.Assert(readChar == CarriageReturn);
-                        _trailingChar = readChar;
+                        // Set trailing carriage return for next read
+                        _trailingCarriageReturn = true;
                     }
                 }
             }
@@ -388,6 +388,6 @@ public sealed partial class SepReader
         {
             _chars.ClearPaddingAfterData(_charsDataEnd, paddingLength);
         }
-        return totalReadCount == 0 && _trailingChar != CarriageReturn;
+        return totalReadCount == 0 && !_trailingCarriageReturn;
     }
 }

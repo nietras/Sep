@@ -28,9 +28,9 @@ public class SepReaderState : IDisposable
     internal int _charsDataEnd = 0;
     // To handle '\r\n' reader depends on a pattern of always reading one char
     // past any '\r' and then add this char to buffer if NOT another '\r'. If
-    // '\r' is followed by '\r' the carriage return is put aside here as a
-    // trailing char to be added to buffer before next read.
-    internal char _trailingChar = '\0';
+    // '\r' is followed by '\r' this is indicated by the bool here so the
+    // trailing carriage return can be added to buffer before next read.
+    internal bool _trailingCarriageReturn = false;
 
     internal int _charsParseStart = 0;
 

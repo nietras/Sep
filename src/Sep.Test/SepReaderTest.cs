@@ -670,14 +670,19 @@ public partial class SepReaderTest
         if (!even) { sb.Append(' '); };
         sb.Insert(lineEndingStartIndex, lineEnding, lineEndingCount);
         var text = sb.ToString();
-        {
-            using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-            foreach (var row in reader) { }
-        }
-        {
-            using var reader = await Sep.Reader(o => o with { HasHeader = false }).FromTextAsync(text);
-            await foreach (var row in reader) { }
-        }
+        await AssertLineEndings(lineEndingCount, text);
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_CarriageReturn_ToEnsureTrailingCarriageReturnHandled()
+    {
+#if SEPREADERTRACE // Don't run really long with tracing enabled 😅
+        const int lineEndingCount = 167;
+#else
+        const int lineEndingCount = 1267 + 64 * 1024;
+#endif
+        var text = new string('\r', lineEndingCount);
+        await AssertLineEndings(lineEndingCount, text);
     }
 
     [TestMethod]
@@ -1020,5 +1025,33 @@ public partial class SepReaderTest
             using var reader = await fromFuncAsync(options);
             assert(reader);
         }
+    }
+
+    static async Task AssertLineEndings(int lineEndingCount, string text)
+    {
+        await AssertLineEndings(lineEndingCount, () => new StringReader(text));
+        await AssertLineEndings(lineEndingCount, () => new NoPeekStringReader(text));
+    }
+
+    static async Task AssertLineEndings(int lineEndingCount, Func<StringReader> createReader)
+    {
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = false }).From(createReader());
+            var lineCount = 0;
+            foreach (var row in reader) { ++lineCount; }
+            Assert.AreEqual(lineEndingCount, lineCount);
+        }
+        {
+            using var reader = await Sep.Reader(o => o with { HasHeader = false }).FromAsync(createReader());
+            var lineCount = 0;
+            await foreach (var row in reader) { ++lineCount; }
+            Assert.AreEqual(lineEndingCount, lineCount);
+        }
+    }
+    // Sep previously depended on Peek to check if \r followed by \n. This
+    // cannot be used reliably, though, since Peek may return -1.
+    class NoPeekStringReader(string s) : StringReader(s)
+    {
+        public override int Peek() => -1;
     }
 }

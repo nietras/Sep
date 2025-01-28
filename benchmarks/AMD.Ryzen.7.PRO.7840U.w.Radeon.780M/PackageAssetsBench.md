@@ -1,12 +1,12 @@
 ```
 
-BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4602/23H2/2023Update/SunValley3)
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4751/23H2/2023Update/SunValley3)
 AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
 .NET SDK 9.0.101
   [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  Job-VCJIGY : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Job-QAHTUF : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
-Job=Job-VCJIGY  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-QAHTUF  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=False  Reader=String  
@@ -14,9 +14,9 @@ Quotes=False  Reader=String
 ```
 | Method       | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated    | Alloc Ratio |
 |------------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-------------:|------------:|
-| Sep______    | Row   | 50000   |     4.454 ms |  1.00 |  29 | 6552.2 |   89.1 |      1.18 KB |        1.00 |
-| Sep_Async    | Row   | 50000   |     5.242 ms |  1.18 |  29 | 5566.9 |  104.8 |      1.18 KB |        1.00 |
-| Sep_Unescape | Row   | 50000   |     4.335 ms |  0.97 |  29 | 6730.9 |   86.7 |      1.18 KB |        1.00 |
+| Sep______    | Row   | 50000   |     4.250 ms |  1.00 | 29  | 6865.5 |   85.0 |      1.33 KB |        1.00 |
+| Sep_Async    | Row   | 50000   |     4.447 ms |  1.05 | 29  | 6562.5 |   88.9 |      1.32 KB |        0.99 |
+| Sep_Unescape | Row   | 50000   |     4.278 ms |  1.01 | 29  | 6822.0 |   85.6 |      1.18 KB |        0.89 |
 | Sylvan___    | Row   | 50000   |     4.768 ms |  1.07 |  29 | 6119.8 |   95.4 |      7.66 KB |        6.48 |
 | ReadLine_    | Row   | 50000   |    20.959 ms |  4.71 |  29 | 1392.3 |  419.2 |  88608.26 KB |   74,925.56 |
 | CsvHelper    | Row   | 50000   |    65.193 ms | 14.64 |  29 |  447.6 | 1303.9 |      20.2 KB |       17.08 |

@@ -4,6 +4,8 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace nietras.SeparatedValues;
 
@@ -40,15 +42,18 @@ public static partial class SepReaderExtensions
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
-        return Impl(reader, select);
+        return Impl(reader, select, default);
 
-        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowFunc<T> select)
+        // Follow pattern seen in https://github.com/dotnet/runtime/pull/111685/files
+        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowFunc<T> select,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
-            await foreach (var row in reader)
+            await using var enumerator = reader.GetAsyncEnumerator(cancellationToken);
 #pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
+            while (await enumerator.MoveNextAsync().ConfigureAwait(reader._continueOnCapturedContext))
             {
-                yield return select(row);
+                yield return select(enumerator.Current);
             }
         }
     }
@@ -57,15 +62,18 @@ public static partial class SepReaderExtensions
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);
-        return Impl(reader, trySelect);
+        return Impl(reader, trySelect, default);
 
-        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowTryFunc<T> trySelect)
+        // Follow pattern seen in https://github.com/dotnet/runtime/pull/111685/files
+        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowTryFunc<T> trySelect,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
         {
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
-            await foreach (var row in reader)
+            await using var enumerator = reader.GetAsyncEnumerator(cancellationToken);
 #pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
+            while (await enumerator.MoveNextAsync().ConfigureAwait(reader._continueOnCapturedContext))
             {
-                if (trySelect(row, out var value))
+                if (trySelect(enumerator.Current, out var value))
                 {
                     yield return value;
                 }

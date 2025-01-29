@@ -32,7 +32,7 @@ public sealed partial class SepReader : SepReaderState
     readonly Info _info;
     char _separator;
     readonly bool _disableQuotesParsing;
-    readonly bool _continueOnCapturedContext;
+    internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
     ISepParser? _parser;
 

@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -39,6 +40,23 @@ public class SepReaderExtensionsEnumerationTest
     }
 
     [TestMethod]
+    public async ValueTask SepReaderExtensionsEnumerationTest_EnumerateAsync_RowFunc()
+    {
+        using var reader = await CreateReaderAsync();
+        var actual = await ToListAsync(reader.EnumerateAsync(Parse));
+        CollectionAssert.AreEqual(s_expected, actual);
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderExtensionsEnumerationTest_EnumerateAsync_RowTryFunc()
+    {
+        using var reader = await CreateReaderAsync();
+        var actual = await ToListAsync(reader.EnumerateAsync<Seq>(TryParseEven));
+        var expected = s_expected.Where(s => s.Inc % 2 == 0).ToList();
+        CollectionAssert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void SepReaderExtensionsEnumerationTest_ParallelEnumerate_RowFunc()
     {
         using var reader = CreateReader();
@@ -57,6 +75,24 @@ public class SepReaderExtensionsEnumerationTest
 
     static SepReader CreateReader()
     {
+        var csv = CreateCsv();
+        // Force small initial buffer length even for Release, to force reader
+        // state swapping and array swapping with increasing row length for
+        // ParallelEnumerate.
+        return Sep.Reader(o => o with { InitialBufferLength = 128 }).FromText(csv);
+    }
+
+    static ValueTask<SepReader> CreateReaderAsync()
+    {
+        var csv = CreateCsv();
+        // Force small initial buffer length even for Release, to force reader
+        // state swapping and array swapping with increasing row length for
+        // ParallelEnumerate.
+        return Sep.Reader(o => o with { InitialBufferLength = 128 }).FromTextAsync(csv);
+    }
+
+    static string CreateCsv()
+    {
         var sb = new StringBuilder(1024 * 1024);
         using var stringWriter = new StringWriter(sb);
         using (var writer = Sep.Writer().To(stringWriter))
@@ -70,11 +106,7 @@ public class SepReaderExtensionsEnumerationTest
                 row[ColNameDec].Format(dec);
             }
         }
-        var csv = sb.ToString();
-        // Force small initial buffer length even for Release, to force reader
-        // state swapping and array swapping with increasing row length for
-        // ParallelEnumerate.
-        return Sep.Reader(o => o with { InitialBufferLength = 128 }).FromText(csv);
+        return sb.ToString();
     }
 
     static bool TryParseEven(SepReader.Row row, out Seq seq)
@@ -85,4 +117,14 @@ public class SepReaderExtensionsEnumerationTest
 
     static Seq Parse(SepReader.Row row) =>
         new(row[ColNameInc].Parse<int>(), row[ColNameDec].Parse<int>());
+
+    static async ValueTask<List<T>> ToListAsync<T>(IAsyncEnumerable<T> e)
+    {
+        var values = new List<T>();
+        await foreach (var v in e)
+        {
+            values.Add(v);
+        }
+        return values;
+    }
 }

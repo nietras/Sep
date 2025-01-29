@@ -36,6 +36,43 @@ public static partial class SepReaderExtensions
         }
     }
 
+    public static IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, SepReader.RowFunc<T> select)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(select);
+        return Impl(reader, select);
+
+        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowFunc<T> select)
+        {
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+            await foreach (var row in reader)
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
+            {
+                yield return select(row);
+            }
+        }
+    }
+
+    public static IAsyncEnumerable<T> EnumerateAsync<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(trySelect);
+        return Impl(reader, trySelect);
+
+        static async IAsyncEnumerable<T> Impl(SepReader reader, SepReader.RowTryFunc<T> trySelect)
+        {
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+            await foreach (var row in reader)
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
+            {
+                if (trySelect(row, out var value))
+                {
+                    yield return value;
+                }
+            }
+        }
+    }
+
     public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select)
     {
         ArgumentNullException.ThrowIfNull(reader);

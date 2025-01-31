@@ -692,7 +692,6 @@ public class SepReaderState : IDisposable
         GetColRanges(colIndices, colRanges);
         return Join(colRanges, separator);
     }
-
     [SkipLocalsInit]
     internal string JoinToString(ReadOnlySpan<int> colIndices, scoped ReadOnlySpan<char> separator)
     {
@@ -804,6 +803,7 @@ public class SepReaderState : IDisposable
         return span;
     }
 
+    [SkipLocalsInit]
     internal ReadOnlySpan<char> Join(int colStart, int colCount, scoped ReadOnlySpan<char> separator)
     {
         if (colCount == 0) { return []; }
@@ -813,7 +813,7 @@ public class SepReaderState : IDisposable
         GetColRanges(colStart, colRanges);
         return Join(colRanges, separator);
     }
-
+    [SkipLocalsInit]
     internal string JoinToString(int colStart, int colCount, scoped ReadOnlySpan<char> separator)
     {
         if (colCount == 0) { return string.Empty; }
@@ -824,6 +824,16 @@ public class SepReaderState : IDisposable
         return JoinToString(colRanges, separator);
     }
 
+    void GetColRanges(int colStart, Span<SepRange> colRanges)
+    {
+        for (var i = 0; i < colRanges.Length; i++)
+        {
+            colRanges[i] = GetColRange(colStart + i);
+        }
+    }
+    #endregion
+
+    #region Join
     ReadOnlySpan<char> Join(scoped Span<SepRange> colRanges, scoped ReadOnlySpan<char> separator)
     {
         var totalLength = JoinTotalLength(colRanges, separator.Length);
@@ -848,12 +858,12 @@ public class SepReaderState : IDisposable
             Join(_chars.AsSpan(), state.ColRanges, state.Separator, join);
         });
 #else
-        // Before .NET 9 no allows ref struct, so create uninitialized string,
+        // Before .NET 9 no `allows ref struct`, so create uninitialized string,
         // and get mutable span for that and join into that.
         var s = new string('\0', totalLength);
         var join = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference<char>(s), s.Length);
         Join(_chars.AsSpan(), colRanges, separator, join);
-        return join.ToString();
+        return s;
 #endif
     }
 
@@ -886,14 +896,6 @@ public class SepReaderState : IDisposable
         }
         totalLength += separatorLength * (colRanges.Length - 1);
         return totalLength;
-    }
-
-    void GetColRanges(int colStart, Span<SepRange> colRanges)
-    {
-        for (var i = 0; i < colRanges.Length; i++)
-        {
-            colRanges[i] = GetColRange(colStart + i);
-        }
     }
     #endregion
 

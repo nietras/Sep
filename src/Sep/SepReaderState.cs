@@ -2,6 +2,9 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+#if NET9_0_OR_GREATER
+using System.IO;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static nietras.SeparatedValues.SepReader;
@@ -704,6 +707,17 @@ public class SepReaderState : IDisposable
         return JoinToString(colRanges, separator);
     }
 
+#if NET9_0_OR_GREATER
+    [SkipLocalsInit]
+    internal string CombinePathsToString(ReadOnlySpan<int> colIndices)
+    {
+        if (colIndices.Length == 0) { return string.Empty; }
+        if (colIndices.Length == 1) { return ToStringDefault(colIndices[0]); }
+        var paths = ToStrings(colIndices);
+        return Path.Combine(paths);
+    }
+#endif
+
     void GetColRanges(ReadOnlySpan<int> colIndices, Span<SepRange> colRanges)
     {
         A.Assert(colIndices.Length == colRanges.Length);
@@ -823,6 +837,17 @@ public class SepReaderState : IDisposable
         GetColRanges(colStart, colRanges);
         return JoinToString(colRanges, separator);
     }
+
+#if NET9_0_OR_GREATER
+    [SkipLocalsInit]
+    internal string CombinePathsToString(int colStart, int colCount)
+    {
+        if (colCount == 0) { return string.Empty; }
+        if (colCount == 1) { return ToStringDefault(colStart); }
+        var paths = ToStrings(colStart, colCount);
+        return Path.Combine(paths);
+    }
+#endif
 
     void GetColRanges(int colStart, Span<SepRange> colRanges)
     {

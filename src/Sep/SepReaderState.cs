@@ -380,19 +380,9 @@ public class SepReaderState : IDisposable
         }
     }
 
-    //[MethodImpl(MethodImplOptions.NoInlining)]
-    ReadOnlySpan<char> GetColSpanTrimmed(int index)
-    {
-        var (colStart, colLength) = GetColSpanTrimmedRange(index);
-        // Much better code generation given col span always inside buffer
-        scoped ref var colRef = ref Unsafe.Add(
-            ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-        return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
-    }
-
     [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    ReadOnlySpan<char> GetColSpanTrimmedOld(int index)
+    ReadOnlySpan<char> GetColSpanTrimmed(int index)
     {
         if (_colSpanFlags == TrimOuterFlag)
         {
@@ -459,8 +449,18 @@ public class SepReaderState : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    //[MethodImpl(MethodImplOptions.NoInlining)]
     SepRange GetColSpanTrimmedRange(int index)
+    {
+        var colSpan = GetColSpanTrimmed(index);
+        var byteOffset = Unsafe.ByteOffset(ref MemoryMarshal.GetArrayDataReference(_chars),
+                                           ref MemoryMarshal.GetReference(colSpan));
+        var colStart = (int)(byteOffset >> 1);
+        return new(colStart, colSpan.Length);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    SepRange GetColSpanTrimmedRangeCOPY(int index)
     {
         if (_colSpanFlags == TrimOuterFlag)
         {

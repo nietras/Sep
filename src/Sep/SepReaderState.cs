@@ -687,11 +687,22 @@ public class SepReaderState : IDisposable
         var length = colIndices.Length;
         if (length == 0) { return []; }
         if (length == 1) { return GetColSpan(colIndices[0]); }
-
         // Assume col count never so high stackalloc is not possible
         Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
         GetColRanges(colIndices, colRanges);
         return Join(colRanges, separator);
+    }
+
+    [SkipLocalsInit]
+    internal string JoinToString(ReadOnlySpan<int> colIndices, scoped ReadOnlySpan<char> separator)
+    {
+        var length = colIndices.Length;
+        if (length == 0) { return string.Empty; }
+        if (length == 1) { return ToStringDefault(colIndices[0]); }
+        // Assume col count never so high stackalloc is not possible
+        Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
+        GetColRanges(colIndices, colRanges);
+        return JoinToString(colRanges, separator);
     }
 
     void GetColRanges(ReadOnlySpan<int> colIndices, Span<SepRange> colRanges)
@@ -797,39 +808,84 @@ public class SepReaderState : IDisposable
     {
         if (colCount == 0) { return []; }
         if (colCount == 1) { return GetColSpan(colStart); }
-
         // Assume col count never so high stackalloc is not possible
         Span<SepRange> colRanges = stackalloc SepRange[colCount];
         GetColRanges(colStart, colRanges);
         return Join(colRanges, separator);
     }
 
+    internal string JoinToString(int colStart, int colCount, scoped ReadOnlySpan<char> separator)
+    {
+        if (colCount == 0) { return string.Empty; }
+        if (colCount == 1) { return ToStringDefault(colStart); }
+        // Assume col count never so high stackalloc is not possible
+        Span<SepRange> colRanges = stackalloc SepRange[colCount];
+        GetColRanges(colStart, colRanges);
+        return JoinToString(colRanges, separator);
+    }
+
     ReadOnlySpan<char> Join(scoped Span<SepRange> colRanges, scoped ReadOnlySpan<char> separator)
+    {
+        var totalLength = JoinTotalLength(colRanges, separator.Length);
+        var join = _arrayPool.RentUniqueArrayAsSpan<char>(totalLength);
+        Join(_chars.AsSpan(), colRanges, separator, join);
+        return join;
+    }
+
+    readonly ref struct JoinToStringState(ReadOnlySpan<SepRange> colRanges, ReadOnlySpan<char> separator)
+    {
+        public ReadOnlySpan<SepRange> ColRanges { get; } = colRanges;
+        public ReadOnlySpan<char> Separator { get; } = separator;
+    }
+
+    string JoinToString(scoped ReadOnlySpan<SepRange> colRanges, scoped ReadOnlySpan<char> separator)
+    {
+        var totalLength = JoinTotalLength(colRanges, separator.Length);
+#if NET9_0_OR_GREATER
+        var state = new JoinToStringState(colRanges, separator);
+        return string.Create(totalLength, state, (join, state) =>
+        {
+            Join(_chars.AsSpan(), state.ColRanges, state.Separator, join);
+        });
+#else
+        // Before .NET 9 no allows ref struct, so create uninitialized string,
+        // and get mutable span for that and join into that.
+        var s = new string('\0', totalLength);
+        var join = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference<char>(s), s.Length);
+        Join(_chars.AsSpan(), colRanges, separator, join);
+        return join.ToString();
+#endif
+    }
+
+    static void Join(ReadOnlySpan<char> chars,
+        ReadOnlySpan<SepRange> colRanges, ReadOnlySpan<char> separator,
+        Span<char> join)
+    {
+        var separatorLength = separator.Length;
+        var spanIndex = 0;
+        for (var i = 0; i < colRanges.Length; i++)
+        {
+            var colRange = colRanges[i];
+            var colSpan = chars.Slice(colRange.Start, colRange.Length);
+            colSpan.CopyTo(join.Slice(spanIndex));
+            spanIndex += colSpan.Length;
+            if (i < colRanges.Length - 1)
+            {
+                separator.CopyTo(join.Slice(spanIndex));
+                spanIndex += separatorLength;
+            }
+        }
+    }
+
+    static int JoinTotalLength(ReadOnlySpan<SepRange> colRanges, int separatorLength)
     {
         var totalLength = 0;
         for (var i = 0; i < colRanges.Length; i++)
         {
             totalLength += colRanges[i].Length;
         }
-        var separatorLength = separator.Length;
-        totalLength += separator.Length * (colRanges.Length - 1);
-        var span = _arrayPool.RentUniqueArrayAsSpan<char>(totalLength);
-        var spanIndex = 0;
-        var charsSpan = _chars.AsSpan();
-        for (var i = 0; i < colRanges.Length; i++)
-        {
-            var colRange = colRanges[i];
-            var colSpan = charsSpan.Slice(colRange.Start, colRange.Length);
-            colSpan.CopyTo(span.Slice(spanIndex));
-            spanIndex += colSpan.Length;
-            if (i < colRanges.Length - 1)
-            {
-                separator.CopyTo(span.Slice(spanIndex));
-                spanIndex += separatorLength;
-            }
-        }
-        A.Assert(spanIndex == totalLength);
-        return span;
+        totalLength += separatorLength * (colRanges.Length - 1);
+        return totalLength;
     }
 
     void GetColRanges(int colStart, Span<SepRange> colRanges)

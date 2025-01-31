@@ -27,7 +27,8 @@ public class SepReaderColsTest
     [TestMethod]
     public void SepReaderColsTest_Length()
     {
-        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(_colsCount).Length, cols.Count));
+        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(_colsCount).Length, cols.Count),
+            checkIndexOutOfRange: false);
     }
 
     [TestMethod]
@@ -57,7 +58,7 @@ public class SepReaderColsTest
             {
                 Assert.IsNotNull(e);
             }
-        });
+        }, checkIndexOutOfRange: false);
     }
 
     [TestMethod]
@@ -120,7 +121,7 @@ public class SepReaderColsTest
             {
                 Assert.AreEqual($"'span':{colValues.Length} must have length/count {cols.Count} matching columns selected", e.Message);
             }
-        });
+        }, checkIndexOutOfRange: false);
     }
 
     [TestMethod]
@@ -156,7 +157,7 @@ public class SepReaderColsTest
             {
                 Assert.AreEqual($"'span':{colValues.Length} must have length/count {cols.Count} matching columns selected", e.Message);
             }
-        });
+        }, checkIndexOutOfRange: false);
     }
 
     [TestMethod]
@@ -177,9 +178,21 @@ public class SepReaderColsTest
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringDirect()).ToArray()));
     }
 
+    [DataTestMethod]
+    [DataRow("")]
+    [DataRow("/")]
+    [DataRow("<SEP>")]
+    public void SepReaderColsTest_Join(string separator)
+    {
+        // Join
+        Run((cols, range) => Assert.AreEqual(string.Join(separator, _colTexts[range]), cols.Join(separator).ToString()));
+        // JoinToString
+        Run((cols, range) => Assert.AreEqual(string.Join(separator, _colTexts[range]), cols.JoinToString(separator)));
+    }
+
     static string ToString(SepReader.Col col) => col.ToString();
 
-    static void Run(ColsTestAction action, string text = Text)
+    static void Run(ColsTestAction action, string text = Text, bool checkIndexOutOfRange = true)
     {
         var ranges = new Range[]
         {
@@ -194,7 +207,26 @@ public class SepReaderColsTest
             2..2,
             2.._colsCount,
         };
-        using var reader = Sep.Reader().FromText(text);
+        {
+            using var reader = Sep.Reader().FromText(text);
+            Run(reader, ranges, action, checkIndexOutOfRange);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Unescape = true }).FromText(text);
+            Run(reader, ranges, action, checkIndexOutOfRange);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Trim = SepTrim.All }).FromText(text);
+            Run(reader, ranges, action, checkIndexOutOfRange);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Unescape = true, Trim = SepTrim.All }).FromText(text);
+            Run(reader, ranges, action, checkIndexOutOfRange);
+        }
+    }
+
+    static void Run(SepReader reader, Range[] ranges, ColsTestAction action, bool checkIndexOutOfRange)
+    {
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         action(row[_colNames], ..);
@@ -209,6 +241,11 @@ public class SepReaderColsTest
             action(row[_colIndices[range].AsSpan()], range);
 
             action(row[range], range);
+        }
+        if (checkIndexOutOfRange)
+        {
+            // Ensure index out of range causes exception (note range is not same)
+            Assert.ThrowsException<IndexOutOfRangeException>(() => action(reader.Current[[-1]], 0..1));
         }
     }
 

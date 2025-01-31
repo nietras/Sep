@@ -11,20 +11,20 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepReaderColsTest
 {
-    const int _colsCount = 3;
-    static readonly string[] _colNames = ["A", "B", "C"];
+    const int _colsCount = 5;
+    static readonly string[] _colNames = ["A", "B", "C", "D", "E"];
     static readonly int[] _colIndices = Enumerable.Range(0, _colsCount).ToArray();
-    static readonly int[] _colValues = [10, 11, 12];
+    static readonly int[] _colValues = [10, 11, 12, 13, 14];
     static readonly float[] _colValuesFloat = _colValues.Select(i => (float)i).ToArray();
     static readonly string[] _colTexts = _colValues.Select(i => i.ToString()).ToArray();
     const string Text = """
-                         A;B;C
-                         10;11;12
+                         A;B;C;D;E
+                         10;11;12;13;14
                          """;
-    static readonly int?[] _colValuesUnparseable = [null, null, 12];
+    static readonly int?[] _colValuesUnparseable = [null, null, 12, null, 14];
     const string TextUnparseable = """
-                                   A;B;C
-                                   1a;;12
+                                   A;B;C;D;E
+                                   1a;;12;;14
                                    """;
 
     [TestMethod]
@@ -195,6 +195,12 @@ public class SepReaderColsTest
 
 #if NET9_0_OR_GREATER
     [TestMethod]
+    public void SepReaderColsTest_JoinPathsToString()
+    {
+        Run((cols, range) => Assert.AreEqual(Path.Join(_colTexts[range]), cols.JoinPathsToString()));
+    }
+
+    [TestMethod]
     public void SepReaderColsTest_CombinePathsToString()
     {
         Run((cols, range) => Assert.AreEqual(Path.Combine(_colTexts[range]), cols.CombinePathsToString()));
@@ -211,9 +217,12 @@ public class SepReaderColsTest
             0..0,
             0..1,
             0..2,
+            0..3,
+            0..4,
             0.._colsCount,
             1..1,
             1..2,
+            1..3,
             1.._colsCount,
             2..2,
             2.._colsCount,

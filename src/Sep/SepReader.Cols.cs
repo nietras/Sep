@@ -112,6 +112,10 @@ public partial class SepReader
             : _state.JoinToString(_colStartIfRange, _colIndices.Length, separator);
 
 #if NET9_0_OR_GREATER
+        public string JoinPathsToString() => IsIndices()
+            ? _state.JoinPathsToString(_colIndices)
+            : _state.JoinPathsToString(_colStartIfRange, _colIndices.Length);
+
         public string CombinePathsToString() => IsIndices()
             ? _state.CombinePathsToString(_colIndices)
             : _state.CombinePathsToString(_colStartIfRange, _colIndices.Length);

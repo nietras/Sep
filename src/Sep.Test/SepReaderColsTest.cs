@@ -177,6 +177,15 @@ public class SepReaderColsTest
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringDirect()).ToArray()));
     }
 
+    [DataTestMethod]
+    [DataRow("")]
+    [DataRow("/")]
+    [DataRow("<SEP>")]
+    public void SepReaderColsTest_Join_SeparatorGreaterThanOne(string separator)
+    {
+        Run((cols, range) => Assert.AreEqual(string.Join(separator, _colTexts[range]), cols.Join(separator).ToString()));
+    }
+
     static string ToString(SepReader.Col col) => col.ToString();
 
     static void Run(ColsTestAction action, string text = Text)
@@ -194,21 +203,40 @@ public class SepReaderColsTest
             2..2,
             2.._colsCount,
         };
-        using var reader = Sep.Reader().FromText(text);
-        Assert.IsTrue(reader.MoveNext());
-        var row = reader.Current;
-        action(row[_colNames], ..);
-        foreach (var range in ranges)
         {
-            action(row[_colNames[range]], range);
-            action(row[(IReadOnlyList<string>)_colNames[range]], range);
-            action(row[_colNames[range].AsSpan()], range);
+            using var reader = Sep.Reader().FromText(text);
+            AssertCols(reader, ranges, action);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Unescape = true }).FromText(text);
+            AssertCols(reader, ranges, action);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Trim = SepTrim.All }).FromText(text);
+            AssertCols(reader, ranges, action);
+        }
+        {
+            using var reader = Sep.Reader(o => o with { Unescape = true, Trim = SepTrim.All }).FromText(text);
+            AssertCols(reader, ranges, action);
+        }
 
-            action(row[_colIndices[range]], range);
-            action(row[(IReadOnlyList<int>)_colIndices[range]], range);
-            action(row[_colIndices[range].AsSpan()], range);
+        static void AssertCols(SepReader reader, Range[] ranges, ColsTestAction action)
+        {
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            action(row[_colNames], ..);
+            foreach (var range in ranges)
+            {
+                action(row[_colNames[range]], range);
+                action(row[(IReadOnlyList<string>)_colNames[range]], range);
+                action(row[_colNames[range].AsSpan()], range);
 
-            action(row[range], range);
+                action(row[_colIndices[range]], range);
+                action(row[(IReadOnlyList<int>)_colIndices[range]], range);
+                action(row[_colIndices[range].AsSpan()], range);
+
+                action(row[range], range);
+            }
         }
     }
 

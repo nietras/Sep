@@ -103,6 +103,10 @@ public partial class SepReader
             ? _state.ColsSelect<T>(_colIndices, selector)
             : _state.ColsSelect<T>(_colStartIfRange, _colIndices.Length, selector);
 
+        public ReadOnlySpan<char> Join(params ReadOnlySpan<char> separator) => IsIndices()
+            ? _state.Join(_colIndices, separator)
+            : _state.Join(_colStartIfRange, _colIndices.Length, separator);
+
         bool IsIndices() => _colStartIfRange < 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

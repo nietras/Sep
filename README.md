@@ -2068,6 +2068,7 @@ namespace nietras.SeparatedValues
         {
             public int Count { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
+            public System.ReadOnlySpan<char> Join([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<char> separator) { }
             public System.Span<T> Parse<T>()
                 where T : System.ISpanParsable<T> { }
             public void Parse<T>(System.Span<T> span)

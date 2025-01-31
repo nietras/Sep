@@ -275,6 +275,39 @@ public class SepReaderState : IDisposable
 
     #region Col
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal SepRange GetColRange(int index)
+    {
+        if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
+        A.Assert(_currentRowColEndsOrInfosOffset >= 0);
+        index += _currentRowColEndsOrInfosOffset;
+        if (_colSpanFlags == 0)
+        {
+            var colEnds = _colEndsOrColInfos;
+            var colStart = colEnds[index] + 1; // +1 since previous end
+            var colEnd = colEnds[index + 1];
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+            return new(colStart, colEnd - colStart);
+        }
+        else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
+        {
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+            return new(colStart, colEnd - colStart);
+        }
+        else
+        {
+            return GetColSpanTrimmedRange(index);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ReadOnlySpan<char> GetColSpan(int index)
     {
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
@@ -347,8 +380,19 @@ public class SepReaderState : IDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    //[MethodImpl(MethodImplOptions.NoInlining)]
     ReadOnlySpan<char> GetColSpanTrimmed(int index)
+    {
+        var (colStart, colLength) = GetColSpanTrimmedRange(index);
+        // Much better code generation given col span always inside buffer
+        scoped ref var colRef = ref Unsafe.Add(
+            ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+        return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
+    }
+
+    [ExcludeFromCodeCoverage]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    ReadOnlySpan<char> GetColSpanTrimmedOld(int index)
     {
         if (_colSpanFlags == TrimOuterFlag)
         {
@@ -415,9 +459,87 @@ public class SepReaderState : IDisposable
         }
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    SepRange GetColSpanTrimmedRange(int index)
+    {
+        if (_colSpanFlags == TrimOuterFlag)
+        {
+            // Using array indexing is slightly faster despite more code 🤔
+            var colEnds = _colEndsOrColInfos;
+            var colStart = colEnds[index] + 1; // +1 since previous end
+            var colEnd = colEnds[index + 1];
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+
+            var colLength = colEnd - colStart;
+            // Much better code generation given col span always inside buffer
+            scoped ref var colRef = ref Unsafe.Add(
+                ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            colStart += TrimSpaceRange(ref colRef, ref colLength);
+            return new(colStart, colLength);
+        }
+        else
+        {
+            // Always certain unescaping here
+            A.Assert((_colSpanFlags & UnescapeFlag) != 0);
+
+            ref var colInfos = ref Unsafe.As<int, SepColInfo>(
+                ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
+            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
+
+            A.Assert(colStart >= 0);
+            A.Assert(colEnd < _chars.Length);
+            A.Assert(colEnd >= colStart);
+
+            var colLength = colEnd - colStart;
+            scoped ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
+            if (quoteCountOrNegativeUnescapedLength < 0)
+            {
+                var unescapedLength = -quoteCountOrNegativeUnescapedLength;
+                return new(colStart, unescapedLength);
+            }
+            if ((_colSpanFlags & TrimOuterFlag) != 0)
+            {
+                var offset = TrimSpaceRange(ref colRef, ref colLength);
+                colStart += offset;
+                colRef = ref Unsafe.Add(ref colRef, offset);
+            }
+            if (quoteCountOrNegativeUnescapedLength == 2 &&
+                colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
+            {
+                colRef = ref Unsafe.Add(ref colRef, 1);
+                ++colStart;
+                colLength -= 2;
+            }
+            else if (colLength > 0 && colRef == SepDefaults.Quote)
+            {
+                colLength = SepUnescape.TrimUnescapeInPlace(ref colRef, colLength);
+                // Skip trim/unescape next time if called multiple times
+                colInfo.QuoteCount = -colLength;
+                return new(colStart, colLength);
+            }
+            if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
+            {
+                colStart += TrimSpaceRange(ref colRef, ref colLength);
+            }
+            return new(colStart, colLength);
+        }
+    }
+
     // Only trim the default space character no other whitespace characters
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ref char TrimSpace(ref char col, ref int length)
+    {
+        var start = TrimSpaceRange(ref col, ref length);
+        return ref Unsafe.Add(ref col, start);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static int TrimSpaceRange(ref char col, ref int length)
     {
         var start = 0;
         while (start < length && Unsafe.Add(ref col, start) == SepDefaults.Space)
@@ -428,7 +550,7 @@ public class SepReaderState : IDisposable
         { end--; }
 
         length = end - start + 1;
-        return ref Unsafe.Add(ref col, start);
+        return start;
     }
 
     internal string ToStringDefault(int index)
@@ -637,6 +759,28 @@ public class SepReaderState : IDisposable
         }
         return span;
     }
+
+    [SkipLocalsInit]
+    internal ReadOnlySpan<char> Join(ReadOnlySpan<int> colIndices, scoped ReadOnlySpan<char> separator)
+    {
+        var length = colIndices.Length;
+        if (length == 0) { return []; }
+        if (length == 1) { return GetColSpan(colIndices[0]); }
+
+        // Assume col count never so high stackalloc is not possible
+        Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
+        GetColRanges(colIndices, colRanges);
+        return Join(colRanges, separator);
+    }
+
+    void GetColRanges(ReadOnlySpan<int> colIndices, Span<SepRange> colRanges)
+    {
+        A.Assert(colIndices.Length == colRanges.Length);
+        for (var i = 0; i < colIndices.Length; i++)
+        {
+            colRanges[i] = GetColRange(colIndices[i]);
+        }
+    }
     #endregion
 
     #region Cols Range
@@ -726,6 +870,53 @@ public class SepReaderState : IDisposable
             span[i] = selector(new(this, i + colStart));
         }
         return span;
+    }
+
+    internal ReadOnlySpan<char> Join(int colStart, int colCount, scoped ReadOnlySpan<char> separator)
+    {
+        if (colCount == 0) { return []; }
+        if (colCount == 1) { return GetColSpan(colStart); }
+
+        // Assume col count never so high stackalloc is not possible
+        Span<SepRange> colRanges = stackalloc SepRange[colCount];
+        GetColRanges(colStart, colRanges);
+        return Join(colRanges, separator);
+    }
+
+    ReadOnlySpan<char> Join(scoped Span<SepRange> colRanges, scoped ReadOnlySpan<char> separator)
+    {
+        var totalLength = 0;
+        for (var i = 0; i < colRanges.Length; i++)
+        {
+            totalLength += colRanges[i].Length;
+        }
+        var separatorLength = separator.Length;
+        totalLength += separator.Length * (colRanges.Length - 1);
+        var span = _arrayPool.RentUniqueArrayAsSpan<char>(totalLength);
+        var spanIndex = 0;
+        var charsSpan = _chars.AsSpan();
+        for (var i = 0; i < colRanges.Length; i++)
+        {
+            var colRange = colRanges[i];
+            var colSpan = charsSpan.Slice(colRange.Start, colRange.Length);
+            colSpan.CopyTo(span.Slice(spanIndex));
+            spanIndex += colSpan.Length;
+            if (i < colRanges.Length - 1)
+            {
+                separator.CopyTo(span.Slice(spanIndex));
+                spanIndex += separatorLength;
+            }
+        }
+        A.Assert(spanIndex == totalLength);
+        return span;
+    }
+
+    void GetColRanges(int colStart, Span<SepRange> colRanges)
+    {
+        for (var i = 0; i < colRanges.Length; i++)
+        {
+            colRanges[i] = GetColRange(colStart + i);
+        }
     }
     #endregion
 

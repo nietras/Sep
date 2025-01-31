@@ -111,6 +111,12 @@ public partial class SepReader
             ? _state.JoinToString(_colIndices, separator)
             : _state.JoinToString(_colStartIfRange, _colIndices.Length, separator);
 
+#if NET9_0_OR_GREATER
+        public string CombinePathsToString() => IsIndices()
+            ? _state.CombinePathsToString(_colIndices)
+            : _state.CombinePathsToString(_colStartIfRange, _colIndices.Length);
+#endif
+
         bool IsIndices() => _colStartIfRange < 0;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

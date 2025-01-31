@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NET9_0_OR_GREATER
+using System.IO;
+#endif
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -189,6 +192,14 @@ public class SepReaderColsTest
         // JoinToString
         Run((cols, range) => Assert.AreEqual(string.Join(separator, _colTexts[range]), cols.JoinToString(separator)));
     }
+
+#if NET9_0_OR_GREATER
+    [TestMethod]
+    public void SepReaderColsTest_CombinePathsToString()
+    {
+        Run((cols, range) => Assert.AreEqual(Path.Combine(_colTexts[range]), cols.CombinePathsToString()));
+    }
+#endif
 
     static string ToString(SepReader.Col col) => col.ToString();
 

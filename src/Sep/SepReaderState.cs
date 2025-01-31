@@ -885,6 +885,7 @@ public class SepReaderState : IDisposable
                 spanIndex += separatorLength;
             }
         }
+        A.Assert(spanIndex == join.Length);
     }
 
     static int JoinTotalLength(ReadOnlySpan<SepRange> colRanges, int separatorLength)

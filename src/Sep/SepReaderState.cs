@@ -716,7 +716,6 @@ public class SepReaderState : IDisposable
         if (length == 1) { return ToStringDefault(colIndices[0]); }
         if (length <= 4)
         {
-            // Assume col count never so high stackalloc is not possible
             Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
             GetColRanges(colIndices, colRanges);
             return JoinPathsToString(colRanges);
@@ -869,7 +868,6 @@ public class SepReaderState : IDisposable
         if (colCount == 1) { return ToStringDefault(colStart); }
         if (colCount <= 4)
         {
-            // Assume col count never so high stackalloc is not possible
             Span<SepRange> colRanges = stackalloc SepRange[colCount];
             GetColRanges(colStart, colRanges);
             return JoinPathsToString(colRanges);

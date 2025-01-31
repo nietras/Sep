@@ -709,10 +709,31 @@ public class SepReaderState : IDisposable
 
 #if NET9_0_OR_GREATER
     [SkipLocalsInit]
+    internal string JoinPathsToString(ReadOnlySpan<int> colIndices)
+    {
+        var length = colIndices.Length;
+        if (length == 0) { return string.Empty; }
+        if (length == 1) { return ToStringDefault(colIndices[0]); }
+        if (length <= 4)
+        {
+            Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
+            GetColRanges(colIndices, colRanges);
+            return JoinPathsToString(colRanges);
+        }
+        else
+        {
+            var paths = ToStrings(colIndices);
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+            return Path.Join(paths);
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        }
+    }
+
     internal string CombinePathsToString(ReadOnlySpan<int> colIndices)
     {
-        if (colIndices.Length == 0) { return string.Empty; }
-        if (colIndices.Length == 1) { return ToStringDefault(colIndices[0]); }
+        var length = colIndices.Length;
+        if (length == 0) { return string.Empty; }
+        if (length == 1) { return ToStringDefault(colIndices[0]); }
         var paths = ToStrings(colIndices);
         return Path.Combine(paths);
     }
@@ -838,8 +859,27 @@ public class SepReaderState : IDisposable
         return JoinToString(colRanges, separator);
     }
 
+
 #if NET9_0_OR_GREATER
     [SkipLocalsInit]
+    internal string JoinPathsToString(int colStart, int colCount)
+    {
+        if (colCount == 0) { return string.Empty; }
+        if (colCount == 1) { return ToStringDefault(colStart); }
+        if (colCount <= 4)
+        {
+            Span<SepRange> colRanges = stackalloc SepRange[colCount];
+            GetColRanges(colStart, colRanges);
+            return JoinPathsToString(colRanges);
+        }
+        else
+        {
+            var paths = ToStrings(colStart, colCount);
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+            return Path.Join(paths);
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+        }
+    }
     internal string CombinePathsToString(int colStart, int colCount)
     {
         if (colCount == 0) { return string.Empty; }
@@ -891,6 +931,26 @@ public class SepReaderState : IDisposable
         return s;
 #endif
     }
+
+#if NET9_0_OR_GREATER
+    string JoinPathsToString(scoped ReadOnlySpan<SepRange> colRanges)
+    {
+        var length = colRanges.Length;
+        A.Assert(1 < length && length <= 4);
+
+        var chars = _chars.AsSpan();
+        var colSpan0 = GetSpan(chars, colRanges[0]);
+        var colSpan1 = GetSpan(chars, colRanges[1]);
+        if (length == 2) { return Path.Join(colSpan0, colSpan1); }
+        var colSpan2 = GetSpan(chars, colRanges[2]);
+        if (length == 3) { return Path.Join(colSpan0, colSpan1, colSpan2); }
+        var colSpan3 = GetSpan(chars, colRanges[3]);
+        return Path.Join(colSpan0, colSpan1, colSpan2, colSpan3);
+
+        static ReadOnlySpan<char> GetSpan(ReadOnlySpan<char> chars, SepRange range) =>
+            chars.Slice(range.Start, range.Length);
+    }
+#endif
 
     static void Join(ReadOnlySpan<char> chars,
         ReadOnlySpan<SepRange> colRanges, ReadOnlySpan<char> separator,

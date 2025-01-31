@@ -947,8 +947,7 @@ public class SepReaderState : IDisposable
         var colSpan2 = GetSpan(chars, colRanges[2]);
         if (length == 3) { return Path.Join(colSpan0, colSpan1, colSpan2); }
         var colSpan3 = GetSpan(chars, colRanges[3]);
-        if (length == 4) { return Path.Join(colSpan0, colSpan1, colSpan2, colSpan3); }
-        return null!;
+        return Path.Join(colSpan0, colSpan1, colSpan2, colSpan3);
 
         static ReadOnlySpan<char> GetSpan(ReadOnlySpan<char> chars, SepRange range) =>
             chars.Slice(range.Start, range.Length);

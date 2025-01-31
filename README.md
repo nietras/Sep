@@ -2070,6 +2070,7 @@ namespace nietras.SeparatedValues
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
             public string CombinePathsToString() { }
             public System.ReadOnlySpan<char> Join(System.ReadOnlySpan<char> separator) { }
+            public string JoinPathsToString() { }
             public string JoinToString(System.ReadOnlySpan<char> separator) { }
             public System.Span<T> Parse<T>()
                 where T : System.ISpanParsable<T> { }

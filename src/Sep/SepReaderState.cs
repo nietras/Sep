@@ -380,7 +380,6 @@ public class SepReaderState : IDisposable
         }
     }
 
-    [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.NoInlining)]
     ReadOnlySpan<char> GetColSpanTrimmed(int index)
     {
@@ -459,87 +458,9 @@ public class SepReaderState : IDisposable
         return new(colStart, colSpan.Length);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    SepRange GetColSpanTrimmedRangeCOPY(int index)
-    {
-        if (_colSpanFlags == TrimOuterFlag)
-        {
-            // Using array indexing is slightly faster despite more code 🤔
-            var colEnds = _colEndsOrColInfos;
-            var colStart = colEnds[index] + 1; // +1 since previous end
-            var colEnd = colEnds[index + 1];
-
-            A.Assert(colStart >= 0);
-            A.Assert(colEnd < _chars.Length);
-            A.Assert(colEnd >= colStart);
-
-            var colLength = colEnd - colStart;
-            // Much better code generation given col span always inside buffer
-            scoped ref var colRef = ref Unsafe.Add(
-                ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            colStart += TrimSpaceRange(ref colRef, ref colLength);
-            return new(colStart, colLength);
-        }
-        else
-        {
-            // Always certain unescaping here
-            A.Assert((_colSpanFlags & UnescapeFlag) != 0);
-
-            ref var colInfos = ref Unsafe.As<int, SepColInfo>(
-                ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
-            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
-            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
-            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
-
-            A.Assert(colStart >= 0);
-            A.Assert(colEnd < _chars.Length);
-            A.Assert(colEnd >= colStart);
-
-            var colLength = colEnd - colStart;
-            scoped ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            if (quoteCountOrNegativeUnescapedLength < 0)
-            {
-                var unescapedLength = -quoteCountOrNegativeUnescapedLength;
-                return new(colStart, unescapedLength);
-            }
-            if ((_colSpanFlags & TrimOuterFlag) != 0)
-            {
-                var offset = TrimSpaceRange(ref colRef, ref colLength);
-                colStart += offset;
-                colRef = ref Unsafe.Add(ref colRef, offset);
-            }
-            if (quoteCountOrNegativeUnescapedLength == 2 &&
-                colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
-            {
-                colRef = ref Unsafe.Add(ref colRef, 1);
-                ++colStart;
-                colLength -= 2;
-            }
-            else if (colLength > 0 && colRef == SepDefaults.Quote)
-            {
-                colLength = SepUnescape.TrimUnescapeInPlace(ref colRef, colLength);
-                // Skip trim/unescape next time if called multiple times
-                colInfo.QuoteCount = -colLength;
-                return new(colStart, colLength);
-            }
-            if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
-            {
-                colStart += TrimSpaceRange(ref colRef, ref colLength);
-            }
-            return new(colStart, colLength);
-        }
-    }
-
     // Only trim the default space character no other whitespace characters
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ref char TrimSpace(ref char col, ref int length)
-    {
-        var start = TrimSpaceRange(ref col, ref length);
-        return ref Unsafe.Add(ref col, start);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static int TrimSpaceRange(ref char col, ref int length)
     {
         var start = 0;
         while (start < length && Unsafe.Add(ref col, start) == SepDefaults.Space)
@@ -550,7 +471,7 @@ public class SepReaderState : IDisposable
         { end--; }
 
         length = end - start + 1;
-        return start;
+        return ref Unsafe.Add(ref col, start);
     }
 
     internal string ToStringDefault(int index)

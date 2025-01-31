@@ -2,7 +2,9 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+#if NET9_0_OR_GREATER
 using System.IO;
+#endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static nietras.SeparatedValues.SepReader;

@@ -58,7 +58,6 @@ public static partial class SepWriterExtensions
     public static SepWriter To(this in SepWriterOptions options, string name, Func<string, Stream> nameToStream, bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(nameToStream);
-        // delegate not static to preserve name in debugger display (alloc acceptable)
         DebuggerDisplayFunc display = static (info, writer) =>
         {
             var stream = ((StreamWriter)writer).BaseStream;
@@ -84,7 +83,6 @@ public static partial class SepWriterExtensions
     public static SepWriter To(this in SepWriterOptions options, string name, Func<string, TextWriter> nameToWriter, bool leaveOpen = false)
     {
         ArgumentNullException.ThrowIfNull(nameToWriter);
-        // delegate not static to preserve name in debugger display (alloc acceptable)
         DebuggerDisplayFunc display = static (info, writer) => $"{nameof(TextWriter)}='{writer.GetType()}' Name='{info.Source}'";
         var writer = nameToWriter(name);
         return ToWithInfo(new(name, display), options, writer, leaveOpen: false);

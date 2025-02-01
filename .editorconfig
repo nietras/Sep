@@ -22,6 +22,13 @@ indent_size = 4
 insert_final_newline = true
 charset = utf-8-bom
 
+# yaml files (for prettier)
+[*.{yml,yaml}]
+charset = utf-8
+insert_final_newline = true
+indent_size = 2
+end_of_line = auto
+
 #sort System.* using directives alphabetically, and place them before other usings
 dotnet_sort_system_directives_first = true
 

@@ -21,7 +21,7 @@ env:
   NuGetDirectory: ${{ github.workspace }}/nuget
 
 jobs:
-  build:
+  build-and-test:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]

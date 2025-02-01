@@ -4,3 +4,7 @@ coverage:
     project: true
     patch: false
     changes: false
+  notify:
+    after_n_builds: 6
+  comment:
+    after_n_builds: 6

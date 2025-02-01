@@ -21,7 +21,7 @@ env:
   NuGetDirectory: ${{ github.workspace }}/nuget
 
 jobs:
-  build:
+  build-and-test:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -161,7 +161,7 @@ jobs:
           path: ${{ env.NuGetDirectory }}/*nupkg
 
   create-release-push:
-    needs: [build, pack]
+    needs: [build-and-test, pack]
     runs-on: windows-latest
     permissions:
       contents: write

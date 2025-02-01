@@ -36,8 +36,11 @@ jobs:
       - name: Super-linter
         uses: super-linter/super-linter@85f7611e0f7b53c8573cca84aa0ed4344f6f6a4d # v7.2.1
         env:
-          # dotnet format not working, checked during build instead
+          # format not working, checked during build instead
           VALIDATE_CSHARP: false
+          VALIDATE_DOTNET_SLN_FORMAT_ANALYZERS: false
+          VALIDATE_DOTNET_SLN_FORMAT_STYLE: false
+          VALIDATE_DOTNET_SLN_FORMAT_WHITESPACE: false
           # prettier defaults are very different than current markdown
           VALIDATE_MARKDOWN_PRETTIER: false
           VALIDATE_GIT_COMMITLINT: false

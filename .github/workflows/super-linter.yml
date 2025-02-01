@@ -33,6 +33,11 @@ jobs:
           # list of files that changed across commits
           fetch-depth: 0
 
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
+        with:
+          global-json-file: global.json
+
       - name: Super-linter
         uses: super-linter/super-linter@85f7611e0f7b53c8573cca84aa0ed4344f6f6a4d # v7.2.1
         env:

@@ -32,18 +32,17 @@ and similar from [.NET 7+ and C#
 and highly efficient implementation.
 
 **🔎 Minimal** - a succinct yet expressive API with few options and no hidden
-changes to input or output. What you read/write is what you get. E.g. by
-default there is no "automatic" escaping/unescaping of quotes or trimming of
-spaces. To enable this see [SepReaderOptions](#sepreaderoptions) and
+changes to input or output. What you read/write is what you get. E.g. by default
+there is no "automatic" escaping/unescaping of quotes or trimming of spaces. To
+enable this see [SepReaderOptions](#sepreaderoptions) and
 [Unescaping](#unescaping) and [Trimming](#trimming). See
 [SepWriterOptions](#sepwriteroptions) for [Escaping](#escaping).
 
 **🚀 Fast** - blazing fast with both architecture specific and cross-platform
-SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512
-(.NET 8.0+), NEON. Uses
-[csFastFloat](https://github.com/CarlVerret/csFastFloat) for fast parsing of
-floating points. See [detailed benchmarks](#comparison-benchmarks) for
-cross-platform results.
+SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
+8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
+fast parsing of floating points. See [detailed
+benchmarks](#comparison-benchmarks) for cross-platform results.
 
 **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
 parsing that is [up to 35x faster than
@@ -53,15 +52,16 @@ CsvHelper](#floats-reader-comparison-benchmarks), see
 
 **🌀 Async support** - efficient `ValueTask` based `async/await` support.
 Requires C# 13.0+ and for .NET 9.0+ includes `SepReader` implementing
-`IAsyncEnumerable<>`. See [Async Support](#async-support) for details.
-**🗑️ Zero allocation** - intelligent and efficient memory management allowing
-for zero allocations after warmup incl. supporting use cases of reading or
-writing arrays of values (e.g. features) easily without repeated allocations.
+`IAsyncEnumerable<>`. See [Async Support](#async-support) for details. **🗑️
+Zero allocation** - intelligent and efficient memory management allowing for
+zero allocations after warmup incl. supporting use cases of reading or writing
+arrays of values (e.g. features) easily without repeated allocations.
 
-**✅ Thorough tests** - great code coverage and focus on edge case testing
-incl. randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing).
-**🌐 Cross-platform** - works on any platform, any architecture supported by
-NET. 100% managed and written in beautiful modern C#.
+**✅ Thorough tests** - great code coverage and focus on edge case testing incl.
+randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing). **🌐
+Cross-platform** - works on any platform, any architecture supported by NET.
+100% managed and written in beautiful modern C#.
+
 **✂️ Trimmable and AOT/NativeAOT compatible** - no problematic reflection or
 dynamic code generation. Hence, fully
 [trimmable](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming)
@@ -2226,6 +2226,7 @@ namespace nietras.SeparatedValues
         AfterUnescape = 2,
         All = 3,
     }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class SepWriter : System.IAsyncDisposable, System.IDisposable
     {
         public nietras.SeparatedValues.SepWriterHeader Header { get; }
@@ -2298,13 +2299,16 @@ namespace nietras.SeparatedValues
     }
     public static class SepWriterExtensions
     {
-        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream) { }
-        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
-        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream, bool leaveOpen) { }
-        public static nietras.SeparatedValues.SepWriter To(this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer, bool leaveOpen) { }
-        public static nietras.SeparatedValues.SepWriter ToFile(this nietras.SeparatedValues.SepWriterOptions options, string filePath) { }
-        public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options) { }
-        public static nietras.SeparatedValues.SepWriter ToText(this nietras.SeparatedValues.SepWriterOptions options, int capacity) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, System.Text.StringBuilder stringBuilder) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, System.IO.Stream stream, bool leaveOpen) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, System.IO.TextWriter writer, bool leaveOpen) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, string name, System.Func<string, System.IO.Stream> nameToStream, bool leaveOpen = false) { }
+        public static nietras.SeparatedValues.SepWriter To(in this nietras.SeparatedValues.SepWriterOptions options, string name, System.Func<string, System.IO.TextWriter> nameToWriter, bool leaveOpen = false) { }
+        public static nietras.SeparatedValues.SepWriter ToFile(in this nietras.SeparatedValues.SepWriterOptions options, string filePath) { }
+        public static nietras.SeparatedValues.SepWriter ToText(in this nietras.SeparatedValues.SepWriterOptions options) { }
+        public static nietras.SeparatedValues.SepWriter ToText(in this nietras.SeparatedValues.SepWriterOptions options, int capacity) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.SepSpec spec) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }

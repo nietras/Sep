@@ -766,6 +766,116 @@ R4C1;R4C2;R4C3;
         Assert.AreEqual(expected, writer.ToString());
     }
 
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_ToText()
+    {
+        using var writer = Sep.Writer().ToText();
+        Assert.AreEqual("StringBuilder Length=0", writer.DebuggerDisplay);
+        WriteForDebuggerDisplay(writer);
+        Assert.AreEqual($"StringBuilder Length={WriteForDebuggerDisplayLength}", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_ToText_Capacity()
+    {
+        using var writer = Sep.Writer().ToText(capacity: 2048);
+        Assert.AreEqual("StringBuilder Length=0", writer.DebuggerDisplay);
+        WriteForDebuggerDisplay(writer);
+        Assert.AreEqual($"StringBuilder Length={WriteForDebuggerDisplayLength}", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_ToFile()
+    {
+        var filePath = Path.GetTempFileName();
+        {
+            using var writer = Sep.Writer().ToFile(filePath);
+            Assert.AreEqual($"File='{filePath}'", writer.DebuggerDisplay);
+        }
+        File.Delete(filePath);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_StringBuilder()
+    {
+        var t = "test";
+        var sb = new StringBuilder(t);
+        using var writer = Sep.Writer().To(sb);
+        Assert.AreEqual($"StringBuilder Length={t.Length}", writer.DebuggerDisplay);
+        WriteForDebuggerDisplay(writer);
+        Assert.AreEqual($"StringBuilder Length={t.Length + WriteForDebuggerDisplayLength}", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_NameStream()
+    {
+        var name = "TEST";
+        var stream = new MemoryStream();
+        using var writer = Sep.Writer().To(name, n => stream);
+        Assert.AreEqual($"Stream='System.IO.MemoryStream' Name='TEST' Length={stream.Length}", writer.DebuggerDisplay);
+        WriteForDebuggerDisplay(writer);
+        Assert.AreEqual($"Stream='System.IO.MemoryStream' Name='TEST' Length={stream.Length}", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_Stream()
+    {
+        var stream = new MemoryStream();
+        using var writer = Sep.Writer().To(stream);
+        Assert.AreEqual($"Stream='System.IO.MemoryStream' Length={stream.Length}", writer.DebuggerDisplay);
+        WriteForDebuggerDisplay(writer);
+        Assert.AreEqual($"Stream='System.IO.MemoryStream' Length={stream.Length}", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_NameTextWriter()
+    {
+        var name = "TEST";
+        var textWriter = new StringWriter();
+        using var writer = Sep.Writer().To(name, n => textWriter);
+        Assert.AreEqual($"TextWriter='System.IO.StringWriter' Name='TEST'", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_TextWriter_StringWriter()
+    {
+        var textWriter = new StringWriter();
+        using var writer = Sep.Writer().To(textWriter);
+        Assert.AreEqual($"TextWriter='System.IO.StringWriter'", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_To_TextWriter_StreamWriter()
+    {
+        var textWriter = new StreamWriter(new MemoryStream());
+        using var writer = Sep.Writer().To(textWriter);
+        Assert.AreEqual($"TextWriter='System.IO.StreamWriter'", writer.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_Info_Ctor()
+    {
+        var info = new SepWriter.Info("A", (i, w) => "B");
+        Assert.IsNotNull(info.Source);
+        Assert.IsNotNull(info.DebuggerDisplay);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_Info_Props()
+    {
+        var info = new SepWriter.Info() { Source = "A", DebuggerDisplay = (i, w) => "B" };
+        Assert.IsNotNull(info.Source);
+        Assert.IsNotNull(info.DebuggerDisplay);
+    }
+
+    static readonly int WriteForDebuggerDisplayLength = 6 + 2 * Environment.NewLine.Length;
+    static void WriteForDebuggerDisplay(SepWriter writer)
+    {
+        using var row = writer.NewRow();
+        row["A"].Set("1");
+        row["B"].Set("2");
+    }
+
     static SepWriter CreateWriter() =>
         Sep.New(';').Writer().ToText();
 

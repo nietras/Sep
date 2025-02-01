@@ -141,7 +141,7 @@ public static partial class SepReaderExtensions
     }
 
 #if SYNC
-    internal static SepReader FromWithInfo(SepReader.Info info, SepReaderOptions options, TextReader reader)
+    internal static SepReader FromWithInfo(SepReader.Info info, in SepReaderOptions options, TextReader reader)
 #else
     internal static async ValueTask<SepReader> FromWithInfoAsync(SepReader.Info info, SepReaderOptions options, TextReader reader, CancellationToken cancellationToken)
 #endif

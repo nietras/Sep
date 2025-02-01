@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -8,10 +9,16 @@ using System.Threading.Tasks;
 
 namespace nietras.SeparatedValues;
 
+[DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed partial class SepWriter : IDisposable
     , IAsyncDisposable
 {
+    internal delegate string DebuggerDisplayFunc(Info info, TextWriter writer);
+    internal readonly record struct Info(object Source, DebuggerDisplayFunc DebuggerDisplay);
+    internal string DebuggerDisplay => _info.DebuggerDisplay(_info, _writer);
+
     const int DefaultCapacity = 16;
+    readonly Info _info;
     readonly Sep _sep;
     readonly CultureInfo? _cultureInfo;
     internal readonly bool _writeHeader;
@@ -39,8 +46,10 @@ public sealed partial class SepWriter : IDisposable
     CancellationToken _newRowCancellationToken = CancellationToken.None;
     int _cacheIndex = 0;
 
-    internal SepWriter(SepWriterOptions options, TextWriter writer, ISepTextWriterDisposer textWriterDisposer)
+    internal SepWriter(Info info, in SepWriterOptions options,
+        TextWriter writer, ISepTextWriterDisposer textWriterDisposer)
     {
+        _info = info;
         _sep = options.Sep;
         _cultureInfo = options.CultureInfo;
         _writeHeader = options.WriteHeader;

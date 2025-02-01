@@ -52,15 +52,17 @@ CsvHelper](#floats-reader-comparison-benchmarks), see
 
 **🌀 Async support** - efficient `ValueTask` based `async/await` support.
 Requires C# 13.0+ and for .NET 9.0+ includes `SepReader` implementing
-`IAsyncEnumerable<>`. See [Async Support](#async-support) for details. **🗑️
-Zero allocation** - intelligent and efficient memory management allowing for
-zero allocations after warmup incl. supporting use cases of reading or writing
-arrays of values (e.g. features) easily without repeated allocations.
+`IAsyncEnumerable<>`. See [Async Support](#async-support) for details. 
+
+**🗑️ Zero allocation** - intelligent and efficient memory management allowing
+for zero allocations after warmup incl. supporting use cases of reading or
+writing arrays of values (e.g. features) easily without repeated allocations.
 
 **✅ Thorough tests** - great code coverage and focus on edge case testing incl.
-randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing). **🌐
-Cross-platform** - works on any platform, any architecture supported by NET.
-100% managed and written in beautiful modern C#.
+randomized [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing). 
+
+**🌐 Cross-platform** - works on any platform, any architecture supported by
+NET. 100% managed and written in beautiful modern C#.
 
 **✂️ Trimmable and AOT/NativeAOT compatible** - no problematic reflection or
 dynamic code generation. Hence, fully

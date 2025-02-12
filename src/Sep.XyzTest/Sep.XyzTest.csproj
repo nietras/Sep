@@ -21,7 +21,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="PublicApiGenerator" Version="11.4.1" />
-    <PackageReference Include="MSTest" Version="3.7.3" />
+    <PackageReference Include="MSTest" Version="3.8.0" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="Sylvan.Common" Version="0.4.3" />
     <PackageReference Include="Sylvan.Data" Version="0.2.16" />

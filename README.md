@@ -1003,6 +1003,7 @@ constraints:
    }
    ```
    This does not allow skipping a header row starting with `#` though.
+   For an example of that go to 
 
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:
@@ -1910,6 +1911,44 @@ foreach (var value in reader.Enumerate(row => row["C"].Parse<int>()))
     squaredSum += await Task.Run(() => value * value);
 }
 Assert.AreEqual(5, squaredSum);
+```
+
+### Example - Skip Lines/Rows Starting with Comment `#`
+Below shows one can skip lines starting with comment `#` since Sep does not have
+built-in support for this. Note that this presumes lines to be skipped before
+header do not contain quotes or rather line endings within quotes as that is not
+handled by the `Peek()` skipping. The rows starting with comment `#` are skipped
+based on Sep options and handles quoting if present.
+
+```csharp
+var text = """
+           # Comment 1
+           # Comment 2
+           A
+           # Comment 3
+           1
+           2
+           # Comment 4
+           """;
+
+const char Comment = '#';
+
+using var textReader = new StringReader(text);
+// Skip initial lines (not rows) before header
+while (textReader.Peek() == Comment &&
+       textReader.ReadLine() is string line) { }
+
+using var reader = Sep.Reader().From(textReader);
+var values = new List<int>();
+foreach (var row in reader)
+{
+    // Skip rows starting with comment
+    if (row.Span.StartsWith([Comment])) { continue; }
+
+    var value = row["A"].Parse<int>();
+    values.Add(value);
+}
+CollectionAssert.AreEqual(new int[] { 1, 2 }, values);
 ```
 
 ### Example - Use Local Function within async/await Context

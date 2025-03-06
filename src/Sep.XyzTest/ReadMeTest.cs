@@ -375,6 +375,39 @@ public partial class ReadMeTest
         }
     }
 
+    [TestMethod]
+    public void ReadMeTest_Example_SkipComments()
+    {
+        var text = """
+                   # Comment 1
+                   # Comment 2
+                   A
+                   # Comment 3
+                   1
+                   2
+                   # Comment 4
+                   """;
+
+        const char Comment = '#';
+
+        using var textReader = new StringReader(text);
+        // Skip initial lines (not rows) before header
+        while (textReader.Peek() == Comment &&
+               textReader.ReadLine() is string line) { }
+
+        using var reader = Sep.Reader().From(textReader);
+        var values = new List<int>();
+        foreach (var row in reader)
+        {
+            // Skip rows starting with comment
+            if (row.Span.StartsWith([Comment])) { continue; }
+
+            var value = row["A"].Parse<int>();
+            values.Add(value);
+        }
+        CollectionAssert.AreEqual(new int[] { 1, 2 }, values);
+    }
+
 #if NET9_0
     // Only update README on latest .NET version to avoid multiple accesses
     [TestMethod]
@@ -467,6 +500,7 @@ public partial class ReadMeTest
             (nameof(ReadMeTest_Example_Skip_Empty_Rows) + "()", "### Example - Skip Empty Rows"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_Enumerate) + "()", "### Example - Use Extension Method Enumerate within async/await Context"),
             (nameof(ReadMeTest_Example_AsyncAwaitContext_CustomIterator) + "()", "### Example - Use Local Function within async/await Context"),
+            (nameof(ReadMeTest_Example_SkipComments) + "()", "### Example - Skip Lines/Rows Starting with Comment `#`"),
         };
         readmeLines = UpdateReadme(testSourceLines, readmeLines, testBlocksToUpdate,
             sourceStartLineOffset: 2, "    }", sourceEndLineOffset: 0, sourceWhitespaceToRemove: 8);

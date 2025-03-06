@@ -1002,8 +1002,9 @@ constraints:
         }
    }
    ```
-   This does not allow skipping a header row starting with `#` though.
-   For an example of that go to 
+   This does not allow skipping lines before a header row starting with `#`
+   though. In [Example Catalogue](#example-catalogue) a full example is given
+   detailing how to skip lines before header.
 
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:
@@ -1914,11 +1915,11 @@ Assert.AreEqual(5, squaredSum);
 ```
 
 ### Example - Skip Lines/Rows Starting with Comment `#`
-Below shows one can skip lines starting with comment `#` since Sep does not have
-built-in support for this. Note that this presumes lines to be skipped before
-header do not contain quotes or rather line endings within quotes as that is not
-handled by the `Peek()` skipping. The rows starting with comment `#` are skipped
-based on Sep options and handles quoting if present.
+Below shows how one can skip lines starting with comment `#` since Sep does not
+have built-in support for this. Note that this presumes lines to be skipped
+before header do not contain quotes or rather line endings within quotes as that
+is not handled by the `Peek()` skipping. The rows starting with comment `#`
+after header are skipped if handling quoting is enabled in Sep options.
 
 ```csharp
 var text = """

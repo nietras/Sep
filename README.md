@@ -1914,7 +1914,36 @@ foreach (var value in reader.Enumerate(row => row["C"].Parse<int>()))
 Assert.AreEqual(5, squaredSum);
 ```
 
+### Example - Use Local Function within async/await Context
+Another way to avoid referencing `SepReader.Row` directly in async context is to
+use custom iterator via `yield return` to parse/extract data from row like shown
+below.
+
+```csharp
+var text = """
+           C
+           1
+           2
+           """;
+
+using var reader = Sep.Reader().FromText(text);
+var squaredSum = 0;
+// Use custom local function Enumerate to avoid referencing
+// SepReader.Row in async context
+foreach (var value in Enumerate(reader))
+{
+    squaredSum += await Task.Run(() => value * value);
+}
+Assert.AreEqual(5, squaredSum);
+
+static IEnumerable<int> Enumerate(SepReader reader)
+{
+    foreach (var r in reader) { yield return r["C"].Parse<int>(); }
+}
+```
+
 ### Example - Skip Lines/Rows Starting with Comment `#`
+
 Below shows how one can skip lines starting with comment `#` since Sep does not
 have built-in support for this. Note that this presumes lines to be skipped
 before header do not contain quotes or rather line endings within quotes as that
@@ -1950,34 +1979,6 @@ foreach (var row in reader)
     values.Add(value);
 }
 CollectionAssert.AreEqual(new int[] { 1, 2 }, values);
-```
-
-### Example - Use Local Function within async/await Context
-Another way to avoid referencing `SepReader.Row` directly in async context is to
-use custom iterator via `yield return` to parse/extract data from row like shown
-below.
-
-```csharp
-var text = """
-           C
-           1
-           2
-           """;
-
-using var reader = Sep.Reader().FromText(text);
-var squaredSum = 0;
-// Use custom local function Enumerate to avoid referencing
-// SepReader.Row in async context
-foreach (var value in Enumerate(reader))
-{
-    squaredSum += await Task.Run(() => value * value);
-}
-Assert.AreEqual(5, squaredSum);
-
-static IEnumerable<int> Enumerate(SepReader reader)
-{
-    foreach (var r in reader) { yield return r["C"].Parse<int>(); }
-}
 ```
 
 ## RFC-4180

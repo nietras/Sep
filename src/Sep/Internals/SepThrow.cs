@@ -87,7 +87,7 @@ static class SepThrow
     {
         throw new InvalidOperationException(
             $"'{nameof(SepWriter.NewRow)}()' called with '{nameof(CancellationToken)}'" +
-            $", if async use was intented, be sure to dispose this asynchronously with 'await' like " +
+            $", if async use was intended, be sure to dispose this asynchronously with 'await' like " +
             $"'await using var row = writer.NewRow(cancellationToken);'");
     }
 

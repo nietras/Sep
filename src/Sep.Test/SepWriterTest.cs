@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -133,7 +133,7 @@ public class SepWriterTest
     [TestMethod]
     public void SepWriterTest_NewRowWithCancellationToken_Dispose_Throws()
     {
-        var expected = "'NewRow()' called with 'CancellationToken', if async use was intented, " +
+        var expected = "'NewRow()' called with 'CancellationToken', if async use was intended, " +
                        "be sure to dispose this asynchronously with 'await' like " +
                        "'await using var row = writer.NewRow(cancellationToken);'";
 
@@ -541,7 +541,8 @@ public class SepWriterTest
             row["A"].Set("R2C1");
             row["B"].Set("R2C2");
             row[2].Set("R2C3");
-        };
+        }
+        ;
         var expected =
 @"A;B
 R1C1;R1C2
@@ -674,7 +675,8 @@ R3C1;;R3C3
             row["A"].Set("R2C1");
             row["B"].Set("R2C2");
             row[2].Set("R2C3");
-        };
+        }
+        ;
         var expected =
 @"R1C1;R1C2
 R2C1;R2C2;R2C3

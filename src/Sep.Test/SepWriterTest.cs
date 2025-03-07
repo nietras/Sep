@@ -676,7 +676,6 @@ R3C1;;R3C3
             row["B"].Set("R2C2");
             row[2].Set("R2C3");
         }
-        ;
         var expected =
 @"R1C1;R1C2
 R2C1;R2C2;R2C3

@@ -542,7 +542,6 @@ public class SepWriterTest
             row["B"].Set("R2C2");
             row[2].Set("R2C3");
         }
-        ;
         var expected =
 @"A;B
 R1C1;R1C2

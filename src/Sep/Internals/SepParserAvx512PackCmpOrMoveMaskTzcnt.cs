@@ -18,7 +18,7 @@ namespace nietras.SeparatedValues;
 #if TESTTESTTEST
 struct
 #else
-sealed class
+struct
 #endif
     SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {

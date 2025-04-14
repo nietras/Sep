@@ -108,6 +108,11 @@ sealed class
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+
+            // Create variant that does this instead
+            //Avx512BW.IsSupported
+            //var bytes = Avx512BW.ConvertToVector256ByteWithSaturation(v0.AsUInt16());
+
             var packed = ISA.PackUnsignedSaturate(v0, v1);
             // Pack interleaves the two vectors need to permute them back
             var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);

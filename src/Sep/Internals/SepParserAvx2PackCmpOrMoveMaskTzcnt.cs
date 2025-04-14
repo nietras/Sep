@@ -2,12 +2,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx2;
 using Vec = System.Runtime.Intrinsics.Vector256;
-using VecI16 = System.Runtime.Intrinsics.Vector256<short>;
 using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
@@ -102,11 +102,17 @@ SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
             ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-            var packed = ISA.PackUnsignedSaturate(v0, v1);
-            // Pack interleaves the two vectors need to permute them back
-            var bytes = ISA.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+            //var v0 = ReadUnaligned<VecI16>(ref byteRef);
+            //var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+            //var packed = ISA.PackUnsignedSaturate(v0, v1);
+            //// Pack interleaves the two vectors need to permute them back
+            //var bytes = ISA.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+
+            // Create variant that does this instead/mix 512 with 256...
+            //Avx512BW.IsSupported
+            var v = ReadUnaligned<Vector512<ushort>>(ref byteRef);
+            //var v = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+            var bytes = Avx512BW.ConvertToVector256ByteWithSaturation(v.AsUInt16());
 
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);

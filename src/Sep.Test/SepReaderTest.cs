@@ -667,7 +667,7 @@ public partial class SepReaderTest
         var lineEndingStartIndex = (even ? 0 : 1);
         var sb = new StringBuilder(lineEndingCount * lineEnding.Length + lineEndingStartIndex);
         // Add space if odd
-        if (!even) { sb.Append(' '); };
+        if (!even) { sb.Append(' '); }
         sb.Insert(lineEndingStartIndex, lineEnding, lineEndingCount);
         var text = sb.ToString();
         await AssertLineEndings(lineEndingCount, text);

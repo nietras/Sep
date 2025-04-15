@@ -39,7 +39,7 @@ public partial class SepParseMaskTest
         foreach (var (mask, expected) in s_data)
         {
             AssertParseSeparatorsMask(mask, parse, expected);
-        };
+        }
     }
 
     static void AssertParseSeparatorsMask(

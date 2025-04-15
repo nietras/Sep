@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.Unsafe;
@@ -11,10 +12,11 @@ using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
-#if TESTTESTTEST
+[ExcludeFromCodeCoverage]
+#if SEPUSESTRUCTFORPARSERSFORDISASMO
 struct
 #else
-struct
+sealed class
 #endif
 SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 {

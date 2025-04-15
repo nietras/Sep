@@ -12,10 +12,10 @@ using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
-#if TESTTESTTEST
+#if SEPUSESTRUCTFORPARSERSFORDISASMO
 struct
 #else
-struct
+sealed class
 #endif
 SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
 {

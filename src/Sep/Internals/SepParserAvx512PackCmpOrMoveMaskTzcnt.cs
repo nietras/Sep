@@ -108,16 +108,19 @@ struct
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-
-            // Create variant that does this instead
-            //Avx512BW.IsSupported
-            //var bytes = Avx512BW.ConvertToVector256ByteWithSaturation(v0.AsUInt16());
-
+#if false && NET9_0_OR_GREATER
+            // Poor code-gen around this
+            VecUI8 bytes0 = ISA.ConvertToVector256ByteWithSaturation(v0.AsUInt16()).ToVector512();
+            var bytes1 = ISA.ConvertToVector256ByteWithSaturation(v1.AsUInt16());
+            var bytes = Avx512F.InsertVector256(bytes0, bytes1, 1);
+            // Poor code-gen around this, especially register spilling
+            //var bytes = Vector512.Create(bytes0, bytes1);
+#else
             var packed = ISA.PackUnsignedSaturate(v0, v1);
             // Pack interleaves the two vectors need to permute them back
             var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
             var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
-
+#endif
             var nlsEq = MoveMask(Vec.Equals(bytes, nls));
             var crsEq = MoveMask(Vec.Equals(bytes, crs));
             var qtsEq = MoveMask(Vec.Equals(bytes, qts));

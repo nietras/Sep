@@ -108,20 +108,20 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
             var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
 
-            var nlsEq = Vec.Equals(bytes, nls);
-            var crsEq = Vec.Equals(bytes, crs);
-            var qtsEq = Vec.Equals(bytes, qts);
-            var spsEq = Vec.Equals(bytes, sps);
+            var nlsEq = MoveMask(Vec.Equals(bytes, nls));
+            var crsEq = MoveMask(Vec.Equals(bytes, crs));
+            var qtsEq = MoveMask(Vec.Equals(bytes, qts));
+            var spsEq = MoveMask(Vec.Equals(bytes, sps));
 
             var lineEndings = nlsEq | crsEq;
             var lineEndingsSeparators = spsEq | lineEndings;
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = MoveMask(specialChars);
+            var specialCharMask = specialChars;
             if (specialCharMask != 0u)
             {
-                var separatorsMask = MoveMask(spsEq);
+                var separatorsMask = spsEq;
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quote count to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoteCount;
@@ -132,7 +132,7 @@ sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
+                    var separatorLineEndingsMask = lineEndingsSeparators;
                     if (separatorLineEndingsMask == testMask)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(

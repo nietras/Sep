@@ -15,7 +15,7 @@ using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
 namespace nietras.SeparatedValues;
 
 [ExcludeFromCodeCoverage]
-sealed class SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
+struct SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);

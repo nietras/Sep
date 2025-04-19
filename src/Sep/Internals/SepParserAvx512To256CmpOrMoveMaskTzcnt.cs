@@ -1,23 +1,24 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
-using ISA = System.Runtime.Intrinsics.X86.Avx2;
+using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
 using Vec = System.Runtime.Intrinsics.Vector256;
-using VecI16 = System.Runtime.Intrinsics.Vector256<short>;
+using VecUI16 = System.Runtime.Intrinsics.Vector512<ushort>;
 using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
+[ExcludeFromCodeCoverage]
 #if SEPUSESTRUCTFORPARSERSFORDISASMO
 struct
 #else
 sealed class
 #endif
-SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
+SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -26,7 +27,7 @@ SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx2PackCmpOrMoveMaskTzcnt(SepParserOptions options)
+    public unsafe SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);
@@ -102,11 +103,8 @@ SepParserAvx2PackCmpOrMoveMaskTzcnt : ISepParser
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
             ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-            var packed = ISA.PackUnsignedSaturate(v0, v1);
-            // Pack interleaves the two vectors need to permute them back
-            var bytes = ISA.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
+            var v = ReadUnaligned<VecUI16>(ref byteRef);
+            var bytes = ISA.ConvertToVector256ByteWithSaturation(v);
 
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);

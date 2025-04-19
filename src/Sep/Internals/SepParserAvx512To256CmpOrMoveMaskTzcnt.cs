@@ -1,16 +1,14 @@
-﻿#if NET8_0_OR_GREATER
-using System;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
-using Vec = System.Runtime.Intrinsics.Vector512;
-using VecI16 = System.Runtime.Intrinsics.Vector512<short>;
-using VecUI8 = System.Runtime.Intrinsics.Vector512<byte>;
+using Vec = System.Runtime.Intrinsics.Vector256;
+using VecUI16 = System.Runtime.Intrinsics.Vector512<ushort>;
+using VecUI8 = System.Runtime.Intrinsics.Vector256<byte>;
 
 namespace nietras.SeparatedValues;
 
@@ -20,7 +18,7 @@ struct
 #else
 sealed class
 #endif
-SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
+SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -29,9 +27,8 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx512PackCmpOrMoveMaskTzcnt(SepParserOptions options)
+    public unsafe SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
-        A.Assert(Environment.Is64BitProcess);
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);
         _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
@@ -106,27 +103,23 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
             ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
-            var packed = ISA.PackUnsignedSaturate(v0, v1);
-            // Pack interleaves the two vectors need to permute them back
-            var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
-            var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
+            var v = ReadUnaligned<VecUI16>(ref byteRef);
+            var bytes = ISA.ConvertToVector256ByteWithSaturation(v);
 
-            var nlsEq = MoveMask(Vec.Equals(bytes, nls));
-            var crsEq = MoveMask(Vec.Equals(bytes, crs));
-            var qtsEq = MoveMask(Vec.Equals(bytes, qts));
-            var spsEq = MoveMask(Vec.Equals(bytes, sps));
+            var nlsEq = Vec.Equals(bytes, nls);
+            var crsEq = Vec.Equals(bytes, crs);
+            var qtsEq = Vec.Equals(bytes, qts);
+            var spsEq = Vec.Equals(bytes, sps);
 
             var lineEndings = nlsEq | crsEq;
             var lineEndingsSeparators = spsEq | lineEndings;
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars;
+            var specialCharMask = MoveMask(specialChars);
             if (specialCharMask != 0u)
             {
-                var separatorsMask = spsEq;
+                var separatorsMask = MoveMask(spsEq);
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Add quote count to mask as hack to skip if quoting.
                 var testMask = specialCharMask + quoteCount;
@@ -137,7 +130,7 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators;
+                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
@@ -193,6 +186,5 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static nuint MoveMask(VecUI8 v) => (nuint)Vec.ExtractMostSignificantBits(v);
+    static nuint MoveMask(VecUI8 v) => (uint)ISA.MoveMask(v);
 }
-#endif

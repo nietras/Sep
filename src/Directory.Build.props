@@ -41,6 +41,7 @@
     <!--<DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPTRACE</DefineConstants>-->
     <DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERASSERT</DefineConstants>
     <!--<DefineConstants Condition="'$(Configuration)'=='Debug'">$(DefineConstants);SEPREADERTRACE</DefineConstants>-->
+    <!--<DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPUSESTRUCTFORPARSERSFORDISASMO</DefineConstants>-->
   </PropertyGroup>
 
   <ItemGroup>

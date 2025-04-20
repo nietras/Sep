@@ -48,11 +48,12 @@ static class SepParserFactory
         where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
 #if NET8_0_OR_GREATER
+        if (Avx512BW.VL.IsSupported)
+        { Add(parsers, nameof(SepParserAvx256To128PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx256To128PackCmpOrMoveMaskTzcnt(sep)); }
+        if (Avx512BW.IsSupported)
+        { Add(parsers, nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt), static sep => new SepParserAvx512To256CmpOrMoveMaskTzcnt(sep)); }
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
-        {
-            Add(parsers, nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt), static sep => new SepParserAvx512To256CmpOrMoveMaskTzcnt(sep));
-            Add(parsers, nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep));
-        }
+        { Add(parsers, nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
         if (Environment.Is64BitProcess && (createUnaccelerated || Vector512.IsHardwareAccelerated))
         { Add(parsers, nameof(SepParserVector512NrwCmpExtMsbTzcnt), static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
 #endif

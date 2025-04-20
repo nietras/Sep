@@ -55,7 +55,7 @@ public class SepParserTest
         {
 #if NET8_0_OR_GREATER
             if (Environment.Is64BitProcess && Avx512BW.IsSupported)
-            { return typeof(SepParserAvx512PackCmpOrMoveMaskTzcnt); }
+            { return typeof(SepParserAvx512To256CmpOrMoveMaskTzcnt); }
             if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
             { return typeof(SepParserVector512NrwCmpExtMsbTzcnt); }
 #endif

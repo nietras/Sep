@@ -19,7 +19,7 @@ struct
 #else
 sealed class
 #endif
-SepParserAvx256To128PackCmpOrMoveMaskTzcnt : ISepParser
+SepParserAvx256To128CmpOrMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -28,7 +28,7 @@ SepParserAvx256To128PackCmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx256To128PackCmpOrMoveMaskTzcnt(SepParserOptions options)
+    public unsafe SepParserAvx256To128CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);

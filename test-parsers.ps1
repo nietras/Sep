@@ -4,6 +4,7 @@ Try {
         "SepParserAvx512To256CmpOrMoveMaskTzcnt",
         "SepParserAvx512PackCmpOrMoveMaskTzcnt",
         "SepParserAvx2PackCmpOrMoveMaskTzcnt",
+        "SepParserAvx256To128CmpOrMoveMaskTzcnt",
         "SepParserSse2PackCmpOrMoveMaskTzcnt",
         "SepParserVector512NrwCmpExtMsbTzcnt",
         "SepParserVector256NrwCmpExtMsbTzcnt",

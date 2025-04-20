@@ -2,11 +2,11 @@
 
 BenchmarkDotNet v0.14.0, Windows 10 (10.0.19044.3086/21H2/November2021Update)
 AMD Ryzen 9 9950X, 1 CPU, 32 logical and 16 physical cores
-.NET SDK 9.0.103
-  [Host]     : .NET 9.0.3 (9.0.325.11113), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  Job-MIRFZN : .NET 9.0.3 (9.0.325.11113), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+.NET SDK 9.0.203
+  [Host]     : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Job-RXSQJG : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
-Job=Job-MIRFZN  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
+Job=Job-RXSQJG  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
 Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
@@ -14,9 +14,9 @@ Quotes=True  Reader=String
 ```
 | Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 |  5.357 ms |  1.00 | 41 | 7797.8 |  107.1 |   1.19 KB |        1.00 |
-| Sep_Trim                   | Cols  | 50000 |  7.988 ms |  1.49 | 41 | 5229.4 |  159.8 |    1.2 KB |        1.01 |
-| Sep_TrimUnescape           | Cols  | 50000 |  8.569 ms |  1.60 | 41 | 4874.6 |  171.4 |    1.2 KB |        1.01 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 |  9.295 ms |  1.74 | 41 | 4493.8 |  185.9 |    1.2 KB |        1.01 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 63.102 ms | 11.78 | 41 |  661.9 | 1262.0 | 451.39 KB |      380.74 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 60.368 ms | 11.27 | 41 |  691.9 | 1207.4 | 445.72 KB |      375.96 |
+| Sep_                       | Cols  | 50000 |  5.235 ms |  1.00 | 41 | 7978.5 |  104.7 |   1.02 KB |        1.00 |
+| Sep_Trim                   | Cols  | 50000 |  7.953 ms |  1.52 | 41 | 5252.0 |  159.1 |   1.04 KB |        1.02 |
+| Sep_TrimUnescape           | Cols  | 50000 |  8.544 ms |  1.63 | 41 | 4888.7 |  170.9 |   1.04 KB |        1.02 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 |  9.254 ms |  1.77 | 41 | 4513.7 |  185.1 |   1.05 KB |        1.02 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 62.406 ms | 11.92 | 41 |  669.3 | 1248.1 | 451.34 KB |      440.58 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 61.412 ms | 11.73 | 41 |  680.2 | 1228.2 | 445.72 KB |      435.10 |

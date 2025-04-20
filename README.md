@@ -1088,7 +1088,7 @@ The following platforms are used for benchmarking:
   ```ini
   OS=Windows 10 (10.0.19044.3086/21H2/November2021Update)
   AMD Ryzen 9 9950X, 1 CPU, 32 logical and 16 physical cores
-* ```
+  ```
 * `Apple M1` (Virtual) ARM64 Platform Information
   ```ini
   OS=macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
@@ -1217,7 +1217,7 @@ csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
 With `ParallelEnumerate` (MT) Sep is **>2x faster than Sylvan and up to 9x
-faster than CsvHelper**. 
+faster than CsvHelper**.
 
 At the lowest level of enumerating rows only, that is csv parsing only, **Sep
 hits a staggering 21 GB/s on 9950X**. Single-threaded.

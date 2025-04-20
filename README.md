@@ -1079,11 +1079,16 @@ The following platforms are used for benchmarking:
   OS=Windows 11 (10.0.22631.4460/23H2/2023Update/SunValley3)
   AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
   ```
-* `AMD 5950X` (Desktop) X64 Platform Information
+* `AMD 5950X` (Desktop) X64 Platform Information (no longer available)
   ```ini
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
+* `AMD 9950X` (Desktop) X64 Platform Information
+  ```ini
+  OS=Windows 10 (10.0.19044.3086/21H2/November2021Update)
+  AMD Ryzen 9 9950X, 1 CPU, 32 logical and 16 physical cores
+* ```
 * `Apple M1` (Virtual) ARM64 Platform Information
   ```ini
   OS=macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
@@ -1212,7 +1217,10 @@ csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 
 With `ParallelEnumerate` (MT) Sep is **>2x faster than Sylvan and up to 9x
-faster than CsvHelper**.
+faster than CsvHelper**. 
+
+At the lowest level of enumerating rows only, that is csv parsing only, **Sep
+hits a staggering 21 GB/s on 9950X**. Single-threaded.
 
 ###### AMD.EPYC.7763 - PackageAssets Benchmark Results (Sep 0.10.0.0, Sylvan  1.4.1.0, CsvHelper 33.0.1.24)
 
@@ -1369,8 +1377,8 @@ GC](https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/worksta
 can, therefore, provide significant speedup as can be seen below.
 
 With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
-18x faster than CsvHelper**. Breaking 4 GB/s parsing speed on package assets on
-5950X.
+18x faster than CsvHelper**. Breaking 8 GB/s parsing speed on package assets on
+9950X.
 
 ###### AMD.EPYC.7763 - PackageAssets Benchmark Results (SERVER GC) (Sep 0.10.0.0, Sylvan  1.4.1.0, CsvHelper 33.0.1.24)
 
@@ -1698,12 +1706,13 @@ significant speedup over workstation garbage collection.
 
 
 ##### PackageAssets with Spaces and Quotes Benchmark Results
+
 Similar to the benchmark related to quotes here spaces ` ` and quotes `"` are
 added to relevant columns to benchmark impact of trimming and unescape on low
 level column access. That is, basically ` " ` is prepended and appended to each
 column. This will test the assumed most common case and fast path part of
 trimming and unescaping in Sep. Sep is about 10x faster than CsvHelper for this.
-Sylvan does not appear to have support automatic trimming and is, therefore, not
+Sylvan does not appear to support automatic trimming and is, therefore, not
 included.
 
 ###### AMD.EPYC.7763 - PackageAssets with Spaces and Quotes Benchmark Results (Sep 0.10.0.0, Sylvan  1.4.1.0, CsvHelper 33.0.1.24)

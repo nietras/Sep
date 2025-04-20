@@ -1,10 +1,10 @@
 ```
 
-BenchmarkDotNet v0.14.0, Windows 11 (10.0.22631.4602/23H2/2023Update/SunValley3)
+BenchmarkDotNet v0.14.0, Windows 11 (10.0.26100.3775)
 AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics, 1 CPU, 16 logical and 8 physical cores
-.NET SDK 9.0.101
-  [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  Job-VCJIGY : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+.NET SDK 9.0.203
+  [Host]     : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+  Job-XBPEID : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
 
 EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  Toolchain=net90  
 InvocationCount=Default  IterationTime=350ms  MaxIterationCount=15  
@@ -13,18 +13,18 @@ MinIterationCount=5  WarmupCount=6  Reader=String
 ```
 | Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
 |---------- |------- |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
-| Sep______ | Row    | 25000 |   3.415 ms |  1.00 | 20 | 5949.8 |  136.6 |     1.41 KB |        1.00 |
-| Sylvan___ | Row    | 25000 |   3.803 ms |  1.11 | 20 | 5343.6 |  152.1 |    10.71 KB |        7.59 |
-| ReadLine_ | Row    | 25000 |  15.853 ms |  4.64 | 20 | 1281.8 |  634.1 | 73489.64 KB |   52,078.47 |
-| CsvHelper | Row    | 25000 |  39.778 ms | 11.65 | 20 |  510.8 | 1591.1 |    20.03 KB |       14.19 |
+| Sep______ | Row    | 25000 |   3.119 ms |  1.00 | 20 | 6514.3 |  124.8 |     1.25 KB |        1.00 |
+| Sylvan___ | Row    | 25000 |   3.690 ms |  1.18 | 20 | 5506.9 |  147.6 |    10.71 KB |        8.53 |
+| ReadLine_ | Row    | 25000 |  16.859 ms |  5.40 | 20 | 1205.3 |  674.4 | 73489.66 KB |   58,562.97 |
+| CsvHelper | Row    | 25000 |  39.719 ms | 12.73 | 20 |  511.6 | 1588.8 |    20.03 KB |       15.96 |
 |           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Cols   | 25000 |   4.470 ms |  1.00 | 20 | 4546.3 |  178.8 |     1.42 KB |        1.00 |
-| Sylvan___ | Cols   | 25000 |   5.999 ms |  1.34 | 20 | 3387.4 |  239.9 |    10.71 KB |        7.54 |
-| ReadLine_ | Cols   | 25000 |  17.779 ms |  3.98 | 20 | 1142.9 |  711.2 | 73489.66 KB |   51,756.13 |
-| CsvHelper | Cols   | 25000 |  43.374 ms |  9.70 | 20 |  468.5 | 1735.0 | 21340.41 KB |   15,029.29 |
+| Sep______ | Cols   | 25000 |   4.215 ms |  1.00 | 20 | 4821.0 |  168.6 |     1.26 KB |        1.00 |
+| Sylvan___ | Cols   | 25000 |   6.074 ms |  1.44 | 20 | 3345.4 |  243.0 |    10.71 KB |        8.52 |
+| ReadLine_ | Cols   | 25000 |  17.072 ms |  4.05 | 20 | 1190.3 |  682.9 | 73489.65 KB |   58,471.95 |
+| CsvHelper | Cols   | 25000 |  42.474 ms | 10.08 | 20 |  478.4 | 1699.0 | 21340.26 KB |   16,979.35 |
 |           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Floats | 25000 |  32.146 ms |  1.00 | 20 |  632.1 | 1285.8 |      8.2 KB |        1.00 |
-| Sep_MT___ | Floats | 25000 |   6.082 ms |  0.19 | 20 | 3340.7 |  243.3 |   115.72 KB |       14.11 |
-| Sylvan___ | Floats | 25000 |  81.398 ms |  2.53 | 20 |  249.6 | 3255.9 |    18.88 KB |        2.30 |
-| ReadLine_ | Floats | 25000 | 107.332 ms |  3.34 | 20 |  189.3 | 4293.3 | 73493.12 KB |    8,960.23 |
-| CsvHelper | Floats | 25000 | 157.689 ms |  4.91 | 20 |  128.9 | 6307.6 | 22062.72 KB |    2,689.87 |
+| Sep______ | Floats | 25000 |  32.362 ms |  1.00 | 20 |  627.9 | 1294.5 |     8.32 KB |        1.00 |
+| Sep_MT___ | Floats | 25000 |   5.940 ms |  0.18 | 20 | 3420.6 |  237.6 |   114.06 KB |       13.71 |
+| Sylvan___ | Floats | 25000 |  81.574 ms |  2.52 | 20 |  249.1 | 3263.0 |    18.88 KB |        2.27 |
+| ReadLine_ | Floats | 25000 | 106.297 ms |  3.28 | 20 |  191.2 | 4251.9 | 73493.12 KB |    8,837.12 |
+| CsvHelper | Floats | 25000 | 156.658 ms |  4.84 | 20 |  129.7 | 6266.3 | 22062.72 KB |    2,652.91 |

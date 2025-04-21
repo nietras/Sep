@@ -10,15 +10,13 @@ namespace nietras.SeparatedValues;
 
 static class SepParserFactory
 {
-    const string SepForceParserEnvName = "SEPFORCEPARSER";
+    internal const string SepForceParserEnvName = "SEPFORCEPARSER";
 
-    static SepParserFactory()
-    {
-        CreateBest = CreateBestFunc();
-    }
+    static Func<SepParserOptions, ISepParser>? _createBest = null;
 
     [ExcludeFromCodeCoverage]
-    internal static Func<SepParserOptions, ISepParser> CreateBest { get; }
+    internal static Func<SepParserOptions, ISepParser> CreateBest =>
+        _createBest ??= CreateBestFunc();
 
     [ExcludeFromCodeCoverage]
     internal static Func<SepParserOptions, ISepParser> CreateBestFunc()

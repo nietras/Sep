@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Order;
 using CsvHelper;
 using CsvHelper.Configuration;
 using Sylvan.Data.Csv;
@@ -542,3 +543,34 @@ public class GcServerLongAssetPackageAssetsBench : LongAssetPackageAssetsBench
 [GcServer(true)]
 public class GcServerLongQuotesAssetPackageAssetsBench : LongQuotesAssetPackageAssetsBench
 { }
+
+[BenchmarkCategory("0_Parsers")]
+[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByMethod)]
+[Orderer(SummaryOrderPolicy.FastestToSlowest)]
+public class ParsersRowPackageAssetsBench : PackageAssetsBench
+{
+    const int DefaultLineCount = 50_000;
+
+    public ParsersRowPackageAssetsBench() : this(false) { }
+    public ParsersRowPackageAssetsBench(bool quoteAroundSomeCols) : base("Row", DefaultLineCount, quoteAroundSomeCols) { }
+
+    [ParamsSource(nameof(ParserParams))] // Attributes for params is challenging 👇
+    public string Parser { get; set; } = SepParserFactory.GetForceParserName();
+    public IEnumerable<string> ParserParams() => SepParserFactory.AvailableFactories.Keys;
+
+    [GlobalSetup]
+    public void GlobalSetup()
+    {
+        Environment.SetEnvironmentVariable(SepParserFactory.SepForceParserEnvName, Parser);
+        var name = SepParserFactory.GetForceParserName();
+        Console.WriteLine($"// Using parser: {name}");
+    }
+
+    [Benchmark]
+    public void Sep_()
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader) { }
+    }
+}

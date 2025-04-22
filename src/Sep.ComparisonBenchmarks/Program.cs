@@ -70,6 +70,7 @@ if (args.Length > 0)
         { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), typeof(LongQuotesAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench) + "SpacesQuotes", new[] { typeof(SpacesQuotesColsPackageAssetsBench) } },
         { nameof(FloatsReaderBench), new[] { typeof(RowFloatsReaderBench), typeof(ColsFloatsReaderBench), typeof(FloatsFloatsReaderBench), } },
+        { nameof(PackageAssetsBench) + "-Parsers", new[] { typeof(ParsersRowPackageAssetsBench), } },
     };
     foreach (var (name, benchTypes) in nameToBenchTypesSet)
     {

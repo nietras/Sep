@@ -162,6 +162,25 @@ public class SepWriterHeaderTest
         var e = Assert.ThrowsException<ArgumentException>(() => header.Add("A"));
         Assert.AreEqual("Column name 'A' already exists (Parameter 'colName')", e.Message);
     }
+    
+    [TestMethod]
+    public void SepWriterHeaderTest_Try_Add_Once_Is_True()
+    {
+        using var writer = CreateWriter();
+        var header = writer.Header;
+
+        Assert.IsTrue(header.TryAdd("A"));
+    }
+    
+    [TestMethod]
+    public void SepWriterHeaderTest_Try_Add_Twice_Is_False()
+    {
+        using var writer = CreateWriter();
+        var header = writer.Header;
+        header.Add("A");
+
+        Assert.IsFalse(header.TryAdd("A"));
+    }
 
     [TestMethod]
     public void SepWriterHeaderTest_Add_After_Written_Throws()

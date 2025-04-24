@@ -164,7 +164,7 @@ public class SepWriterHeaderTest
     }
     
     [TestMethod]
-    public void SepWriterHeaderTest_Try_Add_Once_Is_True()
+    public void SepWriterHeaderTest_TryAdd_Once_Is_True()
     {
         using var writer = CreateWriter();
         var header = writer.Header;
@@ -173,7 +173,7 @@ public class SepWriterHeaderTest
     }
     
     [TestMethod]
-    public void SepWriterHeaderTest_Try_Add_Twice_Is_False()
+    public void SepWriterHeaderTest_TryAdd_Twice_Is_False()
     {
         using var writer = CreateWriter();
         var header = writer.Header;

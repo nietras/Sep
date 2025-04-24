@@ -45,6 +45,20 @@ public sealed class SepWriterHeader
         _writer.AddCol(colName);
     }
 
+    public bool TryAdd(string colName)
+    {
+        if (_writer._headerWrittenOrSkipped)
+        {
+            return false;
+        }
+        if (_writer._colNameToCol.ContainsKey(colName))
+        {
+            return false;
+        }
+        _writer.AddCol(colName);
+        return true;
+    }
+
     public void Write() => _writer.WriteHeader();
     public ValueTask WriteAsync(CancellationToken cancellationToken = default) =>
         _writer.WriteHeaderAsync(cancellationToken);

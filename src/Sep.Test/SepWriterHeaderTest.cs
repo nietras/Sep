@@ -181,6 +181,17 @@ public class SepWriterHeaderTest
 
         Assert.IsFalse(header.TryAdd("A"));
     }
+    
+    [TestMethod]
+    public void SepWriterHeaderTest_TryAdd_After_Written_Is_False()
+    {
+        using var writer = CreateWriter();
+        var header = writer.Header;
+        header.Add("A");
+        header.Write();
+        
+        Assert.IsFalse(header.TryAdd("B"));
+    }
 
     [TestMethod]
     public void SepWriterHeaderTest_Add_After_Written_Throws()

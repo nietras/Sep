@@ -2495,6 +2495,7 @@ namespace nietras.SeparatedValues
         public void Add([System.Runtime.CompilerServices.ParamCollection] [System.Runtime.CompilerServices.ScopedRef] System.ReadOnlySpan<string> colNames) { }
         public void Add(string colName) { }
         public void Add(string[] colNames) { }
+        public bool TryAdd(string colName) { }
         public void Write() { }
         public System.Threading.Tasks.ValueTask WriteAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }

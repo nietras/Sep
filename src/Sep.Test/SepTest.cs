@@ -77,7 +77,7 @@ public class SepTest
     public void SepTest_Separator_LessThanMin_Throws()
     {
         var separator = (char)(Sep.Min.Separator - 1);
-        var expectedMessage = "'\u001f':31 is not supported. Must be inside [32..126]. (Parameter 'separator')";
+        var expectedMessage = "'\u001e':30 is not supported. Must be inside [31..126]. (Parameter 'separator')";
         AssertSeparatorThrows<ArgumentOutOfRangeException>(separator, expectedMessage);
     }
 
@@ -85,7 +85,7 @@ public class SepTest
     public void SepTest_Separator_GreaterThanMax_Throws()
     {
         var separator = (char)(Sep.Max.Separator + 1);
-        var expectedMessage = "'\u007f':127 is not supported. Must be inside [32..126]. (Parameter 'separator')";
+        var expectedMessage = "'\u007f':127 is not supported. Must be inside [31..126]. (Parameter 'separator')";
         AssertSeparatorThrows<ArgumentOutOfRangeException>(separator, expectedMessage);
     }
 
@@ -93,7 +93,7 @@ public class SepTest
     public void SepTest_Separator_LineFeed_Throws()
     {
         var separator = '\n';
-        var expectedMessage = "'\n':10 is not supported. Must be inside [32..126]. (Parameter 'separator')";
+        var expectedMessage = "'\n':10 is not supported. Must be inside [31..126]. (Parameter 'separator')";
         AssertSeparatorThrows<ArgumentOutOfRangeException>(separator, expectedMessage);
     }
 
@@ -101,7 +101,7 @@ public class SepTest
     public void SepTest_Separator_CarriageReturn_Throws()
     {
         var separator = '\r';
-        var expectedMessage = "'\r':13 is not supported. Must be inside [32..126]. (Parameter 'separator')";
+        var expectedMessage = "'\r':13 is not supported. Must be inside [31..126]. (Parameter 'separator')";
         AssertSeparatorThrows<ArgumentOutOfRangeException>(separator, expectedMessage);
     }
 

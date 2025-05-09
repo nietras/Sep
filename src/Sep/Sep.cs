@@ -5,7 +5,7 @@ namespace nietras.SeparatedValues;
 
 public readonly record struct Sep
 {
-    const char _min = (char)32;
+    const char _min = (char)31;
     const char _max = (char)126;
 
     readonly char _separator;

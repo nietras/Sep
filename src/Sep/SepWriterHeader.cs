@@ -59,6 +59,11 @@ public sealed class SepWriterHeader
         return true;
     }
 
+    public bool Contains(string colName)
+    {
+        return _writer._colNameToCol.ContainsKey(colName);
+    }
+
     public void Write() => _writer.WriteHeader();
     public ValueTask WriteAsync(CancellationToken cancellationToken = default) =>
         _writer.WriteHeaderAsync(cancellationToken);

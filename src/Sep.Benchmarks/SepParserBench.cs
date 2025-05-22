@@ -35,6 +35,8 @@ public class SepParserBench
     public SepParserBench()
     {
 #pragma warning disable CA1307 // Specify StringComparison for clarity
+        // SepParserSve will be included here automatically if Sve.IsSupported is true,
+        // as it's part of SepParserFactory.AcceleratedFactories.
         _parsers = SepParserFactory.AcceleratedFactories.Select(p =>
             new ParserSpec(p.Key.Replace("SepParser", "").Replace("SepParserVector", ""), sep => p.Value(new(sep)))).ToArray();
 #pragma warning restore CA1307 // Specify StringComparison for clarity

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace nietras.SeparatedValues;
@@ -52,9 +53,11 @@ static class SepParserFactory
 #endif
         // Avx2 and Vector256 are faster than most AVX-512 due to mask register code gen issues
         if (Avx2.IsSupported)
-        { Add(parsers, nameof(SepParserAvx2PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep)); }
+        { Add(parsers, nameof(SepParserAvx2PackCmpOrMoveMaskTzcnt), static options => new SepParserAvx2PackCmpOrMoveMaskTzcnt(options)); }
+        if (Sve.IsSupported) // Add SVE check here
+        { Add(parsers, nameof(SepParserSve), static options => new SepParserSve(options)); }
         if (createUnaccelerated || Vector256.IsHardwareAccelerated)
-        { Add(parsers, nameof(SepParserVector256NrwCmpExtMsbTzcnt), static sep => new SepParserVector256NrwCmpExtMsbTzcnt(sep)); }
+        { Add(parsers, nameof(SepParserVector256NrwCmpExtMsbTzcnt), static options => new SepParserVector256NrwCmpExtMsbTzcnt(options)); }
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
@@ -76,6 +79,6 @@ static class SepParserFactory
         where TParser : ISepParser
         where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
-        parsers.Add(new(name, sep => create(sep)));
+        parsers.Add(new(name, options => create(options)));
     }
 }

@@ -366,4 +366,67 @@ public class SepParserTest
             Assert.AreEqual(e, a, $"{i:D2}: {e} != {a}");
         }
     }
+
+    // --- Tests for SepParserSve (expected to fail initially) ---
+
+    private ISepParser? GetSveParserForced()
+    {
+        var originalForceParser = Environment.GetEnvironmentVariable(SepParserFactory.SepForceParserEnvName);
+        Environment.SetEnvironmentVariable(SepParserFactory.SepForceParserEnvName, "SepParserSve");
+        try
+        {
+            var parser = SepParserFactory.CreateBest(new(Sep.Default));
+            if (parser.GetType().Name == "SepParserSve")
+            {
+                return parser;
+            }
+            // If SVE is not supported or the factory doesn't return it, we can't test it.
+            // Return null to indicate this, and the test method should handle it (e.g., Assert.Inconclusive).
+            return null; 
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(SepParserFactory.SepForceParserEnvName, originalForceParser);
+        }
+    }
+
+    [TestMethod]
+    public void SepParserTest_Sve_ParseColEnds_ThrowsNotImplemented()
+    {
+        var parser = GetSveParserForced();
+        if (parser is null) { Assert.Inconclusive("SVE Parser not available or not forced."); return; }
+
+        _state._charsDataEnd = FillChars("a;b\nc;d\n");
+        _state._parsingLineNumber = 1;
+        Assert.ThrowsException<NotImplementedException>(() => parser.ParseColEnds(_state));
+    }
+
+    [TestMethod]
+    public void SepParserTest_Sve_ParseColInfos_ThrowsNotImplemented()
+    {
+        var parser = GetSveParserForced();
+        if (parser is null) { Assert.Inconclusive("SVE Parser not available or not forced."); return; }
+
+        _stateUnescape._charsDataEnd = FillChars("\"a\";\"b\"\n\"c\";\"d\"\n");
+        _stateUnescape._parsingLineNumber = 1;
+        Assert.ThrowsException<NotImplementedException>(() => parser.ParseColInfos(_stateUnescape));
+    }
+
+    [TestMethod]
+    public void SepParserTest_Sve_PaddingLength_ThrowsNotImplemented()
+    {
+        var parser = GetSveParserForced();
+        if (parser is null) { Assert.Inconclusive("SVE Parser not available or not forced."); return; }
+
+        Assert.ThrowsException<NotImplementedException>(() => parser.PaddingLength);
+    }
+
+    [TestMethod]
+    public void SepParserTest_Sve_QuoteCount_ThrowsNotImplemented()
+    {
+        var parser = GetSveParserForced();
+        if (parser is null) { Assert.Inconclusive("SVE Parser not available or not forced."); return; }
+
+        Assert.ThrowsException<NotImplementedException>(() => parser.QuoteCount);
+    }
 }

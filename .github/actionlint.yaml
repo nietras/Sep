@@ -1,3 +1,7 @@
+self-hosted-runner:
+  labels:
+    - windows-11-arm # not self-hosted but actionlint fails on it
+
 # Path-specific configurations.
 paths:
   # Glob pattern relative to the repository root for matching files. The path separator is always '/'.

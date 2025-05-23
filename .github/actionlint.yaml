@@ -1,6 +1,6 @@
 self-hosted-runner:
   labels:
-    - windows-11-arm # not self-hosted but actionlint fails on it
+    - windows-11-arm # not self-hosted but actionlint fails on it DOESN'T WORK
 
 # Path-specific configurations.
 paths:

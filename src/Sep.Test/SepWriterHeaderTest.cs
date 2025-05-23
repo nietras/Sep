@@ -218,6 +218,23 @@ public class SepWriterHeaderTest
     }
 
     [TestMethod]
+    public void SepWriterHeaderTest_Contains()
+    {
+        using var writer = CreateWriter();
+        var header = writer.Header;
+
+        Assert.IsFalse(header.Contains("A"));
+
+        header.Add("A");
+        Assert.IsTrue(header.Contains("A"));
+        Assert.IsFalse(header.Contains("B"));
+
+        header.Add("B");
+        Assert.IsTrue(header.Contains("B"));
+        Assert.IsTrue(header.Contains("A"));
+    }
+
+    [TestMethod]
     public void SepWriterHeaderTest_DebugView()
     {
         using var writer = CreateWriter();

@@ -36,6 +36,7 @@ jobs:
       - name: Super-linter
         uses: super-linter/super-linter@12150456a73e248bdc94d0794898f94e23127c88 # v7.4.0
         env:
+          VALIDATE_GITHUB_ACTIONS: false
           # format not working, checked during build instead
           VALIDATE_CSHARP: false
           VALIDATE_DOTNET_SLN_FORMAT_ANALYZERS: false

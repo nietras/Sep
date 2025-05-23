@@ -1,0 +1,3 @@
+runner:
+  allow:
+    - windows-11-arm

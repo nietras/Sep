@@ -24,7 +24,14 @@ jobs:
   build-and-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          [
+            ubuntu-latest,
+            windows-latest,
+            macos-latest,
+            windows-11-arm,
+            ubuntu-24.04-arm,
+          ]
         configuration: [Debug, Release]
 
     runs-on: ${{ matrix.os }}
@@ -86,7 +93,14 @@ jobs:
   test-parsers:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os:
+          [
+            ubuntu-latest,
+            windows-latest,
+            macos-latest,
+            windows-11-arm,
+            ubuntu-24.04-arm,
+          ]
 
     runs-on: ${{ matrix.os }}
 

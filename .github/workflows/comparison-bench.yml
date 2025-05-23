@@ -5,6 +5,11 @@ permissions: read-all
 # configure manual trigger
 on:
   workflow_dispatch:
+    inputs:
+      filter:
+        description: "BenchmarkDotNet filter"
+        required: false
+        default: "*"
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -16,7 +21,14 @@ jobs:
     strategy:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os:
+          [
+            windows-latest,
+            ubuntu-latest,
+            macos-latest,
+            windows-11-arm,
+            ubuntu-24.04-arm,
+          ]
         configuration: [Release]
 
     runs-on: ${{ matrix.os }}
@@ -36,7 +48,7 @@ jobs:
           global-json-file: global.json
       - name: Comparison Bench
         shell: pwsh
-        run: ./comparison-bench.ps1
+        run: '& ./comparison-bench.ps1 -filter "${{ github.event.inputs.filter }}"'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: benchmarks-${{ matrix.os }}

@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       filter:
-        description: 'BenchmarkDotNet filter'
+        description: "BenchmarkDotNet filter"
         required: false
-        default: '*'
+        default: "*"
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -21,7 +21,14 @@ jobs:
     strategy:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        os: [windows-latest, ubuntu-latest, macos-latest, windows-11-arm, ubuntu-24.04-arm]
+        os:
+          [
+            windows-latest,
+            ubuntu-latest,
+            macos-latest,
+            windows-11-arm,
+            ubuntu-24.04-arm,
+          ]
         configuration: [Release]
 
     runs-on: ${{ matrix.os }}

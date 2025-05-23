@@ -24,6 +24,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{32021D88-4
 		bench.ps1 = bench.ps1
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		comparison-bench.ps1 = comparison-bench.ps1
+		disasm-tester.ps1 = disasm-tester.ps1
 		global.json = global.json
 		Icon.png = Icon.png
 		nuget.config = nuget.config

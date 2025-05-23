@@ -43,7 +43,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sep.ComparisonBenchmarks", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ci", "ci", "{655261D2-06EE-4553-9EE2-ABBF5ED83AD4}"
 	ProjectSection(SolutionItems) = preProject
-		.github\actionlint.yaml = .github\actionlint.yaml
 		.github\workflows\bench.yml = .github\workflows\bench.yml
 		.github\workflows\comparison-bench.yml = .github\workflows\comparison-bench.yml
 		.github\dependabot.yml = .github\dependabot.yml

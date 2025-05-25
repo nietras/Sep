@@ -11,7 +11,9 @@
   <PropertyGroup>
     <!-- Reduce size of Native AOT generated executable
          https://github.com/dotnet/corert/blob/master/Documentation/using-corert/optimizing-corert.md 
-         https://github.com/dotnet/runtimelab/issues/1269 ([NativeAOT] Best way to track down app size bloat?) -->
+         https://github.com/dotnet/runtimelab/issues/1269 ([NativeAOT] Best way to track down app size bloat?) 
+         https://github.com/dotnet/runtime/blob/main/src/coreclr/nativeaot/docs/optimizing.md (IlcInstructionSet, IlcMaxVectorTBitWidth)
+     -->
     <IlcInvariantGlobalization>true</IlcInvariantGlobalization>
     <IlcDisableReflection>true</IlcDisableReflection>
     <IlcGenerateMstatFile>true</IlcGenerateMstatFile>

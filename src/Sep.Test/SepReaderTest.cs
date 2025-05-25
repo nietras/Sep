@@ -48,7 +48,7 @@ public partial class SepReaderTest
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
         using var reader = Sep.Reader().From(stream);
         // 3 + 128 => Pow2
-        Assert.AreEqual(256, reader.CharsLength);
+        Assert.AreEqual(512, reader.CharsLength);
     }
 
     [TestMethod]

@@ -20,7 +20,7 @@ namespace nietras.SeparatedValues;
 // https://lemire.me/blog/2017/07/10/pruning-spaces-faster-on-arm-processors-with-vector-table-lookups/
 // https://community.arm.com/arm-community-blogs/b/servers-and-cloud-computing-blog/posts/porting-x86-vector-bitmask-optimizations-to-arm-neon
 // https://developer.arm.com/architectures/instruction-sets/intrinsics
-sealed class SepParserAdvSimdX8NrwCmpOrMoveMaskTzcnt : ISepParser
+sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 {
     static readonly int LoopCount = VecUI8.Count * 4;
     readonly char _separator;
@@ -31,7 +31,7 @@ sealed class SepParserAdvSimdX8NrwCmpOrMoveMaskTzcnt : ISepParser
 
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAdvSimdX8NrwCmpOrMoveMaskTzcnt(SepParserOptions options)
+    public unsafe SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);

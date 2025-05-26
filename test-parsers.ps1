@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 Try {
     $parsers = @(
-        "SepParserAdvSimdX8NrwCmpOrMoveMaskTzcnt",
+        "SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt",
         "SepParserAvx512To256CmpOrMoveMaskTzcnt",
         "SepParserAvx512PackCmpOrMoveMaskTzcnt",
         "SepParserAvx2PackCmpOrMoveMaskTzcnt",

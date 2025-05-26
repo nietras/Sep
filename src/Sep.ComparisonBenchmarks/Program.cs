@@ -64,8 +64,8 @@ if (args.Length > 0)
 
     var nameToBenchTypesSet = new Dictionary<string, Type[]>()
     {
-        { nameof(PackageAssetsBench) + "-GcServer", new[] { typeof(GcServerAssetPackageAssetsBench), typeof(GcServerLongAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench) + "-Parsers", new[] { typeof(ParsersRowPackageAssetsBench), } },
+        { nameof(PackageAssetsBench) + "-GcServer", new[] { typeof(GcServerAssetPackageAssetsBench), typeof(GcServerLongAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench) + "Quotes" + "-GcServer", new[] { typeof(GcServerQuotesAssetPackageAssetsBench), typeof(GcServerLongQuotesAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench), new[] { typeof(RowPackageAssetsBench), typeof(ColsPackageAssetsBench), typeof(AssetPackageAssetsBench), typeof(LongAssetPackageAssetsBench), } },
         { nameof(PackageAssetsBench) + "Quotes", new[] { typeof(QuotesRowPackageAssetsBench), typeof(QuotesColsPackageAssetsBench), typeof(QuotesAssetPackageAssetsBench), typeof(LongQuotesAssetPackageAssetsBench), } },

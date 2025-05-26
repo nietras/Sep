@@ -54,14 +54,10 @@ public class SepParserTest
 
         static Type GetBestExpectedType()
         {
-#if NET8_0_OR_GREATER
             if (Environment.Is64BitProcess && Avx512BW.IsSupported)
-            { return typeof(SepParserAvx512To256CmpOrMoveMaskTzcnt); }
-            if (Avx512BW.IsSupported)
             { return typeof(SepParserAvx512To256CmpOrMoveMaskTzcnt); }
             if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
             { return typeof(SepParserVector512NrwCmpExtMsbTzcnt); }
-#endif
             if (Avx2.IsSupported) { return typeof(SepParserAvx2PackCmpOrMoveMaskTzcnt); }
             if (Sse2.IsSupported) { return typeof(SepParserSse2PackCmpOrMoveMaskTzcnt); }
             if (Environment.Is64BitProcess && AdvSimd.Arm64.IsSupported) { return typeof(SepParserAdvSimdX8NrwCmpOrMoveMaskTzcnt); }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -268,6 +269,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     }
 
     // PORT DOES NOT WORK
+    [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static nuint MoveMaskBitwiseSelect(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
     {
@@ -319,14 +321,17 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     }
 
     // MoveMask remains the same, using the cross-platform intrinsic
+    [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     //static nuint MoveMask(VecUI8 v) => AdvSimd.Arm64.IsSupported ? MoveMaskAddAcross(v) : v.ExtractMostSignificantBits();
     internal static nuint MoveMask(VecUI8 v) => v.ExtractMostSignificantBits();
 
+    [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static byte PopCount(VecUI8 v) => AdvSimd.Arm64.AddAcross(Vec.ShiftRightLogical(v, 7)).ToScalar();
 
     // Assumes all bits set, not just MSB - APPEARS NOT TO BE WORKING
+    [ExcludeFromCodeCoverage]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ushort MoveMaskAddAcross(VecUI8 v)
     {

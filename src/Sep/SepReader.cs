@@ -57,36 +57,32 @@ public sealed partial class SepReader : SepReaderState
             ? decimalSeparator[0]
             : '\0';
 
-        var guessPaddingLength = 128;
         int? maybeReaderLengthEstimate = TryGetTextReaderLength(_reader, out var longReaderLength)
             // TextReader length can be greater than int.MaxValue so have to
             // constrain it to avoid overflow.
             ? (int)Math.Min(longReaderLength, int.MaxValue) : null;
-        var initialBufferLength = options.InitialBufferLength;
-        var bufferLength = maybeReaderLengthEstimate.HasValue
-            ? ((maybeReaderLengthEstimate.Value < initialBufferLength)
-               ? (maybeReaderLengthEstimate.Value + guessPaddingLength) : initialBufferLength)
-            : initialBufferLength;
-
-        _chars = ArrayPool<char>.Shared.Rent(bufferLength);
 
         var sep = options.Sep;
         if (sep.HasValue)
         {
             _parser = SepParserFactory.CreateBest(new(sep.Value, _disableQuotesParsing));
             _charsPaddingLength = _parser.PaddingLength;
-            _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
             _separator = sep.Value.Separator;
         }
         else
         {
-            _charsPaddingLength = 64;
-            _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
+            _charsPaddingLength = SepParserFactory.MaxPaddingLength;
         }
 
-        var paddingLength = _parser?.PaddingLength ?? 64;
+        var initialBufferLength = Math.Max(options.InitialBufferLength, _charsPaddingLength);
+        var bufferLength = maybeReaderLengthEstimate.HasValue
+            ? ((maybeReaderLengthEstimate.Value < initialBufferLength)
+               ? (maybeReaderLengthEstimate.Value + _charsPaddingLength) : initialBufferLength)
+            : initialBufferLength;
 
-        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
+        _chars = ArrayPool<char>.Shared.Rent(bufferLength);
+        _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
+        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, _charsPaddingLength * 2));
     }
 
     public bool IsEmpty { get; private set; }

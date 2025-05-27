@@ -144,7 +144,8 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
             var specialChars3 = AdvSimd.Or(lineEndingsSeparators3, qtsEq3);
 
             // Optimize for the case of no special character
-            var specialCharMask = MoveMask(specialChars0, specialChars1, specialChars2, specialChars3);
+            var specialCharMask = MoveMask(specialChars0, specialChars1,
+                                           specialChars2, specialChars3);
             if (specialCharMask != 0u)
             {
                 var separatorsMask = MoveMask(spsEq0, spsEq1, spsEq2, spsEq3);
@@ -158,7 +159,9 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators0, lineEndingsSeparators1, lineEndingsSeparators2, lineEndingsSeparators3);
+                    var separatorLineEndingsMask = MoveMask(
+                        lineEndingsSeparators0, lineEndingsSeparators1,
+                        lineEndingsSeparators2, lineEndingsSeparators3);
                     if (separatorLineEndingsMask == testMask)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
@@ -222,8 +225,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 
         var r0 = AdvSimd.ExtractNarrowingSaturateLower(v0);
         var r1 = AdvSimd.ExtractNarrowingSaturateUpper(r0, v1);
-        var bytes = r1;
-        return bytes;
+        return r1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -55,3 +55,13 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           path: ${{ env.BenchmarksDirectory }}
+
+      - name: Create Pull Request with Benchmark Results
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(benchmarks): update benchmark reports for ${{ matrix.os }}"
+          title: "Update benchmark reports for ${{ matrix.os }}"
+          body: ""
+          branch: "benchmarks/update-${{ matrix.os }}"
+          add-paths: |
+            benchmarks/**

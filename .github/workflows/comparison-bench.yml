@@ -59,6 +59,7 @@ jobs:
           path: ${{ env.BenchmarksDirectory }}
 
       - name: Create Pull Request with Benchmark Results
+        if: github.repository == 'nietras/Sep' && github.actor == 'nietras'
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "chore(benchmarks): update benchmark reports for ${{ matrix.os }}"

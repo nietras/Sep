@@ -22,7 +22,7 @@ jobs:
   build:
     strategy:
       matrix:
-        # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+        configuration: [Release]
         include:
           - os: windows-latest
             cpu: "AMD.EPYC.7763"
@@ -34,7 +34,6 @@ jobs:
             cpu: "Cobalt.100"
           - os: ubuntu-24.04-arm
             cpu: "Cobalt.100"
-        configuration: [Release]
 
     runs-on: ${{ matrix.os }}
 

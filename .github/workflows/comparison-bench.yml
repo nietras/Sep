@@ -4,7 +4,6 @@ permissions:
   contents: write
   pull-requests: write
 
-# configure manual trigger
 on:
   workflow_dispatch:
     inputs:
@@ -23,7 +22,7 @@ jobs:
     strategy:
       matrix:
         configuration: [Release]
-        include:
+        config:
           - os: windows-latest
             cpu: "AMD.EPYC.7763"
           - os: ubuntu-latest
@@ -35,7 +34,7 @@ jobs:
           - os: ubuntu-24.04-arm
             cpu: "Cobalt.100"
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.config.os }}
 
     steps:
       - name: Harden Runner
@@ -55,7 +54,7 @@ jobs:
         run: '& ./comparison-bench.ps1 -filter "${{ github.event.inputs.filter }}"'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: benchmarks-${{ matrix.os }}
+          name: benchmarks-${{ matrix.config.os }}
           if-no-files-found: error
           retention-days: 7
           path: ${{ env.BenchmarksDirectory }}
@@ -64,9 +63,9 @@ jobs:
         if: github.repository == 'nietras/Sep' && github.actor == 'nietras'
         uses: peter-evans/create-pull-request@v6
         with:
-          commit-message: "Update ${{ matrix.cpu}} benchmarks for runner ${{ matrix.os}}"
-          title: "Update ${{ matrix.cpu}} benchmarks for runner ${{ matrix.os}}"
+          commit-message: "Update ${{ matrix.config.cpu}} benchmarks for runner ${{ matrix.config.os}}"
+          title: "Update ${{ matrix.config.cpu}} benchmarks for runner ${{ matrix.config.os}}"
           body: ""
-          branch: "benchmarks/update-${{ matrix.os }}"
+          branch: "benchmarks/update-${{ matrix.config.os }}"
           add-paths: |
             benchmarks/**

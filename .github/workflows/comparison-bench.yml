@@ -23,14 +23,17 @@ jobs:
     strategy:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
-        os:
-          [
-            windows-latest,
-            ubuntu-latest,
-            macos-latest,
-            windows-11-arm,
-            ubuntu-24.04-arm,
-          ]
+        include:
+          - os: windows-latest
+            cpu: "AMD.EPYC.7763"
+          - os: ubuntu-latest
+            cpu: "AMD.EPYC.7763"
+          - os: macos-latest
+            cpu: "Apple.M1.(Virtual)"
+          - os: windows-11-arm
+            cpu: "Cobalt.100"
+          - os: ubuntu-24.04-arm
+            cpu: "Cobalt.100"
         configuration: [Release]
 
     runs-on: ${{ matrix.os }}
@@ -62,8 +65,8 @@ jobs:
         if: github.repository == 'nietras/Sep' && github.actor == 'nietras'
         uses: peter-evans/create-pull-request@v6
         with:
-          commit-message: "chore(benchmarks): update benchmark reports for ${{ matrix.os }}"
-          title: "Update benchmark reports for ${{ matrix.os }}"
+          commit-message: "Update ${{ matrix.cpu}} benchmarks for runner ${{ matrix.os}}"
+          title: "Update ${{ matrix.cpu}} benchmarks for runner ${{ matrix.os}}"
           body: ""
           branch: "benchmarks/update-${{ matrix.os }}"
           add-paths: |

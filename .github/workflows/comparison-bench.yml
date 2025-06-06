@@ -1,6 +1,8 @@
 name: comparison-bench
 
-permissions: read-all
+permissions:
+  contents: write
+  pull-requests: write
 
 # configure manual trigger
 on:

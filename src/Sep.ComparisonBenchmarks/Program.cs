@@ -19,10 +19,10 @@ using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using nietras.SeparatedValues.ComparisonBenchmarks;
+using Perfolizer.Helpers;
 #if USEMANUALCONFIG
 using BenchmarkDotNet.Jobs;
 using Perfolizer.Horology;
-using Perfolizer.Helpers;
 #endif
 
 

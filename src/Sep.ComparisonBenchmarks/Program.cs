@@ -13,7 +13,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Parameters;
@@ -23,6 +22,7 @@ using nietras.SeparatedValues.ComparisonBenchmarks;
 #if USEMANUALCONFIG
 using BenchmarkDotNet.Jobs;
 using Perfolizer.Horology;
+using Perfolizer.Helpers;
 #endif
 
 
@@ -77,8 +77,8 @@ if (args.Length > 0)
         var summaries = BenchmarkRunner.Run(benchTypes, config, args);
         foreach (var s in summaries)
         {
-            var cpuInfo = s.HostEnvironmentInfo.CpuInfo.Value;
-            var processorName = ProcessorBrandStringHelper.Prettify(cpuInfo);
+            var cpuInfo = s.HostEnvironmentInfo.Cpu.Value;
+            var processorName = CpuBrandHelper.ToShortBrandName(cpuInfo);
             var processorNameInDirectory = processorName
                 .Replace(" Processor", "").Replace(" CPU", "")
                 .Replace(" ", ".").Replace("/", "").Replace("\\", "")

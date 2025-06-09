@@ -61,7 +61,7 @@ jobs:
 
       - name: Create Pull Request with Benchmark Results
         if: github.repository == 'nietras/Sep' && github.actor == 'nietras' && matrix.config.os != 'windows-latest' && matrix.config.os != 'ubuntu-24.04-arm'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "Update ${{ matrix.config.cpu}} benchmarks for runner ${{ matrix.config.os}}"
           title: "Update ${{ matrix.config.cpu}} benchmarks for runner ${{ matrix.config.os}}"

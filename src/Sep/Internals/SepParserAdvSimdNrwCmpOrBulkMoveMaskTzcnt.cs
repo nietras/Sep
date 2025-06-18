@@ -229,7 +229,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static nuint MoveMask(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
+    internal static nuint MoveMask2(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
     {
         // Combine with shifting to pack into one vector
         var t0 = AdvSimd.ShiftRightAndInsert(p1, p0, 1); // vsriq_n_u8(p1, p0, 1)
@@ -257,6 +257,45 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
             uint8x16_t t3 = vsriq_n_u8(t2, t2, 4);
             uint8x8_t t4 = vshrn_n_u16(vreinterpretq_u16_u8(t3), 4);
             return vget_lane_u64(vreinterpret_u64_u8(t4), 0);
+        }
+        */
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static nuint MoveMask(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
+    {
+        // Results in ldr from address, seems no way to do this via immediate,
+        // and enregistering it at top of loop may not be faster.
+        var bitmask = Vec.Create(
+            0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80,
+            0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
+        );
+
+        var t0 = AdvSimd.And(p0, bitmask);
+        var t1 = AdvSimd.And(p1, bitmask);
+        var t2 = AdvSimd.And(p2, bitmask);
+        var t3 = AdvSimd.And(p3, bitmask);
+
+        var sum0 = AdvSimd.Arm64.AddPairwise(t0, t1);
+        var sum1 = AdvSimd.Arm64.AddPairwise(t2, t3);
+        sum0 = AdvSimd.Arm64.AddPairwise(sum0, sum1);
+        sum0 = AdvSimd.Arm64.AddPairwise(sum0, sum0);
+
+        return (nuint)sum0.AsUInt64().GetElement(0);
+        /*
+        uint64_t neonmovemask_bulk(uint8x16_t p0, uint8x16_t p1, uint8x16_t p2, uint8x16_t p3)
+        {
+            const uint8x16_t bitmask = { 0x01, 0x02, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80,
+                                         0x01, 0x02, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80};
+            uint8x16_t t0 = vandq_u8(p0, bitmask);
+            uint8x16_t t1 = vandq_u8(p1, bitmask);
+            uint8x16_t t2 = vandq_u8(p2, bitmask);
+            uint8x16_t t3 = vandq_u8(p3, bitmask);
+            uint8x16_t sum0 = vpaddq_u8(t0, t1);
+            uint8x16_t sum1 = vpaddq_u8(t2, t3);
+            sum0 = vpaddq_u8(sum0, sum1);
+            sum0 = vpaddq_u8(sum0, sum0);
+            return vgetq_lane_u64(vreinterpretq_u64_u8(sum0), 0);
         }
         */
     }

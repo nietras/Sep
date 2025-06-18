@@ -232,9 +232,9 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     internal static nuint MoveMask2(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
     {
         // Combine with shifting to pack into one vector
-        var t0 = AdvSimd.ShiftRightAndInsert(p1, p0, 1); // vsriq_n_u8(p1, p0, 1)
-        var t1 = AdvSimd.ShiftRightAndInsert(p3, p2, 1); // vsriq_n_u8(p3, p2, 1)
-        var t2 = AdvSimd.ShiftRightAndInsert(t1, t0, 2); // vsriq_n_u8(t1, t0, 2)
+        var t0 = AdvSimd.ShiftRightAndInsert(p0, p1, 1); // vsriq_n_u8(p1, p0, 1)
+        var t1 = AdvSimd.ShiftRightAndInsert(p2, p3, 1); // vsriq_n_u8(p3, p2, 1)
+        var t2 = AdvSimd.ShiftRightAndInsert(t0, t1, 2); // vsriq_n_u8(t1, t0, 2)
         var t3 = AdvSimd.ShiftRightAndInsert(t2, t2, 4); // vsriq_n_u8(t2, t2, 4)
 
         // Narrow to 8 bytes (shift right by 4 bits each 16-bit lane, then take lower half)

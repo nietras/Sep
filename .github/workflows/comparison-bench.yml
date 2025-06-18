@@ -11,6 +11,11 @@ on:
         description: "BenchmarkDotNet filter"
         required: false
         default: "*"
+      createPullRequest:
+        description: "Create Pull Request"
+        required: false
+        default: false
+        type: boolean
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -60,7 +65,7 @@ jobs:
           path: ${{ env.BenchmarksDirectory }}
 
       - name: Create Pull Request with Benchmark Results
-        if: github.repository == 'nietras/Sep' && github.actor == 'nietras' && matrix.config.os != 'windows-latest' && matrix.config.os != 'ubuntu-24.04-arm'
+        if: github.event.inputs.createPullRequest == 'true' && github.repository == 'nietras/Sep' && github.actor == 'nietras' && matrix.config.os != 'windows-latest' && matrix.config.os != 'ubuntu-24.04-arm'
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
           commit-message: "Update ${{ matrix.config.cpu}} benchmarks for runner ${{ matrix.config.os}}"

@@ -16,10 +16,10 @@ public class SepParsersTest
     {
         byte L = 0;
         byte H = 255;
-        var p0 = Vector128.Create(H, L, H, L, H, L, H, L, H, L, H, L, H, L, H, L);
-        var p1 = Vector128.Create(H, L, L, L, H, L, L, L, H, L, L, L, H, L, L, L);
-        var p2 = Vector128.Create(L, H, L, H, L, H, L, H, L, H, L, H, L, H, L, H);
-        var p3 = Vector128.Create(H, H, H, H, H, H, H, H, H, H, H, H, H, H, H, H);
+        var p0 = Vector128.Create(H, L, H, H, L, H, H, H, L, H, H, H, H, L, H, H);
+        var p1 = Vector128.Create(H, H, H, L, H, H, H, H, H, H, L, H, H, H, H, H);
+        var p2 = Vector128.Create(H, H, L, H, H, H, H, H, H, H, H, H, L, H, H, H);
+        var p3 = Vector128.Create(H, H, H, H, H, H, L, H, H, H, H, H, H, H, H, L);
         if (AdvSimd.Arm64.IsSupported)
         {
             var m0 = SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt.MoveMask(p0, p1, p2, p3);

@@ -38,13 +38,36 @@ public class SepParsersTest
             if (m0 != m1)
             {
                 Assert.Fail($"{ToBitString(m0)} != {ToBitString(m1)} {m0} != {m1}\n" +
-                            $"p0: {p0}\np1: {p1}\np2: {p2}\np3: {p3}\n" +
-                            $"t0: {t0}\nt1: {t1}\nt2: {t2}\nt3: {t3}\n" +
-                            $"t4: {t4}\n"
+                            $"p0: {ToBitString(p0)}\np1: {ToBitString(p1)}\np2: {ToBitString(p2)}\np3: {ToBitString(p3)}\n" +
+                            $"t0: {ToBitString(t0)}\nt1: {ToBitString(t1)}\nt2: {ToBitString(t2)}\nt3: {ToBitString(t3)}\n" +
+                            $"t4: {ToBitString(t4.AsByte())}\n"
                             );
             }
         }
-        static string ToBitString(ulong value) => Convert.ToString(unchecked((long)value), 2).PadLeft(64, '0');
+    }
+
+    static string ToBitString(ulong value) => Convert.ToString(unchecked((long)value), 2).PadLeft(64, '0');
+
+    static string ToBitString(Vector128<byte> v)
+    {
+        var s = "";
+        for (var i = 0; i < Vector128<byte>.Count; ++i)
+        {
+            s += Convert.ToString(v[i], 2).PadLeft(8, '0');
+            s += "-";
+        }
+        return s;
+    }
+
+    static string ToBitString(Vector64<byte> v)
+    {
+        var s = "";
+        for (var i = 0; i < Vector64<byte>.Count; ++i)
+        {
+            s += Convert.ToString(v[i], 2).PadLeft(8, '0');
+            s += "-";
+        }
+        return s;
     }
 #endif
 }

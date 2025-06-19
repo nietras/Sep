@@ -57,7 +57,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    unsafe void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
@@ -106,107 +106,126 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-            var bytes0 = ReadNarrow(ref charsRef);
-            var bytes1 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 1));
-            var bytes2 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 2));
-            var bytes3 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 3));
-
-            var nlsEq0 = AdvSimd.CompareEqual(bytes0, nls);
-            var crsEq0 = AdvSimd.CompareEqual(bytes0, crs);
-            var qtsEq0 = AdvSimd.CompareEqual(bytes0, qts);
-            var spsEq0 = AdvSimd.CompareEqual(bytes0, sps);
-            var lineEndings0 = AdvSimd.Or(nlsEq0, crsEq0);
-            var lineEndingsSeparators0 = AdvSimd.Or(spsEq0, lineEndings0);
-            var specialChars0 = AdvSimd.Or(lineEndingsSeparators0, qtsEq0);
-
-            var nlsEq1 = AdvSimd.CompareEqual(bytes1, nls);
-            var crsEq1 = AdvSimd.CompareEqual(bytes1, crs);
-            var qtsEq1 = AdvSimd.CompareEqual(bytes1, qts);
-            var spsEq1 = AdvSimd.CompareEqual(bytes1, sps);
-            var lineEndings1 = AdvSimd.Or(nlsEq1, crsEq1);
-            var lineEndingsSeparators1 = AdvSimd.Or(spsEq1, lineEndings1);
-            var specialChars1 = AdvSimd.Or(lineEndingsSeparators1, qtsEq1);
-
-            var nlsEq2 = AdvSimd.CompareEqual(bytes2, nls);
-            var crsEq2 = AdvSimd.CompareEqual(bytes2, crs);
-            var qtsEq2 = AdvSimd.CompareEqual(bytes2, qts);
-            var spsEq2 = AdvSimd.CompareEqual(bytes2, sps);
-            var lineEndings2 = AdvSimd.Or(nlsEq2, crsEq2);
-            var lineEndingsSeparators2 = AdvSimd.Or(spsEq2, lineEndings2);
-            var specialChars2 = AdvSimd.Or(lineEndingsSeparators2, qtsEq2);
-
-            var nlsEq3 = AdvSimd.CompareEqual(bytes3, nls);
-            var crsEq3 = AdvSimd.CompareEqual(bytes3, crs);
-            var qtsEq3 = AdvSimd.CompareEqual(bytes3, qts);
-            var spsEq3 = AdvSimd.CompareEqual(bytes3, sps);
-            var lineEndings3 = AdvSimd.Or(nlsEq3, crsEq3);
-            var lineEndingsSeparators3 = AdvSimd.Or(spsEq3, lineEndings3);
-            var specialChars3 = AdvSimd.Or(lineEndingsSeparators3, qtsEq3);
-
-            // Optimize for the case of no special character
-            var specialCharMask = MoveMask(specialChars0, specialChars1,
-                                           specialChars2, specialChars3);
-            if (specialCharMask != 0u)
+#if NET9_0_OR_GREATER
+            fixed (char* charsPtr = &charsRef)
             {
-                var separatorsMask = MoveMask(spsEq0, spsEq1, spsEq2, spsEq3);
-                // Optimize for case of only separators i.e. no endings or quotes.
-                // Add quote count to mask as hack to skip if quoting.
-                var testMask = specialCharMask + quoteCount;
-                if (separatorsMask == testMask)
+#endif
+#if NET9_0_OR_GREATER
+                var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
+                    .Load4xVector128AndUnzip((ushort*)charsPtr);
+                var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
+                    .Load4xVector128AndUnzip((ushort*)charsPtr);
+                var bytes0 = NarrowSaturated(ushort0, ushort1);
+                var bytes1 = NarrowSaturated(ushort2, ushort3);
+                var bytes2 = NarrowSaturated(ushort4, ushort5);
+                var bytes3 = NarrowSaturated(ushort6, ushort7);
+#else
+                var bytes0 = ReadNarrow(ref charsRef);
+                var bytes1 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 1));
+                var bytes2 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 2));
+                var bytes3 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 3));
+#endif
+
+
+                var nlsEq0 = AdvSimd.CompareEqual(bytes0, nls);
+                var crsEq0 = AdvSimd.CompareEqual(bytes0, crs);
+                var qtsEq0 = AdvSimd.CompareEqual(bytes0, qts);
+                var spsEq0 = AdvSimd.CompareEqual(bytes0, sps);
+                var lineEndings0 = AdvSimd.Or(nlsEq0, crsEq0);
+                var lineEndingsSeparators0 = AdvSimd.Or(spsEq0, lineEndings0);
+                var specialChars0 = AdvSimd.Or(lineEndingsSeparators0, qtsEq0);
+
+                var nlsEq1 = AdvSimd.CompareEqual(bytes1, nls);
+                var crsEq1 = AdvSimd.CompareEqual(bytes1, crs);
+                var qtsEq1 = AdvSimd.CompareEqual(bytes1, qts);
+                var spsEq1 = AdvSimd.CompareEqual(bytes1, sps);
+                var lineEndings1 = AdvSimd.Or(nlsEq1, crsEq1);
+                var lineEndingsSeparators1 = AdvSimd.Or(spsEq1, lineEndings1);
+                var specialChars1 = AdvSimd.Or(lineEndingsSeparators1, qtsEq1);
+
+                var nlsEq2 = AdvSimd.CompareEqual(bytes2, nls);
+                var crsEq2 = AdvSimd.CompareEqual(bytes2, crs);
+                var qtsEq2 = AdvSimd.CompareEqual(bytes2, qts);
+                var spsEq2 = AdvSimd.CompareEqual(bytes2, sps);
+                var lineEndings2 = AdvSimd.Or(nlsEq2, crsEq2);
+                var lineEndingsSeparators2 = AdvSimd.Or(spsEq2, lineEndings2);
+                var specialChars2 = AdvSimd.Or(lineEndingsSeparators2, qtsEq2);
+
+                var nlsEq3 = AdvSimd.CompareEqual(bytes3, nls);
+                var crsEq3 = AdvSimd.CompareEqual(bytes3, crs);
+                var qtsEq3 = AdvSimd.CompareEqual(bytes3, qts);
+                var spsEq3 = AdvSimd.CompareEqual(bytes3, sps);
+                var lineEndings3 = AdvSimd.Or(nlsEq3, crsEq3);
+                var lineEndingsSeparators3 = AdvSimd.Or(spsEq3, lineEndings3);
+                var specialChars3 = AdvSimd.Or(lineEndingsSeparators3, qtsEq3);
+
+                // Optimize for the case of no special character
+                var specialCharMask = MoveMask(specialChars0, specialChars1,
+                                               specialChars2, specialChars3);
+                if (specialCharMask != 0u)
                 {
-                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-                        separatorsMask, charsIndex, ref colInfosRefCurrent);
-                }
-                else
-                {
-                    var separatorLineEndingsMask = MoveMask(
-                        lineEndingsSeparators0, lineEndingsSeparators1,
-                        lineEndingsSeparators2, lineEndingsSeparators3);
-                    if (separatorLineEndingsMask == testMask)
+                    var separatorsMask = MoveMask(spsEq0, spsEq1, spsEq2, spsEq3);
+                    // Optimize for case of only separators i.e. no endings or quotes.
+                    // Add quote count to mask as hack to skip if quoting.
+                    var testMask = specialCharMask + quoteCount;
+                    if (separatorsMask == testMask)
                     {
-                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
-                            separatorsMask, separatorLineEndingsMask,
-                            ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref lineNumber);
-                        goto NEWROW;
+                        colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
+                            separatorsMask, charsIndex, ref colInfosRefCurrent);
                     }
                     else
                     {
-                        var rowLineEndingOffset = 0;
-                        colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
-                            separator, ref charsRef, charsIndex,
-                            ref rowLineEndingOffset, ref quoteCount,
-                            ref colInfosRefCurrent, ref lineNumber);
-                        // Used both to indicate row ended and if need to step +2 due to '\r\n'
-                        if (rowLineEndingOffset != 0)
+                        var separatorLineEndingsMask = MoveMask(
+                            lineEndingsSeparators0, lineEndingsSeparators1,
+                            lineEndingsSeparators2, lineEndingsSeparators3);
+                        if (separatorLineEndingsMask == testMask)
                         {
-                            // Must be a col end and last is then dataIndex
-                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                            colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
+                                separatorsMask, separatorLineEndingsMask,
+                                ref charsRef, ref charsIndex, separator,
+                                ref colInfosRefCurrent, ref lineNumber);
                             goto NEWROW;
+                        }
+                        else
+                        {
+                            var rowLineEndingOffset = 0;
+                            colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
+                                separator, ref charsRef, charsIndex,
+                                ref rowLineEndingOffset, ref quoteCount,
+                                ref colInfosRefCurrent, ref lineNumber);
+                            // Used both to indicate row ended and if need to step +2 due to '\r\n'
+                            if (rowLineEndingOffset != 0)
+                            {
+                                // Must be a col end and last is then dataIndex
+                                charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                                goto NEWROW;
+                            }
                         }
                     }
                 }
+                goto LOOPSTEP;
+            NEWROW:
+                var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+                // Add new parsed row
+                ref var parsedRowRef = ref MemoryMarshal.GetArrayDataReference(s._parsedRows);
+                Add(ref parsedRowRef, s._parsedRowsCount) = new(lineNumber, colCount);
+                ++s._parsedRowsCount;
+                // Next row start (one before)
+                colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
+                A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
+                colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
+                // Update for next row
+                colInfosRef = ref colInfosRefCurrent;
+                s._parsingRowColEndsOrInfosStartIndex += colCount + 1;
+                s._parsingRowCharsStartIndex = charsIndex;
+                // Space for more rows?
+                if (s._parsedRowsCount < s._parsedRows.Length)
+                {
+                    goto LOOPNOSTEP;
+                }
+#if NET9_0_OR_GREATER
             }
-            goto LOOPSTEP;
-        NEWROW:
-            var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
-            // Add new parsed row
-            ref var parsedRowRef = ref MemoryMarshal.GetArrayDataReference(s._parsedRows);
-            Add(ref parsedRowRef, s._parsedRowsCount) = new(lineNumber, colCount);
-            ++s._parsedRowsCount;
-            // Next row start (one before)
-            colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
-            A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
-            colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
-            // Update for next row
-            colInfosRef = ref colInfosRefCurrent;
-            s._parsingRowColEndsOrInfosStartIndex += colCount + 1;
-            s._parsingRowCharsStartIndex = charsIndex;
-            // Space for more rows?
-            if (s._parsedRowsCount < s._parsedRows.Length)
-            {
-                goto LOOPNOSTEP;
-            }
+#endif
         }
         // Update instance state from enregistered
         _quoteCount = quoteCount;
@@ -223,13 +242,18 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         var v0 = ReadUnaligned<VecUI16>(ref byteRef);
         var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
 
+        return NarrowSaturated(v0, v1);
+    }
+
+    private static VecUI8 NarrowSaturated(VecUI16 v0, VecUI16 v1)
+    {
         var r0 = AdvSimd.ExtractNarrowingSaturateLower(v0);
         var r1 = AdvSimd.ExtractNarrowingSaturateUpper(r0, v1);
         return r1;
     }
-
+#if NET9_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static nuint MoveMask2(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
+    internal static nuint MoveMask(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
     {
         // Combine with shifting to pack into one vector
         var t0 = AdvSimd.ShiftRightAndInsert(p0, p1, 1); // vsriq_n_u8(p1, p0, 1)
@@ -260,7 +284,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         }
         */
     }
-
+#else
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static nuint MoveMask(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
     {
@@ -299,4 +323,5 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         }
         */
     }
+#endif
 }

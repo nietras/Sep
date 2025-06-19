@@ -115,10 +115,10 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                     .Load4xVector128AndUnzip((ushort*)charsPtr);
                 var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
                     .Load4xVector128AndUnzip((ushort*)charsPtr + VecUI16.Count + 4);
-                var bytes0 = NarrowSaturated(ushort0, ushort1);
-                var bytes1 = NarrowSaturated(ushort2, ushort3);
-                var bytes2 = NarrowSaturated(ushort4, ushort5);
-                var bytes3 = NarrowSaturated(ushort6, ushort7);
+                var bytes0 = NarrowSaturated(ushort0, ushort4);
+                var bytes1 = NarrowSaturated(ushort1, ushort5);
+                var bytes2 = NarrowSaturated(ushort2, ushort6);
+                var bytes3 = NarrowSaturated(ushort3, ushort7);
 #else
                 var bytes0 = ReadNarrow(ref charsRef);
                 var bytes1 = ReadNarrow(ref Add(ref charsRef, VecUI8.Count * 1));

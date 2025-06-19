@@ -79,7 +79,14 @@ public class SepParsersTest
             Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 2);
             Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 3);
         }
-        CollectionAssert.AreEqual(a.Select(u => (byte)u).ToArray(), b);
+        var expected = a.Select(u => (byte)u).ToArray();
+        var equal = expected.SequenceEqual(b);
+        if (!equal)
+        {
+            var expectedBits = string.Join("-", expected.Select(x => Convert.ToString(x, 2).PadLeft(8, '0')));
+            var actualBits = string.Join("-", b.Select(x => Convert.ToString(x, 2).PadLeft(8, '0')));
+            Assert.Fail($"Expected: {expectedBits}\nActual  : {actualBits}");
+        }
 
     }
     private static VecUI8 NarrowSaturated(VecUI16 v0, VecUI16 v1)

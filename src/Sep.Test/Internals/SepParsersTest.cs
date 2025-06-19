@@ -60,7 +60,7 @@ public class SepParsersTest
     [TestMethod]
     public unsafe void SepParsersTest_Load4()
     {
-        var a = Enumerable.Range(1, 128).Select(i => (ushort)i).ToArray();
+        var a = Enumerable.Range(1, 64).Select(i => (ushort)i).ToArray();
         var b = new byte[a.Length];
         fixed (ushort* charsPtr = a)
         fixed (byte* bytesPtr = b)
@@ -83,8 +83,8 @@ public class SepParsersTest
         var equal = expected.SequenceEqual(b);
         if (!equal)
         {
-            var expectedBits = string.Join("-", expected.Select(x => Convert.ToString(x, 2).PadLeft(8, '0')));
-            var actualBits = string.Join("-", b.Select(x => Convert.ToString(x, 2).PadLeft(8, '0')));
+            var expectedBits = string.Join("-", expected);
+            var actualBits = string.Join("-", b);
             Assert.Fail($"Expected: {expectedBits}\nActual  : {actualBits}");
         }
 

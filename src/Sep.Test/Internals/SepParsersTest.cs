@@ -31,7 +31,7 @@ public class SepParsersTest
         Vector128.Store(p3, d + Vector128<byte>.Count * 3);
         if (AdvSimd.Arm64.IsSupported)
         {
-            var m0 = SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt.MoveMask(p0, p1, p2, p3);
+            var m0 = SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt.MoveMaskNormal(p0, p1, p2, p3);
 
             (p0, p1, p2, p3) = AdvSimd.Arm64.Load4xVector128AndUnzip(d);
 

@@ -284,9 +284,15 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         }
         */
     }
+#endif
+
+#if NET9_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static nuint MoveMaskNormal(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
 #else
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static nuint MoveMask(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
+#endif
     {
         // Results in ldr from address, seems no way to do this via immediate,
         // and enregistering it at top of loop may not be faster.

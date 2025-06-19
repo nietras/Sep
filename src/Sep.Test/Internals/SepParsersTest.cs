@@ -79,7 +79,14 @@ public class SepParsersTest
             Vector128.Store(bytes2, bytesPtr + Vector128<byte>.Count * 2);
             Vector128.Store(bytes3, bytesPtr + Vector128<byte>.Count * 3);
         }
-        var expected = a.Select(u => (byte)u).ToArray();
+        var expected = new byte[b.Length];
+        for (int i = 0; i < expected.Length / 4; i++)
+        {
+            expected[i] = (byte)(i * 4 + 1);
+            expected[i + 1 * expected.Length / 4] = (byte)(i * 4 + 2);
+            expected[i + 2 * expected.Length / 4] = (byte)(i * 4 + 3);
+            expected[i + 3 * expected.Length / 4] = (byte)(i * 4 + 4);
+        }
         var equal = expected.SequenceEqual(b);
         if (!equal)
         {

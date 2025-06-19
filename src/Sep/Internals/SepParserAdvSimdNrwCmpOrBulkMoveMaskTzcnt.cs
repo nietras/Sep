@@ -329,5 +329,4 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         }
         */
     }
-#endif
 }

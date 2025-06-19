@@ -68,7 +68,7 @@ public class SepParsersTest
             var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
                 .Load4xVector128AndUnzip((ushort*)charsPtr);
             var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
-                .Load4xVector128AndUnzip((ushort*)charsPtr + Vector128<ushort>.Count + 4);
+                .Load4xVector128AndUnzip((ushort*)charsPtr + Vector128<ushort>.Count * 4);
             var bytes0 = NarrowSaturated(ushort0, ushort4);
             var bytes1 = NarrowSaturated(ushort1, ushort5);
             var bytes2 = NarrowSaturated(ushort2, ushort6);

@@ -96,19 +96,25 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         var colInfosStopLength = colInfosLength - LoopCount - SepReaderState.ColEndsOrInfosExtraEndCount;
         ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
-        charsIndex -= LoopCount;
-    LOOPSTEP:
-        charsIndex += LoopCount;
-    LOOPNOSTEP:
-        if (charsIndex < charsEnd &&
-            // If current is greater than or equal than "stop", then there is no
-            // longer guaranteed space enough for next VecUI8.Count + next row start.
-            !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
-        {
-            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
 #if NET9_0_OR_GREATER
-            fixed (char* charsPtr = &charsRef)
+        fixed (char* charsOriginPtr = &charsOriginRef)
+        {
+#endif
+
+            charsIndex -= LoopCount;
+        LOOPSTEP:
+            charsIndex += LoopCount;
+        LOOPNOSTEP:
+            if (charsIndex < charsEnd &&
+                // If current is greater than or equal than "stop", then there is no
+                // longer guaranteed space enough for next VecUI8.Count + next row start.
+                !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
             {
+#if NET9_0_OR_GREATER
+                char* charsPtr = charsOriginPtr + (uint)charsIndex;
+                ref var charsRef = ref *charsPtr;
+#else
+                ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
 #endif
 #if NET9_0_OR_GREATER
                 var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
@@ -221,10 +227,10 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                 {
                     goto LOOPNOSTEP;
                 }
-#if NET9_0_OR_GREATER
             }
-#endif
+#if NET9_0_OR_GREATER
         }
+#endif
         // Update instance state from enregistered
         _quoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);

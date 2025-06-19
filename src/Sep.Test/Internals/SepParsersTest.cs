@@ -1,7 +1,11 @@
 ﻿#if NET9_0_OR_GREATER
 using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using VecUI16 = System.Runtime.Intrinsics.Vector128<ushort>;
+using VecUI8 = System.Runtime.Intrinsics.Vector128<byte>;
 #endif
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -51,6 +55,38 @@ public class SepParsersTest
                             );
             }
         }
+    }
+
+    [TestMethod]
+    public unsafe void SepParsersTest_Load4()
+    {
+        var a = Enumerable.Range(1, 128).Select(i => (ushort)i).ToArray();
+        var b = new byte[a.Length];
+        fixed (ushort* charsPtr = a)
+        fixed (byte* bytesPtr = b)
+        {
+            var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
+                .Load4xVector128AndUnzip((ushort*)charsPtr);
+            var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
+                .Load4xVector128AndUnzip((ushort*)charsPtr + Vector128<ushort>.Count + 4);
+            var bytes0 = NarrowSaturated(ushort0, ushort4);
+            var bytes1 = NarrowSaturated(ushort1, ushort5);
+            var bytes2 = NarrowSaturated(ushort2, ushort6);
+            var bytes3 = NarrowSaturated(ushort3, ushort7);
+
+            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 0);
+            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 1);
+            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 2);
+            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 3);
+        }
+        CollectionAssert.AreEqual(a.Select(u => (byte)u).ToArray(), b);
+
+    }
+    private static VecUI8 NarrowSaturated(VecUI16 v0, VecUI16 v1)
+    {
+        var r0 = AdvSimd.ExtractNarrowingSaturateLower(v0);
+        var r1 = AdvSimd.ExtractNarrowingSaturateUpper(r0, v1);
+        return r1;
     }
 
     static string ToBitString(ulong value) => Convert.ToString(unchecked((long)value), 2).PadLeft(64, '0');

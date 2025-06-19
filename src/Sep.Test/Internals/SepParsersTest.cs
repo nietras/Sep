@@ -12,7 +12,7 @@ public class SepParsersTest
 {
 #if NET9_0_OR_GREATER
     [TestMethod]
-    public void SepParsersTest_AdvSimd_BulkMoveMask()
+    public unsafe void SepParsersTest_AdvSimd_BulkMoveMask()
     {
         byte L = 0;
         byte H = 255;
@@ -20,9 +20,16 @@ public class SepParsersTest
         var p1 = Vector128.Create(L, H, L, L, L, L, L, L, L, L, L, L, L, L, L, L);
         var p2 = Vector128.Create(L, L, H, L, L, L, L, L, L, L, L, L, L, L, L, L);
         var p3 = Vector128.Create(L, L, L, H, L, L, L, L, L, L, L, L, L, L, L, L);
+        var d = stackalloc byte[Vector128<byte>.Count * 4];
+        Vector128.Store(p0, d + Vector128<byte>.Count * 0);
+        Vector128.Store(p1, d + Vector128<byte>.Count * 1);
+        Vector128.Store(p2, d + Vector128<byte>.Count * 2);
+        Vector128.Store(p3, d + Vector128<byte>.Count * 3);
         if (AdvSimd.Arm64.IsSupported)
         {
             var m0 = SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt.MoveMask(p0, p1, p2, p3);
+
+            (p0, p1, p2, p3) = AdvSimd.Arm64.Load4xVector128AndUnzip(d);
 
             // Combine with shifting to pack into one vector
             var t0 = AdvSimd.ShiftRightAndInsert(p1, p0, 1); // vsriq_n_u8(p1, p0, 1)

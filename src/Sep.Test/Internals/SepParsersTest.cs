@@ -75,9 +75,9 @@ public class SepParsersTest
             var bytes3 = NarrowSaturated(ushort3, ushort7);
 
             Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 0);
-            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 1);
-            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 2);
-            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 3);
+            Vector128.Store(bytes1, bytesPtr + Vector128<byte>.Count * 1);
+            Vector128.Store(bytes2, bytesPtr + Vector128<byte>.Count * 2);
+            Vector128.Store(bytes3, bytesPtr + Vector128<byte>.Count * 3);
         }
         var expected = a.Select(u => (byte)u).ToArray();
         var equal = expected.SequenceEqual(b);

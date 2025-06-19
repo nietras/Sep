@@ -60,41 +60,43 @@ public class SepParsersTest
     [TestMethod]
     public unsafe void SepParsersTest_Load4()
     {
-        var a = Enumerable.Range(1, 64).Select(i => (ushort)i).ToArray();
-        var b = new byte[a.Length];
-        fixed (ushort* charsPtr = a)
-        fixed (byte* bytesPtr = b)
+        if (AdvSimd.Arm64.IsSupported)
         {
-            var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
-                .Load4xVector128AndUnzip((ushort*)charsPtr);
-            var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
-                .Load4xVector128AndUnzip((ushort*)charsPtr + Vector128<ushort>.Count * 4);
-            var bytes0 = NarrowSaturated(ushort0, ushort4);
-            var bytes1 = NarrowSaturated(ushort1, ushort5);
-            var bytes2 = NarrowSaturated(ushort2, ushort6);
-            var bytes3 = NarrowSaturated(ushort3, ushort7);
+            var a = Enumerable.Range(1, 64).Select(i => (ushort)i).ToArray();
+            var b = new byte[a.Length];
+            fixed (ushort* charsPtr = a)
+            fixed (byte* bytesPtr = b)
+            {
+                var (ushort0, ushort1, ushort2, ushort3) = AdvSimd.Arm64
+                    .Load4xVector128AndUnzip((ushort*)charsPtr);
+                var (ushort4, ushort5, ushort6, ushort7) = AdvSimd.Arm64
+                    .Load4xVector128AndUnzip((ushort*)charsPtr + Vector128<ushort>.Count * 4);
+                var bytes0 = NarrowSaturated(ushort0, ushort4);
+                var bytes1 = NarrowSaturated(ushort1, ushort5);
+                var bytes2 = NarrowSaturated(ushort2, ushort6);
+                var bytes3 = NarrowSaturated(ushort3, ushort7);
 
-            Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 0);
-            Vector128.Store(bytes1, bytesPtr + Vector128<byte>.Count * 1);
-            Vector128.Store(bytes2, bytesPtr + Vector128<byte>.Count * 2);
-            Vector128.Store(bytes3, bytesPtr + Vector128<byte>.Count * 3);
+                Vector128.Store(bytes0, bytesPtr + Vector128<byte>.Count * 0);
+                Vector128.Store(bytes1, bytesPtr + Vector128<byte>.Count * 1);
+                Vector128.Store(bytes2, bytesPtr + Vector128<byte>.Count * 2);
+                Vector128.Store(bytes3, bytesPtr + Vector128<byte>.Count * 3);
+            }
+            var expected = new byte[b.Length];
+            for (int i = 0; i < expected.Length / 4; i++)
+            {
+                expected[i] = (byte)(i * 4 + 1);
+                expected[i + 1 * expected.Length / 4] = (byte)(i * 4 + 2);
+                expected[i + 2 * expected.Length / 4] = (byte)(i * 4 + 3);
+                expected[i + 3 * expected.Length / 4] = (byte)(i * 4 + 4);
+            }
+            var equal = expected.SequenceEqual(b);
+            if (!equal)
+            {
+                var expectedBits = string.Join("-", expected);
+                var actualBits = string.Join("-", b);
+                Assert.Fail($"Expected: {expectedBits}\nActual  : {actualBits}");
+            }
         }
-        var expected = new byte[b.Length];
-        for (int i = 0; i < expected.Length / 4; i++)
-        {
-            expected[i] = (byte)(i * 4 + 1);
-            expected[i + 1 * expected.Length / 4] = (byte)(i * 4 + 2);
-            expected[i + 2 * expected.Length / 4] = (byte)(i * 4 + 3);
-            expected[i + 3 * expected.Length / 4] = (byte)(i * 4 + 4);
-        }
-        var equal = expected.SequenceEqual(b);
-        if (!equal)
-        {
-            var expectedBits = string.Join("-", expected);
-            var actualBits = string.Join("-", b);
-            Assert.Fail($"Expected: {expectedBits}\nActual  : {actualBits}");
-        }
-
     }
     private static VecUI8 NarrowSaturated(VecUI16 v0, VecUI16 v1)
     {

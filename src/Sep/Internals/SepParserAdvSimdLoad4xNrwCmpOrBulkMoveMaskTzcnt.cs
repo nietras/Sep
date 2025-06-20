@@ -226,16 +226,6 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static VecUI8 ReadNarrow(ref char charsRef)
-    {
-        ref var byteRef = ref As<char, byte>(ref charsRef);
-        var v0 = ReadUnaligned<VecUI16>(ref byteRef);
-        var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
-
-        return NarrowSaturated(v0, v1);
-    }
-
     static VecUI8 NarrowSaturated(VecUI16 v0, VecUI16 v1)
     {
         var r0 = AdvSimd.ExtractNarrowingSaturateLower(v0);
@@ -259,7 +249,7 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         /* Credit aqrit (comment in Geoff Langdale blog post)
         uint64_t NEON_i8x64_MatchMask(const uint8_t* ptr, uint8_t match_byte)
         {
-            uint8x16x4_t src = vld4q_u8(ptr); // NOT CURRENTLY AVAILABLE IN .NET 9
+            uint8x16x4_t src = vld4q_u8(ptr);
             uint8x16_t dup = vdupq_n_u8(match_byte);
             uint8x16_t cmp0 = vceqq_u8(src.val[0], dup);
             uint8x16_t cmp1 = vceqq_u8(src.val[1], dup);

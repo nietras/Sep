@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -264,88 +263,6 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
             sum0 = vpaddq_u8(sum0, sum1);
             sum0 = vpaddq_u8(sum0, sum0);
             return vgetq_lane_u64(vreinterpretq_u64_u8(sum0), 0);
-        }
-        */
-    }
-
-    // PORT DOES NOT WORK
-    [ExcludeFromCodeCoverage]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static nuint MoveMaskBitwiseSelect(VecUI8 p0, VecUI8 p1, VecUI8 p2, VecUI8 p3)
-    {
-        var bitmask1 = Vec.Create(
-            0x01, 0x10, 0x01, 0x10, 0x01, 0x10, 0x01, 0x10,
-            0x01, 0x10, 0x01, 0x10, 0x01, 0x10, 0x01, 0x10).AsByte();
-
-        var bitmask2 = Vec.Create(
-            0x02, 0x20, 0x02, 0x20, 0x02, 0x20, 0x02, 0x20,
-            0x02, 0x20, 0x02, 0x20, 0x02, 0x20, 0x02, 0x20).AsByte();
-
-        var bitmask3 = Vec.Create(
-            0x04, 0x40, 0x04, 0x40, 0x04, 0x40, 0x04, 0x40,
-            0x04, 0x40, 0x04, 0x40, 0x04, 0x40, 0x04, 0x40).AsByte();
-
-        var bitmask4 = Vec.Create(
-            0x08, 0x80, 0x08, 0x80, 0x08, 0x80, 0x08, 0x80,
-            0x08, 0x80, 0x08, 0x80, 0x08, 0x80, 0x08, 0x80).AsByte();
-
-        var t0 = AdvSimd.And(p0, bitmask1);
-
-        var t1 = AdvSimd.BitwiseSelect(bitmask2, p1, t0);
-        var t2 = AdvSimd.BitwiseSelect(bitmask3, p2, t1);
-        var tmp = AdvSimd.BitwiseSelect(bitmask4, p3, t2);
-
-        var sum = AdvSimd.Arm64.AddPairwise(tmp, tmp);
-
-        return (nuint)sum.AsUInt64().GetElement(0);
-        /*
-        uint64_t neonmovemask_bulk(uint8x16_t p0, uint8x16_t p1, uint8x16_t p2, uint8x16_t p3)
-        {
-            const uint8x16_t bitmask1 = { 0x01, 0x10, 0x01, 0x10, 0x01, 0x10, 0x01, 0x10,
-                                          0x01, 0x10, 0x01, 0x10, 0x01, 0x10, 0x01, 0x10};
-            const uint8x16_t bitmask2 = { 0x02, 0x20, 0x02, 0x20, 0x02, 0x20, 0x02, 0x20,
-                                          0x02, 0x20, 0x02, 0x20, 0x02, 0x20, 0x02, 0x20};
-            const uint8x16_t bitmask3 = { 0x04, 0x40, 0x04, 0x40, 0x04, 0x40, 0x04, 0x40,
-                                          0x04, 0x40, 0x04, 0x40, 0x04, 0x40, 0x04, 0x40};
-            const uint8x16_t bitmask4 = { 0x08, 0x80, 0x08, 0x80, 0x08, 0x80, 0x08, 0x80,
-                                          0x08, 0x80, 0x08, 0x80, 0x08, 0x80, 0x08, 0x80};
-
-            uint8x16_t t0 = vandq_u8(p0, bitmask1);
-            uint8x16_t t1 = vbslq_u8(bitmask2, p1, t0);
-            uint8x16_t t2 = vbslq_u8(bitmask3, p2, t1);
-            uint8x16_t tmp = vbslq_u8(bitmask4, p3, t2);
-            uint8x16_t sum = vpaddq_u8(tmp, tmp);
-            return vgetq_lane_u64(vreinterpretq_u64_u8(sum), 0);
-        }
-        */
-    }
-
-    // MoveMask remains the same, using the cross-platform intrinsic
-    [ExcludeFromCodeCoverage]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //static nuint MoveMask(VecUI8 v) => AdvSimd.Arm64.IsSupported ? MoveMaskAddAcross(v) : v.ExtractMostSignificantBits();
-    internal static nuint MoveMask(VecUI8 v) => v.ExtractMostSignificantBits();
-
-    [ExcludeFromCodeCoverage]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static byte PopCount(VecUI8 v) => AdvSimd.Arm64.AddAcross(Vec.ShiftRightLogical(v, 7)).ToScalar();
-
-    // Assumes all bits set, not just MSB - APPEARS NOT TO BE WORKING
-    [ExcludeFromCodeCoverage]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ushort MoveMaskAddAcross(VecUI8 v)
-    {
-        var input = v.AsUInt16();
-        var bitmask = Vec.Create(0x0101, 0x0202, 0x0404, 0x0808, 0x1010, 0x2020, 0x4040, 0x8080);
-        var and = AdvSimd.And(input, bitmask);
-        return AdvSimd.Arm64.AddAcross(and).ToScalar();
-        /*
-        uint16_t neonmovemask_addv(uint8x16_t input8)
-        {
-            uint16x8_t input = vreinterpretq_u16_u8(input8);
-            const uint16x8_t bitmask = { 0x0101, 0x0202, 0x0404, 0x0808, 0x1010, 0x2020, 0x4040, 0x8080 };
-            uint16x8_t minput = vandq_u16(input, bitmask);
-            return vaddvq_u16(minput);
         }
         */
     }

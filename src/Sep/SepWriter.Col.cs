@@ -95,7 +95,7 @@ public partial class SepWriter
         {
             Format(value, null);
         }
-        
+
         public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable
         {
             var impl = _impl;

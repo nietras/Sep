@@ -93,7 +93,7 @@ public partial class SepWriter
 
         public void Format<T>(T value) where T : ISpanFormattable
         {
-            Format(value,null);
+            Format(value, null);
         }
         
         public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable

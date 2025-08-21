@@ -88,6 +88,42 @@ public class SepReaderWriterTest
                        """;
         Assert.AreEqual(expected, writer.ToString());
     }
+    
+    [DataTestMethod]
+    [DataRow(null)]
+    [DataRow("0.000")]
+    [DataRow("C")]
+    [DataRow("0.###")]
+    public void SepReaderWriterTest_ParseFormatWithCustomFormat(string? formatForB)
+    {
+        var text = """
+                   A;B;C
+                   x;1;1.1
+                   y;2;2.2
+                   """;
+
+        using var reader = Sep.Reader().FromText(text);
+        using var writer = reader.Spec.Writer().ToText();
+        foreach (var readRow in reader)
+        {
+            var a = readRow["A"].Span;
+            var b = readRow["B"].Parse<int>();
+            var c = readRow["C"].Parse<double>();
+
+            using var writeRow = writer.NewRow();
+            writeRow["A"].Set(a);
+            writeRow["B"].Format(b * 2,formatForB);
+            writeRow["C"].Set($"{c / 2}");
+        }
+
+        var expected = $"""
+                       A;B;C
+                       x;{2.ToString(formatForB)};0.55
+                       y;{4.ToString(formatForB)};1.1
+
+                       """;
+        Assert.AreEqual(expected, writer.ToString());
+    }
 
     [DataTestMethod]
     [DataRow(0)]

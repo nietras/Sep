@@ -93,9 +93,14 @@ public partial class SepWriter
 
         public void Format<T>(T value) where T : ISpanFormattable
         {
+            Format(value,null);
+        }
+        
+        public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable
+        {
             var impl = _impl;
             impl.Clear();
-            if (value.TryFormat(impl._buffer, out var charsWritten, null, impl._writer._cultureInfo))
+            if (value.TryFormat(impl._buffer, out var charsWritten, format, impl._writer._cultureInfo))
             {
                 impl._position = charsWritten;
             }

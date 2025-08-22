@@ -12,6 +12,7 @@ public class SepWriterColTest
     const string ColName = "A";
     const int ColValue = 123456;
     const string ColText = "123456";
+    const string ColTextWithF2Format = "123456.00";
     static readonly string ColTextLong = new('a', 2048);
 
     static readonly string NL = Environment.NewLine;
@@ -136,6 +137,12 @@ public class SepWriterColTest
     public async ValueTask SepWriterColTest_Format()
     {
         await Run(col => col.Format(ColValue));
+    }
+    
+    [TestMethod]
+    public async ValueTask SepWriterColTest_FormatWithCustomFormat()
+    {
+        await Run(col => col.Format(ColValue,"F2"), ColTextWithF2Format);
     }
 
     [TestMethod]

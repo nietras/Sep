@@ -2536,6 +2536,8 @@ namespace nietras.SeparatedValues
         {
             public void Format<T>(T value)
                 where T : System.ISpanFormattable { }
+            public void Format<T>(T value, System.ReadOnlySpan<char> format)
+                where T : System.ISpanFormattable { }
             public void Set(System.ReadOnlySpan<char> span) { }
             public void Set([System.Runtime.CompilerServices.InterpolatedStringHandlerArgument("")] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }
             public void Set(System.IFormatProvider? provider, [System.Runtime.CompilerServices.InterpolatedStringHandlerArgument(new string?[]?[] {

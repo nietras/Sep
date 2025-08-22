@@ -138,11 +138,11 @@ public class SepWriterColTest
     {
         await Run(col => col.Format(ColValue));
     }
-    
+
     [TestMethod]
     public async ValueTask SepWriterColTest_FormatWithCustomFormat()
     {
-        await Run(col => col.Format(ColValue,"F2"), ColTextWithF2Format);
+        await Run(col => col.Format(ColValue, "F2"), ColTextWithF2Format);
     }
 
     [TestMethod]

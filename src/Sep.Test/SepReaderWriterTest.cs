@@ -88,7 +88,7 @@ public class SepReaderWriterTest
                        """;
         Assert.AreEqual(expected, writer.ToString());
     }
-    
+
     [DataTestMethod]
     [DataRow(0)]
     [DataRow(1)]

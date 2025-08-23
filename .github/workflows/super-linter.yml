@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
 
       - name: Super-linter
-        uses: super-linter/super-linter@4e8a7c2bf106c4c766c816b35ec612638dc9b6b2 # v7.3.0
+        uses: super-linter/super-linter@ffde3b2b33b745cb612d787f669ef9442b1339a6 # v8.1.0
         env:
           VALIDATE_GITHUB_ACTIONS: false
           # format not working, checked during build instead

@@ -101,10 +101,13 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecUI16>(ref byteRef);
             var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
+#if NET10_0_OR_GREATER
+            var bytes = Vec.NarrowWithSaturation(v0, v1);
+#else
             var limit0 = Vec.Min(v0, max);
             var limit1 = Vec.Min(v1, max);
             var bytes = Vec.Narrow(limit0, limit1);
-
+#endif
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);
             var qtsEq = Vec.Equals(bytes, qts);

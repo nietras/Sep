@@ -13,7 +13,7 @@
   
   <ItemGroup>
     <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute" />
-  </ItemGroup>
+  </ItemGroup>  
   
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4">

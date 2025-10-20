@@ -40,7 +40,8 @@ public partial class SepWriter
             do
             {
                 status = Utf8.ToUtf16(sourceSpan, bufferSpan,
-                    out var bytesConsumed, out var charsWritten);
+                    out var bytesConsumed, out var charsWritten,
+                    replaceInvalidSequences: false);
                 _position += charsWritten;
                 if (status == OperationStatus.DestinationTooSmall)
                 {

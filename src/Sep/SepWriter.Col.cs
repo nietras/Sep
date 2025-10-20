@@ -52,9 +52,7 @@ public partial class SepWriter
             }
             while (status == OperationStatus.DestinationTooSmall);
             if (status != OperationStatus.Done)
-            {
-                SepThrow.InvalidDataException_Utf8ToUtf16Failed();
-            }
+            { SepThrow.InvalidDataException_Utf8ToUtf16Failed(); }
         }
 
         public ReadOnlySpan<char> GetSpan() => _buffer.AsSpan(0, _position);

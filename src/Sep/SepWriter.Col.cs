@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Unicode;
 
 namespace nietras.SeparatedValues;
 
@@ -24,11 +25,34 @@ public partial class SepWriter
 
         public void Clear() { HasBeenSet = false; _position = 0; }
 
-        public void Append(ReadOnlySpan<char> value)
+        public void Append(ReadOnlySpan<char> source)
         {
-            EnsureCapacity(value.Length);
-            value.CopyTo(_buffer.AsSpan(_position));
-            _position += value.Length;
+            EnsureCapacity(source.Length);
+            source.CopyTo(_buffer.AsSpan(_position));
+            _position += source.Length;
+        }
+
+        public void Append(ReadOnlySpan<byte> source)
+        {
+            var sourceSpan = source;
+            var bufferSpan = _buffer.AsSpan();
+            OperationStatus status;
+            do
+            {
+                status = Utf8.ToUtf16(sourceSpan, bufferSpan,
+                    out var bytesConsumed, out var charsWritten,
+                    replaceInvalidSequences: false);
+                _position += charsWritten;
+                if (status == OperationStatus.DestinationTooSmall)
+                {
+                    sourceSpan = sourceSpan.Slice(bytesConsumed);
+                    GrowBuffer(_buffer.Length);
+                    bufferSpan = _buffer.AsSpan(_position);
+                }
+            }
+            while (status == OperationStatus.DestinationTooSmall);
+            if (status != OperationStatus.Done)
+            { SepThrow.InvalidDataException_Utf8ToUtf16Failed(); }
         }
 
         public ReadOnlySpan<char> GetSpan() => _buffer.AsSpan(0, _position);
@@ -88,6 +112,14 @@ public partial class SepWriter
             var text = _impl;
             text.Clear();
             text.Append(span);
+            MarkSet();
+        }
+
+        public void Set(ReadOnlySpan<byte> utf8Span)
+        {
+            var text = _impl;
+            text.Clear();
+            text.Append(utf8Span);
             MarkSet();
         }
 

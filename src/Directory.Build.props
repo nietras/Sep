@@ -7,7 +7,7 @@
 
     <Company>nietras</Company>
     <Authors>nietras</Authors>
-    <Copyright>Copyright © nietras A/S 2023-2025</Copyright>
+    <Copyright>Copyright © nietras A/S 2025</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
     <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>

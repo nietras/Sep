@@ -170,4 +170,10 @@ static class SepThrow
     {
         throw new InvalidOperationException($"Cannot add column name '{colName} since header or first row already written.");
     }
+
+    [DoesNotReturn]
+    internal static void InvalidDataException_Utf8ToUtf16Failed()
+    {
+        throw new InvalidDataException("Invalid UTF-8 data.");
+    }
 }

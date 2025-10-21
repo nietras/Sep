@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -39,6 +41,28 @@ public class SepWriterColTest
     public async ValueTask SepWriterColTest_Set_String_Long()
     {
         await Run(col => col.Set(ColTextLong), ColTextLong);
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterColTest_Set_Utf8Span()
+    {
+        await Run(col => col.Set(Encoding.UTF8.GetBytes(ColText)));
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterColTest_Set_Utf8Span_Long()
+    {
+        await Run(col => col.Set(Encoding.UTF8.GetBytes(ColTextLong)), ColTextLong);
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterColTest_Set_Utf8Span_Invalid_Throws()
+    {
+        var e = await Assert.ThrowsExceptionAsync<InvalidDataException>(async () =>
+        {
+            await Run(col => col.Set([0xBF]));
+        });
+        Assert.AreEqual("Invalid UTF-8 data.", e.Message);
     }
 
     [TestMethod]

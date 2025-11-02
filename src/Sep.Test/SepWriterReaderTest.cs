@@ -6,7 +6,7 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepWriterReaderTest
 {
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0)]
     [DataRow(1)]
     [DataRow(2)]

@@ -23,7 +23,7 @@ public class SepReaderFuzzTest
     [DataRow(false, 5000, 40, false, 64)]
     [DataRow(true, 5000, 40, false, 64)]
 #endif
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderFuzzTest_Fuzz(bool unescape, int rowCount, int maxColCount, bool colCountSame, int maxColLength)
     {
         var colCount = _random.Next(0, maxColCount);

@@ -181,7 +181,7 @@ public class SepReaderColsTest
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringDirect()).ToArray()));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("")]
     [DataRow("/")]
     [DataRow("<SEP>")]

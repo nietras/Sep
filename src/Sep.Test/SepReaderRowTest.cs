@@ -35,7 +35,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_EmptyString_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("");
@@ -54,7 +54,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_EmptyRow_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("\n\n");
@@ -72,7 +72,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_Row_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText(_text);

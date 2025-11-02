@@ -10,7 +10,7 @@ public class SourceFilesAsyncSyncTest
     [DataRow("Sep/SepReader.IO.Async.cs", "Sep/SepReader.IO.Sync.cs")]
     [DataRow("Sep/SepReaderExtensions.IO.Async.cs", "Sep/SepReaderExtensions.IO.Sync.cs")]
     [DataRow("Sep/SepWriter.IO.Async.cs", "Sep/SepWriter.IO.Sync.cs")]
-    [DataTestMethod]
+    [TestMethod]
     public void SourceFilesAsyncSyncTest_Verify(string asyncFilePath, string syncFilePath)
     {
         var sourceDirectory = Path.GetDirectoryName(SourceFile()) + @"../../../src/";

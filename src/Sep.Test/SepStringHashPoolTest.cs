@@ -16,7 +16,7 @@ public class SepStringHashPoolTest
         new ToStringDelegate[] { new((pool, chars) => pool.ToStringThreadSafe(chars)) },
     ];
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_Basic(object toStringObject)
     {
@@ -46,7 +46,7 @@ public class SepStringHashPoolTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_EdgeCases(object toStringObject)
     {
@@ -71,7 +71,7 @@ public class SepStringHashPoolTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_TryCollisions(object toStringObject)
     {
@@ -103,7 +103,7 @@ public class SepStringHashPoolTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_Resize(object toStringObject)
     {
@@ -134,7 +134,7 @@ public class SepStringHashPoolTest
         Assert.AreEqual(length, pool.Count);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_MaximumCapacity(object toStringObject)
     {

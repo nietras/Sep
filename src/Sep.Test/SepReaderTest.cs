@@ -369,7 +369,7 @@ public partial class SepReaderTest
         Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["X"].ToString());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;A;D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;A;D;E'")]
     [DataRow("A;B;C;A;D;A;E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row 'A;B;C;A;D;A;E;A'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
@@ -386,7 +386,7 @@ public partial class SepReaderTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;\"A\";D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;\"A\";D;E'")]
     [DataRow("\"A\";B;C;A;D;\"A\";E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row '\"A\";B;C;A;D;\"A\";E;A'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
@@ -403,7 +403,7 @@ public partial class SepReaderTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;a;D;E", "Col name 'a' found 2 times at 0:'A' 3:'a' in header row 'A;B;C;a;D;E'")]
     [DataRow("a;B;C;A;D;A;E;a", "Col name 'A' found 4 times at 0:'a' 3:'A' 5:'A' 7:'a' in header row 'a;B;C;A;D;A;E;a'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
@@ -513,7 +513,7 @@ public partial class SepReaderTest
     ];
 #pragma warning restore IDE0055
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_Throws(
         string text, string message, int[] _)
@@ -527,7 +527,7 @@ public partial class SepReaderTest
         Assert.AreEqual(message, e.Message);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_DisableColCountCheck(
         string text, string _, int[] expectedColCounts)
@@ -548,7 +548,7 @@ public partial class SepReaderTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_IgnoreThrows(
         string text, string _, int[] expectedColCounts)
@@ -613,7 +613,7 @@ public partial class SepReaderTest
     ];
 #pragma warning restore IDE0055
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(LineNumbersData))]
     public void SepReaderTest_LineNumbers(string text,
         (int LineNumberFrom, int LineNumberToExcl)[] expectedLineNumbers)
@@ -653,7 +653,7 @@ public partial class SepReaderTest
         Assert.AreEqual(lengthB, colNames[1].Length);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
     public async ValueTask SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)

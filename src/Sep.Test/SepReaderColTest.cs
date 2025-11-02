@@ -105,7 +105,7 @@ public class SepReaderColTest
             ["a\"\"\"a", "a\"\"\"a"],
         ]);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(UnescapeData))]
     public void SepReaderColTest_Unescape_Header_Test(string src, string expected)
     {
@@ -116,7 +116,7 @@ public class SepReaderColTest
         Assert.AreEqual(expected, actual, src);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(UnescapeData))]
     public void SepReaderColTest_Unescape_Col_Test(string src, string expectedCol)
     {
@@ -191,7 +191,7 @@ public class SepReaderColTest
         [" \"   a  a   \" ", "a  a"],
     ]);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimOuterData))]
     public void SepReaderColTest_TrimOuter_Header_Test(string src, string expected)
     {
@@ -201,7 +201,7 @@ public class SepReaderColTest
 
         Assert.AreEqual(expected, actual, src);
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimOuterData))]
     public void SepReaderColTest_TrimOuter_Col_Test(string src, string expectedCol)
     {
@@ -210,7 +210,7 @@ public class SepReaderColTest
         AssertCol(reader, src, expectedCol);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimOuterUnescapeData))]
     public void SepReaderColTest_TrimOuterUnescape_Header_Test(string src, string expected)
     {
@@ -220,7 +220,7 @@ public class SepReaderColTest
 
         Assert.AreEqual(expected, actual, src);
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimOuterUnescapeData))]
     public void SepReaderColTest_TrimOuterUnescape_Col_Test(string src, string expectedCol)
     {
@@ -229,7 +229,7 @@ public class SepReaderColTest
         AssertCol(reader, src, expectedCol);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(UnescapeTrimAfterUnescapeData))]
     public void SepReaderColTest_TrimAfterUnescape_Header_Test(string src, string expected)
     {
@@ -239,7 +239,7 @@ public class SepReaderColTest
 
         Assert.AreEqual(expected, actual, src);
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(UnescapeTrimAfterUnescapeData))]
     public void SepReaderColTest_TrimAfterUnescape_Col_Test(string src, string expectedCol)
     {
@@ -248,7 +248,7 @@ public class SepReaderColTest
         AssertCol(reader, src, expectedCol);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimAllUnescapeData))]
     public void SepReaderColTest_TrimAllUnescape_Header_Test(string src, string expected)
     {
@@ -258,7 +258,7 @@ public class SepReaderColTest
 
         Assert.AreEqual(expected, actual, src);
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(TrimAllUnescapeData))]
     public void SepReaderColTest_TrimAllUnescape_Col_Test(string src, string expectedCol)
     {

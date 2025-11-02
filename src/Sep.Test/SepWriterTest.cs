@@ -322,7 +322,7 @@ public class SepWriterTest
 
     [DataRow(true)]
     [DataRow(false)]
-    [DataTestMethod]
+    [TestMethod]
     public async ValueTask SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
     {
         {
@@ -357,7 +357,7 @@ public class SepWriterTest
 
     [DataRow(true)]
     [DataRow(false)]
-    [DataTestMethod]
+    [TestMethod]
     public async ValueTask SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
     {
         {

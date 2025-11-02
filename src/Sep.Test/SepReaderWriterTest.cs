@@ -17,7 +17,7 @@ public class SepReaderWriterTest
     };
 
     // Header only copied if any other rows, this is due to how API is designed
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(@"")]
     [DataRow(@"C1
 
@@ -89,7 +89,7 @@ public class SepReaderWriterTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(0)]
     [DataRow(1)]
     [DataRow(2)]

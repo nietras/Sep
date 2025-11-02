@@ -201,7 +201,7 @@ public class SepWriterColTest
     [DataRow("\"", "\"\"\"\"")]
     [DataRow("\r\n", "\"\r\n\"")]
     [DataRow("a;b\rc\nd\"e", "\"a;b\rc\nd\"\"e\"")]
-    [DataTestMethod]
+    [TestMethod]
     public async ValueTask SepWriterColTest_Escape(string textCol, string expectedCol)
     {
         {

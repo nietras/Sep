@@ -181,7 +181,7 @@ public class SepReaderColsTest
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToStringDirect()).ToArray()));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("")]
     [DataRow("/")]
     [DataRow("<SEP>")]
@@ -265,7 +265,7 @@ public class SepReaderColsTest
         if (checkIndexOutOfRange)
         {
             // Ensure index out of range causes exception (note range is not same)
-            Assert.ThrowsException<IndexOutOfRangeException>(() => action(reader.Current[[-1]], 0..1));
+            Assert.ThrowsExactly<IndexOutOfRangeException>(() => action(reader.Current[[-1]], 0..1));
         }
     }
 

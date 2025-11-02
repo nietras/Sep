@@ -106,7 +106,7 @@ public class SepWriterTest
     {
         using var writer = CreateWriter();
         var row0 = writer.NewRow();
-        var e = Assert.ThrowsException<InvalidOperationException>(() => writer.NewRow());
+        var e = Assert.ThrowsExactly<InvalidOperationException>(() => writer.NewRow());
         Assert.AreEqual("Writer already has an active new row. Ensure this is disposed before starting next row.", e.Message);
     }
 
@@ -118,13 +118,13 @@ public class SepWriterTest
                        "I.e. prefer 'using var row = writer.NewRow();'";
         {
             using var writer = CreateWriter();
-            var e = Assert.ThrowsException<InvalidOperationException>(
+            var e = Assert.ThrowsExactly<InvalidOperationException>(
                 () => writer.EndRow());
             Assert.AreEqual(expected, e.Message);
         }
         {
             await using var writer = CreateWriter();
-            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(
+            var e = await Assert.ThrowsExactlyAsync<InvalidOperationException>(
                 async () => await writer.EndRowAsync());
             Assert.AreEqual(expected, e.Message);
         }
@@ -139,7 +139,7 @@ public class SepWriterTest
 
         using var writer = Sep.New(';').Writer().ToText();
         var cts = new CancellationTokenSource();
-        var e = Assert.ThrowsException<InvalidOperationException>(
+        var e = Assert.ThrowsExactly<InvalidOperationException>(
             () => { using (writer.NewRow(cts.Token)) { } });
         Assert.AreEqual(expected, e.Message);
     }
@@ -259,7 +259,7 @@ public class SepWriterTest
     {
         using var stream = new MemoryStream();
         using var writer = Sep.Writer().To(stream);
-        var e = Assert.ThrowsException<NotSupportedException>(() => writer.ToString());
+        var e = Assert.ThrowsExactly<NotSupportedException>(() => writer.ToString());
         Assert.AreEqual("'ToString' not supported for 'System.IO.StreamWriter' only supported for 'StringWriter'", e.Message);
     }
 
@@ -322,7 +322,7 @@ public class SepWriterTest
 
     [DataRow(true)]
     [DataRow(false)]
-    [DataTestMethod]
+    [TestMethod]
     public async ValueTask SepWriterTest_Extensions_ToStream_LeaveOpen(bool leaveOpen)
     {
         {
@@ -357,7 +357,7 @@ public class SepWriterTest
 
     [DataRow(true)]
     [DataRow(false)]
-    [DataTestMethod]
+    [TestMethod]
     public async ValueTask SepWriterTest_Extensions_ToTextWriter_LeaveOpen(bool leaveOpen)
     {
         {
@@ -388,7 +388,7 @@ public class SepWriterTest
                         """, actual);
             if (!leaveOpen)
             {
-                Assert.ThrowsException<ObjectDisposedException>(
+                Assert.ThrowsExactly<ObjectDisposedException>(
                     () => textWriter.Write("THROW DISPOSED IF NOT LEAVEOPEN"));
             }
             else
@@ -503,7 +503,7 @@ public class SepWriterTest
                 row["A"].Set("R1C1");
                 row["B"].Set("R1C2");
             }
-            var e = Assert.ThrowsException<InvalidOperationException>(() =>
+            var e = Assert.ThrowsExactly<InvalidOperationException>(() =>
             {
                 using var row = writer.NewRow();
                 row["B"].Set("R2C2");
@@ -517,7 +517,7 @@ public class SepWriterTest
                 row["A"].Set("R1C1");
                 row["B"].Set("R1C2");
             }
-            var e = await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            var e = await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             {
                 await using var row = writer.NewRow();
                 row["B"].Set("R2C2");
@@ -638,7 +638,7 @@ R3C1;;R3C3
                 row["A"].Set("R1C1");
                 row["B"].Set("R1C2");
             }
-            Assert.ThrowsException<InvalidOperationException>(() =>
+            Assert.ThrowsExactly<InvalidOperationException>(() =>
             {
                 using var row = writer.NewRow();
                 row["B"].Set("R2C2");
@@ -651,7 +651,7 @@ R3C1;;R3C3
                 row["A"].Set("R1C1");
                 row["B"].Set("R1C2");
             }
-            await Assert.ThrowsExceptionAsync<InvalidOperationException>(async () =>
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () =>
             {
                 await using var row = writer.NewRow();
                 row["B"].Set("R2C2");

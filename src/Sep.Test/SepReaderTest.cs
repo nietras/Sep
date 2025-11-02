@@ -218,7 +218,7 @@ public partial class SepReaderTest
     {
         using var reader = Sep.Reader().FromText(string.Empty);
         var enumerable = (System.Collections.IEnumerable)reader;
-        Assert.ThrowsException<NotSupportedException>(() => enumerable.GetEnumerator());
+        Assert.ThrowsExactly<NotSupportedException>(() => enumerable.GetEnumerator());
     }
 
     [TestMethod]
@@ -226,8 +226,8 @@ public partial class SepReaderTest
     {
         using var reader = Sep.Reader().FromText(string.Empty);
         var enumerator = (System.Collections.IEnumerator)reader;
-        Assert.ThrowsException<NotSupportedException>(() => enumerator.Current);
-        Assert.ThrowsException<NotSupportedException>(() => enumerator.Reset());
+        Assert.ThrowsExactly<NotSupportedException>(() => enumerator.Current);
+        Assert.ThrowsExactly<NotSupportedException>(() => enumerator.Reset());
     }
 #endif
 
@@ -343,9 +343,9 @@ public partial class SepReaderTest
         reader.MoveNext();
 
         Assert.AreEqual(0, header.IndexOf("Aa"));
-        Assert.ThrowsException<KeyNotFoundException>(() => header.IndexOf("aa"));
+        Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("aa"));
         Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
-        Assert.ThrowsException<KeyNotFoundException>(() => reader.Current["aa"].ToString());
+        Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["aa"].ToString());
     }
 
     [TestMethod]
@@ -363,58 +363,58 @@ public partial class SepReaderTest
 
         Assert.AreEqual(0, header.IndexOf("Aa"));
         Assert.AreEqual(0, header.IndexOf("aA"));
-        Assert.ThrowsException<KeyNotFoundException>(() => header.IndexOf("X"));
+        Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("X"));
         Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
         Assert.AreEqual(10, reader.Current["aA"].Parse<int>());
-        Assert.ThrowsException<KeyNotFoundException>(() => reader.Current["X"].ToString());
+        Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["X"].ToString());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;A;D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;A;D;E'")]
     [DataRow("A;B;C;A;D;A;E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row 'A;B;C;A;D;A;E;A'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_ThrowsWithDetails(string text, string expected)
     {
         {
-            var e = Assert.ThrowsException<ArgumentException>(
+            var e = Assert.ThrowsExactly<ArgumentException>(
                 () => Sep.Reader().FromText(text));
             Assert.AreEqual(expected, e.Message);
         }
         {
-            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+            var e = await Assert.ThrowsExactlyAsync<ArgumentException>(
                 async () => await Sep.Reader().FromTextAsync(text));
             Assert.AreEqual(expected, e.Message);
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;\"A\";D;E", "Col name 'A' found 2 times at 0:'A' 3:'A' in header row 'A;B;C;\"A\";D;E'")]
     [DataRow("\"A\";B;C;A;D;\"A\";E;A", "Col name 'A' found 4 times at 0:'A' 3:'A' 5:'A' 7:'A' in header row '\"A\";B;C;A;D;\"A\";E;A'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_Unescape_ThrowsWithDetails(string text, string expected)
     {
         {
-            var e = Assert.ThrowsException<ArgumentException>(
+            var e = Assert.ThrowsExactly<ArgumentException>(
                 () => Sep.Reader(o => o with { Unescape = true }).FromText(text));
             Assert.AreEqual(expected, e.Message);
         }
         {
-            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+            var e = await Assert.ThrowsExactlyAsync<ArgumentException>(
                 async () => await Sep.Reader(o => o with { Unescape = true }).FromTextAsync(text));
             Assert.AreEqual(expected, e.Message);
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("A;B;C;a;D;E", "Col name 'a' found 2 times at 0:'A' 3:'a' in header row 'A;B;C;a;D;E'")]
     [DataRow("a;B;C;A;D;A;E;a", "Col name 'A' found 4 times at 0:'a' 3:'A' 5:'A' 7:'a' in header row 'a;B;C;A;D;A;E;a'")]
     public async ValueTask SepReaderTest_DuplicateColumnNames_ColNameComparerOrdinalIgnoreCase_ThrowsWithDetails(string text, string expected)
     {
         {
-            var e = Assert.ThrowsException<ArgumentException>(
+            var e = Assert.ThrowsExactly<ArgumentException>(
                 () => Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromText(text));
             Assert.AreEqual(expected, e.Message);
         }
         {
-            var e = await Assert.ThrowsExceptionAsync<ArgumentException>(
+            var e = await Assert.ThrowsExactlyAsync<ArgumentException>(
                 async () => await Sep.Reader(o => o with { ColNameComparer = StringComparer.OrdinalIgnoreCase }).FromTextAsync(text));
             Assert.AreEqual(expected, e.Message);
         }
@@ -513,12 +513,12 @@ public partial class SepReaderTest
     ];
 #pragma warning restore IDE0055
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_Throws(
         string text, string message, int[] _)
     {
-        var e = Assert.ThrowsException<InvalidDataException>(() =>
+        var e = Assert.ThrowsExactly<InvalidDataException>(() =>
         {
             using var reader = Sep.Reader().FromText(text);
             foreach (var readRow in reader)
@@ -527,7 +527,7 @@ public partial class SepReaderTest
         Assert.AreEqual(message, e.Message);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_DisableColCountCheck(
         string text, string _, int[] expectedColCounts)
@@ -548,7 +548,7 @@ public partial class SepReaderTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_ColumnCountMismatch_IgnoreThrows(
         string text, string _, int[] expectedColCounts)
@@ -613,7 +613,7 @@ public partial class SepReaderTest
     ];
 #pragma warning restore IDE0055
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(LineNumbersData))]
     public void SepReaderTest_LineNumbers(string text,
         (int LineNumberFrom, int LineNumberToExcl)[] expectedLineNumbers)
@@ -653,7 +653,7 @@ public partial class SepReaderTest
         Assert.AreEqual(lengthB, colNames[1].Length);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(true)]
     [DataRow(false)]
     public async ValueTask SepReaderTest_CarriageReturnLineFeedEvenOrOdd_ToEnsureLineFeedReadAfterCarriageReturn(bool even)
@@ -755,12 +755,12 @@ public partial class SepReaderTest
         var text = new string('a', maxLength);
         var expected = $"Buffer or row has reached maximum supported length of 16777216. If no such row should exist ensure quotes \" are terminated.";
         {
-            var e = Assert.ThrowsException<NotSupportedException>(() =>
+            var e = Assert.ThrowsExactly<NotSupportedException>(() =>
                 Sep.Reader().FromText(text));
             Assert.AreEqual(expected, e.Message);
         }
         {
-            var e = await Assert.ThrowsExceptionAsync<NotSupportedException>(async () =>
+            var e = await Assert.ThrowsExactlyAsync<NotSupportedException>(async () =>
                 await Sep.Reader().FromTextAsync(text));
             Assert.AreEqual(expected, e.Message);
         }

@@ -19,103 +19,103 @@ public class PackageAssetsTest
         [SepToString.PoolPerColThreadSafeFixedCapacity()],
     ];
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_NoQuotes(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_NoQuotes_Unescape(SepCreateToString createToString) => VerifyRead(NoQuotes, createToString, unescape: true);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_WithQuotes(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Read_WithQuotes_Unescape(SepCreateToString createToString) => VerifyRead(WithQuotes, createToString, unescape: true);
 
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public async ValueTask PackageAssetsTest_Read_NoQuotes_Async(SepCreateToString createToString) => await VerifyReadAsync(NoQuotes, createToString);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public async ValueTask PackageAssetsTest_Read_NoQuotes_Unescape_Async(SepCreateToString createToString) => await VerifyReadAsync(NoQuotes, createToString, unescape: true);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public async ValueTask PackageAssetsTest_Read_WithQuotes_Async(SepCreateToString createToString) => await VerifyReadAsync(WithQuotes, createToString);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public async ValueTask PackageAssetsTest_Read_WithQuotes_Unescape_Async(SepCreateToString createToString) => await VerifyReadAsync(WithQuotes, createToString, unescape: true);
 
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_NoQuotes(SepCreateToString createToString) =>
         VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_NoQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerate(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_WithQuotes(SepCreateToString createToString) =>
         VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_WithQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerate(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes(SepCreateToString createToString) =>
         VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_RowTryFunc_NoQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerateTry(NoQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes(SepCreateToString createToString) =>
         VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select));
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_Enumerate_RowTryFunc_WithQuotes_Unescape(SepCreateToString createToString) =>
         VerifyEnumerateTry(WithQuotes, createToString, (reader, select) => reader.Enumerate(select), unescape: true);
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_Empty(SepCreateToString createToString)
     {
         var text = string.Empty;
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_Empty_DegreeOfParallism(SepCreateToString createToString)
     {
         var text = string.Empty;
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_Empty_RowTryFunc(SepCreateToString createToString)
     {
         var text = string.Empty;
         VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_Empty_RowTryFunc_DegreeOfParallism(SepCreateToString createToString)
     {
@@ -123,7 +123,7 @@ public class PackageAssetsTest
         VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_NoQuotes(SepCreateToString createToString)
     {
@@ -135,7 +135,7 @@ public class PackageAssetsTest
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_NoQuotes_DegreeOfParallism(SepCreateToString createToString)
     {
@@ -147,7 +147,7 @@ public class PackageAssetsTest
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_WithQuotes(SepCreateToString createToString)
     {
@@ -159,7 +159,7 @@ public class PackageAssetsTest
         VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_NoQuotes(SepCreateToString createToString)
     {
@@ -171,7 +171,7 @@ public class PackageAssetsTest
         VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_NoQuotes_DegreeOfParallism(SepCreateToString createToString)
     {
@@ -183,7 +183,7 @@ public class PackageAssetsTest
         VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_WithQuotes(SepCreateToString createToString)
     {
@@ -243,7 +243,7 @@ public class PackageAssetsTest
         {
             var expectedCols = expected[rowIndex];
             expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.AreEqual(expectedCols.Length, cols.Length);
+            Assert.HasCount(expectedCols.Length, cols);
             CollectionAssert.AreEqual(expectedCols, cols);
             ++rowIndex;
         }
@@ -268,7 +268,7 @@ public class PackageAssetsTest
         {
             var expectedCols = expected[rowIndex];
             expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.AreEqual(expectedCols.Length, cols.Length);
+            Assert.HasCount(expectedCols.Length, cols);
             CollectionAssert.AreEqual(expectedCols, cols);
             ++rowIndex;
         }

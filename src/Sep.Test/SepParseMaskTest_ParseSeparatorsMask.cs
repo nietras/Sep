@@ -54,7 +54,7 @@ public partial class SepParseMaskTest
         // Start 1 in since col ends are added one ahead, since [0] reserved for row start/first col start
         var actual = colEnds.Slice(1, count).ToArray()
             .Select(a => a - CharsIndexOffset).ToArray();
-        Assert.AreEqual(expected.Length, actual.Length);
+        Assert.HasCount(expected.Length, actual);
         if (!expected.SequenceEqual(actual))
         {
             Assert.Fail($"{string.Join(',', expected)} != {string.Join(',', actual)}");

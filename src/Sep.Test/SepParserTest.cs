@@ -72,14 +72,14 @@ public class SepParserTest
     public void SepParserTest_AcceleratedFactories()
     {
         var factories = SepParserFactory.AcceleratedFactories;
-        Assert.IsTrue(factories.Count > 0);
+        Assert.IsNotEmpty(factories);
     }
 
     [TestMethod]
     public void SepParserTest_AvailableFactories()
     {
         var factories = SepParserFactory.AvailableFactories;
-        Assert.IsTrue(factories.Count > 0);
+        Assert.IsNotEmpty(factories);
     }
 
 
@@ -89,8 +89,8 @@ public class SepParserTest
     {
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
-        Assert.IsTrue(parser.PaddingLength >= 0);
-        Assert.IsTrue(parser.QuoteCount == 0);
+        Assert.IsGreaterThanOrEqualTo(0, parser.PaddingLength);
+        Assert.AreEqual(0, parser.QuoteCount);
     }
 
     [TestMethod]

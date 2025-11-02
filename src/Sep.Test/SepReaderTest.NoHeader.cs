@@ -125,12 +125,12 @@ public partial class SepReaderTest
         await AssertEnumerateSyncAsync(text, expected, hasHeader: false);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_NoHeader_ColumnCountMismatch(string text, string message, int[] _)
     {
         Contract.Assume(message is not null);
-        var e = Assert.ThrowsException<InvalidDataException>(() =>
+        var e = Assert.ThrowsExactly<InvalidDataException>(() =>
         {
             using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
             foreach (var readRow in reader)
@@ -142,7 +142,7 @@ public partial class SepReaderTest
         Assert.AreEqual(message, e.Message);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ColCountMismatchData))]
     public void SepReaderTest_NoHeader_ColumnCountMismatch_DisableColCountCheck(
         string text, string _, int[] expectedColCounts)
@@ -179,7 +179,7 @@ public partial class SepReaderTest
         var initialColCountCapacity = SepReader.ColEndsInitialLength;
         var text = new string(';', initialColCountCapacity - 1);
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
-        Assert.AreEqual(initialColCountCapacity * 2, reader._colEndsOrColInfos.Length);
+        Assert.HasCount(initialColCountCapacity * 2, reader._colEndsOrColInfos);
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(initialColCountCapacity, row.ColCount);

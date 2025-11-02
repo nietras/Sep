@@ -31,8 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="BenchmarkDotNet" Version="0.15.4" />
-    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.4" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.5" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.5" />
     <PackageReference Include="csFastFloat" Version="4.1.5" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Sylvan.Common" Version="0.4.3" />

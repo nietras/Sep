@@ -71,7 +71,7 @@ public class SepReaderColTest
     public void SepReaderColTest_TryParse_Out()
     {
         Run(col => Assert.AreEqual((int?)ColValue, col.TryParse<int>(out var v) ? v : null));
-        Run(col => Assert.AreEqual((int?)null, col.TryParse<int>(out var v) ? v : null), "a");
+        Run(col => Assert.AreEqual((int?)default, col.TryParse<int>(out var v) ? v : null), "a");
 
         AssertTryParseOutFloats(o => o);
         AssertTryParseOutFloats(o => o with { DisableFastFloat = true });
@@ -350,7 +350,7 @@ public class SepReaderColTest
     static void AssertTryParseOutFloats(Func<SepReaderOptions, SepReaderOptions> configure)
     {
         Run(col => Assert.AreEqual((float?)ColValue, col.TryParse<float>(out var v) ? v : null), configure: configure);
-        Run(col => Assert.AreEqual((float?)null, col.TryParse<float>(out var v) ? v : null), "a", configure: configure);
+        Run(col => Assert.AreEqual((float?)default, col.TryParse<float>(out var v) ? v : null), "a", configure: configure);
         Run(col => Assert.AreEqual((float?)float.NaN, col.TryParse<float>(out var v) ? v : null), "NaN", configure: configure);
         Run(col => Assert.AreEqual((float?)float.NaN, col.TryParse<float>(out var v) ? v : null), "+NaN", configure: configure);
         Run(col => Assert.AreEqual((float?)float.NaN, col.TryParse<float>(out var v) ? v : null), "-NaN", configure: configure);
@@ -358,7 +358,7 @@ public class SepReaderColTest
         Run(col => Assert.AreEqual((float?)float.NegativeInfinity, col.TryParse<float>(out var v) ? v : null), "-Infinity", configure: configure);
 
         Run(col => Assert.AreEqual((double?)ColValue, col.TryParse<double>(out var v) ? v : null), configure: configure);
-        Run(col => Assert.AreEqual((double?)null, col.TryParse<double>(out var v) ? v : null), "a", configure: configure);
+        Run(col => Assert.AreEqual((double?)default, col.TryParse<double>(out var v) ? v : null), "a", configure: configure);
         Run(col => Assert.AreEqual((double?)double.NaN, col.TryParse<double>(out var v) ? v : null), "NaN", configure: configure);
         Run(col => Assert.AreEqual((double?)double.NaN, col.TryParse<double>(out var v) ? v : null), "+NaN", configure: configure);
         Run(col => Assert.AreEqual((double?)double.NaN, col.TryParse<double>(out var v) ? v : null), "-NaN", configure: configure);

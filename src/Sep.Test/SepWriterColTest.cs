@@ -58,7 +58,7 @@ public class SepWriterColTest
     [TestMethod]
     public async ValueTask SepWriterColTest_Set_Utf8Span_Invalid_Throws()
     {
-        var e = await Assert.ThrowsExceptionAsync<InvalidDataException>(async () =>
+        var e = await Assert.ThrowsExactlyAsync<InvalidDataException>(async () =>
         {
             await Run(col => col.Set([0xBF]));
         });

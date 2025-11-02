@@ -130,7 +130,7 @@ public partial class SepReaderTest
     public void SepReaderTest_NoHeader_ColumnCountMismatch(string text, string message, int[] _)
     {
         Contract.Assume(message is not null);
-        var e = Assert.ThrowsException<InvalidDataException>(() =>
+        var e = Assert.ThrowsExactly<InvalidDataException>(() =>
         {
             using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText(text);
             foreach (var readRow in reader)

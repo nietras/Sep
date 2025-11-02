@@ -86,7 +86,7 @@ public class SepReaderHeaderTest
     {
         var header = Parse(Sep.New(';'), "A;B;C");
 
-        var e = Assert.ThrowsException<ArgumentException>(() =>
+        var e = Assert.ThrowsExactly<ArgumentException>(() =>
         {
             var colNames = new[] { "A", "B" };
             Span<int> colIndices = stackalloc int[1];

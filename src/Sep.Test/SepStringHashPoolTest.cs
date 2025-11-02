@@ -184,7 +184,7 @@ public class SepStringHashPoolTest
     [TestMethod]
     public void SepStringHashPoolTest_InitialCapacityGreaterThanMaximumCapacity_Throws()
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
+        var e = Assert.ThrowsExactly<ArgumentException>(() =>
             new SepStringHashPool(initialCapacity: 9, maximumCapacity: 8));
         Assert.AreEqual("initialCapacity:9 must be less than or equal to maximumCapacity:8", e.Message);
     }

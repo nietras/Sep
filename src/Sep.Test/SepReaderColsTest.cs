@@ -265,7 +265,7 @@ public class SepReaderColsTest
         if (checkIndexOutOfRange)
         {
             // Ensure index out of range causes exception (note range is not same)
-            Assert.ThrowsException<IndexOutOfRangeException>(() => action(reader.Current[[-1]], 0..1));
+            Assert.ThrowsExactly<IndexOutOfRangeException>(() => action(reader.Current[[-1]], 0..1));
         }
     }
 

@@ -99,7 +99,7 @@ public class SepStringHashPoolTest
                 Assert.IsNotNull(str);
                 Assert.AreNotSame(nullString, str);
             }
-            Assert.IsTrue(pool.Count < maxNullStringLength);
+            Assert.IsLessThan(maxNullStringLength, pool.Count);
         }
     }
 

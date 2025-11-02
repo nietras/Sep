@@ -21,7 +21,7 @@ public class SourceFilesAsyncSyncTest
         var asyncLines = File.ReadAllLines(asyncFile);
         var syncLines = File.ReadAllLines(syncFile);
 
-        Assert.AreEqual(asyncLines.Length, syncLines.Length);
+        Assert.HasCount(asyncLines.Length, syncLines);
         for (var i = 1; i < asyncLines.Length; i++)
         {
             Assert.AreEqual(asyncLines[i], syncLines[i]);

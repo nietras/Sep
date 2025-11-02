@@ -249,7 +249,7 @@ public class SepReaderRowTest
     {
         var rowDebugView = new SepReader.Row.DebugView(_enumerator.Current);
         var cols = rowDebugView.Cols;
-        Assert.AreEqual(_cols, cols.Length);
+        Assert.HasCount(_cols, cols);
         for (var colIndex = 0; colIndex < cols.Length; colIndex++)
         {
             var col = cols[colIndex];
@@ -267,7 +267,7 @@ public class SepReaderRowTest
         reader.MoveNext();
         var rowDebugView = new SepReader.Row.DebugView(reader.Current);
         var cols = rowDebugView.Cols;
-        Assert.AreEqual(_cols, cols.Length);
+        Assert.HasCount(_cols, cols);
         for (var colIndex = 0; colIndex < cols.Length; colIndex++)
         {
             var col = cols[colIndex];

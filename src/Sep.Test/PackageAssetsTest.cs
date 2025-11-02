@@ -243,7 +243,7 @@ public class PackageAssetsTest
         {
             var expectedCols = expected[rowIndex];
             expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.AreEqual(expectedCols.Length, cols.Length);
+            Assert.HasCount(expectedCols.Length, cols);
             CollectionAssert.AreEqual(expectedCols, cols);
             ++rowIndex;
         }
@@ -268,7 +268,7 @@ public class PackageAssetsTest
         {
             var expectedCols = expected[rowIndex];
             expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.AreEqual(expectedCols.Length, cols.Length);
+            Assert.HasCount(expectedCols.Length, cols);
             CollectionAssert.AreEqual(expectedCols, cols);
             ++rowIndex;
         }

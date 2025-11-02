@@ -172,7 +172,7 @@ public class SepReaderFuzzTest
             SepUnescape.UnescapeInPlace(ref MemoryMarshal.GetReference(unescapedInRow), unescapedInRow.Length);
         }
         var sourceString = new string(source);
-        Assert.IsTrue((source.ToArray().Count(c => c == '"') & 1) == 0);
+        Assert.AreEqual(0, source.ToArray().Count(c => c == '"') & 1);
         return new(sourceString, new string(unescaped.Slice(0, unescapedLength)), new(unescapedInRow));
     }
 

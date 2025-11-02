@@ -82,7 +82,7 @@ public partial class SepReaderTest
         await FromAnySyncAsync(string.Empty, options: new(), reader =>
         {
             AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
-            Assert.AreEqual(0, reader.Header.ColNames.Count);
+            Assert.IsEmpty(reader.Header.ColNames);
             Assert.IsFalse(reader.MoveNext());
         });
     }
@@ -93,7 +93,7 @@ public partial class SepReaderTest
         await FromAnySyncAsync(Environment.NewLine, options: new(), reader =>
         {
             AssertState(reader, isEmpty: false, hasHeader: true, hasRows: false);
-            Assert.AreEqual(1, reader.Header.ColNames.Count);
+            Assert.HasCount(1, reader.Header.ColNames);
             Assert.IsFalse(reader.MoveNext());
         });
     }
@@ -535,7 +535,7 @@ public partial class SepReaderTest
         Contract.Assume(expectedColCounts != null);
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = true }).FromText(text);
         var colCountIndex = 0;
-        Assert.AreEqual(expectedColCounts[colCountIndex], reader.Header.ColNames.Count);
+        Assert.HasCount(expectedColCounts[colCountIndex], reader.Header.ColNames);
         foreach (var readRow in reader)
         {
             ++colCountIndex;
@@ -556,7 +556,7 @@ public partial class SepReaderTest
         Contract.Assume(expectedColCounts != null);
         using var reader = Sep.Reader().FromText(text);
         var colCountIndex = 0;
-        Assert.AreEqual(expectedColCounts[colCountIndex], reader.Header.ColNames.Count);
+        Assert.HasCount(expectedColCounts[colCountIndex], reader.Header.ColNames);
         var moveNext = false;
         do
         {
@@ -708,7 +708,7 @@ public partial class SepReaderTest
             Assert.IsTrue(reader.MoveNext());
             var row = reader.Current;
             Assert.AreEqual(colCount, row.ColCount);
-            Assert.AreEqual(colCount * 2, reader._colEndsOrColInfos.Length);
+            Assert.HasCount(colCount * 2, reader._colEndsOrColInfos);
         });
     }
 
@@ -779,7 +779,7 @@ public partial class SepReaderTest
 
         using var reader = Sep.Auto.Reader().FromFile(fileName);
 
-        Assert.AreEqual(true, reader.MoveNext());
+        Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
         Assert.AreEqual(1, row["A"].Parse<int>());
     }
@@ -981,7 +981,7 @@ public partial class SepReaderTest
 
     static void AssertHeader(SepReaderHeader header, string colName1, string colName2, string colName3)
     {
-        Assert.AreEqual(3, header.ColNames.Count);
+        Assert.HasCount(3, header.ColNames);
         Assert.AreEqual(0, header.IndexOf(colName1));
         Assert.AreEqual(1, header.IndexOf(colName2));
         Assert.AreEqual(2, header.IndexOf(colName3));
@@ -989,7 +989,7 @@ public partial class SepReaderTest
 
     static void AssertHeaderEmpty(SepReaderHeader header)
     {
-        Assert.AreEqual(0, header.ColNames.Count);
+        Assert.IsEmpty(header.ColNames);
         Assert.IsTrue(header.IsEmpty);
     }
 

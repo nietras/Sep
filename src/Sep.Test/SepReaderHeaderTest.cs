@@ -14,8 +14,8 @@ public class SepReaderHeaderTest
         // If no line read i.e. line == null
         var header = SepReaderHeader.Empty;
 
-        Assert.AreEqual(true, header.IsEmpty);
-        Assert.AreEqual(0, header.ColNames.Count);
+        Assert.IsTrue(header.IsEmpty);
+        Assert.IsEmpty(header.ColNames);
         Assert.AreEqual(string.Empty, header.ToString());
     }
 
@@ -24,8 +24,8 @@ public class SepReaderHeaderTest
     {
         var header = Parse(Sep.Default, string.Empty);
 
-        Assert.AreEqual(false, header.IsEmpty);
-        Assert.AreEqual(1, header.ColNames.Count);
+        Assert.IsFalse(header.IsEmpty);
+        Assert.HasCount(1, header.ColNames);
         Assert.AreEqual(0, header.IndexOf(""));
 #if NET9_0_OR_GREATER
         Assert.AreEqual(0, header.IndexOf("".AsSpan()));
@@ -38,8 +38,8 @@ public class SepReaderHeaderTest
     {
         var header = Parse(Sep.New(';'), "A;B;C");
 
-        Assert.AreEqual(false, header.IsEmpty);
-        Assert.AreEqual(3, header.ColNames.Count);
+        Assert.IsFalse(header.IsEmpty);
+        Assert.HasCount(3, header.ColNames);
         AreEqual(["A", "B", "C"], header.ColNames);
         {
             Assert.AreEqual(1, header.IndexOf("B"));

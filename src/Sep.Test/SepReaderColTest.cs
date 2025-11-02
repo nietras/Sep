@@ -59,7 +59,7 @@ public class SepReaderColTest
     public void SepReaderColTest_TryParse_Return()
     {
         Run(col => Assert.AreEqual(ColValue, col.TryParse<int>()));
-        Run(col => Assert.AreEqual(null, col.TryParse<int>()), "a");
+        Run(col => Assert.IsNull(col.TryParse<int>()), "a");
 
         AssertTryParseReturnFloats(o => o);
         AssertTryParseReturnFloats(o => o with { DisableFastFloat = true });
@@ -280,7 +280,7 @@ public class SepReaderColTest
 
             // Ensure row can be gotten and that expectedCol is contained
             var rowText = row.Span.ToString();
-            Assert.IsTrue(rowText.Contains(expectedCol));
+            Assert.Contains(expectedCol, rowText);
         }
     }
 
@@ -336,7 +336,7 @@ public class SepReaderColTest
         Run(col => Assert.AreEqual(float.NaN, col.TryParse<float>()), "-NaN", configure: configure);
         Run(col => Assert.AreEqual(float.PositiveInfinity, col.TryParse<float>()), "Infinity", configure: configure);
         Run(col => Assert.AreEqual(float.NegativeInfinity, col.TryParse<float>()), "-Infinity", configure: configure);
-        Run(col => Assert.AreEqual(null, col.TryParse<float>()), "a", configure: configure);
+        Run(col => Assert.IsNull(col.TryParse<float>()), "a", configure: configure);
 
         Run(col => Assert.AreEqual(ColValue, col.TryParse<double>()), ColText, configure: configure);
         Run(col => Assert.AreEqual(double.NaN, col.TryParse<double>()), "NaN", configure: configure);
@@ -344,7 +344,7 @@ public class SepReaderColTest
         Run(col => Assert.AreEqual(double.NaN, col.TryParse<double>()), "-NaN", configure: configure);
         Run(col => Assert.AreEqual(double.PositiveInfinity, col.TryParse<double>()), "Infinity", configure: configure);
         Run(col => Assert.AreEqual(double.NegativeInfinity, col.TryParse<double>()), "-Infinity", configure: configure);
-        Run(col => Assert.AreEqual(null, col.TryParse<double>()), "a", configure: configure);
+        Run(col => Assert.IsNull(col.TryParse<double>()), "a", configure: configure);
     }
 
     static void AssertTryParseOutFloats(Func<SepReaderOptions, SepReaderOptions> configure)

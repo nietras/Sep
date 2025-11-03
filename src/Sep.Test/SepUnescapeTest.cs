@@ -30,7 +30,7 @@ public class SepUnescapeTest
         ["\"\"\"", "\""],
     ];
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(UnescapeData))]
     public void SepUnescapeTest_UnescapeInPlace(string chars, string expected)
     {

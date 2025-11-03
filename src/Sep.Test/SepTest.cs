@@ -132,7 +132,7 @@ public class SepTest
         ];
         foreach (var action in actions)
         {
-            var e = Assert.ThrowsException<TException>(action);
+            var e = Assert.ThrowsExactly<TException>(action);
             Assert.AreEqual(expectedMessage, e.Message);
         }
     }

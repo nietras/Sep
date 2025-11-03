@@ -159,7 +159,7 @@ public class SepWriterHeaderTest
         var header = writer.Header;
         header.Add("A");
 
-        var e = Assert.ThrowsException<ArgumentException>(() => header.Add("A"));
+        var e = Assert.ThrowsExactly<ArgumentException>(() => header.Add("A"));
         Assert.AreEqual("Column name 'A' already exists (Parameter 'colName')", e.Message);
     }
 
@@ -201,7 +201,7 @@ public class SepWriterHeaderTest
         header.Add("A");
         header.Write();
 
-        var e = Assert.ThrowsException<InvalidOperationException>(() => header.Add("B"));
+        var e = Assert.ThrowsExactly<InvalidOperationException>(() => header.Add("B"));
         Assert.AreEqual("Cannot add column name 'B since header or first row already written.", e.Message);
     }
 
@@ -213,7 +213,7 @@ public class SepWriterHeaderTest
         header.Add("A");
         using (var row = writer.NewRow()) { row["A"].Set("1"); }
 
-        var e = Assert.ThrowsException<InvalidOperationException>(() => header.Add("B"));
+        var e = Assert.ThrowsExactly<InvalidOperationException>(() => header.Add("B"));
         Assert.AreEqual("Cannot add column name 'B since header or first row already written.", e.Message);
     }
 

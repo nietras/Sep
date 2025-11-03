@@ -16,7 +16,7 @@ public class SepStringHashPoolTest
         new ToStringDelegate[] { new((pool, chars) => pool.ToStringThreadSafe(chars)) },
     ];
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_Basic(object toStringObject)
     {
@@ -46,7 +46,7 @@ public class SepStringHashPoolTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_EdgeCases(object toStringObject)
     {
@@ -71,7 +71,7 @@ public class SepStringHashPoolTest
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_TryCollisions(object toStringObject)
     {
@@ -99,11 +99,11 @@ public class SepStringHashPoolTest
                 Assert.IsNotNull(str);
                 Assert.AreNotSame(nullString, str);
             }
-            Assert.IsTrue(pool.Count < maxNullStringLength);
+            Assert.IsLessThan(maxNullStringLength, pool.Count);
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_Resize(object toStringObject)
     {
@@ -134,7 +134,7 @@ public class SepStringHashPoolTest
         Assert.AreEqual(length, pool.Count);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DynamicData(nameof(ToStrings))]
     public void SepStringHashPoolTest_MaximumCapacity(object toStringObject)
     {
@@ -184,7 +184,7 @@ public class SepStringHashPoolTest
     [TestMethod]
     public void SepStringHashPoolTest_InitialCapacityGreaterThanMaximumCapacity_Throws()
     {
-        var e = Assert.ThrowsException<ArgumentException>(() =>
+        var e = Assert.ThrowsExactly<ArgumentException>(() =>
             new SepStringHashPool(initialCapacity: 9, maximumCapacity: 8));
         Assert.AreEqual("initialCapacity:9 must be less than or equal to maximumCapacity:8", e.Message);
     }

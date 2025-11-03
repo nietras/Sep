@@ -12,7 +12,7 @@ public class SepReaderOptionsTest
     {
         var sut = new SepReaderOptions();
 
-        Assert.AreEqual(null, sut.Sep);
+        Assert.IsNull(sut.Sep);
         Assert.AreSame(CultureInfo.InvariantCulture, sut.CultureInfo);
         Assert.AreSame(StringComparer.Ordinal, sut.ColNameComparer);
         Assert.IsTrue(sut.HasHeader);

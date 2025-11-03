@@ -35,7 +35,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_EmptyString_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("");
@@ -54,7 +54,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_EmptyRow_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText("\n\n");
@@ -72,7 +72,7 @@ public class SepReaderRowTest
 
     [DataRow(false)]
     [DataRow(true)]
-    [DataTestMethod]
+    [TestMethod]
     public void SepReaderRowTest_Row_Properties(bool unescape)
     {
         using var reader = Sep.Reader(o => o with { Unescape = unescape }).FromText(_text);
@@ -124,12 +124,12 @@ public class SepReaderRowTest
         var invalidIndices = new[] { -1, _cols, int.MinValue, int.MaxValue };
         foreach (var index in invalidIndices)
         {
-            Assert.ThrowsException<IndexOutOfRangeException>(
+            Assert.ThrowsExactly<IndexOutOfRangeException>(
                 () => { var col = _enumerator.Current[index].Span; });
             // Index only takes non-negative numbers
             if (index >= 0)
             {
-                Assert.ThrowsException<IndexOutOfRangeException>(
+                Assert.ThrowsExactly<IndexOutOfRangeException>(
                     () => { var col = _enumerator.Current[new Index(index)].Span; });
             }
         }
@@ -214,7 +214,7 @@ public class SepReaderRowTest
             {
                 var indices = Enumerable.Range(0, _cols).ToArray();
                 indices[c] = invalidIndices[i];
-                Assert.ThrowsException<IndexOutOfRangeException>(
+                Assert.ThrowsExactly<IndexOutOfRangeException>(
                     () => { var cols = _enumerator.Current[indices]; cols.Select(col => col.ToString()); });
             }
         }
@@ -232,7 +232,7 @@ public class SepReaderRowTest
             {
                 var names = _colNames.ToArray();
                 names[c] = invalidNames[i];
-                Assert.ThrowsException<KeyNotFoundException>(
+                Assert.ThrowsExactly<KeyNotFoundException>(
                     () => { var col = _enumerator.Current[names]; });
             }
         }
@@ -249,7 +249,7 @@ public class SepReaderRowTest
     {
         var rowDebugView = new SepReader.Row.DebugView(_enumerator.Current);
         var cols = rowDebugView.Cols;
-        Assert.AreEqual(_cols, cols.Length);
+        Assert.HasCount(_cols, cols);
         for (var colIndex = 0; colIndex < cols.Length; colIndex++)
         {
             var col = cols[colIndex];
@@ -267,7 +267,7 @@ public class SepReaderRowTest
         reader.MoveNext();
         var rowDebugView = new SepReader.Row.DebugView(reader.Current);
         var cols = rowDebugView.Cols;
-        Assert.AreEqual(_cols, cols.Length);
+        Assert.HasCount(_cols, cols);
         for (var colIndex = 0; colIndex < cols.Length; colIndex++)
         {
             var col = cols[colIndex];

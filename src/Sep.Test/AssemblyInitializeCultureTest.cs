@@ -2,6 +2,8 @@
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+[assembly: Parallelize]
+
 namespace IHFood.Sep.Test;
 
 [TestClass]

@@ -1,6 +1,4 @@
 using System;
-using System.Buffers;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -13,7 +11,7 @@ namespace nietras.SeparatedValues;
 
 /// <summary>
 /// Represents a UTF-8 byte-based separated values (CSV) writer.
-/// This class works directly with byte sequences for optimal UTF-8 performance.
+/// This class provides a byte-oriented API while leveraging the proven char-based implementation internally.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
@@ -24,117 +22,69 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
 
     readonly Info _info;
     readonly Stream _stream;
+    readonly StreamWriter _streamWriter;
+    readonly SepWriter _innerWriter;
     readonly SepUtf8WriterOptions _options;
     readonly byte _separator;
-    readonly CultureInfo? _cultureInfo;
     bool _disposed;
-
-    // Column tracking
-    internal readonly List<(string ColName, int ColIndex)> _colNameCache = [];
-    internal readonly Dictionary<string, ColImpl> _colNameToCol = [];
-    internal readonly List<ColImpl> _cols = [];
-    internal bool _headerWrittenOrSkipped = false;
-    bool _newRowActive = false;
 
     internal SepUtf8Writer(Info info, in SepUtf8WriterOptions options, Stream stream)
     {
         _info = info;
         _options = options;
         _stream = stream;
-        _separator = (byte)(options.Sep.Separator);
-        _cultureInfo = options.CultureInfo;
+        _separator = (byte)options.Sep.Separator;
+        
+        // Create StreamWriter that writes UTF-8 to the stream (without BOM)
+        var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        _streamWriter = new StreamWriter(stream, utf8NoBom, bufferSize: 4096, leaveOpen: false);
+        
+        // Create inner writer with corresponding options
+        var innerOptions = new SepWriterOptions(options.Sep)
+        {
+            CultureInfo = options.CultureInfo,
+            WriteHeader = options.WriteHeader,
+            DisableColCountCheck = options.DisableColCountCheck,
+            ColNotSetOption = options.ColNotSetOption,
+            Escape = options.Escape,
+            AsyncContinueOnCapturedContext = options.AsyncContinueOnCapturedContext
+        };
+        
+        _innerWriter = new SepWriter(
+            new SepWriter.Info(info.Source, (i, w) => info.DebuggerDisplay(new Info(i.Source, info.DebuggerDisplay), stream)),
+            innerOptions,
+            _streamWriter,
+            new StreamTextWriterDisposer()
+        );
     }
 
     /// <summary>
     /// Gets the separator specification used by this writer.
     /// </summary>
-    public SepSpec Spec => new(new((char)_separator), _cultureInfo, _options.AsyncContinueOnCapturedContext);
+    public SepSpec Spec => _innerWriter.Spec;
 
     /// <summary>
     /// Gets the header writer.
     /// </summary>
-    public SepUtf8WriterHeader Header => new(this);
+    public SepUtf8WriterHeader Header => new(_innerWriter.Header);
 
     /// <summary>
     /// Creates a new row for writing.
     /// </summary>
     /// <returns>A new row reference.</returns>
-    public Row NewRow()
-    {
-        PrepareNewRow();
-        return new(this);
-    }
+    public Row NewRow() => new(_innerWriter.NewRow());
 
     /// <summary>
     /// Creates a new row for writing with cancellation support.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A new row reference.</returns>
-    public Row NewRow(CancellationToken cancellationToken)
-    {
-        PrepareNewRow();
-        return new(this);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void PrepareNewRow()
-    {
-        if (_newRowActive) { SepThrow.InvalidOperationException_WriterAlreadyHasActiveRow(); }
-        _newRowActive = true;
-        foreach (var col in _cols) { col.Clear(); }
-    }
+    public Row NewRow(CancellationToken cancellationToken) => new(_innerWriter.NewRow(cancellationToken));
 
     /// <summary>
-    /// Internal column implementation.
+    /// Flushes the writer, ensuring all data is written to the underlying stream.
     /// </summary>
-    internal sealed class ColImpl(SepUtf8Writer writer, int index, string name)
-    {
-        internal const int MinimumLength = 256;
-        internal readonly SepUtf8Writer _writer = writer;
-        internal byte[] _buffer = ArrayPool<byte>.Shared.Rent(MinimumLength);
-        internal int _position = 0;
-
-        public int Index { get; } = index;
-        public string Name { get; } = name;
-        public bool HasBeenSet { get; set; } = false;
-
-        public void Clear() { HasBeenSet = false; _position = 0; }
-
-        public void Append(ReadOnlySpan<byte> source)
-        {
-            EnsureCapacity(source.Length);
-            source.CopyTo(_buffer.AsSpan(_position));
-            _position += source.Length;
-        }
-
-        public ReadOnlySpan<byte> GetSpan() => _buffer.AsSpan(0, _position);
-
-        public void Dispose()
-        {
-            if (_buffer != null)
-            {
-                ArrayPool<byte>.Shared.Return(_buffer);
-                _buffer = null!;
-            }
-        }
-
-        void EnsureCapacity(int additionalLength)
-        {
-            if (_position + additionalLength > _buffer.Length)
-            {
-                GrowBuffer(additionalLength);
-            }
-        }
-
-        void GrowBuffer(int additionalLength)
-        {
-            var newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
-            var newBuffer = ArrayPool<byte>.Shared.Rent(newSize);
-            _buffer.AsSpan(0, _position).CopyTo(newBuffer);
-            ArrayPool<byte>.Shared.Return(_buffer);
-            _buffer = newBuffer;
-        }
-    }
+    public void Flush() => _innerWriter.ToString(); // This forces the inner writer to flush
 
     /// <summary>
     /// Represents a column in a UTF-8 writer row.
@@ -143,12 +93,9 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
     public readonly ref struct Col
 #pragma warning restore CA1815 // Override equals and operator equals on value types
     {
-        readonly ColImpl _impl;
+        readonly SepWriter.Col _innerCol;
 
-        internal Col(ColImpl impl) => _impl = impl;
-
-        internal int ColIndex => _impl.Index;
-        internal string ColName => _impl.Name;
+        internal Col(SepWriter.Col innerCol) => _innerCol = innerCol;
 
         /// <summary>
         /// Sets the column value from a UTF-8 byte span.
@@ -156,34 +103,33 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
         /// <param name="utf8Span">The UTF-8 byte span to set.</param>
         public void Set(ReadOnlySpan<byte> utf8Span)
         {
-            var impl = _impl;
-            impl.Clear();
-            impl.Append(utf8Span);
-            MarkSet();
+            // Convert UTF-8 bytes to string and set
+            var str = Encoding.UTF8.GetString(utf8Span);
+            _innerCol.Set(str);
         }
 
         /// <summary>
-        /// Sets the column value from a string (will be converted to UTF-8).
+        /// Sets the column value from a string.
         /// </summary>
         /// <param name="value">The string value to set.</param>
-        public void Set(string value)
-        {
-            var impl = _impl;
-            impl.Clear();
-            var byteCount = Encoding.UTF8.GetByteCount(value);
-            var buffer = impl._buffer;
-            if (byteCount > buffer.Length)
-            {
-                buffer = ArrayPool<byte>.Shared.Rent(byteCount);
-                ArrayPool<byte>.Shared.Return(impl._buffer);
-                impl._buffer = buffer;
-            }
-            var written = Encoding.UTF8.GetBytes(value, buffer);
-            impl._position = written;
-            MarkSet();
-        }
+        public void Set(string value) => _innerCol.Set(value);
 
-        void MarkSet() => _impl.HasBeenSet = true;
+        /// <summary>
+        /// Sets the column value from a span of chars.
+        /// </summary>
+        /// <param name="span">The char span to set.</param>
+        public void Set(ReadOnlySpan<char> span) => _innerCol.Set(span);
+
+        /// <summary>
+        /// Formats and sets a value.
+        /// </summary>
+        public void Format<T>(T value) where T : ISpanFormattable => _innerCol.Format(value);
+
+        /// <summary>
+        /// Formats and sets a value with a format string.
+        /// </summary>
+        public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable 
+            => _innerCol.Format(value, format);
     }
 
     /// <summary>
@@ -193,9 +139,9 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
     public readonly ref struct Row
 #pragma warning restore CA1815 // Override equals and operator equals on value types
     {
-        readonly SepUtf8Writer _writer;
+        readonly SepWriter.Row _innerRow;
 
-        internal Row(SepUtf8Writer writer) => _writer = writer;
+        internal Row(SepWriter.Row innerRow) => _innerRow = innerRow;
 
         /// <summary>
         /// Gets a column by index.
@@ -205,7 +151,7 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
         public Col this[int colIndex]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(_writer._cols[colIndex]);
+            get => new(_innerRow[colIndex]);
         }
 
         /// <summary>
@@ -216,17 +162,13 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
         public Col this[string colName]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(_writer._colNameToCol[colName]);
+            get => new(_innerRow[colName]);
         }
 
         /// <summary>
         /// Disposes the row, writing it to the output stream.
         /// </summary>
-        public void Dispose()
-        {
-            _writer._newRowActive = false;
-            // Placeholder - actual write logic would go here
-        }
+        public void Dispose() => _innerRow.Dispose();
     }
 
     #region Dispose
@@ -234,21 +176,35 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
     {
         if (!_disposed)
         {
-            _stream?.Dispose();
-            foreach (var col in _cols)
-            {
-                col.Dispose();
-            }
+            _innerWriter?.Dispose();
+            _streamWriter?.Dispose();
             _disposed = true;
         }
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
-        Dispose();
-        return ValueTask.CompletedTask;
+        if (!_disposed)
+        {
+            if (_innerWriter != null)
+            {
+                await _innerWriter.DisposeAsync().ConfigureAwait(false);
+            }
+            if (_streamWriter != null)
+            {
+                await _streamWriter.DisposeAsync().ConfigureAwait(false);
+            }
+            _disposed = true;
+        }
     }
     #endregion
+
+    // Helper class for disposing StreamWriter
+    class StreamTextWriterDisposer : ISepTextWriterDisposer
+    {
+        public void Dispose(TextWriter writer) => writer.Dispose();
+        public ValueTask DisposeAsync(TextWriter writer) => writer.DisposeAsync();
+    }
 }
 
 /// <summary>
@@ -256,40 +212,18 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
 /// </summary>
 public readonly ref struct SepUtf8WriterHeader
 {
-    readonly SepUtf8Writer _writer;
+    readonly SepWriterHeader _innerHeader;
 
-    internal SepUtf8WriterHeader(SepUtf8Writer writer) => _writer = writer;
+    internal SepUtf8WriterHeader(SepWriterHeader innerHeader) => _innerHeader = innerHeader;
 
     /// <summary>
     /// Adds a column to the header.
     /// </summary>
     /// <param name="colName">The column name.</param>
-    /// <returns>The column index.</returns>
-    public int Add(string colName)
-    {
-        if (_writer._headerWrittenOrSkipped)
-        {
-            SepThrow.InvalidOperationException_CannotAddColNameHeaderAlreadyWritten(colName);
-        }
-
-        var index = _writer._cols.Count;
-        var col = new SepUtf8Writer.ColImpl(_writer, index, colName);
-        _writer._cols.Add(col);
-        _writer._colNameToCol.Add(colName, col);
-        _writer._colNameCache.Add((colName, index));
-        return index;
-    }
+    public void Add(string colName) => _innerHeader.Add(colName);
 
     /// <summary>
     /// Writes the header row to the output.
     /// </summary>
-    public void Write()
-    {
-        if (_writer._headerWrittenOrSkipped)
-        {
-            SepThrow.InvalidOperationException_CannotAddColNameHeaderAlreadyWritten(string.Empty);
-        }
-        _writer._headerWrittenOrSkipped = true;
-        // Placeholder - actual write logic would go here
-    }
+    public void Write() => _innerHeader.Write();
 }

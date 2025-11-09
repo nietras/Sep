@@ -2584,11 +2584,17 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public void Flush() { }
         public nietras.SeparatedValues.SepUtf8Writer.Row NewRow() { }
         public nietras.SeparatedValues.SepUtf8Writer.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
         public readonly ref struct Col
         {
+            public void Format<T>(T value)
+                where T : System.ISpanFormattable { }
+            public void Format<T>(T value, System.ReadOnlySpan<char> format)
+                where T : System.ISpanFormattable { }
             public void Set(System.ReadOnlySpan<byte> utf8Span) { }
+            public void Set(System.ReadOnlySpan<char> span) { }
             public void Set(string value) { }
         }
         public readonly ref struct Row
@@ -2609,7 +2615,7 @@ namespace nietras.SeparatedValues
     }
     public readonly ref struct SepUtf8WriterHeader
     {
-        public int Add(string colName) { }
+        public void Add(string colName) { }
         public void Write() { }
     }
     public readonly struct SepUtf8WriterOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8WriterOptions>

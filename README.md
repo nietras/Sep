@@ -2316,6 +2316,10 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.Sep New(char separator) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader() { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader() { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(System.Func<nietras.SeparatedValues.SepUtf8ReaderOptions, nietras.SeparatedValues.SepUtf8ReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepUtf8WriterOptions Utf8Writer() { }
+        public static nietras.SeparatedValues.SepUtf8WriterOptions Utf8Writer(System.Func<nietras.SeparatedValues.SepUtf8WriterOptions, nietras.SeparatedValues.SepUtf8WriterOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }
@@ -2519,6 +2523,106 @@ namespace nietras.SeparatedValues
         Outer = 1,
         AfterUnescape = 2,
         All = 3,
+    }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public sealed class SepUtf8Reader : System.IDisposable
+    {
+        public nietras.SeparatedValues.SepUtf8Reader.Row Current { get; }
+        public bool HasHeader { get; }
+        public bool HasRows { get; }
+        public nietras.SeparatedValues.SepUtf8ReaderHeader Header { get; }
+        public bool IsEmpty { get; }
+        public nietras.SeparatedValues.SepSpec Spec { get; }
+        public void Dispose() { }
+        public nietras.SeparatedValues.SepUtf8Reader GetEnumerator() { }
+        public bool MoveNext() { }
+        public System.Threading.Tasks.ValueTask<bool> MoveNextAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public readonly ref struct Row
+        {
+            public int ColCount { get; }
+            public System.ReadOnlySpan<byte> this[int colIndex] { get; }
+            public System.ReadOnlySpan<byte> this[string colName] { get; }
+            public System.ReadOnlySpan<byte> Span { get; }
+            public string ToString(int colIndex) { }
+        }
+    }
+    public static class SepUtf8ReaderExtensions
+    {
+        public static nietras.SeparatedValues.SepUtf8Reader From(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, System.IO.Stream stream) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepUtf8Reader> FromAsync(this nietras.SeparatedValues.SepUtf8ReaderOptions options, System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = default) { }
+        public static nietras.SeparatedValues.SepUtf8Reader FromFile(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, string filePath) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepUtf8Reader> FromFileAsync(this nietras.SeparatedValues.SepUtf8ReaderOptions options, string filePath, System.Threading.CancellationToken cancellationToken = default) { }
+        public static nietras.SeparatedValues.SepUtf8Reader FromUtf8(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, byte[] utf8Text) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepUtf8Reader> FromUtf8Async(this nietras.SeparatedValues.SepUtf8ReaderOptions options, byte[] utf8Text, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public readonly struct SepUtf8ReaderHeader : System.IEquatable<nietras.SeparatedValues.SepUtf8ReaderHeader>
+    {
+        public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
+        public int IndexOf(string colName) { }
+        public bool TryGetIndex(string colName, out int colIndex) { }
+    }
+    public readonly struct SepUtf8ReaderOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8ReaderOptions>
+    {
+        public SepUtf8ReaderOptions() { }
+        public SepUtf8ReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
+        public System.Collections.Generic.IEqualityComparer<string> ColNameComparer { get; init; }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool DisableColCountCheck { get; init; }
+        public bool DisableFastFloat { get; init; }
+        public bool DisableQuotesParsing { get; init; }
+        public bool HasHeader { get; init; }
+        public int InitialBufferLength { get; init; }
+        public nietras.SeparatedValues.Sep? Sep { get; init; }
+        public nietras.SeparatedValues.SepTrim Trim { get; init; }
+        public bool Unescape { get; init; }
+    }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public sealed class SepUtf8Writer : System.IAsyncDisposable, System.IDisposable
+    {
+        public nietras.SeparatedValues.SepUtf8WriterHeader Header { get; }
+        public nietras.SeparatedValues.SepSpec Spec { get; }
+        public void Dispose() { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public nietras.SeparatedValues.SepUtf8Writer.Row NewRow() { }
+        public nietras.SeparatedValues.SepUtf8Writer.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
+        public readonly ref struct Col
+        {
+            public void Set(System.ReadOnlySpan<byte> utf8Span) { }
+            public void Set(string value) { }
+        }
+        public readonly ref struct Row
+        {
+            public nietras.SeparatedValues.SepUtf8Writer.Col this[int colIndex] { get; }
+            public nietras.SeparatedValues.SepUtf8Writer.Col this[string colName] { get; }
+            public void Dispose() { }
+        }
+    }
+    public static class SepUtf8WriterExtensions
+    {
+        public static nietras.SeparatedValues.SepUtf8Writer To(this in nietras.SeparatedValues.SepUtf8WriterOptions options, System.IO.Stream stream) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepUtf8Writer> ToAsync(this nietras.SeparatedValues.SepUtf8WriterOptions options, System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = default) { }
+        public static nietras.SeparatedValues.SepUtf8Writer ToFile(this in nietras.SeparatedValues.SepUtf8WriterOptions options, string filePath) { }
+        public static System.Threading.Tasks.ValueTask<nietras.SeparatedValues.SepUtf8Writer> ToFileAsync(this nietras.SeparatedValues.SepUtf8WriterOptions options, string filePath, System.Threading.CancellationToken cancellationToken = default) { }
+        public static nietras.SeparatedValues.SepUtf8Writer ToUtf8(this in nietras.SeparatedValues.SepUtf8WriterOptions options) { }
+        public static byte[] ToUtf8Bytes(this nietras.SeparatedValues.SepUtf8Writer writer) { }
+    }
+    public readonly ref struct SepUtf8WriterHeader
+    {
+        public int Add(string colName) { }
+        public void Write() { }
+    }
+    public readonly struct SepUtf8WriterOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8WriterOptions>
+    {
+        public SepUtf8WriterOptions() { }
+        public SepUtf8WriterOptions(nietras.SeparatedValues.Sep sep) { }
+        public bool AsyncContinueOnCapturedContext { get; init; }
+        public nietras.SeparatedValues.SepColNotSetOption ColNotSetOption { get; init; }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool DisableColCountCheck { get; init; }
+        public bool Escape { get; init; }
+        public nietras.SeparatedValues.Sep Sep { get; init; }
+        public bool WriteHeader { get; init; }
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class SepWriter : System.IAsyncDisposable, System.IDisposable

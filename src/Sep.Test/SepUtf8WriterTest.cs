@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -79,8 +79,8 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(2, lines.Length);
+
+        Assert.HasCount(2, lines);
         Assert.AreEqual("Name;Age;City", lines[0]);
         Assert.AreEqual("Alice;30;NYC", lines[1]);
     }
@@ -107,8 +107,8 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(4, lines.Length);
+
+        Assert.HasCount(4, lines);
         Assert.AreEqual("A;B;C", lines[0]);
         Assert.AreEqual("1;2;3", lines[1]);
         Assert.AreEqual("2;4;6", lines[2]);
@@ -133,8 +133,8 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(2, lines.Length);
+
+        Assert.HasCount(2, lines);
         Assert.AreEqual("Data", lines[0]);
         Assert.AreEqual("Hello, World!", lines[1]);
     }
@@ -157,8 +157,8 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(1, lines.Length);
+
+        Assert.HasCount(1, lines);
         Assert.AreEqual("1;2", lines[0]);
     }
 
@@ -179,9 +179,9 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(2, lines.Length);
-        Assert.IsTrue(lines[1].Contains("\"\""), "Should escape quotes");
+
+        Assert.HasCount(2, lines);
+        Assert.Contains("\"\"", lines[1], "Should escape quotes");
     }
 
     [TestMethod]
@@ -203,8 +203,8 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(2, lines.Length);
+
+        Assert.HasCount(2, lines);
         Assert.AreEqual("A,B", lines[0]);
         Assert.AreEqual("1,2", lines[1]);
     }
@@ -240,11 +240,11 @@ public class SepUtf8WriterTest
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         var lines = result.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        
-        Assert.AreEqual(4, lines.Length);
-        Assert.IsTrue(lines[1].Contains("münchen"));
-        Assert.IsTrue(lines[2].Contains("København"));
-        Assert.IsTrue(lines[3].Contains("日本"));
+
+        Assert.HasCount(4, lines);
+        Assert.Contains("münchen", lines[1]);
+        Assert.Contains("København", lines[2]);
+        Assert.Contains("日本", lines[3]);
     }
 
     [TestMethod]
@@ -263,8 +263,8 @@ public class SepUtf8WriterTest
         }
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.IsTrue(result.Contains("Test"));
-        Assert.IsTrue(result.Contains("Value"));
+        Assert.Contains("Test", result);
+        Assert.Contains("Value", result);
     }
 
     [TestMethod]
@@ -302,7 +302,7 @@ public class SepUtf8WriterTest
         using var reader = Sep.Utf8Reader().FromUtf8(data);
 
         Assert.IsTrue(reader.HasHeader);
-        Assert.AreEqual(3, reader.Header.ColNames.Count);
+        Assert.HasCount(3, reader.Header.ColNames);
 
         var rowCount = 0;
         var firstRow = true;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -34,11 +34,11 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
         _options = options;
         _stream = stream;
         _separator = (byte)options.Sep.Separator;
-        
+
         // Create StreamWriter that writes UTF-8 to the stream (without BOM)
         var utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         _streamWriter = new StreamWriter(stream, utf8NoBom, bufferSize: 4096, leaveOpen: false);
-        
+
         // Create inner writer with corresponding options
         var innerOptions = new SepWriterOptions(options.Sep)
         {
@@ -49,7 +49,7 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
             Escape = options.Escape,
             AsyncContinueOnCapturedContext = options.AsyncContinueOnCapturedContext
         };
-        
+
         _innerWriter = new SepWriter(
             new SepWriter.Info(info.Source, (i, w) => info.DebuggerDisplay(new Info(i.Source, info.DebuggerDisplay), stream)),
             innerOptions,
@@ -128,7 +128,7 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
         /// <summary>
         /// Formats and sets a value with a format string.
         /// </summary>
-        public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable 
+        public void Format<T>(T value, ReadOnlySpan<char> format) where T : ISpanFormattable
             => _innerCol.Format(value, format);
     }
 

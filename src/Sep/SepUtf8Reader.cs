@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,10 +33,10 @@ public sealed partial class SepUtf8Reader : IDisposable
         _info = info;
         _options = options;
         _separator = options.Sep.HasValue ? (byte)options.Sep.Value.Separator : (byte)';';
-        
+
         // Create StreamReader from the UTF-8 stream
         _streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: options.InitialBufferLength, leaveOpen: false);
-        
+
         // Create inner reader with corresponding options
         var innerOptions = new SepReaderOptions(options.Sep)
         {
@@ -51,7 +51,7 @@ public sealed partial class SepUtf8Reader : IDisposable
             Trim = options.Trim,
             AsyncContinueOnCapturedContext = options.AsyncContinueOnCapturedContext
         };
-        
+
         _innerReader = new SepReader(new SepReader.Info(info.Source, i => info.DebuggerDisplay(new Info(i.Source, info.DebuggerDisplay))), innerOptions, _streamReader);
         _innerReader.Initialize(innerOptions);
     }
@@ -108,7 +108,7 @@ public sealed partial class SepUtf8Reader : IDisposable
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if there is a next row, false if end of stream.</returns>
-    public ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default) 
+    public ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default)
         => _innerReader.MoveNextAsync(cancellationToken);
 
     /// <summary>

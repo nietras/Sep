@@ -2559,7 +2559,7 @@ namespace nietras.SeparatedValues
     {
         public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
         public int IndexOf(string colName) { }
-        public bool TryGetIndex(string colName, out int colIndex) { }
+        public bool TryIndexOf(string colName, out int colIndex) { }
     }
     public readonly struct SepUtf8ReaderOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8ReaderOptions>
     {

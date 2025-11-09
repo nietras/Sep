@@ -13,7 +13,7 @@ namespace nietras.SeparatedValues;
 
 /// <summary>
 /// Represents a UTF-8 byte-based separated values (CSV) reader.
-/// This class works directly with byte sequences for optimal UTF-8 performance.
+/// This class provides a byte-oriented API while leveraging the proven char-based implementation internally.
 /// </summary>
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
 public sealed partial class SepUtf8Reader : IDisposable
@@ -22,56 +22,71 @@ public sealed partial class SepUtf8Reader : IDisposable
     internal string DebuggerDisplay => _info.DebuggerDisplay(_info);
 
     readonly Info _info;
-    readonly Stream _stream;
+    readonly SepReader _innerReader;
+    readonly StreamReader _streamReader;
     readonly SepUtf8ReaderOptions _options;
     byte _separator;
     bool _disposed;
-
-    // Buffer for reading bytes
-    byte[] _buffer;
-    int _bufferDataStart;
-    int _bufferDataEnd;
-
-    // Row tracking
-    int _currentRowIndex = -1;
-    bool _hasHeader;
-    SepUtf8ReaderHeader _header = SepUtf8ReaderHeader.Empty;
 
     internal SepUtf8Reader(Info info, in SepUtf8ReaderOptions options, Stream stream)
     {
         _info = info;
         _options = options;
-        _stream = stream;
         _separator = options.Sep.HasValue ? (byte)options.Sep.Value.Separator : (byte)';';
-        _buffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferLength);
-        _bufferDataStart = 0;
-        _bufferDataEnd = 0;
+        
+        // Create StreamReader from the UTF-8 stream
+        _streamReader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: options.InitialBufferLength, leaveOpen: false);
+        
+        // Create inner reader with corresponding options
+        var innerOptions = new SepReaderOptions(options.Sep)
+        {
+            InitialBufferLength = options.InitialBufferLength,
+            CultureInfo = options.CultureInfo,
+            HasHeader = options.HasHeader,
+            ColNameComparer = options.ColNameComparer,
+            DisableFastFloat = options.DisableFastFloat,
+            DisableColCountCheck = options.DisableColCountCheck,
+            DisableQuotesParsing = options.DisableQuotesParsing,
+            Unescape = options.Unescape,
+            Trim = options.Trim,
+            AsyncContinueOnCapturedContext = options.AsyncContinueOnCapturedContext
+        };
+        
+        _innerReader = new SepReader(new SepReader.Info(info.Source, i => info.DebuggerDisplay(new Info(i.Source, info.DebuggerDisplay))), innerOptions, _streamReader);
+        _innerReader.Initialize(innerOptions);
     }
 
     /// <summary>
     /// Gets whether the source is empty (no rows or headers).
     /// </summary>
-    public bool IsEmpty { get; private set; } = true;
+    public bool IsEmpty => _innerReader.IsEmpty;
 
     /// <summary>
     /// Gets the separator specification used by this reader.
     /// </summary>
-    public SepSpec Spec => new(new((char)_separator), _options.CultureInfo, _options.AsyncContinueOnCapturedContext);
+    public SepSpec Spec => _innerReader.Spec;
 
     /// <summary>
     /// Gets whether this reader has a header row.
     /// </summary>
-    public bool HasHeader => _hasHeader;
+    public bool HasHeader => _innerReader.HasHeader;
 
     /// <summary>
     /// Gets whether there are any data rows (excluding header).
     /// </summary>
-    public bool HasRows { get; private set; }
+    public bool HasRows => _innerReader.HasRows;
 
     /// <summary>
     /// Gets the header information.
     /// </summary>
-    public SepUtf8ReaderHeader Header => _header;
+    public SepUtf8ReaderHeader Header
+    {
+        get
+        {
+            var innerHeader = _innerReader.Header;
+            return new SepUtf8ReaderHeader(innerHeader);
+        }
+    }
 
     /// <summary>
     /// Gets the current row.
@@ -86,22 +101,15 @@ public sealed partial class SepUtf8Reader : IDisposable
     /// Moves to the next row.
     /// </summary>
     /// <returns>True if there is a next row, false if end of stream.</returns>
-    public bool MoveNext()
-    {
-        // Simplified implementation - just track that we moved
-        _currentRowIndex++;
-        return false; // Placeholder
-    }
+    public bool MoveNext() => _innerReader.MoveNext();
 
     /// <summary>
     /// Asynchronously moves to the next row.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if there is a next row, false if end of stream.</returns>
-    public ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default)
-    {
-        return ValueTask.FromResult(MoveNext());
-    }
+    public ValueTask<bool> MoveNextAsync(CancellationToken cancellationToken = default) 
+        => _innerReader.MoveNextAsync(cancellationToken);
 
     /// <summary>
     /// Gets the enumerator for this reader (allows foreach usage).
@@ -116,13 +124,18 @@ public sealed partial class SepUtf8Reader : IDisposable
 #pragma warning restore CA1815 // Override equals and operator equals on value types
     {
         readonly SepUtf8Reader _reader;
+        readonly SepReader.Row _innerRow;
 
-        internal Row(SepUtf8Reader reader) => _reader = reader;
+        internal Row(SepUtf8Reader reader)
+        {
+            _reader = reader;
+            _innerRow = reader._innerReader.Current;
+        }
 
         /// <summary>
         /// Gets the number of columns in this row.
         /// </summary>
-        public int ColCount => 0; // Placeholder
+        public int ColCount => _innerRow.ColCount;
 
         /// <summary>
         /// Gets the column at the specified index as a byte span.
@@ -132,7 +145,11 @@ public sealed partial class SepUtf8Reader : IDisposable
         public ReadOnlySpan<byte> this[int colIndex]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => ReadOnlySpan<byte>.Empty; // Placeholder
+            get
+            {
+                var charSpan = _innerRow[colIndex].Span;
+                return Encoding.UTF8.GetBytes(charSpan.ToArray());
+            }
         }
 
         /// <summary>
@@ -145,8 +162,8 @@ public sealed partial class SepUtf8Reader : IDisposable
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                var index = _reader._header.IndexOf(colName);
-                return this[index];
+                var charSpan = _innerRow[colName].Span;
+                return Encoding.UTF8.GetBytes(charSpan.ToArray());
             }
         }
 
@@ -155,16 +172,19 @@ public sealed partial class SepUtf8Reader : IDisposable
         /// </summary>
         /// <param name="colIndex">The column index.</param>
         /// <returns>The column value as a string.</returns>
-        public string ToString(int colIndex)
-        {
-            var bytes = this[colIndex];
-            return Encoding.UTF8.GetString(bytes);
-        }
+        public string ToString(int colIndex) => _innerRow[colIndex].ToString();
 
         /// <summary>
         /// Gets the entire row as a byte span.
         /// </summary>
-        public ReadOnlySpan<byte> Span => ReadOnlySpan<byte>.Empty; // Placeholder
+        public ReadOnlySpan<byte> Span
+        {
+            get
+            {
+                var charSpan = _innerRow.Span;
+                return Encoding.UTF8.GetBytes(charSpan.ToArray());
+            }
+        }
     }
 
     #region Dispose
@@ -172,12 +192,8 @@ public sealed partial class SepUtf8Reader : IDisposable
     {
         if (!_disposed)
         {
-            if (_buffer != null)
-            {
-                ArrayPool<byte>.Shared.Return(_buffer);
-                _buffer = null!;
-            }
-            _stream?.Dispose();
+            _innerReader?.Dispose();
+            _streamReader?.Dispose();
             _disposed = true;
         }
     }
@@ -189,31 +205,26 @@ public sealed partial class SepUtf8Reader : IDisposable
 /// </summary>
 public readonly record struct SepUtf8ReaderHeader
 {
-    internal static readonly SepUtf8ReaderHeader Empty = new(string.Empty, new Dictionary<string, int>());
+    internal static readonly SepUtf8ReaderHeader Empty = new(SepReaderHeader.Empty);
 
-    readonly string _colNamesText;
-    readonly IReadOnlyDictionary<string, int> _colNameToIndex;
+    readonly SepReaderHeader _innerHeader;
 
-    internal SepUtf8ReaderHeader(string colNamesText, IReadOnlyDictionary<string, int> colNameToIndex)
+    internal SepUtf8ReaderHeader(SepReaderHeader innerHeader)
     {
-        _colNamesText = colNamesText;
-        _colNameToIndex = colNameToIndex;
+        _innerHeader = innerHeader;
     }
 
     /// <summary>
     /// Gets the column names.
     /// </summary>
-    public IReadOnlyList<string> ColNames => _colNameToIndex.Keys.ToArray();
+    public IReadOnlyList<string> ColNames => _innerHeader.ColNames;
 
     /// <summary>
     /// Gets the index of the column with the specified name.
     /// </summary>
     /// <param name="colName">The column name.</param>
     /// <returns>The column index, or -1 if not found.</returns>
-    public int IndexOf(string colName)
-    {
-        return _colNameToIndex.TryGetValue(colName, out var index) ? index : -1;
-    }
+    public int IndexOf(string colName) => _innerHeader.IndexOf(colName);
 
     /// <summary>
     /// Tries to get the index of the column with the specified name.
@@ -221,8 +232,5 @@ public readonly record struct SepUtf8ReaderHeader
     /// <param name="colName">The column name.</param>
     /// <param name="colIndex">The column index if found.</param>
     /// <returns>True if the column was found, false otherwise.</returns>
-    public bool TryGetIndex(string colName, out int colIndex)
-    {
-        return _colNameToIndex.TryGetValue(colName, out colIndex);
-    }
+    public bool TryIndexOf(string colName, out int colIndex) => _innerHeader.TryIndexOf(colName, out colIndex);
 }

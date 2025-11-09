@@ -46,6 +46,20 @@ public readonly record struct Sep
         return configure(Writer());
     }
 
+    public static SepUtf8ReaderOptions Utf8Reader() => new(null);
+    public static SepUtf8ReaderOptions Utf8Reader(Func<SepUtf8ReaderOptions, SepUtf8ReaderOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Utf8Reader());
+    }
+
+    public static SepUtf8WriterOptions Utf8Writer() => new(Default);
+    public static SepUtf8WriterOptions Utf8Writer(Func<SepUtf8WriterOptions, SepUtf8WriterOptions> configure)
+    {
+        Contract.Assume(configure != null);
+        return configure(Utf8Writer());
+    }
+
     internal static void Validate(char separator)
     {
         if (separator != '\t' && (separator < _min || separator > _max))

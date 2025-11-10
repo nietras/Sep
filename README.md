@@ -2584,7 +2584,6 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepSpec Spec { get; }
         public void Dispose() { }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
-        public void Flush() { }
         public nietras.SeparatedValues.SepUtf8Writer.Row NewRow() { }
         public nietras.SeparatedValues.SepUtf8Writer.Row NewRow(System.Threading.CancellationToken cancellationToken) { }
         public readonly ref struct Col

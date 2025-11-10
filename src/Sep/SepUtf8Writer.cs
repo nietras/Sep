@@ -82,11 +82,6 @@ public sealed partial class SepUtf8Writer : IDisposable, IAsyncDisposable
     public Row NewRow(CancellationToken cancellationToken) => new(_innerWriter.NewRow(cancellationToken));
 
     /// <summary>
-    /// Flushes the writer, ensuring all data is written to the underlying stream.
-    /// </summary>
-    public void Flush() => _innerWriter.ToString(); // This forces the inner writer to flush
-
-    /// <summary>
     /// Represents a column in a UTF-8 writer row.
     /// </summary>
 #pragma warning disable CA1815 // Override equals and operator equals on value types

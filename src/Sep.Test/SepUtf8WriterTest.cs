@@ -600,4 +600,124 @@ public class SepUtf8WriterTest
         Assert.Contains("Value0", lines[1]);
         Assert.Contains("Value9", lines[1]);
     }
+
+    [TestMethod]
+    public async Task SepUtf8WriterTest_ToFileAsync()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            await using (var writer = await Sep.Utf8Writer().ToFileAsync(tempFile))
+            {
+                writer.Header.Add("Test");
+                writer.Header.Write();
+
+                using (var row = writer.NewRow())
+                {
+                    row["Test"].Set("Value");
+                }
+            }
+
+            Assert.IsTrue(File.Exists(tempFile));
+            var result = File.ReadAllText(tempFile);
+            Assert.Contains("Test", result);
+            Assert.Contains("Value", result);
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task SepUtf8WriterTest_ToStreamAsync()
+    {
+        using var stream = new MemoryStream();
+        await using (var writer = await Sep.Utf8Writer().ToAsync(stream))
+        {
+            writer.Header.Add("Test");
+            writer.Header.Write();
+
+            using (var row = writer.NewRow())
+            {
+                row["Test"].Set("Value");
+            }
+        }
+
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains("Test", result);
+        Assert.Contains("Value", result);
+    }
+
+    [TestMethod]
+    public void SepUtf8WriterTest_ToUtf8Bytes_ThrowsNotSupported()
+    {
+        using var stream = new MemoryStream();
+        using var writer = Sep.Utf8Writer().To(stream);
+        Assert.ThrowsExactly<NotSupportedException>(() => writer.ToUtf8Bytes());
+    }
+
+    [TestMethod]
+    public void SepUtf8WriterTest_SetCharSpan()
+    {
+        using var stream = new MemoryStream();
+        using (var writer = Sep.Utf8Writer().To(stream))
+        {
+            writer.Header.Add("Test");
+            writer.Header.Write();
+
+            using (var row = writer.NewRow())
+            {
+                row["Test"].Set("Value".AsSpan());
+            }
+        }
+
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains("Test", result);
+        Assert.Contains("Value", result);
+    }
+
+    [TestMethod]
+    public void SepUtf8WriterTest_FormatWithFormatString()
+    {
+        using var stream = new MemoryStream();
+        using (var writer = Sep.Utf8Writer().To(stream))
+        {
+            writer.Header.Add("Value");
+            writer.Header.Write();
+
+            using (var row = writer.NewRow())
+            {
+                row["Value"].Format(123.456, "F2");
+            }
+        }
+
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Contains("123.46", result);
+    }
+
+    [TestMethod]
+    public void SepUtf8WriterTest_DebuggerDisplay()
+    {
+        using var stream = new MemoryStream();
+        using var writer = Sep.Utf8Writer().To(stream);
+
+        // Access DebuggerDisplay through reflection since it's internal
+        var debugDisplay = writer.GetType().GetProperty("DebuggerDisplay",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(writer);
+
+        Assert.IsNotNull(debugDisplay);
+        Assert.IsInstanceOfType(debugDisplay, typeof(string));
+    }
+
+    [TestMethod]
+    public void SepUtf8WriterTest_OptionsDefaultConstructor()
+    {
+        var options = new SepUtf8WriterOptions();
+        Assert.AreEqual(';', options.Sep.Separator);
+        Assert.IsTrue(options.WriteHeader);
+    }
 }

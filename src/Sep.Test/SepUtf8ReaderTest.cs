@@ -451,4 +451,107 @@ public class SepUtf8ReaderTest
 
         Assert.AreEqual(1, rowCount);
     }
+
+    [TestMethod]
+    public void SepUtf8ReaderTest_FromStream()
+    {
+        var utf8Text = Encoding.UTF8.GetBytes("A;B;C\n1;2;3");
+        using var stream = new MemoryStream(utf8Text);
+        using var reader = Sep.Utf8Reader().From(stream);
+
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual("1", row.ToString(0));
+    }
+
+    [TestMethod]
+    public async Task SepUtf8ReaderTest_FromUtf8Async()
+    {
+        var utf8Text = Encoding.UTF8.GetBytes("A;B;C\n1;2;3");
+        using var reader = await Sep.Utf8Reader().FromUtf8Async(utf8Text);
+
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual("1", row.ToString(0));
+    }
+
+    [TestMethod]
+    public async Task SepUtf8ReaderTest_FromFileAsync()
+    {
+        var tempFile = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(tempFile, Encoding.UTF8.GetBytes("A;B;C\n1;2;3"));
+            using var reader = await Sep.Utf8Reader().FromFileAsync(tempFile);
+
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            Assert.AreEqual("1", row.ToString(0));
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [TestMethod]
+    public async Task SepUtf8ReaderTest_FromStreamAsync()
+    {
+        var utf8Text = Encoding.UTF8.GetBytes("A;B;C\n1;2;3");
+        using var stream = new MemoryStream(utf8Text);
+        using var reader = await Sep.Utf8Reader().FromAsync(stream);
+
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual("1", row.ToString(0));
+    }
+
+    [TestMethod]
+    public void SepUtf8ReaderTest_ColumnByNameByteSpan()
+    {
+        var utf8Text = Encoding.UTF8.GetBytes("Name;Age\nAlice;30");
+        using var reader = Sep.Utf8Reader().FromUtf8(utf8Text);
+
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+
+        // Access by name returns byte span
+        var nameBytes = row["Name"];
+        var ageBytes = row["Age"];
+
+        Assert.AreEqual("Alice", Encoding.UTF8.GetString(nameBytes));
+        Assert.AreEqual("30", Encoding.UTF8.GetString(ageBytes));
+    }
+
+    [TestMethod]
+    public void SepUtf8ReaderTest_EmptyHeader()
+    {
+        var emptyHeader = SepUtf8ReaderHeader.Empty;
+        Assert.IsEmpty(emptyHeader.ColNames);
+    }
+
+    [TestMethod]
+    public void SepUtf8ReaderTest_DebuggerDisplay()
+    {
+        var utf8Text = Encoding.UTF8.GetBytes("A;B;C\n1;2;3");
+        using var reader = Sep.Utf8Reader().FromUtf8(utf8Text);
+
+        // Access DebuggerDisplay through reflection since it's internal
+        var debugDisplay = reader.GetType().GetProperty("DebuggerDisplay",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(reader);
+
+        Assert.IsNotNull(debugDisplay);
+        Assert.IsInstanceOfType(debugDisplay, typeof(string));
+    }
+
+    [TestMethod]
+    public void SepUtf8ReaderTest_OptionsDefaultConstructor()
+    {
+        var options = new SepUtf8ReaderOptions();
+        Assert.IsNull(options.Sep);
+        Assert.IsTrue(options.HasHeader);
+    }
 }

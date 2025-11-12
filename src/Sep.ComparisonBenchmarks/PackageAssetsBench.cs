@@ -436,6 +436,23 @@ public class AssetPackageAssetsBench : PackageAssetsBench
               .ToList();
     }
 
+    [Benchmark()]
+    public void Sep_MT_Func()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            HasHeader = false,
+            Unescape = Quotes,
+#if USE_STRING_POOLING
+            CreateToString = SepToString.PoolPerColThreadSafeFixedCapacity(maximumStringLength: 128),
+#endif
+        })
+        .From(Reader.CreateReader());
+
+        reader.ParallelEnumerate(row => PackageAsset.Read(row._state.UnsafeToStringDelegate, static (s, i) => s(i)))
+              .ToList();
+    }
+
 #if !SEPBENCHSEPONLY
     [Benchmark]
 #endif

@@ -35,13 +35,16 @@ public class SepUnescapeTest
     public void SepUnescapeTest_UnescapeInPlace(string chars, string expected)
     {
         Contract.Assume(chars != null);
+        // Ensure copies of the original since UnescapeInPlace modifies in place
         var src = new string(chars);
+        var dst = new string(chars);
 
         var unescapedLength = SepUnescape.UnescapeInPlace(
-            ref MemoryMarshal.GetReference<char>(chars),
-            chars.Length);
+            ref MemoryMarshal.GetReference<char>(dst),
+            dst.Length);
 
-        var actual = new string(chars.AsSpan(0, unescapedLength));
+        var actual = new string(dst.AsSpan(0, unescapedLength));
         Assert.AreEqual(expected, actual, src);
+        Assert.AreEqual(src, chars);
     }
 }

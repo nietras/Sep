@@ -87,19 +87,21 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.None)
     {
-        //_colUnquoteUnescape = colUnquoteUnescape ? UnescapeFlag : 0u;
-        _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u; // _colUnquoteUnescape;
+        // Delegate must point to this instance's method
+        UnsafeToStringDelegate = ToStringDefault;
+
+        _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u;
         _colSpanFlags |= ((trim & SepTrim.Outer) != 0u ? TrimOuterFlag : 0u);
         _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.AfterUnescape) != 0u))
                          ? TrimAfterUnescapeFlag : 0u;
-        UnsafeToStringDelegate = ToStringDefault;
     }
 
     internal SepReaderState(SepReader other)
     {
-        //_colUnquoteUnescape = other._colUnquoteUnescape;
+        // Delegate must point to this instance's method
+        UnsafeToStringDelegate = ToStringDefault;
+
         _colSpanFlags = other._colSpanFlags;
-        UnsafeToStringDelegate = other.UnsafeToStringDelegate;
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');

@@ -18,6 +18,22 @@ public class PackageAssetsTest
         [SepToString.PoolPerColThreadSafe()],
         [SepToString.PoolPerColThreadSafeFixedCapacity()],
     ];
+    public static IEnumerable<SepReader.RowFunc<string[]>> ToStringsRowFuncs =>
+    [
+        r => r[0..r.ColCount].ToStringsArray(),
+        ToStringsArrayViewUnsafeToStringDelegate,
+    ];
+
+    static string[] ToStringsArrayViewUnsafeToStringDelegate(SepReader.Row row)
+    {
+        var toString = row.UnsafeToStringDelegate;
+        var cols = new string[row.ColCount];
+        for (var i = 0; i < row.ColCount; ++i)
+        {
+            cols[i] = toString(i);
+        }
+        return cols;
+    }
 
     [TestMethod]
     [DynamicData(nameof(ToStrings))]
@@ -236,18 +252,21 @@ public class PackageAssetsTest
         bool unescape = false)
     {
         var expected = ReadLineSplitAsList(text);
-        var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
-        var rows = enumerate(reader, r => r[0..r.ColCount].ToStringsArray());
-        var rowIndex = 0;
-        foreach (var cols in rows)
+        foreach (var toStrings in ToStringsRowFuncs)
         {
-            var expectedCols = expected[rowIndex];
-            expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
-            Assert.HasCount(expectedCols.Length, cols);
-            CollectionAssert.AreEqual(expectedCols, cols);
-            ++rowIndex;
+            var reader = Sep.Reader(o => o with { HasHeader = false, CreateToString = createToString, Unescape = unescape }).FromText(text);
+            var rows = enumerate(reader, toStrings);
+            var rowIndex = 0;
+            foreach (var cols in rows)
+            {
+                var expectedCols = expected[rowIndex];
+                expectedCols = unescape ? UnescapeColsByTrim(expectedCols) : expectedCols;
+                Assert.HasCount(expectedCols.Length, cols);
+                CollectionAssert.AreEqual(expectedCols, cols);
+                ++rowIndex;
+            }
+            Assert.AreEqual(expected.Count, rowIndex);
         }
-        Assert.AreEqual(expected.Count, rowIndex);
     }
 
     static void VerifyEnumerateTry(string text, SepCreateToString createToString,

@@ -1,22 +1,22 @@
 ```
 
-BenchmarkDotNet v0.14.0, Windows 10 (10.0.19044.3086/21H2/November2021Update)
-AMD Ryzen 9 9950X, 1 CPU, 32 logical and 16 physical cores
-.NET SDK 9.0.203
-  [Host]     : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
-  Job-RXSQJG : .NET 9.0.4 (9.0.425.16305), X64 RyuJIT AVX-512F+CD+BW+DQ+VL+VBMI
+BenchmarkDotNet v0.15.6, Windows 10 (10.0.19045.6575/22H2/2022Update)
+AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.100
+  [Host]    : .NET 10.0.0 (10.0.0, 10.0.25.52411), X64 RyuJIT x86-64-v4
+  .NET 10.0 : .NET 10.0.0 (10.0.0, 10.0.25.52411), X64 RyuJIT x86-64-v4
 
-Job=Job-RXSQJG  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 9.0  
-Toolchain=net90  InvocationCount=Default  IterationTime=350ms  
+Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
+Toolchain=net10.0  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
 
 ```
 | Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 |  5.235 ms |  1.00 | 41 | 7978.5 |  104.7 |   1.02 KB |        1.00 |
-| Sep_Trim                   | Cols  | 50000 |  7.953 ms |  1.52 | 41 | 5252.0 |  159.1 |   1.04 KB |        1.02 |
-| Sep_TrimUnescape           | Cols  | 50000 |  8.544 ms |  1.63 | 41 | 4888.7 |  170.9 |   1.04 KB |        1.02 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 |  9.254 ms |  1.77 | 41 | 4513.7 |  185.1 |   1.05 KB |        1.02 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 62.406 ms | 11.92 | 41 |  669.3 | 1248.1 | 451.34 KB |      440.58 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 61.412 ms | 11.73 | 41 |  680.2 | 1228.2 | 445.72 KB |      435.10 |
+| Sep_                       | Cols  | 50000 |  5.434 ms |  1.00 | 41 | 7687.0 |  108.7 |   1.01 KB |        1.00 |
+| Sep_Trim                   | Cols  | 50000 |  7.906 ms |  1.46 | 41 | 5283.2 |  158.1 |   1.01 KB |        1.00 |
+| Sep_TrimUnescape           | Cols  | 50000 |  8.541 ms |  1.57 | 41 | 4890.5 |  170.8 |   1.01 KB |        1.00 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 |  9.059 ms |  1.67 | 41 | 4610.7 |  181.2 |   1.01 KB |        1.00 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 61.560 ms | 11.33 | 41 |  678.5 | 1231.2 | 451.27 KB |      447.77 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 60.812 ms | 11.19 | 41 |  686.9 | 1216.2 |  445.6 KB |      442.15 |

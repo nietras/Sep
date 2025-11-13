@@ -54,7 +54,7 @@ public class SepParserTest
 
         static Type GetBestExpectedType()
         {
-            if (Environment.Is64BitProcess && Avx512BW.IsSupported)
+            if (Avx512BW.IsSupported)
             { return typeof(SepParserAvx512To256CmpOrMoveMaskTzcnt); }
             if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
             { return typeof(SepParserVector512NrwCmpExtMsbTzcnt); }

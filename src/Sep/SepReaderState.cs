@@ -99,7 +99,7 @@ public class SepReaderState : IDisposable
     internal SepReaderState(SepReader other)
     {
         // Delegate must point to this instance's method
-        UnsafeToStringDelegate = other.UnsafeToStringDelegate; // WRONG: must be ToStringDefault;
+        UnsafeToStringDelegate = ToStringDefault;
 
         _colSpanFlags = other._colSpanFlags;
         _header = other._header;

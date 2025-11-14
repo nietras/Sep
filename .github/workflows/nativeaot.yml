@@ -47,4 +47,4 @@ jobs:
           path: ${{ env.ArtifactsDirectory }}
       - name: Run Tester
         shell: pwsh
-        run: ./artifacts/bin/Sep.Tester/release_net9.0_win-x64/native/Sep.Tester.exe
+        run: ./artifacts/bin/Sep.Tester/release_net10.0_win-x64/native/Sep.Tester.exe

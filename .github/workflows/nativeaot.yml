@@ -14,7 +14,7 @@ env:
   ArtifactsDirectory: ${{ github.workspace }}/artifacts
 
 jobs:
-  build:
+  nativeaot:
     strategy:
       matrix:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories

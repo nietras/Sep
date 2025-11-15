@@ -65,16 +65,75 @@ jobs:
         run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Test
         run: dotnet test -c ${{ matrix.configuration }} --no-build --verbosity normal --collect:"XPlat Code Coverage"
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+      - name: Upload coverage as artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          flags: ${{ matrix.os }}
-          token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
+          name: coverage_${{ matrix.os }}_${{ matrix.configuration }}
+          path: "**/coverage.cobertura.xml"
+          if-no-files-found: warn
+          retention-days: 1
+
+  upload-coverage:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2 # v2.13.2
         with:
-          flags: ${{ matrix.configuration }}
-          token: ${{ secrets.CODECOV_TOKEN }}
+          egress-policy: audit
+
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          pattern: coverage_*
+          path: coverage-artifacts
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Coverage artifacts:"
+          find coverage-artifacts -name "*.xml" -type f
+
+      - name: Setup Node.js for Codecov CLI
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v6.1.0
+        with:
+          node-version: "20"
+
+      - name: Upload coverage reports to Codecov
+        run: |
+          # Find all coverage files and upload each with appropriate flags
+          for artifact_dir in coverage-artifacts/coverage_*; do
+            if [ -d "$artifact_dir" ]; then
+              # Extract artifact name (e.g., coverage_ubuntu-latest_Debug)
+              artifact_name=$(basename "$artifact_dir")
+              
+              # Remove the 'coverage_' prefix
+              flags_str="${artifact_name#coverage_}"
+              
+              # Split by underscore to get OS and configuration
+              # This handles cases where OS or configuration contain hyphens
+              os_flag=$(echo "$flags_str" | rev | cut -d'_' -f2- | rev)
+              config_flag=$(echo "$flags_str" | rev | cut -d'_' -f1 | rev)
+              
+              # Find coverage file in this artifact directory
+              coverage_file=$(find "$artifact_dir" -name "coverage.cobertura.xml" -type f | head -n 1)
+              
+              if [ -n "$coverage_file" ]; then
+                echo "Uploading $coverage_file with flags: $os_flag,$config_flag"
+                npx codecov \
+                  --file="$coverage_file" \
+                  --flag="$os_flag" \
+                  --flag="$config_flag" \
+                  --token="${{ secrets.CODECOV_TOKEN }}" \
+                  --verbose || echo "Failed to upload $coverage_file"
+              else
+                echo "No coverage file found in $artifact_dir"
+              fi
+            fi
+          done
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   format:
     strategy:

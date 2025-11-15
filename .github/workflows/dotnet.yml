@@ -90,19 +90,13 @@ jobs:
           pattern: coverage_*
           path: coverage-artifacts
 
-      - name: List downloaded artifacts
-        run: |
-          echo "Coverage artifacts:"
-          find coverage-artifacts -name "*.xml" -type f
-
-      - name: Setup Node.js for Codecov CLI
-        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v6.1.0
-        with:
-          node-version: "20"
-
       - name: Upload coverage reports to Codecov
         run: |
-          # Find all coverage files and upload each with appropriate flags
+          # Download Codecov uploader
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          
+          # Upload each coverage file with appropriate flags
           for artifact_dir in coverage-artifacts/coverage_*; do
             if [ -d "$artifact_dir" ]; then
               # Extract artifact name (e.g., coverage_ubuntu-latest_Debug)
@@ -121,19 +115,12 @@ jobs:
               
               if [ -n "$coverage_file" ]; then
                 echo "Uploading $coverage_file with flags: $os_flag,$config_flag"
-                npx codecov \
-                  --file="$coverage_file" \
-                  --flag="$os_flag" \
-                  --flag="$config_flag" \
-                  --token="${{ secrets.CODECOV_TOKEN }}" \
-                  --verbose || echo "Failed to upload $coverage_file"
+                ./codecov -f "$coverage_file" -F "$os_flag" -F "$config_flag" -t "${{ secrets.CODECOV_TOKEN }}" || echo "Failed to upload $coverage_file"
               else
                 echo "No coverage file found in $artifact_dir"
               fi
             fi
           done
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   format:
     strategy:

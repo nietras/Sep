@@ -90,85 +90,41 @@ jobs:
           pattern: coverage_*
           path: coverage-artifacts
 
-      - name: Upload coverage to Codecov (ubuntu-latest Debug)
-        if: hashFiles('coverage-artifacts/coverage_ubuntu-latest_Debug/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_ubuntu-latest_Debug/**/coverage.cobertura.xml
-          flags: ubuntu-latest,Debug
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (ubuntu-latest Release)
-        if: hashFiles('coverage-artifacts/coverage_ubuntu-latest_Release/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_ubuntu-latest_Release/**/coverage.cobertura.xml
-          flags: ubuntu-latest,Release
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (windows-latest Debug)
-        if: hashFiles('coverage-artifacts/coverage_windows-latest_Debug/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_windows-latest_Debug/**/coverage.cobertura.xml
-          flags: windows-latest,Debug
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (windows-latest Release)
-        if: hashFiles('coverage-artifacts/coverage_windows-latest_Release/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_windows-latest_Release/**/coverage.cobertura.xml
-          flags: windows-latest,Release
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (macos-latest Debug)
-        if: hashFiles('coverage-artifacts/coverage_macos-latest_Debug/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_macos-latest_Debug/**/coverage.cobertura.xml
-          flags: macos-latest,Debug
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (macos-latest Release)
-        if: hashFiles('coverage-artifacts/coverage_macos-latest_Release/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_macos-latest_Release/**/coverage.cobertura.xml
-          flags: macos-latest,Release
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (windows-11-arm Debug)
-        if: hashFiles('coverage-artifacts/coverage_windows-11-arm_Debug/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_windows-11-arm_Debug/**/coverage.cobertura.xml
-          flags: windows-11-arm,Debug
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (windows-11-arm Release)
-        if: hashFiles('coverage-artifacts/coverage_windows-11-arm_Release/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_windows-11-arm_Release/**/coverage.cobertura.xml
-          flags: windows-11-arm,Release
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (ubuntu-24.04-arm Debug)
-        if: hashFiles('coverage-artifacts/coverage_ubuntu-24.04-arm_Debug/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_ubuntu-24.04-arm_Debug/**/coverage.cobertura.xml
-          flags: ubuntu-24.04-arm,Debug
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage to Codecov (ubuntu-24.04-arm Release)
-        if: hashFiles('coverage-artifacts/coverage_ubuntu-24.04-arm_Release/**/coverage.cobertura.xml') != ''
-        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
-        with:
-          files: coverage-artifacts/coverage_ubuntu-24.04-arm_Release/**/coverage.cobertura.xml
-          flags: ubuntu-24.04-arm,Release
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload all coverage reports to Codecov
+        run: |
+          # Download codecov CLI uploader once
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          
+          # Upload each coverage file with appropriate flags
+          for artifact_dir in coverage-artifacts/coverage_*; do
+            if [ -d "$artifact_dir" ]; then
+              # Extract artifact name (e.g., coverage_ubuntu-latest_Debug)
+              artifact_name=$(basename "$artifact_dir")
+              
+              # Remove the 'coverage_' prefix
+              flags_str="${artifact_name#coverage_}"
+              
+              # Split by underscore to get OS and configuration
+              os_flag=$(echo "$flags_str" | rev | cut -d'_' -f2- | rev)
+              config_flag=$(echo "$flags_str" | rev | cut -d'_' -f1 | rev)
+              
+              # Find coverage file in this artifact directory
+              coverage_file=$(find "$artifact_dir" -name "coverage.cobertura.xml" -type f | head -n 1)
+              
+              if [ -n "$coverage_file" ]; then
+                echo "Uploading: $coverage_file"
+                echo "  Flags: $os_flag,$config_flag"
+                
+                ./codecov \
+                  -f "$coverage_file" \
+                  -F "$os_flag" \
+                  -F "$config_flag" \
+                  -t "${{ secrets.CODECOV_TOKEN }}" \
+                  || echo "Warning: Failed to upload $coverage_file"
+              fi
+            fi
+          done
 
   format:
     strategy:

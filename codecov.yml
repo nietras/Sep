@@ -6,4 +6,5 @@ coverage:
     changes: false
 codecov:
   notify:
-    after_n_builds: 6
+    # Wait for all 10 coverage uploads (5 OS x 2 configurations) before reporting
+    after_n_builds: 10

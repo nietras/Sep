@@ -8,4 +8,6 @@ coverage:
     changes: false
 codecov:
   notify:
-    after_n_builds: 6
+    after_n_builds: 10
+comment:
+  after_n_builds: 10

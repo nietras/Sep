@@ -3,7 +3,7 @@ coverage:
     # Learn more at https://docs.codecov.io/docs/commit-status
     project:
       enabled: true
-      threshold: 0.1
+      threshold: 0.1%
     patch: false
     changes: false
 codecov:

@@ -12,11 +12,11 @@ updates:
       BenchmarkDotNet:
         patterns:
           - "BenchmarkDotNet*"
-    open-pull-requests-limit: 20
+    open-pull-requests-limit: 0
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       # Check for updates to GitHub Actions every month
       interval: "monthly"
-    open-pull-requests-limit: 20
+    open-pull-requests-limit: 0

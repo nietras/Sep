@@ -1,0 +1,44 @@
+<Solution>
+  <Folder Name="/ci/">
+    <File Path=".github/dependabot.yml" />
+    <File Path=".github/workflows/bench.yml" />
+    <File Path=".github/workflows/comparison-bench.yml" />
+    <File Path=".github/workflows/dependency-review.yml" />
+    <File Path=".github/workflows/dotnet.yml" />
+    <File Path=".github/workflows/nativeaot.yml" />
+    <File Path=".github/workflows/scorecard.yml" />
+    <File Path=".github/workflows/super-linter.yml" />
+  </Folder>
+  <Folder Name="/root/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="bench.ps1" />
+    <File Path="codecov.yml" />
+    <File Path="CODE_OF_CONDUCT.md" />
+    <File Path="comparison-bench.ps1" />
+    <File Path="disasm-tester.ps1" />
+    <File Path="global.json" />
+    <File Path="Icon.png" />
+    <File Path="nuget.config" />
+    <File Path="pack.ps1" />
+    <File Path="publish-tester.ps1" />
+    <File Path="README.md" />
+    <File Path="rename.ps1" />
+    <File Path="SECURITY.md" />
+    <File Path="test-parsers.ps1" />
+    <File Path="test-x64-x86.ps1" />
+    <File Path="validate-codecov.ps1" />
+  </Folder>
+  <Folder Name="/src/">
+    <File Path="src/Directory.Build.props" />
+    <File Path="src/Directory.Build.targets" />
+    <File Path="src/SourceLink.GitHub.props" />
+  </Folder>
+  <Project Path="src/Sep/Sep.csproj" />
+  <Project Path="src/Sep.Benchmarks/Sep.Benchmarks.csproj" />
+  <Project Path="src/Sep.ComparisonBenchmarks/Sep.ComparisonBenchmarks.csproj" />
+  <Project Path="src/Sep.Test/Sep.Test.csproj" />
+  <Project Path="src/Sep.Tester/Sep.Tester.csproj" />
+  <Project Path="src/Sep.XyzTest/Sep.XyzTest.csproj" />
+</Solution>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31710.8
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11205.157 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sep", "src\Sep\Sep.csproj", "{FD595AC7-E1A5-4ACA-AE60-3539AB1691FF}"
 EndProject
@@ -22,6 +22,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{32021D88-4
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
 		bench.ps1 = bench.ps1
+		codecov.yml = codecov.yml
 		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 		comparison-bench.ps1 = comparison-bench.ps1
 		disasm-tester.ps1 = disasm-tester.ps1
@@ -35,6 +36,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{32021D88-4
 		SECURITY.md = SECURITY.md
 		test-parsers.ps1 = test-parsers.ps1
 		test-x64-x86.ps1 = test-x64-x86.ps1
+		validate-codecov.ps1 = validate-codecov.ps1
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sep.Tester", "src\Sep.Tester\Sep.Tester.csproj", "{28D41891-53C4-4FE9-8ED4-A8880E766E16}"

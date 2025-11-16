@@ -1,9 +1,12 @@
+# schema: https://docs.codecov.io/docs/codecov-yaml
 coverage:
   status:
     # Learn more at https://docs.codecov.io/docs/commit-status
     project:
-      enabled: true
-      threshold: 0.1%
+      # default is the status check's name, not default settings
+      default:
+        enabled: true
+        threshold: 0.1%
     patch: false
     changes: false
 codecov:

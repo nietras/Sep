@@ -276,6 +276,36 @@ public class SepReaderState : IDisposable
         }
         return columnIndex;
     }
+
+    // Only caches if colName found, otherwise no caching and slow look-up every time.
+    internal bool TryGetCachedColIndex(string colName, out int colIndex)
+    {
+        var colNameCache = _colNameCache;
+        var currentCacheIndex = _cacheIndex;
+        var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
+        ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
+        if (cacheable)
+        {
+            colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
+            var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
+            if (ReferenceEquals(colName, cacheColumnName))
+            {
+                ++_cacheIndex;
+                colIndex = cacheColumnIndex;
+                return true;
+            }
+        }
+        if (_header.TryIndexOf(colName, out colIndex))
+        {
+            if (cacheable)
+            {
+                colNameCacheRef = (colName, colIndex);
+                ++_cacheIndex;
+            }
+            return true;
+        }
+        return false;
+    }
     #endregion
 
     #region Col

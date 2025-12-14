@@ -113,8 +113,12 @@ public class SepReaderRowTest
             Assert.AreEqual(expected, toString(index));
             Assert.AreEqual(expected, row[new Index(index)].ToString());
             Assert.AreEqual(expected, row[name].ToString());
+            Assert.IsTrue(row.TryGet(name, out var col));
+            Assert.AreEqual(expected, col.ToString());
             // fromEnd = true for Index
             Assert.AreEqual(_colValues[^(index + 1)], row[^(index + 1)].ToString());
+
+            Assert.IsFalse(row.TryGet("NOTCOLNAME", out var _));
         }
     }
 

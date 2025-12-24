@@ -310,8 +310,8 @@ public class SepReaderState : IDisposable
         var found = _header.TryIndexOf(colName, out colIndex);
         if (cacheable)
         {
-            colIndex = found ? colIndex : -1;
-            colNameCacheRef = (colName, colIndex);
+            var cacheColumnIndex = found ? colIndex : -1;
+            colNameCacheRef = (colName, cacheColumnIndex);
             ++_cacheIndex;
         }
         return found;

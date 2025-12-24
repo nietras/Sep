@@ -351,9 +351,11 @@ public partial class SepReaderTest
         {
             var c1 = row["C1"].ToString();
             var c2 = row.TryGet("C2", out var col2) ? col2.ToString() : "";
-            // Must be "within" normal col count in order to col name cache to
-            // be properly tested.
+
+            // Must be within normal col count in order for col name cache to be
+            // properly tested, as col name cache has same length as col count.
             Assert.IsFalse(row.TryGet("CX", out var colNot));
+
             var c3 = row.TryGet("C3", out var col3) ? col3.ToString() : "";
             actual[row.RowIndex - 1] = new(c1, c2, c3);
         }

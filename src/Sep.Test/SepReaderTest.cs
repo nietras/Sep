@@ -331,19 +331,19 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_Rows_Indexer_TryGet()
+    public async ValueTask SepReaderTest_Rows_Indexer_TryGet_ColNameCache()
     {
         var text = """
-                   C1,C2
-                   10,A
-                   11,B
-                   12,C
+                   C1,C2,C3
+                   10,A,X
+                   11,B,Y
+                   12,C,Z
                    """;
         var expected = new Values[]
         {
-            new("10", "A", ""),
-            new("11", "B", ""),
-            new("12", "C", ""),
+            new("10", "A", "X"),
+            new("11", "B", "Y"),
+            new("12", "C", "Z"),
         };
         var actual = new Values[expected.Length];
         using var reader = Sep.Reader().FromText(text);
@@ -351,6 +351,9 @@ public partial class SepReaderTest
         {
             var c1 = row["C1"].ToString();
             var c2 = row.TryGet("C2", out var col2) ? col2.ToString() : "";
+            // Must be "within" normal col count in order to col name cache to
+            // be properly tested.
+            Assert.IsFalse(row.TryGet("CX", out var colNot));
             var c3 = row.TryGet("C3", out var col3) ? col3.ToString() : "";
             actual[row.RowIndex - 1] = new(c1, c2, c3);
         }

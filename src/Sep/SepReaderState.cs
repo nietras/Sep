@@ -259,35 +259,8 @@ public class SepReaderState : IDisposable
     internal int GetCachedColIndex(string colName)
     {
         if (!TryGetCachedColIndex(colName, out var colIndex))
-        {
-            SepThrow.KeyNotFoundException_ColNameNotFound(colName);
-        }
+        { SepThrow.KeyNotFoundException_ColNameNotFound(colName); }
         return colIndex;
-
-        //var colNameCache = _colNameCache;
-        //var currentCacheIndex = _cacheIndex;
-        //var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
-        //ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
-        //if (cacheable)
-        //{
-        //    colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
-        //    var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
-        //    ++_cacheIndex;
-        //    if (ReferenceEquals(colName, cacheColumnName))
-        //    {
-        //        if (cacheColumnIndex < 0)
-        //        {
-        //            SepThrow.KeyNotFoundException_ColNameNotFound(colName);
-        //        }
-        //        return cacheColumnIndex;
-        //    }
-        //}
-        //var columnIndex = _header.IndexOf(colName);
-        //if (cacheable)
-        //{
-        //    colNameCacheRef = (colName, columnIndex);
-        //}
-        //return columnIndex;
     }
 
     internal bool TryGetCachedColIndex(string colName, out int colIndex)

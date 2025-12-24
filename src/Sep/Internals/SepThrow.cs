@@ -38,6 +38,12 @@ static class SepThrow
     }
 
     [DoesNotReturn]
+    internal static void KeyNotFoundException_ColNameNotFound(string colName)
+    {
+        throw new KeyNotFoundException(colName);
+    }
+
+    [DoesNotReturn]
     internal static void ArgumentException_CountOrLengthSameAsCols(string name, int count, int expectedCount)
     {
         throw new ArgumentException($"'{name}':{count} must have length/count {expectedCount} matching columns selected");

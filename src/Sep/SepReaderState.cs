@@ -267,7 +267,14 @@ public class SepReaderState : IDisposable
             colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
             var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
             ++_cacheIndex;
-            if (ReferenceEquals(colName, cacheColumnName)) { return cacheColumnIndex; }
+            if (ReferenceEquals(colName, cacheColumnName))
+            {
+                if (cacheColumnIndex < 0)
+                {
+                    SepThrow.KeyNotFoundException_ColNameNotFound(colName);
+                }
+                return cacheColumnIndex;
+            }
         }
         var columnIndex = _header.IndexOf(colName);
         if (cacheable)
@@ -292,19 +299,17 @@ public class SepReaderState : IDisposable
             {
                 ++_cacheIndex;
                 colIndex = cacheColumnIndex;
-                return true;
+                return colIndex >= 0;
             }
         }
-        if (_header.TryIndexOf(colName, out colIndex))
+        var found = _header.TryIndexOf(colName, out colIndex);
+        colIndex = found ? colIndex : -1;
+        if (cacheable)
         {
-            if (cacheable)
-            {
-                colNameCacheRef = (colName, colIndex);
-                ++_cacheIndex;
-            }
-            return true;
+            colNameCacheRef = (colName, colIndex);
+            ++_cacheIndex;
         }
-        return false;
+        return found;
     }
     #endregion
 

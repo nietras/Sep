@@ -258,33 +258,38 @@ public class SepReaderState : IDisposable
 
     internal int GetCachedColIndex(string colName)
     {
-        var colNameCache = _colNameCache;
-        var currentCacheIndex = _cacheIndex;
-        var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
-        ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
-        if (cacheable)
+        if (!TryGetCachedColIndex(colName, out var colIndex))
         {
-            colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
-            var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
-            ++_cacheIndex;
-            if (ReferenceEquals(colName, cacheColumnName))
-            {
-                if (cacheColumnIndex < 0)
-                {
-                    SepThrow.KeyNotFoundException_ColNameNotFound(colName);
-                }
-                return cacheColumnIndex;
-            }
+            SepThrow.KeyNotFoundException_ColNameNotFound(colName);
         }
-        var columnIndex = _header.IndexOf(colName);
-        if (cacheable)
-        {
-            colNameCacheRef = (colName, columnIndex);
-        }
-        return columnIndex;
+        return colIndex;
+
+        //var colNameCache = _colNameCache;
+        //var currentCacheIndex = _cacheIndex;
+        //var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
+        //ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
+        //if (cacheable)
+        //{
+        //    colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
+        //    var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
+        //    ++_cacheIndex;
+        //    if (ReferenceEquals(colName, cacheColumnName))
+        //    {
+        //        if (cacheColumnIndex < 0)
+        //        {
+        //            SepThrow.KeyNotFoundException_ColNameNotFound(colName);
+        //        }
+        //        return cacheColumnIndex;
+        //    }
+        //}
+        //var columnIndex = _header.IndexOf(colName);
+        //if (cacheable)
+        //{
+        //    colNameCacheRef = (colName, columnIndex);
+        //}
+        //return columnIndex;
     }
 
-    // Only caches if colName found, otherwise no caching and slow look-up every time.
     internal bool TryGetCachedColIndex(string colName, out int colIndex)
     {
         var colNameCache = _colNameCache;
@@ -299,13 +304,13 @@ public class SepReaderState : IDisposable
             {
                 ++_cacheIndex;
                 colIndex = cacheColumnIndex;
-                return colIndex >= 0;
+                return cacheColumnIndex >= 0;
             }
         }
         var found = _header.TryIndexOf(colName, out colIndex);
-        colIndex = found ? colIndex : -1;
         if (cacheable)
         {
+            colIndex = found ? colIndex : -1;
             colNameCacheRef = (colName, colIndex);
             ++_cacheIndex;
         }

@@ -280,14 +280,17 @@ public class SepReaderState : IDisposable
                 return cacheColumnIndex >= 0;
             }
         }
-        var found = _header.TryIndexOf(colName, out colIndex);
-        if (cacheable)
         {
-            var cacheColumnIndex = found ? colIndex : -1;
-            colNameCacheRef = (colName, cacheColumnIndex);
-            ++_cacheIndex;
+            var found = _header.TryIndexOf(colName, out var cacheColumnIndex);
+            cacheColumnIndex = found ? cacheColumnIndex : -1;
+            if (cacheable)
+            {
+                colNameCacheRef = (colName, cacheColumnIndex);
+                ++_cacheIndex;
+            }
+            colIndex = cacheColumnIndex;
+            return found;
         }
-        return found;
     }
     #endregion
 

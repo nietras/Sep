@@ -331,7 +331,7 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_Rows_Indexer_TryGet_ColNameCache()
+    public void SepReaderTest_Rows_Indexer_TryGet_ColNameCache()
     {
         var text = """
                    C1,C2,C3

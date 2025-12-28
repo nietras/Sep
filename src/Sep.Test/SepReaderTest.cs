@@ -331,6 +331,38 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
+    public void SepReaderTest_Rows_Indexer_TryGet_ColNameCache()
+    {
+        var text = """
+                   C1,C2,C3
+                   10,A,X
+                   11,B,Y
+                   12,C,Z
+                   """;
+        var expected = new Values[]
+        {
+            new("10", "A", "X"),
+            new("11", "B", "Y"),
+            new("12", "C", "Z"),
+        };
+        var actual = new Values[expected.Length];
+        using var reader = Sep.Reader().FromText(text);
+        foreach (var row in reader)
+        {
+            var c1 = row["C1"].ToString();
+            var c2 = row.TryGet("C2", out var col2) ? col2.ToString() : "";
+
+            // Must be within normal col count in order for col name cache to be
+            // properly tested, as col name cache has same length as col count.
+            Assert.IsFalse(row.TryGet("CX", out var colNot));
+
+            var c3 = row.TryGet("C3", out var col3) ? col3.ToString() : "";
+            actual[row.RowIndex - 1] = new(c1, c2, c3);
+        }
+        CollectionAssert.AreEqual(expected, actual);
+    }
+
+    [TestMethod]
     public void SepReaderTest_ColNameComparer_Default()
     {
         var text = $"""
@@ -345,7 +377,9 @@ public partial class SepReaderTest
         Assert.AreEqual(0, header.IndexOf("Aa"));
         Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("aa"));
         Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
+        Assert.AreEqual(10, reader.Current.TryGet("Aa", out var col) ? col.Parse<int>() : -1);
         Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["aa"].ToString());
+        Assert.IsFalse(reader.Current.TryGet("aa", out var _));
     }
 
     [TestMethod]
@@ -366,7 +400,10 @@ public partial class SepReaderTest
         Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("X"));
         Assert.AreEqual(10, reader.Current["Aa"].Parse<int>());
         Assert.AreEqual(10, reader.Current["aA"].Parse<int>());
+        Assert.AreEqual(10, reader.Current.TryGet("aA", out var col) ? col.Parse<int>() : -1);
         Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["X"].ToString());
+        Assert.ThrowsExactly<KeyNotFoundException>(() => reader.Current["X"].ToString());
+        Assert.IsFalse(reader.Current.TryGet("X", out var _));
     }
 
     [TestMethod]

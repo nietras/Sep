@@ -2408,6 +2408,7 @@ namespace nietras.SeparatedValues
             public System.ReadOnlySpan<char> Span { get; }
             public System.Func<int, string> UnsafeToStringDelegate { get; }
             public override string ToString() { }
+            public bool TryGet(string colName, out nietras.SeparatedValues.SepReader.Col col) { }
         }
         public delegate void ColAction(nietras.SeparatedValues.SepReader.Col col);
         public delegate T ColFunc<T>(nietras.SeparatedValues.SepReader.Col col);

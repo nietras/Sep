@@ -191,6 +191,18 @@ public partial class SepReader
         // ReadOnlySpan<> and IReadOnlyList<>
         public Cols this[string[] colNames] => this[colNames.AsSpan()];
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryGet(string colName, out Col col)
+        {
+            if (_state.TryGetCachedColIndex(colName, out var colIndex))
+            {
+                col = new(_state, colIndex);
+                return true;
+            }
+            col = default;
+            return false;
+        }
+
         //IEnumerator<ColDebug> IEnumerable<ColDebug>.GetEnumerator()
         //{
         //    var names = _header.ColNames;

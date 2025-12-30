@@ -2120,6 +2120,10 @@ Assert.AreEqual("""
                 """, text);
 CollectionAssert.AreEqual(writePersons, readPersons);
 ```
+with `Person` defined as:
+```csharp
+record Person(string Name, DateOnly BirthDay, string Address);
+```
 
 ### Example - Copy Rows
 ```csharp

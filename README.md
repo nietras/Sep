@@ -125,6 +125,9 @@ Assert.AreEqual(expected, writer.ToString());
 // Short names and repeated constants are only for demonstration.
 ```
 
+For more examples, incl. how to write and read objects (e.g. `record`s) with
+escape/unescape support, see [Example Catalogue](#example-catalogue).
+
 ## Naming and Terminology
 Sep uses naming and terminology that is not based on [RFC-4180](#rfc-4180), but
 is more tailored to usage in machine learning or similar. Additionally, Sep
@@ -2077,6 +2080,50 @@ is ended.
 
 ## Example Catalogue
 The following examples are available in [ReadMeTest.cs](src/Sep.XyzTest/ReadMeTest.cs).
+
+### Example - Write and Read Objects with Escape/Unescape
+```csharp
+Person[] writePersons =
+[
+    new("Alice", new DateOnly(1990, 1, 1), "123 Main St, 1."),
+    new("Bob", new DateOnly(1985, 5, 23), "456 Oak Ave"),
+    new("Charlie", new DateOnly(2000, 12, 31), "789 Pine Rd, 3."),
+];
+// Write
+using var writer = Sep.New(',')
+    .Writer(o => o with { Escape = true })
+    .ToText();
+foreach (var person in writePersons)
+{
+    using var row = writer.NewRow();
+    row[nameof(person.Name)].Set(person.Name);
+    row[nameof(person.BirthDay)].Format(person.BirthDay);
+    row[nameof(person.Address)].Set(person.Address);
+}
+var text = writer.ToString();
+// Read
+using var reader = Sep.New(',')
+    .Reader(o => o with { Unescape = true })
+    .FromText(text);
+var readPersons = reader.Enumerate<Person>(row =>
+        new(Name: row[nameof(Person.Name)].ToString(),
+            BirthDay: row[nameof(Person.BirthDay)].Parse<DateOnly>(),
+            Address: row[nameof(Person.Address)].ToString()))
+    .ToArray();
+// Assert
+Assert.AreEqual("""
+                Name,BirthDay,Address
+                Alice,01/01/1990,"123 Main St, 1."
+                Bob,05/23/1985,456 Oak Ave
+                Charlie,12/31/2000,"789 Pine Rd, 3."
+                
+                """, text);
+CollectionAssert.AreEqual(writePersons, readPersons);
+```
+with `Person` defined as:
+```csharp
+record Person(string Name, DateOnly BirthDay, string Address);
+```
 
 ### Example - Copy Rows
 ```csharp

@@ -249,6 +249,49 @@ public partial class ReadMeTest
         CollectionAssert.AreEqual(expected, actual);
     }
 
+    record Person(string Name, DateOnly BirthDay, string Address);
+
+    [TestMethod]
+    public void ReadMeTest_Example_Write_Read_Objects()
+    {
+        Person[] writePersons =
+        [
+            new("Alice", new DateOnly(1990, 1, 1), "123 Main St, 1."),
+            new("Bob", new DateOnly(1985, 5, 23), "456 Oak Ave"),
+            new("Charlie", new DateOnly(2000, 12, 31), "789 Pine Rd, 3."),
+        ];
+        // Write
+        using var writer = Sep.New(',')
+            .Writer(o => o with { Escape = true })
+            .ToText();
+        foreach (var person in writePersons)
+        {
+            using var row = writer.NewRow();
+            row[nameof(person.Name)].Set(person.Name);
+            row[nameof(person.BirthDay)].Format(person.BirthDay);
+            row[nameof(person.Address)].Set(person.Address);
+        }
+        var text = writer.ToString();
+        // Read
+        using var reader = Sep.New(',')
+            .Reader(o => o with { Unescape = true })
+            .FromText(text);
+        var readPersons = reader.Enumerate<Person>(row =>
+                new(Name: row[nameof(Person.Name)].ToString(),
+                    BirthDay: row[nameof(Person.BirthDay)].Parse<DateOnly>(),
+                    Address: row[nameof(Person.Address)].ToString()))
+            .ToArray();
+        // Assert
+        Assert.AreEqual("""
+                        Name,BirthDay,Address
+                        Alice,01/01/1990,"123 Main St, 1."
+                        Bob,05/23/1985,456 Oak Ave
+                        Charlie,12/31/2000,"789 Pine Rd, 3."
+                        
+                        """, text);
+        CollectionAssert.AreEqual(writePersons, readPersons);
+    }
+
     [TestMethod]
     public void ReadMeTest_Example_Copy_Rows()
     {
@@ -494,6 +537,7 @@ public partial class ReadMeTest
             (nameof(ReadMeTest_EnumerateWhere) + "()", "In fact, Sep provides such a convenience "),
             (nameof(ReadMeTest_IteratorWhere) + "()", "Instead, you should focus on how to express the enumeration"),
             (nameof(ReadMeTest_EnumerateTrySelect) + "()", "With this the above custom `Enumerate`"),
+            (nameof(ReadMeTest_Example_Write_Read_Objects) + "()", "### Example - Write and Read Objects with Escape/Unescape"),
             (nameof(ReadMeTest_Example_Copy_Rows) + "()", "### Example - Copy Rows"),
             (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "### Example - Copy Rows (Async)"),
             (nameof(ReadMeTest_Example_Copy_Rows_Async) + "()", "## Async Support"),

@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 [assembly: Parallelize]
 
-namespace IHFood.Sep.Test;
+namespace Sep.Test;
 
 [TestClass]
 public static class AssemblyInitializeCultureTest

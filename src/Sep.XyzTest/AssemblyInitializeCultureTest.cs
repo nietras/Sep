@@ -2,7 +2,7 @@
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace IHFood.Sep.XyzTest;
+namespace Sep.XyzTest;
 
 [TestClass]
 public static class AssemblyInitializeCultureTest

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1024"
+   height="1024"
+   viewBox="0 0 1024 1024"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="NewIcon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#ffffff"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="1"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="px"
+     inkscape:zoom="0.73584456"
+     inkscape:cx="406.33582"
+     inkscape:cy="539.51612"
+     inkscape:window-width="1920"
+     inkscape:window-height="1028"
+     inkscape:window-x="1913"
+     inkscape:window-y="-6"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     showgrid="true">
+    <inkscape:grid
+       id="grid1"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="8"
+       enabled="true"
+       visible="true"
+       snapvisiblegridlinesonly="true" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <rect
+       x="0"
+       y="599.31136"
+       width="1024"
+       height="424.68864"
+       id="rect2" />
+  </defs>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#1a1a1a;stroke-width:8.67014"
+       id="rect1"
+       width="1024"
+       height="1024"
+       x="1.2789769e-13"
+       y="0" />
+    <text
+       xml:space="preserve"
+       id="text1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:341.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI Bold';text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#d800d8;fill-opacity:1"
+       x="512"
+       y="0"
+       transform="translate(0.166676,33.974569)"><tspan
+         x="125.66704"
+         y="906.76776"
+         id="tspan1">S;e,p</tspan></text>
+    <path
+       style="fill:#800080;stroke-width:1.78555"
+       d="m 623,-1 402,402 V -1 H 623"
+       id="path4" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:133.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI Bold';writing-mode:lr-tb;direction:ltr;fill:#e6e6e6"
+       x="552.44806"
+       y="-466.15143"
+       id="text5"
+       transform="rotate(45.237025)"><tspan
+         sodipodi:role="line"
+         id="tspan5"
+         x="552.44806"
+         y="-466.15143">.NET</tspan></text>
+  </g>
+</svg>

@@ -9,6 +9,9 @@
    id="svg1"
    inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
    sodipodi:docname="NewIcon.svg"
+   inkscape:export-filename="NewIcon.png"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -23,9 +26,9 @@
      inkscape:pagecheckerboard="1"
      inkscape:deskcolor="#505050"
      inkscape:document-units="px"
-     inkscape:zoom="0.73584456"
-     inkscape:cx="406.33582"
-     inkscape:cy="539.51612"
+     inkscape:zoom="1.0406414"
+     inkscape:cx="878.30452"
+     inkscape:cy="267.14295"
      inkscape:window-width="1920"
      inkscape:window-height="1028"
      inkscape:window-x="1913"
@@ -63,7 +66,7 @@
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="fill:#1a1a1a;stroke-width:8.67014"
+       style="fill:#0f042c;stroke-width:8.67014;fill-opacity:1"
        id="rect1"
        width="1024"
        height="1024"
@@ -72,27 +75,42 @@
     <text
        xml:space="preserve"
        id="text1"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:341.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI Bold';text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#d800d8;fill-opacity:1"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:341.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#b099ff;fill-opacity:1"
        x="512"
        y="0"
-       transform="translate(0.166676,33.974569)"><tspan
-         x="125.66704"
+       transform="matrix(1.4422972,0,0,1.4422972,-228.85999,-413.90556)"><tspan
+         x="218.16695"
          y="906.76776"
-         id="tspan1">S;e,p</tspan></text>
+         id="tspan1">Sep</tspan></text>
     <path
-       style="fill:#800080;stroke-width:1.78555"
-       d="m 623,-1 402,402 V -1 H 623"
+       style="fill:#512bd4;fill-opacity:1;stroke-width:1.70561"
+       d="m 640,0 384,384 V 0 H 640"
        id="path4" />
+    <path
+       style="fill:#18747d;fill-opacity:1;stroke-width:0.923869"
+       d="m 816,0 208,208 V 0 H 816"
+       id="path4-8" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:133.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI Bold';writing-mode:lr-tb;direction:ltr;fill:#e6e6e6"
-       x="552.44806"
-       y="-466.15143"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:133.333px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;fill:#ffffff"
+       x="562.63129"
+       y="-469.71088"
        id="text5"
        transform="rotate(45.237025)"><tspan
          sodipodi:role="line"
          id="tspan5"
-         x="552.44806"
-         y="-466.15143">.NET</tspan></text>
+         x="562.63129"
+         y="-469.71088">.NET</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:112px;font-family:'Segoe UI';-inkscape-font-specification:'Segoe UI, Semi-Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;direction:ltr;fill:#ffffff"
+       x="633.95691"
+       y="-590.94031"
+       id="text5-1"
+       transform="rotate(45.237025)"><tspan
+         sodipodi:role="line"
+         id="tspan7"
+         x="633.95691"
+         y="-590.94031">csv</tspan></text>
   </g>
 </svg>

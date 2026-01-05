@@ -10,6 +10,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Order;
 using CsvHelper;
 using CsvHelper.Configuration;
+using FourLambda.Csv;
 using Sylvan.Data.Csv;
 
 namespace nietras.SeparatedValues.ComparisonBenchmarks;
@@ -34,8 +35,8 @@ public abstract class PackageAssetsBench
         Rows = lineCount;
         _readers =
         [
-            ReaderSpec.FromString("String", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes).GetString(Rows))),
-            //ReaderSpec.FromBytes("Stream", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes).GetBytes(Rows))),
+            //ReaderSpec.FromString("String", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes).GetString(Rows))),
+            ReaderSpec.FromBytes("Stream", new(() => PackageAssetsTestData.PackageAssets(quoteAroundSomeCols, spacesAroundSomeColsAndInsideQuotes).GetBytes(Rows))),
         ];
         Reader = _readers.First();
     }
@@ -113,6 +114,30 @@ public class RowPackageAssetsBench : PackageAssetsBench
             while (csvReader.Read()) { }
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        using var stream = Reader.CreateStream();
+        using var csvReader = new CsvReaderUtf8(stream, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+        }
     }
 
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
@@ -334,6 +359,54 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
 
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16_Unescape()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetSpan(i);
+            }
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetSpanRaw(i);
+            }
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        using var stream = Reader.CreateStream();
+        using var csvReader = new CsvReaderUtf8(stream, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetSpanRaw(i);
+            }
+        }
+    }
+
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
     [Benchmark]
 #endif
@@ -465,6 +538,39 @@ public class AssetPackageAssetsBench : PackageAssetsBench
             }
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
+    }
+
+
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        var assets = new List<PackageAsset>();
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+            var asset = PackageAsset.Read(csvReader, static (r, i) => r.GetString(i));
+            assets.Add(asset);
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        var assets = new List<PackageAsset>();
+
+        using var stream = Reader.CreateStream();
+        using var csvReader = new CsvReaderUtf8(stream, false, 32 * 1024);
+        while (csvReader.ReadNext())
+        {
+            var asset = PackageAsset.Read(csvReader, static (r, i) => r.GetString(i));
+            assets.Add(asset);
+        }
     }
 
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY

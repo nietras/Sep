@@ -25,8 +25,8 @@ public abstract class FloatsReaderBench
         Rows = lineCount;
         _readers =
         [
-            ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
-            //ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
+            //ReaderSpec.FromString("String", new(() => T.GenerateText(Rows, FloatsCount))),
+            ReaderSpec.FromBytes("Stream", new(() => T.GenerateBytes(Rows, FloatsCount))),
         ];
         Reader = _readers.First();
     }
@@ -85,6 +85,30 @@ public class RowFloatsReaderBench : FloatsReaderBench
             }
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024, 64, ';');
+        while (csvReader.ReadNext())
+        {
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        using var stream = Reader.CreateStream();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf8(stream, false, 32 * 1024, 64, ';');
+        while (csvReader.ReadNext())
+        {
+        }
     }
 
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
@@ -171,6 +195,38 @@ public class ColsFloatsReaderBench : FloatsReaderBench
             }
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, false, 32 * 1024, 64, ';');
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetSpan(i);
+            }
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        using var stream = Reader.CreateStream();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf8(stream, false, 32 * 1024, 64, ';');
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < csvReader.FieldCount; i++)
+            {
+                var span = csvReader.GetSpanRaw(i);
+            }
+        }
     }
 
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
@@ -319,6 +375,92 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             return sum / count;
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf16()
+    {
+        using var reader = Reader.CreateReader();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf16(reader, true, 32 * 1024, 64, ';');
+
+        csvReader.ReadNext();
+
+        var groundTruthColIndices = new List<int>();
+        var resultColIndices = new List<int>();
+
+        foreach (var (columnName, index) in csvReader.Headers!)
+        {
+            if (columnName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
+            {
+                groundTruthColIndices.Add(index);
+
+                var resultColName = columnName.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase);
+                resultColIndices.Add(csvReader.Headers[resultColName]);
+            }
+        }
+
+        var sum = 0.0;
+        var count = 0;
+
+        Span<float> gts = stackalloc float[groundTruthColIndices.Count];
+        Span<float> res = stackalloc float[resultColIndices.Count];
+
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < groundTruthColIndices.Count; i++)
+                gts[i] = csvReader.GetFloat(groundTruthColIndices[i]);
+
+            for (var i = 0; i < resultColIndices.Count; i++)
+                res[i] = csvReader.GetFloat(resultColIndices[i]);
+
+            sum += MeanSquaredError(gts, res);
+            ++count;
+        }
+    }
+
+#if !SEPBENCHSEPONLY
+    [Benchmark]
+#endif
+    public void FourLambdaUtf8()
+    {
+        using var stream = Reader.CreateStream();
+        using var csvReader = new FourLambda.Csv.CsvReaderUtf8(stream, true, 32 * 1024, 64, ';');
+
+        csvReader.ReadNext();
+
+        var groundTruthColIndices = new List<int>();
+        var resultColIndices = new List<int>();
+
+        foreach (var (columnName, index) in csvReader.Headers!)
+        {
+            if (columnName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
+            {
+                groundTruthColIndices.Add(index);
+
+                var resultColName = columnName.Replace(T.GroundTruthColNamePrefix, T.ResultColNamePrefix, StringComparison.OrdinalIgnoreCase);
+                resultColIndices.Add(csvReader.Headers[resultColName]);
+            }
+        }
+
+        var sum = 0.0;
+        var count = 0;
+
+        Span<float> gts = stackalloc float[groundTruthColIndices.Count];
+        Span<float> res = stackalloc float[resultColIndices.Count];
+
+        while (csvReader.ReadNext())
+        {
+            for (var i = 0; i < groundTruthColIndices.Count; i++)
+                gts[i] = csvReader.GetFloat(groundTruthColIndices[i]);
+
+            for (var i = 0; i < resultColIndices.Count; i++)
+                res[i] = csvReader.GetFloat(resultColIndices[i]);
+
+            sum += MeanSquaredError(gts, res);
+            ++count;
+        }
     }
 
 #if SEPBENCHSLOWONES && !SEPBENCHSEPONLY

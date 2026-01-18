@@ -53,7 +53,7 @@
   <Import Project="$(MSBuildThisFileDirectory)\SourceLink.GitHub.props" />
 
   <ItemGroup>
-    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" /> 
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" /> 
   </ItemGroup>
 
 </Project>

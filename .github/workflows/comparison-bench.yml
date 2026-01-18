@@ -51,7 +51,7 @@ jobs:
         with:
           fetch-depth: 0 # Get all history to allow automatic versioning using MinVer
       - name: Setup .NET
-        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
         with:
           global-json-file: global.json
       - name: Comparison Bench

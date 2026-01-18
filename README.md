@@ -1,4 +1,5 @@
 ﻿# Sep - the World's Fastest .NET CSV Parser
+
 ![.NET](https://img.shields.io/badge/net8.0%20net9.0%20net10.0-5C2D91?logo=.NET&labelColor=gray)
 ![C#](https://img.shields.io/badge/C%23-14.0-239120?labelColor=gray)
 [![Build Status](https://github.com/nietras/Sep/actions/workflows/dotnet.yml/badge.svg?branch=main)](https://github.com/nietras/Sep/actions/workflows/dotnet.yml)
@@ -12,6 +13,9 @@
 [![License](https://img.shields.io/github/license/nietras/Sep)](https://github.com/nietras/Sep/blob/main/LICENSE)
 [![Blog](https://img.shields.io/badge/blog-nietras.com-4993DD)](https://nietras.com)
 ![GitHub Repo stars](https://img.shields.io/github/stars/nietras/Sep?style=flat)
+
+<img src="https://raw.githubusercontent.com/nietras/Sep/icon-v2/Icon.png"
+     alt="Icon" align="right" width="128" hspace="2" vspace="2" />
 
 Modern, minimal, fast, zero allocation, reading and writing of separated values
 (`csv`, `tsv` etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.

@@ -1,0 +1,17 @@
+# Zizmor configuration
+# Suppress warnings for issues that are acceptable in this repository
+
+rules:
+  template-injection:
+    ignore:
+      - .github/workflows/dotnet.yml
+  archived-uses:
+    ignore:
+      - .github/workflows/dotnet.yml
+  artipacked:
+    ignore:
+      - .github/workflows/nativeaot.yml
+      - .github/workflows/super-linter.yml
+  ref-version-mismatch:
+    ignore:
+      - .github/workflows/scorecard.yml

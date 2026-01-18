@@ -46,8 +46,6 @@ jobs:
           VALIDATE_MARKDOWN_PRETTIER: false
           VALIDATE_GIT_COMMITLINT: false
           VALIDATE_JSCPD: false
-          # editorconfig validator conflicts with dotnet formatting conventions
-          VALIDATE_EDITORCONFIG: false
           FILTER_REGEX_EXCLUDE: "./benchmarks/.*"
           # To report GitHub Actions status checks
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -2,7 +2,7 @@
 # Sep - the World's Fastest .NET CSV Parser
 
 <img src="https://raw.githubusercontent.com/nietras/Sep/icon-v2/Icon.png"
-     alt="Icon" align="right" width="128" hspace="2" />
+     alt="Icon" align="right" width="96" hspace="2" />
 
 ![.NET](https://img.shields.io/badge/net8.0%20net9.0%20net10.0-5C2D91?logo=.NET&labelColor=gray)
 ![C#](https://img.shields.io/badge/C%23-14.0-239120?labelColor=gray)

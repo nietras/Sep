@@ -33,7 +33,6 @@
   <Folder Name="/src/">
     <File Path="src/Directory.Build.props" />
     <File Path="src/Directory.Build.targets" />
-    <File Path="src/SourceLink.GitHub.props" />
   </Folder>
   <Project Path="src/Sep/Sep.csproj" />
   <Project Path="src/Sep.Benchmarks/Sep.Benchmarks.csproj" />

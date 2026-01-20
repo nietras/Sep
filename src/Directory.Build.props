@@ -23,6 +23,10 @@
 
     <PublishRelease>true</PublishRelease>
     <PackRelease>true</PackRelease>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols Condition="'$(DebugType)' != 'embedded'">true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
     <!-- https://github.com/dotnet/roslyn/issues/41640 🤦 -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -50,10 +54,8 @@
     </AssemblyAttribute>
   </ItemGroup>
 
-  <Import Project="$(MSBuildThisFileDirectory)\SourceLink.GitHub.props" />
-
   <ItemGroup>
-    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" /> 
+    <PackageReference Include="MinVer" Version="7.0.0" PrivateAssets="All" /> 
   </ItemGroup>
 
 </Project>

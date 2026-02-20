@@ -69,7 +69,7 @@ byte), so the SIMD comparison logic is fundamentally the same. Only the
 
 ### Strategy: Generic `TChar` with Static Abstract Interfaces
 
-Define a constraint interface (or use .NET's own `IUtf8SpanParsable<T>` etc.):
+Use .NET's own `IUtf8SpanParsable<T>` but consider if custom needed etc.
 
 ```csharp
 // Conceptual - actual design to be refined
@@ -123,7 +123,7 @@ struct SepByteInfo : ISepCharInfo<byte>  { /* byte constants */ }
 
 3. **Column access API**:
    - `char` reader: `ReadOnlySpan<char> Span` (existing)
-   - `byte` reader: `ReadOnlySpan<byte> Span` (new), plus `.Decode()` → `string`
+   - `byte` reader: `ReadOnlySpan<byte> Span` (new), consider `.ToString()` → `string`
 
 4. **Parsing (ISpanParsable vs IUtf8SpanParsable)**:
    - `char`: `T.Parse(ReadOnlySpan<char>, IFormatProvider?)`

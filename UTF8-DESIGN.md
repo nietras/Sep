@@ -537,63 +537,226 @@ this would complicate the public API, require users to always specify the type
 parameter, and be a breaking change. A separate `SepUtf8Reader` type with shared
 internal generic implementation is cleaner and preserves backward compatibility.
 
-## Implementation Todos
+## Implementation Plan — Step by Step
 
-### Phase 1: Internal Generic Infrastructure
-- [ ] `generic-state` — Create internal generic `SepReaderStateBase<TChar>`
-  extracting type-agnostic logic from `SepReaderState` (col tracking, row info,
-  buffer management parameterized on `TChar`). Make existing `SepReaderState`
-  inherit from `SepReaderStateBase<char>` preserving all existing public/internal
-  members.
-- [ ] `generic-parser-interface` — Define `ISepUtf8Parser` (parallel to
-  `ISepParser`) for byte-based parsers. Create byte-oriented load paths in SIMD
-  parsers — for byte input, skip the char-to-byte packing step and load bytes
-  directly.
-- [ ] `generic-parse-mask` — Extend `SepParseMask` methods to work with both
-  `ref char` and `ref byte` (the constants are ASCII-identical). Add a
-  `TChar`/`TSepChar` type parameter to `ParseAnyChar` and related methods.
+Focus on **UTF-8 Reader first** (Stream-based). Writer is a separate follow-up.
+Each step must leave the build green. Existing tests must never break.
 
-### Phase 2: Fluent API & Options
-- [ ] `utf8-reader-options` — `SepUtf8ReaderOptions` record (mirrors
-  `SepReaderOptions` but without `TextReader`-specific options like
-  `CreateToString`). Sources are `Stream`/`byte[]`/`ReadOnlyMemory<byte>`.
-- [ ] `utf8-writer-options` — `SepUtf8WriterOptions` record (mirrors
-  `SepWriterOptions`).
-- [ ] `fluent-api` — Add `Sep.Utf8Reader()`, `Sep.Utf8Writer()` static methods.
-  Add `Utf8Reader()`/`Utf8Writer()` extension methods on `Sep` (instance),
-  `Sep?`, and `SepSpec`. This follows the exact same pattern as
-  `Sep.Reader()`/`Sep.Writer()`.
+### Step 0: Verify Baseline
+- `dotnet build` the solution
+- `dotnet test` all test projects
+- Confirm clean starting point on `utf8` branch
 
-### Phase 3: UTF-8 Reader
-- [ ] `utf8-reader-state` — `SepUtf8ReaderState` inheriting from
-  `SepReaderStateBase<byte>`, implementing byte-buffer management, reading from
-  `Stream`.
-- [ ] `utf8-reader` — `SepUtf8Reader` class with `Row`, `Col`, `Cols` ref
-  structs. `Col.Span` returns `ReadOnlySpan<byte>`. `Col.Parse<T>()` uses
-  `IUtf8SpanParsable<T>`. `Col.ToString()` decodes via
-  `Encoding.UTF8.GetString()`.
-- [ ] `utf8-reader-io` — `FromFile`, `FromBytes`, `From(Stream)` extension
-  methods on `SepUtf8ReaderOptions`.
-- [ ] `utf8-reader-header` — Extend `SepReaderHeader` with
-  `IndexOf(ReadOnlySpan<byte>)`, `TryIndexOf(ReadOnlySpan<byte>, out int)`, and
-  `IndicesOf` overloads for UTF-8 byte spans. Lazy-init UTF-8 encoded name cache
-  for allocation-free lookup. Header is decoded from UTF-8 bytes to strings once
-  during `SepUtf8Reader` initialization.
+### Step 1: `ISepCharInfo<TChar>` — Char/Byte Constants Abstraction
+**Create** `src/Sep/Internals/ISepCharInfo.cs`
+```csharp
+internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
+{
+    static abstract TChar LineFeed { get; }
+    static abstract TChar CarriageReturn { get; }
+    static abstract TChar Quote { get; }
+    static abstract TChar Space { get; }
+}
 
-### Phase 4: UTF-8 Writer
-- [ ] `utf8-writer` — `SepUtf8Writer` writing `byte[]` to
-  `Stream`/`IBufferWriter<byte>`. ColImpl uses `byte[]` buffer via
-  `ArrayPool<byte>`.
-- [ ] `utf8-writer-col` — Col with `Set(ReadOnlySpan<byte>)`,
-  `Set(ReadOnlySpan<char>)` (transcoding), `Format<T>()` using
-  `IUtf8SpanFormattable`.
-- [ ] `utf8-writer-io` — `ToFile`, `To(Stream)`, `To(IBufferWriter<byte>)`,
-  `ToBytes()` extension methods on `SepUtf8WriterOptions`.
+internal readonly struct SepCharType : ISepCharInfo<char> { /* char constants */ }
+internal readonly struct SepByteType : ISepCharInfo<byte> { /* byte constants */ }
+```
+- Build — no behavioral change, just new types.
 
-### Phase 5: Testing & Benchmarks
-- [ ] `utf8-tests` — Mirror existing test coverage for UTF-8 paths, including
-  header lookup via both `string` and `ReadOnlySpan<byte>`.
-- [ ] `utf8-benchmarks` — Benchmark UTF-8 vs char reader for same data.
+### Step 2: `ISepUtf8Parser` — Byte Parser Interface
+**Create** `src/Sep/Internals/ISepUtf8Parser.cs`
+```csharp
+internal interface ISepUtf8Parser
+{
+    int PaddingLength { get; }
+    int QuoteCount { get; }
+    void ParseColEnds(SepUtf8ReaderState s);
+    void ParseColInfos(SepUtf8ReaderState s);
+}
+```
+- Mirrors `ISepParser` exactly but takes `SepUtf8ReaderState`.
+- Build (requires forward-declared `SepUtf8ReaderState` — create empty class stub).
+
+### Step 3: `SepUtf8ReaderState` — Byte Buffer State
+**Create** `src/Sep/SepUtf8ReaderState.cs`
+- Copy from `SepReaderState.cs` (~950 lines)
+- Replace `char[] _chars` → `byte[] _bytes`
+- Replace `ReadOnlySpan<char>` → `ReadOnlySpan<byte>` in col span methods
+- Replace `ISpanParsable<T>.Parse(ReadOnlySpan<char>)` →
+  `IUtf8SpanParsable<T>.Parse(ReadOnlySpan<byte>)` in Parse methods
+- Replace `SepToString` usage → `Encoding.UTF8.GetString(span)` for ToString
+- Replace `_singleCharToString` cache → UTF-8 single-byte ASCII cache
+- Replace csFastFloat char overloads → byte overloads
+- Keep all col tracking (`_colEndsOrColInfos`, `_parsedRows`, etc.) identical
+- Build. No tests yet (no IO, no parser wired up).
+
+### Step 4: `SepParseMask` Byte Overloads
+**Modify** `src/Sep/Internals/SepParseMask.cs`
+- Add `ParseAnyByte` method parallel to `ParseAnyChar`
+- Same mask-walking logic, but `ref byte` instead of `ref char`
+- Comparison targets are identical ASCII values (cast to `byte`)
+- Build.
+
+### Step 5: `SepUtf8ParserIndexOfAny` — First Byte Parser
+**Create** `src/Sep/Internals/SepUtf8ParserIndexOfAny.cs`
+- Port `SepParserIndexOfAny` for bytes
+- Replace `string.IndexOfAny` → `Span<byte>.IndexOfAny(SearchValues<byte>)`
+- Implement `ISepUtf8Parser`
+- Uses `SepParseMask` byte overloads from Step 4
+- Build.
+
+### Step 6: `SepUtf8ParserFactory`
+**Create** `src/Sep/Internals/SepUtf8ParserFactory.cs`
+- For now returns `SepUtf8ParserIndexOfAny` only (simple, correct)
+- Same `SepParserOptions` input (separator + disableQuotesParsing)
+- SIMD byte parsers added later as optimization
+- Build.
+
+### Step 7: `SepUtf8ReaderOptions` — Options Record
+**Create** `src/Sep/SepUtf8ReaderOptions.cs`
+```csharp
+public readonly record struct SepUtf8ReaderOptions
+{
+    public Sep? Sep { get; init; }
+    public int InitialBufferLength { get; init; }
+    public CultureInfo? CultureInfo { get; init; }
+    public bool HasHeader { get; init; }
+    public IEqualityComparer<string> ColNameComparer { get; init; }
+    public SepCreateToString CreateToString { get; init; }
+    public bool DisableFastFloat { get; init; }
+    public bool DisableColCountCheck { get; init; }
+    public bool DisableQuotesParsing { get; init; }
+    public bool Unescape { get; init; }
+    public SepTrim Trim { get; init; }
+    public bool SkipBom { get; init; }  // new, default true
+}
+```
+- Mirror `SepReaderOptions` (omit `AsyncContinueOnCapturedContext` initially).
+- Build.
+
+### Step 8: `SepUtf8Reader` + Row/Col/Cols — Main Reader
+**Create** `src/Sep/SepUtf8Reader.cs`
+- Sealed class inheriting `SepUtf8ReaderState`
+- Owns `Stream _stream` (not TextReader)
+- Constructor: takes `Info`, `SepUtf8ReaderOptions`, `Stream`
+- `Initialize()`: first buffer fill, BOM detection (skip 3 bytes if `0xEF BB BF`),
+  separator auto-detection, header parsing
+- `MoveNext()` / `ParseNewRows()` / `FillAndMaybeDoubleBytesBuffer()`:
+  copy from `SepReader.IO.Sync.cs`, replace `_reader.Read(Span<char>)` →
+  `_stream.Read(Span<byte>)`
+- `Dispose()`: dispose stream + base
+
+**Create** `src/Sep/SepUtf8Reader.Row.cs`
+```csharp
+public readonly ref struct Row
+{
+    public Col this[int index] => ...;
+    public Col this[string colName] => ...;
+    public Col this[ReadOnlySpan<byte> utf8ColName] => ...;
+    public Cols this[Range range] => ...;
+    // Mirror SepReader.Row API
+}
+```
+
+**Create** `src/Sep/SepUtf8Reader.Col.cs`
+```csharp
+public readonly ref struct Col
+{
+    public ReadOnlySpan<byte> Span { get; }  // raw UTF-8 bytes
+    public T Parse<T>() where T : IUtf8SpanParsable<T>;
+    public override string ToString();  // Encoding.UTF8.GetString
+}
+```
+
+**Create** `src/Sep/SepUtf8Reader.Cols.cs`
+- Multi-column access, mirrors SepReader.Cols for byte spans
+
+- Build.
+
+### Step 9: IO Extensions — FromFile / FromBytes / From(Stream)
+**Create** `src/Sep/SepUtf8ReaderExtensions.cs`
+```csharp
+public static partial class SepUtf8ReaderExtensions
+{
+    public static SepUtf8ReaderOptions Utf8Reader(this Sep sep) => ...;
+    public static SepUtf8ReaderOptions Utf8Reader(this Sep? sep) => ...;
+    public static SepUtf8ReaderOptions Utf8Reader(this SepSpec spec) => ...;
+}
+```
+
+**Create** `src/Sep/SepUtf8ReaderExtensions.IO.Sync.cs`
+```csharp
+public static partial class SepUtf8ReaderExtensions
+{
+    public static SepUtf8Reader FromFile(this in SepUtf8ReaderOptions options, string filePath);
+    public static SepUtf8Reader FromBytes(this in SepUtf8ReaderOptions options, byte[] buffer);
+    public static SepUtf8Reader FromBytes(this in SepUtf8ReaderOptions options,
+        ReadOnlyMemory<byte> buffer);
+    public static SepUtf8Reader From(this in SepUtf8ReaderOptions options, Stream stream);
+}
+```
+- `FromFile` opens `FileStream` with `SequentialScan`
+- `FromBytes` wraps in `MemoryStream`
+- `From(Stream)` passes stream directly
+
+**Modify** `src/Sep/Sep.cs`
+- Add `public static SepUtf8ReaderOptions Utf8Reader() => new(null);`
+- Add configure overload
+
+- Build. **Reader is now usable end-to-end!**
+
+### Step 10: Header UTF-8 Lookup
+**Modify** `src/Sep/SepReaderHeader.cs`
+- Add `IndexOf(ReadOnlySpan<byte> utf8ColName)` overload
+- Add `TryIndexOf(ReadOnlySpan<byte> utf8ColName, out int colIndex)` overload
+- Add lazy `byte[][]? _utf8ColNames` cache
+- `SequenceEqual` based lookup for allocation-free hot path
+- Build.
+
+### Step 11: Tests
+**Create** `src/Sep.Test/SepUtf8ReaderTest.cs` (or add to existing test project)
+- Basic CSV parsing from byte array
+- Separator auto-detection
+- Column access by index, name (string), name (UTF-8 bytes)
+- `Parse<int>()`, `Parse<float>()`, `Parse<double>()` via IUtf8SpanParsable
+- `ToString()` on Col (UTF-8 → string decode)
+- BOM handling (with BOM, without BOM, SkipBom=false)
+- Multi-row iteration
+- Empty input / single row / no header
+- Quoted fields / unescaping
+- Header column count mismatch
+- Build + test all. Verify existing tests still pass.
+
+### Step 12: SIMD Byte Parsers (Optimization)
+**Create** byte variants of key SIMD parsers (skip char→byte pack step):
+- `SepUtf8ParserAvx2CmpOrMoveMaskTzcnt.cs` — direct `Vector256<byte>` load
+- `SepUtf8ParserSse2CmpOrMoveMaskTzcnt.cs` — direct `Vector128<byte>` load
+- Add others based on platform support
+**Modify** `SepUtf8ParserFactory.cs` — select best parser based on ISA
+- Build + test. Benchmark to verify SIMD advantage.
+
+### Step 13: Writer (Future Phase)
+Separate PR/phase. Uses `Stream.Write(ReadOnlySpan<byte>)` for output.
+`IBufferWriter<byte>` support for Kestrel scenarios.
+Not planned for this execution pass.
+
+### File Summary
+
+| Step | Action | File |
+|------|--------|------|
+| 1 | Create | `src/Sep/Internals/ISepCharInfo.cs` |
+| 2 | Create | `src/Sep/Internals/ISepUtf8Parser.cs` |
+| 3 | Create | `src/Sep/SepUtf8ReaderState.cs` |
+| 4 | Modify | `src/Sep/Internals/SepParseMask.cs` |
+| 5 | Create | `src/Sep/Internals/SepUtf8ParserIndexOfAny.cs` |
+| 6 | Create | `src/Sep/Internals/SepUtf8ParserFactory.cs` |
+| 7 | Create | `src/Sep/SepUtf8ReaderOptions.cs` |
+| 8 | Create | `src/Sep/SepUtf8Reader.cs`, `SepUtf8Reader.Row.cs`, `.Col.cs`, `.Cols.cs` |
+| 9 | Create | `src/Sep/SepUtf8ReaderExtensions.cs`, `.IO.Sync.cs` |
+| 9 | Modify | `src/Sep/Sep.cs` |
+| 10 | Modify | `src/Sep/SepReaderHeader.cs` |
+| 11 | Create | `src/Sep.Test/SepUtf8ReaderTest.cs` + related |
+| 12 | Create | SIMD byte parsers (optimization) |
 
 ## Key Design Decisions
 

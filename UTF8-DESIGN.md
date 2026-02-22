@@ -146,7 +146,10 @@ struct SepByte : ISepCharInfo<byte>  { /* byte constants, same ASCII values */ }
    - `char`: `T.Parse(ReadOnlySpan<char>, IFormatProvider?)`
    - `byte`: `T.Parse(ReadOnlySpan<byte>, IFormatProvider?)` (.NET 8+ `IUtf8SpanParsable<T>`)
 
-5. **ToString / String pooling**: UTF-8 col → `Encoding.UTF8.GetString(span)`
+5. **Byte pooling**: The char reader pools `string` via `SepToString`. The UTF-8
+   reader should pool `ReadOnlyMemory<byte>` via a new `SepToBytes` abstraction (parallel
+   to `SepToString`). This avoids UTF-8→UTF-16 transcoding on the hot path.
+   `ToString()` is still available as a convenience but is a secondary path.
 
 6. **Writer output** (see IO Abstraction Analysis below):
    - `char`: `TextWriter.Write(ReadOnlySpan<char>)` (existing)
@@ -584,8 +587,10 @@ internal interface ISepUtf8Parser
 - Replace `ReadOnlySpan<char>` → `ReadOnlySpan<byte>` in col span methods
 - Replace `ISpanParsable<T>.Parse(ReadOnlySpan<char>)` →
   `IUtf8SpanParsable<T>.Parse(ReadOnlySpan<byte>)` in Parse methods
-- Replace `SepToString` usage → `Encoding.UTF8.GetString(span)` for ToString
-- Replace `_singleCharToString` cache → UTF-8 single-byte ASCII cache
+- Replace `SepToString _toString` → `SepToBytes _toBytes` for byte pooling
+- Replace `ToStringDefault` → `ToBytesDefault` returning `ReadOnlyMemory<byte>`
+- Add `ToStringDefault` that decodes via `Encoding.UTF8.GetString(span)`
+- Replace `_singleCharToString` cache → single-byte ASCII `byte[]` cache
 - Replace csFastFloat char overloads → byte overloads
 - Keep all col tracking (`_colEndsOrColInfos`, `_parsedRows`, etc.) identical
 - Build. No tests yet (no IO, no parser wired up).
@@ -612,6 +617,41 @@ internal interface ISepUtf8Parser
 - SIMD byte parsers added later as optimization
 - Build.
 
+### Step 6b: `SepToBytes` — ReadOnlyMemory\<byte\> Pooling Abstraction
+**Create** `src/Sep/SepToBytes.cs`
+```csharp
+public delegate SepToBytes SepCreateToBytes(
+    SepReaderHeader? maybeHeader, int colCount);
+
+public abstract class SepToBytes : IDisposable
+{
+    public abstract ReadOnlyMemory<byte> ToMemory(
+        ReadOnlySpan<byte> colSpan, int colIndex);
+    public virtual bool IsThreadSafe => false;
+
+    public static SepCreateToBytes Direct { get; }
+    public static SepCreateToBytes PoolPerCol(
+        int maximumByteLength = 32, int maximumCapacityPerCol = 4096);
+    public static SepCreateToBytes PoolPerColThreadSafe(
+        int maximumByteLength = 32, int initialCapacityPerCol = 64);
+}
+```
+
+**Create** `src/Sep/Internals/SepToBytesDirect.cs`
+- `ToMemory` → `new byte[span.Length]` + copy, returns as `ReadOnlyMemory<byte>`
+
+**Create** `src/Sep/Internals/SepBytesHashPool.cs`
+- Port of `SepStringHashPool` for `byte[]` instead of `string`
+- Hash function over `ReadOnlySpan<byte>` (same `SepHash` approach)
+- Returns `ReadOnlyMemory<byte>` backed by cached `byte[]`
+- Single-byte cache: `byte[][]` for bytes 0–255 (replaces `_singleCharToString`)
+- Same per-column strategy, collision limits, max-length thresholds
+
+**Create** `src/Sep/Internals/SepToBytesHashPoolPerCol.cs`
+- Per-column pool array, mirrors `SepToStringHashPoolPerCol`
+
+- Build.
+
 ### Step 7: `SepUtf8ReaderOptions` — Options Record
 **Create** `src/Sep/SepUtf8ReaderOptions.cs`
 ```csharp
@@ -622,7 +662,7 @@ public readonly record struct SepUtf8ReaderOptions
     public CultureInfo? CultureInfo { get; init; }
     public bool HasHeader { get; init; }
     public IEqualityComparer<string> ColNameComparer { get; init; }
-    public SepCreateToString CreateToString { get; init; }
+    public SepCreateToBytes CreateToBytes { get; init; }  // ReadOnlyMemory<byte> pooling
     public bool DisableFastFloat { get; init; }
     public bool DisableColCountCheck { get; init; }
     public bool DisableQuotesParsing { get; init; }
@@ -662,9 +702,10 @@ public readonly ref struct Row
 ```csharp
 public readonly ref struct Col
 {
-    public ReadOnlySpan<byte> Span { get; }  // raw UTF-8 bytes
+    public ReadOnlySpan<byte> Span { get; }        // raw UTF-8 bytes (ephemeral, tied to row)
+    public ReadOnlyMemory<byte> ToMemory();        // pooled ReadOnlyMemory<byte> (persists beyond row)
     public T Parse<T>() where T : IUtf8SpanParsable<T>;
-    public override string ToString();  // Encoding.UTF8.GetString
+    public override string ToString();             // Encoding.UTF8.GetString (convenience)
 }
 ```
 
@@ -790,8 +831,32 @@ Not planned for this execution pass.
    continuation bytes (they are always 0x80+). So byte-level scanning is
    **correct** for UTF-8 — no special handling needed.
 
-7. **String pooling for UTF-8**: `SepToString` would need a UTF-8 variant that
-   decodes `ReadOnlySpan<byte>` → `string` with optional pooling.
+7. **Byte pooling via `SepToBytes`**: The UTF-8 reader's primary pooling
+   abstraction is `ReadOnlyMemory<byte>`-based, not `string`-based. This parallels
+   `SepToString` for the char reader but avoids UTF-8→UTF-16 transcoding:
+   ```csharp
+   public delegate SepToBytes SepCreateToBytes(
+       SepReaderHeader? maybeHeader, int colCount);
+
+   public abstract class SepToBytes : IDisposable
+   {
+       public abstract ReadOnlyMemory<byte> ToMemory(
+           ReadOnlySpan<byte> colSpan, int colIndex);
+       public virtual bool IsThreadSafe => false;
+
+       // Factory methods parallel to SepToString:
+       public static SepCreateToBytes Direct { get; }
+       public static SepCreateToBytes PoolPerCol(...);
+       public static SepCreateToBytes PoolPerColThreadSafe(...);
+   }
+   ```
+   Implementation uses `SepBytesHashPool` (parallel to `SepStringHashPool`):
+   hashes byte spans, stores `byte[]` in hash table, returns
+   `ReadOnlyMemory<byte>` backed by cached `byte[]`. Same per-column strategy,
+   collision limits, and max-length thresholds. Single-byte ASCII cache (0–255)
+   replaces `_singleCharToString`. `Col.ToMemory()` calls through this.
+   `Col.ToString()` is still available via `Encoding.UTF8.GetString(span)` but
+   is a separate, non-pooled convenience path.
 
 8. **Header lookup via UTF-8 bytes**: `SepReaderHeader` is extended (not replaced)
    with `IndexOf(ReadOnlySpan<byte>)` overloads. A lazy `byte[][]` cache of

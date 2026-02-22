@@ -2398,6 +2398,7 @@ namespace nietras.SeparatedValues
         Empty = 1,
         Skip = 2,
     }
+    public delegate nietras.SeparatedValues.SepToBytes SepCreateToBytes(nietras.SeparatedValues.SepReaderHeader? maybeHeader, int colCount);
     public delegate nietras.SeparatedValues.SepToString SepCreateToString(nietras.SeparatedValues.SepReaderHeader? maybeHeader, int colCount);
     public static class SepDefaults
     {
@@ -2575,6 +2576,15 @@ namespace nietras.SeparatedValues
         public bool AsyncContinueOnCapturedContext { get; init; }
         public System.Globalization.CultureInfo? CultureInfo { get; init; }
         public nietras.SeparatedValues.Sep Sep { get; init; }
+    }
+    public abstract class SepToBytes : System.IDisposable
+    {
+        protected SepToBytes() { }
+        public virtual bool IsThreadSafe { get; }
+        public static nietras.SeparatedValues.SepCreateToBytes Direct { get; }
+        public void Dispose() { }
+        protected virtual void Dispose(bool disposing) { }
+        public abstract System.ReadOnlyMemory<byte> ToBytes(System.ReadOnlySpan<byte> colSpan, int colIndex);
     }
     public abstract class SepToString : System.IDisposable
     {

@@ -2,7 +2,7 @@ using System;
 
 namespace nietras.SeparatedValues;
 
-internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
+public interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
 {
     static abstract TChar LineFeed { get; }
     static abstract TChar CarriageReturn { get; }
@@ -10,7 +10,7 @@ internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar
     static abstract TChar Space { get; }
 }
 
-internal readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
+public readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
 {
     public static char LineFeed => SepDefaults.LineFeed;
     public static char CarriageReturn => SepDefaults.CarriageReturn;
@@ -18,7 +18,7 @@ internal readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
     public static char Space => SepDefaults.Space;
 }
 
-internal readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
+public readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
 {
     public static byte LineFeed => SepDefaults.LineFeedByte;
     public static byte CarriageReturn => SepDefaults.CarriageReturnByte;

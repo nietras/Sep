@@ -2357,6 +2357,14 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName=".NET 9.0")]
 namespace nietras.SeparatedValues
 {
+    public interface ISepCharInfo<TChar>
+        where TChar :  unmanaged, System.IEquatable<TChar>
+    {
+        TChar CarriageReturn { get; }
+        TChar LineFeed { get; }
+        TChar Quote { get; }
+        TChar Space { get; }
+    }
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
     {
         public Sep() { }
@@ -2369,6 +2377,20 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.SepReaderOptions Reader(System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
+    }
+    public readonly struct SepCharInfoUtf16 : nietras.SeparatedValues.ISepCharInfo<char>
+    {
+        public static char CarriageReturn { get; }
+        public static char LineFeed { get; }
+        public static char Quote { get; }
+        public static char Space { get; }
+    }
+    public readonly struct SepCharInfoUtf8 : nietras.SeparatedValues.ISepCharInfo<byte>
+    {
+        public static byte CarriageReturn { get; }
+        public static byte LineFeed { get; }
+        public static byte Quote { get; }
+        public static byte Space { get; }
     }
     public enum SepColNotSetOption : byte
     {
@@ -2532,7 +2554,10 @@ namespace nietras.SeparatedValues
         public nietras.SeparatedValues.SepTrim Trim { get; init; }
         public bool Unescape { get; init; }
     }
-    public class SepReaderState : System.IDisposable
+    public class SepReaderState : nietras.SeparatedValues.SepReaderStateBase<char, nietras.SeparatedValues.SepCharInfoUtf16> { }
+    public class SepReaderStateBase<TChar, TCharInfo> : System.IDisposable
+        where TChar :  unmanaged, System.IEquatable<TChar>
+        where TCharInfo :  struct, nietras.SeparatedValues.ISepCharInfo<TChar>
     {
         public void Dispose() { }
     }

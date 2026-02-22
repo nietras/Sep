@@ -2375,6 +2375,8 @@ namespace nietras.SeparatedValues
         public static nietras.SeparatedValues.Sep New(char separator) { }
         public static nietras.SeparatedValues.SepReaderOptions Reader() { }
         public static nietras.SeparatedValues.SepReaderOptions Reader(System.Func<nietras.SeparatedValues.SepReaderOptions, nietras.SeparatedValues.SepReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader() { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(System.Func<nietras.SeparatedValues.SepUtf8ReaderOptions, nietras.SeparatedValues.SepUtf8ReaderOptions> configure) { }
         public static nietras.SeparatedValues.SepWriterOptions Writer() { }
         public static nietras.SeparatedValues.SepWriterOptions Writer(System.Func<nietras.SeparatedValues.SepWriterOptions, nietras.SeparatedValues.SepWriterOptions> configure) { }
     }

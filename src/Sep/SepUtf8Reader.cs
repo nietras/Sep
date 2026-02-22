@@ -399,6 +399,13 @@ public sealed partial class SepUtf8Reader : SepUtf8ReaderState
                 _charsDataStart = 3;
                 _charsParseStart = 3;
                 _parsingRowCharsStartIndex = 3;
+                // Adjust initial sentinel so first col starts after BOM
+                _colEndsOrColInfos[0] = 2; // BOM length - 1
+                if (_colUnquoteUnescape != 0)
+                {
+                    Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)) =
+                        new(2, 0);
+                }
             }
         }
 

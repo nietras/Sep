@@ -6,7 +6,7 @@ using System.Text;
 
 namespace nietras.SeparatedValues;
 
-class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
+public class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
 {
     internal byte _fastFloatDecimalSeparatorOrZero;
     internal SepCreateToString _createToString = default!;

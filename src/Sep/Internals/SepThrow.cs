@@ -128,6 +128,28 @@ static class SepThrow
         IEqualityComparer<string> colNameComparer,
         string headerRow)
     {
+        ArgumentException_DuplicateColNamesFound(
+            reader.ToStringDirect, colNameToIndexUntilDuplicate,
+            duplicateColName, headerColCount, colNameComparer, headerRow);
+    }
+
+    internal static void ArgumentException_DuplicateColNamesFound(SepUtf8ReaderState reader,
+        Dictionary<string, int> colNameToIndexUntilDuplicate,
+        string duplicateColName, int headerColCount,
+        IEqualityComparer<string> colNameComparer,
+        string headerRow)
+    {
+        ArgumentException_DuplicateColNamesFound(
+            reader.ToStringDirect, colNameToIndexUntilDuplicate,
+            duplicateColName, headerColCount, colNameComparer, headerRow);
+    }
+
+    static void ArgumentException_DuplicateColNamesFound(Func<int, string> toStringDirect,
+        Dictionary<string, int> colNameToIndexUntilDuplicate,
+        string duplicateColName, int headerColCount,
+        IEqualityComparer<string> colNameComparer,
+        string headerRow)
+    {
         var colNames = new string[headerColCount];
         var colIndex = 0;
         foreach (var colName in colNameToIndexUntilDuplicate.Keys)
@@ -137,7 +159,7 @@ static class SepThrow
         }
         for (; colIndex < headerColCount; ++colIndex)
         {
-            colNames[colIndex] = reader.ToStringDirect(colIndex);
+            colNames[colIndex] = toStringDirect(colIndex);
         }
         var sb = SepStringBuilderPool.Take();
         try

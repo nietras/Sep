@@ -2608,6 +2608,81 @@ namespace nietras.SeparatedValues
         All = 3,
     }
     [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public sealed class SepUtf8Reader : nietras.SeparatedValues.SepUtf8ReaderState
+    {
+        public nietras.SeparatedValues.SepUtf8Reader.Row Current { get; }
+        public bool HasHeader { get; }
+        public bool HasRows { get; }
+        public nietras.SeparatedValues.SepReaderHeader Header { get; }
+        public bool IsEmpty { get; }
+        public nietras.SeparatedValues.SepSpec Spec { get; }
+        public nietras.SeparatedValues.SepUtf8Reader GetEnumerator() { }
+        public bool MoveNext() { }
+        public string ToString(int index) { }
+        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay}")]
+        public readonly ref struct Col
+        {
+            public System.ReadOnlySpan<byte> Span { get; }
+            public T Parse<T>()
+                where T : System.IUtf8SpanParsable<T> { }
+            public System.ReadOnlyMemory<byte> ToBytes() { }
+            public override string ToString() { }
+            public T? TryParse<T>()
+                where T :  struct, System.IUtf8SpanParsable<T> { }
+            public bool TryParse<T>(out T value)
+                where T : System.IUtf8SpanParsable<T> { }
+        }
+        public readonly ref struct Cols
+        {
+            public int Count { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Col this[int index] { get; }
+            public T[] ParseToArray<T>()
+                where T : System.IUtf8SpanParsable<T> { }
+            public string[] ToStringsArray() { }
+        }
+        [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
+        public readonly ref struct Row
+        {
+            public int ColCount { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Col this[int index] { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Col this[System.Index index] { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Col this[string colName] { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Cols this[System.Range range] { get; }
+            public nietras.SeparatedValues.SepUtf8Reader.Cols this[System.ReadOnlySpan<int> indices] { get; }
+            public int LineNumberFrom { get; }
+            public int LineNumberToExcl { get; }
+            public int RowIndex { get; }
+            public System.ReadOnlySpan<byte> Span { get; }
+            public override string ToString() { }
+            public bool TryGet(string colName, out nietras.SeparatedValues.SepUtf8Reader.Col col) { }
+        }
+        public delegate void ColAction(nietras.SeparatedValues.SepUtf8Reader.Col col);
+        public delegate T ColFunc<T>(nietras.SeparatedValues.SepUtf8Reader.Col col);
+        public delegate void ColsAction(nietras.SeparatedValues.SepUtf8Reader.Cols col);
+        public delegate void RowAction(nietras.SeparatedValues.SepUtf8Reader.Row row);
+        public delegate T RowFunc<T>(nietras.SeparatedValues.SepUtf8Reader.Row row);
+        public delegate bool RowTryFunc<T>(nietras.SeparatedValues.SepUtf8Reader.Row row, out T value);
+    }
+    public readonly struct SepUtf8ReaderOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8ReaderOptions>
+    {
+        public SepUtf8ReaderOptions() { }
+        public SepUtf8ReaderOptions(nietras.SeparatedValues.Sep? sep) { }
+        public System.Collections.Generic.IEqualityComparer<string> ColNameComparer { get; init; }
+        public nietras.SeparatedValues.SepCreateToBytes CreateToBytes { get; init; }
+        public nietras.SeparatedValues.SepCreateToString CreateToString { get; init; }
+        public System.Globalization.CultureInfo? CultureInfo { get; init; }
+        public bool DisableColCountCheck { get; init; }
+        public bool DisableFastFloat { get; init; }
+        public bool DisableQuotesParsing { get; init; }
+        public bool HasHeader { get; init; }
+        public int InitialBufferLength { get; init; }
+        public nietras.SeparatedValues.Sep? Sep { get; init; }
+        public bool SkipBom { get; init; }
+        public nietras.SeparatedValues.SepTrim Trim { get; init; }
+        public bool Unescape { get; init; }
+    }
+    public class SepUtf8ReaderState : nietras.SeparatedValues.SepReaderStateBase<byte, nietras.SeparatedValues.SepCharInfoUtf8> { }
+    [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
     public sealed class SepWriter : System.IAsyncDisposable, System.IDisposable
     {
         public nietras.SeparatedValues.SepWriterHeader Header { get; }

@@ -2527,6 +2527,7 @@ namespace nietras.SeparatedValues
         public System.Collections.Generic.IReadOnlyList<string> ColNames { get; }
         public bool IsEmpty { get; }
         public static nietras.SeparatedValues.SepReaderHeader Empty { get; }
+        public int IndexOf(System.ReadOnlySpan<byte> utf8ColName) { }
         public int IndexOf(System.ReadOnlySpan<char> colName) { }
         public int IndexOf(string colName) { }
         public int[] IndicesOf(System.Collections.Generic.IReadOnlyList<string> colNames) { }
@@ -2535,6 +2536,7 @@ namespace nietras.SeparatedValues
         public void IndicesOf(System.ReadOnlySpan<string> colNames, System.Span<int> colIndices) { }
         public System.Collections.Generic.IReadOnlyList<string> NamesStartingWith(string prefix, System.StringComparison comparison = 4) { }
         public override string ToString() { }
+        public bool TryIndexOf(System.ReadOnlySpan<byte> utf8ColName, out int colIndex) { }
         public bool TryIndexOf(System.ReadOnlySpan<char> colName, out int colIndex) { }
         public bool TryIndexOf(string colName, out int colIndex) { }
     }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace nietras.SeparatedValues;
 
@@ -34,6 +35,19 @@ public sealed class SepReaderHeader
     public bool TryIndexOf(ReadOnlySpan<char> colName, out int colIndex) =>
         _colNameToIndex.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(colName, out colIndex);
 #endif
+
+    public int IndexOf(ReadOnlySpan<byte> utf8ColName)
+    {
+        // Decode UTF-8 to string for lookup
+        var colName = Encoding.UTF8.GetString(utf8ColName);
+        return _colNameToIndex[colName];
+    }
+
+    public bool TryIndexOf(ReadOnlySpan<byte> utf8ColName, out int colIndex)
+    {
+        var colName = Encoding.UTF8.GetString(utf8ColName);
+        return _colNameToIndex.TryGetValue(colName, out colIndex);
+    }
 
     public IReadOnlyList<string> NamesStartingWith(string prefix, StringComparison comparison = StringComparison.Ordinal)
     {

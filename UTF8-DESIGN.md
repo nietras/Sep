@@ -55,7 +55,7 @@ The parsing layer already uses **static abstract interfaces** for genericity:
    and compares to `CarriageReturn`, `LineFeed`, `Quote`, `separator`
 7. **`SepWriter._writer`** — `TextWriter`
 8. **`SepWriter.ColImpl._buffer`** — `char[]`, writes via `TextWriter.Write(ReadOnlySpan<char>)`
-9. **`SepReaderHeader`** — stores col names as `string`, uses `Dictionary<string, int>`
+9. **`SepReaderHeader`** — stores col names as `string`, uses `Dictionary<string, int>` (char reader only; UTF-8 reader gets `SepUtf8ReaderHeader`)
 10. **`SepToString`** / string pooling — converts `ReadOnlySpan<char>` to `string`
 
 ## No Breaking Changes Constraint
@@ -63,7 +63,7 @@ The existing public API **must not break**. Specifically:
 - `SepReader`, `SepReader.Row`, `SepReader.Col`, `SepReader.Cols` — unchanged
 - `SepWriter`, `SepWriter.Row`, `SepWriter.Col`, `SepWriter.Cols` — unchanged
 - `SepReaderOptions`, `SepWriterOptions` — unchanged
-- `SepReaderHeader` — extended (not changed) with UTF-8 lookup
+- `SepReaderHeader` — unchanged
 - `Sep.Reader()`, `Sep.Writer()` and all `FromXXX`/`ToXXX` — unchanged
 - Extension methods on `Sep`, `SepSpec` — unchanged
 
@@ -82,34 +82,277 @@ separator, line feed, carriage return, and quote characters are all ASCII (singl
 byte), so the SIMD comparison logic is fundamentally the same. Only the
 "load & pack" step differs.
 
-### Strategy: Generic `TChar` with Static Abstract Interfaces
+### Strategy: Generic `TChar` Base Class with Static Abstract Interfaces
 
 Use .NET's own `IUtf8SpanParsable<T>` for parsing, and define a thin internal
-static abstract interface for char/byte constants and operations:
+static abstract interface for char/byte constants and operations. The generic
+base class `SepReaderStateBase<TChar, TCharInfo>` captures the ~700 lines of
+buffer management, col-tracking, and unescape logic that is **identical** between
+`char` and `byte` readers. Derived classes (`SepReaderState`, `SepUtf8ReaderState`)
+add only the type-specific operations (~100-150 lines each).
 
 ```csharp
 // Internal static abstract interface for char vs byte specialization
-interface ISepCharInfo<TChar> where TChar : unmanaged
+internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
 {
     static abstract TChar LineFeed { get; }
     static abstract TChar CarriageReturn { get; }
     static abstract TChar Quote { get; }
     static abstract TChar Space { get; }
-    static abstract int SizeOf { get; }
 }
 
-struct SepChar : ISepCharInfo<char>  { /* char constants */ }
-struct SepByte : ISepCharInfo<byte>  { /* byte constants, same ASCII values */ }
+internal readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
+{
+    public static char LineFeed => SepDefaults.LineFeed;
+    public static char CarriageReturn => SepDefaults.CarriageReturn;
+    public static char Quote => SepDefaults.Quote;
+    public static char Space => SepDefaults.Space;
+}
+
+internal readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
+{
+    public static byte LineFeed => SepDefaults.LineFeedByte;
+    public static byte CarriageReturn => SepDefaults.CarriageReturnByte;
+    public static byte Quote => SepDefaults.QuoteByte;
+    public static byte Space => SepDefaults.SpaceByte;
+}
 ```
+
+### Generic Base Class Design: `SepReaderStateBase<TChar, TCharInfo>`
+
+The base class is parameterized on `TChar` (the buffer element type) and
+`TCharInfo` (the struct implementing `ISepCharInfo<TChar>` for constant
+resolution). Using a **struct type parameter for `TCharInfo`** ensures the JIT
+specializes all comparisons — the `TCharInfo.Quote`, `TCharInfo.LineFeed` etc.
+calls become inlined constants, identical to the current hardcoded values. No
+virtual dispatch, no dictionary lookups, zero runtime overhead.
+
+```csharp
+public class SepReaderStateBase<TChar, TCharInfo> : IDisposable
+    where TChar : unmanaged, IEquatable<TChar>
+    where TCharInfo : struct, ISepCharInfo<TChar>
+{
+    // ─── Buffer & data ───
+    internal TChar[] _buffer;           // was _chars (char[]) or _bytes (byte[])
+    internal int _charsDataStart;       // keep field names for grep-ability
+    internal int _charsDataEnd;
+    internal bool _trailingCarriageReturn;
+    internal int _charsParseStart;
+
+    // ─── Col tracking (completely TChar-agnostic) ───
+    internal int[] _colEndsOrColInfos;
+    internal SepRowInfo[] _parsedRows;
+    internal int _parsedRowsCount, _parsedRowIndex;
+    internal int _currentRowColCount, _currentRowColEndsOrInfosOffset;
+    internal int _currentRowLineNumberFrom, _currentRowLineNumberTo;
+    internal int _rowIndex;
+
+    // ─── Parsing state ───
+    internal int _parsingLineNumber;
+    internal int _parsingRowCharsStartIndex;
+    internal int _parsingRowColEndsOrInfosStartIndex;
+    internal int _parsingRowColCount;
+    internal uint _colSpanFlags;
+
+    // ─── Header & caching (shared) ───
+    internal SepReaderHeader _header;  // both char and byte readers have this
+    internal bool _hasHeader;
+    internal CultureInfo? _cultureInfo;
+    internal SepArrayPoolAccessIndexed _arrayPool;
+    internal (string colName, int colIndex)[] _colNameCache;
+    internal int _cacheIndex;
+    internal int _colCountExpected;
+
+    // ─── Methods that are 100% shared ───
+    internal bool MoveNextAlreadyParsed() { ... }     // ~25 lines, pure index math
+    internal (int start, int end) RowStartEnd() { ... } // ~20 lines, col-end indexing
+    internal int GetCachedColIndex(string) { ... }     // ~10 lines
+    internal bool TryGetCachedColIndex(string, out int) { ... } // ~25 lines
+
+    // ─── Col span (generic over TChar) ───
+    internal ReadOnlySpan<TChar> GetColSpan(int index) { ... }
+    // Uses TCharInfo.Quote for unescape comparison
+    // Uses Unsafe.Add(ref TChar, ...) + MemoryMarshal.CreateReadOnlySpan
+    // SepUnescape becomes generic: UnescapeInPlace<TChar, TCharInfo>(ref TChar, int)
+
+    internal SepRange GetColRange(int index) { ... }   // ~30 lines
+
+    // ─── Row span ───
+    internal ReadOnlySpan<TChar> RowSpan() { ... }
+
+    // ─── Trim (generic) ───
+    static ref TChar TrimSpace(ref TChar col, ref int length) { ... }
+    // Compares to TCharInfo.Space
+
+    // ─── Dispose ───
+    internal virtual void DisposeManaged()
+    {
+        ArrayPool<TChar>.Shared.Return(_buffer);
+        ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
+        ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
+        _arrayPool.Dispose();
+    }
+}
+```
+
+### What Lives in the Generic Base (~700 lines shared)
+
+1. **Buffer management**: `TChar[] _buffer` with `ArrayPool<TChar>`, all
+   data-start/data-end tracking, `ClearPaddingAfterData` (already generic in
+   `SepArrayExtensions`)
+
+2. **Col tracking**: `_colEndsOrColInfos` (int[]), `_parsedRows` (SepRowInfo[]),
+   `_parsingRowColEndsOrInfosStartIndex`, `_parsingRowColCount`, etc. — all
+   pure integer index math, completely TChar-agnostic
+
+3. **`MoveNextAlreadyParsed()`** — ~25 lines of index bookkeeping, uses only
+   `_parsedRowIndex`, `_parsedRowsCount`, `_currentRowColCount`, etc.
+
+4. **`RowStartEnd()`** — pure `_colEndsOrColInfos` index math
+
+5. **`GetColRange(int)`** / **`GetColSpan(int)`** — these are the critical ones.
+   Currently ~70 lines each. They read from `_colEndsOrColInfos` to find
+   start/end indices, then create a `ReadOnlySpan<TChar>` from `_buffer`. The
+   unescape path compares against `Quote` — this becomes `TCharInfo.Quote`. The
+   `Unsafe.Add(ref TChar, ...)` and `MemoryMarshal.CreateReadOnlySpan<TChar>()`
+   calls are naturally generic.
+
+6. **`GetColSpanTrimmed(int)`** — same structure, `Space` comparison becomes
+   `TCharInfo.Space`
+
+7. **`TrimSpace(ref TChar, ref int)`** — trivially generic
+
+8. **`SepUnescape`** — `UnescapeInPlace` and `TrimUnescapeInPlace` compare
+   against `SepDefaults.Quote` and `SepDefaults.Space`. These become generic:
+   `UnescapeInPlace<TChar, TCharInfo>(ref TChar charRef, int length)`. The
+   algorithms are byte-wise iteration with `Unsafe.Add` — identical for both
+   `char` and `byte`.
+
+9. **`GetCachedColIndex` / `TryGetCachedColIndex`** — header lookup cache, pure
+   string-based, TChar-agnostic
+
+10. **`ThrowInvalidDataExceptionColCountMismatch`** — needs a small adaption to
+    create a string from `ReadOnlySpan<TChar>` (via `new string(chars)` for char,
+    `Encoding.UTF8.GetString(bytes)` for byte). This can be a virtual/abstract
+    method or use a static interface method for the conversion.
+
+11. **Dispose pattern** — `ArrayPool<TChar>.Shared.Return(_buffer)` is naturally
+    generic
+
+12. **`CheckColInfosCapacityMaybeDouble`, `DoubleColInfosCapacityCopyState`** —
+    pure int[] operations
+
+13. **`SwapParsedRowsTo`** — already references `_chars` as `TChar[]`, the swap
+    logic is identical
+
+### What Lives in Derived Classes (char-specific / byte-specific)
+
+Each derived class adds only the operations that **differ** between char and byte:
+
+**`SepReaderState : SepReaderStateBase<char, SepCharInfoUtf16>`** (~150 lines)
+```csharp
+public class SepReaderState : SepReaderStateBase<char, SepCharInfoUtf16>
+{
+    readonly string[] _singleCharToString;  // char-specific cache
+    internal SepCreateToString _createToString;
+    internal SepToString _toString;
+    internal char _fastFloatDecimalSeparatorOrZero;
+
+    // char-specific methods:
+    internal string ToStringDefault(int index);  // uses SepToString pooling
+    internal string ToStringDirect(int index);
+    internal string? TryGetStaticallyCachedString(ReadOnlySpan<char> span);
+    internal T Parse<T>(int index) where T : ISpanParsable<T>;
+    internal bool TryParse<T>(int index, out T value) where T : ISpanParsable<T>;
+
+    // Cols string/parse methods (delegate to above):
+    internal string[] ToStringsArray(...);
+    internal Span<string> ToStrings(...);
+    internal Span<T> Parse<T>(...); // multi-col
+
+    // Cols Join/Path (char-specific: work on char spans):
+    internal ReadOnlySpan<char> Join(...);
+    internal string JoinToString(...);
+    // etc.
+
+    internal Func<int, string> UnsafeToStringDelegate { get; }
+
+    internal override void DisposeManaged()
+    {
+        _toString?.Dispose();
+        base.DisposeManaged();
+    }
+}
+```
+
+**`SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>`** (~150 lines)
+```csharp
+public class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
+{
+    internal SepUtf8ReaderHeader _utf8Header;  // byte-based header (additional)
+    internal SepCreateToBytes _createToBytes;
+    internal SepToBytes _toBytes;
+    internal byte _fastFloatDecimalSeparatorOrZero;
+
+    // byte-specific methods:
+    internal ReadOnlyMemory<byte> ToBytesDefault(int index); // uses SepToBytes pooling
+    internal string ToStringDefault(int index);              // UTF-8 decode convenience
+    internal T Parse<T>(int index) where T : IUtf8SpanParsable<T>;
+    internal bool TryParse<T>(int index, out T value) where T : IUtf8SpanParsable<T>;
+
+    // Cols byte pooling methods:
+    internal ReadOnlyMemory<byte>[] ToBytesArray(...);
+    internal Span<T> Parse<T>(...); // multi-col, IUtf8SpanParsable
+
+    // Cols Join (byte-specific):
+    internal ReadOnlySpan<byte> Join(...);
+
+    internal override void DisposeManaged()
+    {
+        _toBytes?.Dispose();
+        base.DisposeManaged();
+    }
+}
+```
+
+### Performance Guarantee
+
+The generic approach preserves performance because:
+
+1. **Struct type parameters eliminate virtual dispatch**: `TCharInfo` is a struct
+   (`SepCharInfoUtf16` or `SepCharInfoUtf8`). The JIT fully specializes each generic
+   instantiation — `TCharInfo.Quote` becomes a constant load, not a virtual call.
+   This is the same pattern as `ISepColInfoMethods<TColInfo>` already used in
+   `SepParseMask`.
+
+2. **`ArrayPool<TChar>` is a known pattern**: The .NET runtime already provides
+   type-specialized `ArrayPool<char>` and `ArrayPool<byte>`. No overhead vs
+   direct usage.
+
+3. **`Unsafe.Add(ref TChar, ...)` generates optimal code**: For both `char` and
+   `byte`, the JIT emits a simple address calculation. For `char` it's
+   `base + index * 2`, for `byte` it's `base + index * 1`.
+
+4. **`MemoryMarshal.CreateReadOnlySpan<TChar>`**: Already works for any unmanaged
+   type.
+
+5. **No boxing**: Struct constraints (`where TCharInfo : struct`) prevent boxing.
+   The static abstract interface pattern ensures compile-time dispatch.
+
+6. **Binary-identical hot paths**: `MoveNextAlreadyParsed()`, `GetColRange()`,
+   col-tracking state machine — these are the hot paths and they contain zero
+   TChar-dependent operations. They will JIT to identical machine code for both
+   instantiations.
 
 ### What Can Be Shared (Reused with generics)
 
 1. **`SepParseMask`** — Already generic over `TColInfo`. The char-specific logic
    (`ParseAnyChar`, etc.) compares against `LineFeed`, `CarriageReturn`, `Quote`,
-   `separator`. These can be parameterized:
+   `separator`. These are parameterized via `ISepCharInfo<TChar>`:
    - For `char`: `ref char charsRef` + compare to `char` constants
    - For `byte`: `ref byte bytesRef` + compare to `byte` constants (same values!)
    - The mask-walking logic (TrailingZeroCount, mask iteration) is identical.
+   - Methods become `ParseAny<TChar, TCharInfo, TColInfo, TColInfoMethods>`
 
 2. **SIMD Parsers** — The inner loop structure is the same. Key difference:
    - `char` path: Load 2×`Vector<short>`, pack to `Vector<byte>`, then compare
@@ -124,41 +367,44 @@ struct SepByte : ISepCharInfo<byte>  { /* byte constants, same ASCII values */ }
 
 5. **Row parsing state machine** (`ParseNewRows`, `MoveNext`,
    `MoveNextAlreadyParsed`) — Logic is the same: fill buffer, parse, track rows.
-   The difference is buffer type (`char[]` vs `byte[]`) and read source.
+   The difference is buffer type (`TChar[]`) and read source.
 
-6. **`SepReaderHeader`** — Stays string-based internally. Extended with UTF-8
-   lookup support (see Header section below).
+6. **Header**: `SepReaderHeader` lives in the generic base class — both char
+   and byte readers use it for `GetCachedColIndex(string)`. The byte reader
+   additionally holds `SepUtf8ReaderHeader` for `ReadOnlySpan<byte>` lookups.
+
+7. **`SepUnescape`** — Becomes `SepUnescape<TChar, TCharInfo>`. The algorithm
+   iterates bytes/chars with `Unsafe.Add`, comparing to `Quote` and `Space`.
+   These constants come from `TCharInfo`.
 
 ### What Must Be Separate / New
 
-1. **Buffer type**: `char[]` vs `byte[]` (via `ArrayPool<char>` vs `ArrayPool<byte>`)
-
-2. **Data source** (see IO Abstraction Analysis below):
+1. **Data source**:
    - `char` reader: `TextReader` (existing)
-   - `byte` reader: `Stream` (primary), `byte[]`/`ReadOnlyMemory<byte>` (in-memory),
-     `PipeReader` (future native optimization)
+   - `byte` reader: `Stream` (primary), `byte[]`/`ReadOnlyMemory<byte>` (in-memory)
 
-3. **Column access API**:
+2. **Column access API**:
    - `char` reader: `ReadOnlySpan<char> Span` (existing)
    - `byte` reader: `ReadOnlySpan<byte> Span` (new), `.ToString()` decodes UTF-8
 
-4. **Parsing (ISpanParsable vs IUtf8SpanParsable)**:
+3. **Parsing (ISpanParsable vs IUtf8SpanParsable)**:
    - `char`: `T.Parse(ReadOnlySpan<char>, IFormatProvider?)`
-   - `byte`: `T.Parse(ReadOnlySpan<byte>, IFormatProvider?)` (.NET 8+ `IUtf8SpanParsable<T>`)
+   - `byte`: `T.Parse(ReadOnlySpan<byte>, IFormatProvider?)` via `IUtf8SpanParsable<T>`
 
-5. **Byte pooling**: The char reader pools `string` via `SepToString`. The UTF-8
-   reader should pool `ReadOnlyMemory<byte>` via a new `SepToBytes` abstraction (parallel
-   to `SepToString`). This avoids UTF-8→UTF-16 transcoding on the hot path.
-   `ToString()` is still available as a convenience but is a secondary path.
+4. **Pooling**: `SepToString` (char, returns `string`) vs `SepToBytes` (byte,
+   returns `ReadOnlyMemory<byte>`)
 
-6. **Writer output** (see IO Abstraction Analysis below):
+5. **Writer output**:
    - `char`: `TextWriter.Write(ReadOnlySpan<char>)` (existing)
    - `byte`: `Stream.Write(ReadOnlySpan<byte>)` (primary) or
      `IBufferWriter<byte>` (for Kestrel/PipeWriter zero-copy output)
 
-7. **SIMD load step** (thin layer):
+6. **SIMD load step** (thin layer):
    - `char`: `PackUnsignedSaturate(v0, v1)` then permute
    - `byte`: Direct load (simpler, potentially faster)
+
+7. **csFastFloat**: Different overloads for `ReadOnlySpan<char>` vs
+   `ReadOnlySpan<byte>` (both already supported by csFastFloat)
 
 ### IO Abstraction Analysis: Stream vs PipeReader vs IBufferWriter
 
@@ -431,17 +677,31 @@ public static partial class SepUtf8WriterExtensions
 }
 ```
 
-### Header Lookup: Both `char` and `byte` Based
+### Header Lookup: Separate Types for `char` and `byte`
 
-`SepReaderHeader` is reused by both `SepReader` and `SepUtf8Reader`. It is
-extended to support UTF-8 byte-based lookup in addition to existing `string` and
-`ReadOnlySpan<char>` lookup. The header is always stored as strings internally
-(column names decoded from UTF-8 once during init for the UTF-8 reader).
+`SepReaderHeader` (existing, char/string-based) is kept in the generic base class
+so that `GetCachedColIndex(string)` works identically for both readers — no
+interface or virtual dispatch needed. `SepUtf8ReaderHeader` (new, byte-based) is
+an **additional** header held only by `SepUtf8ReaderState` for byte-span lookups.
+
+**`SepUtf8Reader` holds both headers:**
+- `SepReaderHeader _header` (inherited from base) — built during init by
+  decoding UTF-8 column names to strings. Used for `Row[string colName]` and
+  the `_colNameCache` fast path. This is the same header the char reader uses.
+- `SepUtf8ReaderHeader _utf8Header` (in `SepUtf8ReaderState`) — built during
+  init from the raw UTF-8 bytes. Used for `Row[ReadOnlySpan<byte> utf8ColName]`.
+
+This means:
+- The base class stays simple — `SepReaderHeader _header` field, no interfaces.
+- `GetCachedColIndex(string)` is unchanged, calls `_header.TryIndexOf(string)`.
+- The char reader (`SepReader`) uses only `_header` — no change at all.
+- The byte reader (`SepUtf8Reader`) has both, paying the small cost of storing
+  column names twice (strings + bytes). Headers are tiny relative to data.
 
 ```csharp
+// Existing (unchanged)
 public sealed class SepReaderHeader
 {
-    // Existing (unchanged)
     public int IndexOf(string colName) => ...;
     public bool TryIndexOf(string colName, out int colIndex) => ...;
 #if NET9_0_OR_GREATER
@@ -451,50 +711,34 @@ public sealed class SepReaderHeader
     public IReadOnlyList<string> ColNames => ...;
     public IReadOnlyList<string> NamesStartingWith(string prefix, ...) => ...;
     public int[] IndicesOf(...) => ...;
+}
 
-    // New: UTF-8 byte-based lookup
+// New: UTF-8 byte-based header (held by SepUtf8ReaderState alongside SepReaderHeader)
+public sealed class SepUtf8ReaderHeader
+{
+    readonly byte[] _row;                          // raw UTF-8 header row
+    readonly byte[][] _utf8ColNames;               // each column name as UTF-8 bytes
+
+    // Primary: byte-based lookup (allocation-free hot path)
     public int IndexOf(ReadOnlySpan<byte> utf8ColName) => ...;
     public bool TryIndexOf(ReadOnlySpan<byte> utf8ColName, out int colIndex) => ...;
-    public int[] IndicesOf(ReadOnlySpan<ReadOnlyMemory<byte>> utf8ColNames) => ...;
+    public int[] IndicesOf(params ReadOnlySpan<ReadOnlyMemory<byte>> utf8ColNames) => ...;
+
+    // Column names as bytes
+    public IReadOnlyList<ReadOnlyMemory<byte>> Utf8ColNames => ...;
+
+    // String access delegates to the companion SepReaderHeader
+    // (no need to duplicate — SepUtf8Reader exposes both headers)
 }
 ```
 
-**Implementation strategy for UTF-8 lookup:**
-- Lazy-init a `Dictionary<string, int>` alternate lookup via
-  `Encoding.UTF8.GetString()` on the input span, then look up in the existing
-  `_colNameToIndex` dictionary. This reuses the existing storage.
-- Alternatively, for high-performance hot-path lookups, maintain a parallel
-  `byte[][]` array of UTF-8-encoded column names and do span-based comparison.
-  This avoids allocating a `string` on every `IndexOf(ReadOnlySpan<byte>)` call.
-- The preferred approach: store UTF-8 encoded names lazily alongside string names
-  and use `SequenceEqual` for byte lookup. This is allocation-free on the lookup
-  hot path:
-
-```csharp
-// Internal: lazy-initialized UTF-8 encoded column names
-byte[][]? _utf8ColNames;
-
-public int IndexOf(ReadOnlySpan<byte> utf8ColName)
-{
-    var utf8Names = _utf8ColNames ??= CreateUtf8ColNames();
-    for (var i = 0; i < utf8Names.Length; i++)
-    {
-        if (utf8ColName.SequenceEqual(utf8Names[i]))
-            return i;
-    }
-    SepThrow.KeyNotFoundException_ColNameNotFound(
-        Encoding.UTF8.GetString(utf8ColName));
-    return -1;
-}
-```
-
-For the `SepUtf8Reader.Row` indexer, both `string` and `ReadOnlySpan<byte>` 
+For the `SepUtf8Reader.Row` indexer, both `string` and `ReadOnlySpan<byte>`
 column access is supported:
 ```csharp
 public readonly ref struct Row  // SepUtf8Reader.Row
 {
-    public Col this[string colName] => ...;      // string-based (reuses header cache)
-    public Col this[ReadOnlySpan<byte> utf8ColName] => ...; // UTF-8 byte-based
+    public Col this[string colName] => ...;      // via base _header (SepReaderHeader)
+    public Col this[ReadOnlySpan<byte> utf8ColName] => ...; // via _utf8Header
     public Col this[int index] => ...;           // index-based
 }
 ```
@@ -502,9 +746,21 @@ public readonly ref struct Row  // SepUtf8Reader.Row
 ### Proposed Type Hierarchy
 
 ```
-// Existing (unchanged public API)
-SepReaderState           → base class (internal members), may now inherit from
-                           SepReaderStateBase<char> but this is invisible externally
+// Generic base (internal, shared by both readers)
+SepReaderStateBase<TChar, TCharInfo>
+    where TChar : unmanaged, IEquatable<TChar>
+    where TCharInfo : struct, ISepCharInfo<TChar>
+    — TChar[] _buffer, int[] _colEndsOrColInfos, SepRowInfo[] _parsedRows
+    — MoveNextAlreadyParsed(), GetColRange(), GetColSpan(), RowSpan()
+    — GetCachedColIndex() via base _header (SepReaderHeader), TrimSpace()
+    — SepUnescape (generic)
+    — ~700 lines of shared code
+
+// Existing (unchanged public API, now inherits from generic base)
+SepReaderState : SepReaderStateBase<char, SepCharInfoUtf16>
+    — SepToString, Parse<T> via ISpanParsable, csFastFloat (char overloads)
+    — Join/JoinPaths (char-specific), UnsafeToStringDelegate
+    — ~150 lines char-specific
 SepReader : SepReaderState → reads TextReader, char[] buffer
 SepReader.Row            (ref struct)
 SepReader.Col            (ref struct) → ReadOnlySpan<char>
@@ -513,8 +769,11 @@ SepWriter                → writes to TextWriter, char-based
 SepWriter.Row            (ref struct)
 SepWriter.Col            (ref struct)
 
-// New UTF-8 types (parallel to existing)
-SepUtf8ReaderState       → inherits from SepReaderStateBase<byte> (internal)
+// New UTF-8 types (parallel to existing, same generic base)
+SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
+    — SepUtf8ReaderHeader (byte-based, additional to base _header)
+    — SepToBytes, Parse<T> via IUtf8SpanParsable, csFastFloat (byte overloads)
+    — ~150 lines byte-specific
 SepUtf8Reader : SepUtf8ReaderState → reads Stream, byte[] buffer
 SepUtf8Reader.Row        (ref struct)
 SepUtf8Reader.Col        (ref struct) → ReadOnlySpan<byte>
@@ -523,15 +782,10 @@ SepUtf8Writer            → writes to Stream or IBufferWriter<byte>
 SepUtf8Writer.Row        (ref struct)
 SepUtf8Writer.Col        (ref struct)
 
-// Shared internals (generic, internal only)
-SepReaderStateBase<TChar> where TChar : unmanaged
-    — TChar[] _buffer, int[] _colEndsOrColInfos, SepRowInfo[] _parsedRows
-    — MoveNextAlreadyParsed(), GetColRange(), col tracking
-    — SepReaderHeader (shared, extended with UTF-8 lookup)
-
-ISepParser               — unchanged for char parsers (existing)
-ISepUtf8Parser           — new, for byte parsers (ParseColEnds/ParseColInfos
-                           taking SepUtf8ReaderState)
+// Parser interfaces
+ISepParser               — unchanged for char parsers (takes SepReaderState)
+ISepUtf8Parser           — new, for byte parsers (takes SepUtf8ReaderState)
+// Both could later unify via ISepParser<TState> but not necessary for V1
 ```
 
 ### Alternative: Single Generic `SepReader<TChar>`
@@ -552,6 +806,13 @@ Each step must leave the build green. Existing tests must never break.
 
 ### Step 1: `ISepCharInfo<TChar>` — Char/Byte Constants Abstraction
 **Create** `src/Sep/Internals/ISepCharInfo.cs`
+
+Also add `SpaceByte` to `SepDefaults.cs` (alongside existing `LineFeedByte`,
+`CarriageReturnByte`, `QuoteByte`):
+```csharp
+internal const byte SpaceByte = (byte)Space;
+```
+
 ```csharp
 internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
 {
@@ -561,12 +822,114 @@ internal interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar
     static abstract TChar Space { get; }
 }
 
-internal readonly struct SepCharType : ISepCharInfo<char> { /* char constants */ }
-internal readonly struct SepByteType : ISepCharInfo<byte> { /* byte constants */ }
+internal readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
+{
+    public static char LineFeed => SepDefaults.LineFeed;
+    public static char CarriageReturn => SepDefaults.CarriageReturn;
+    public static char Quote => SepDefaults.Quote;
+    public static char Space => SepDefaults.Space;
+}
+
+internal readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
+{
+    public static byte LineFeed => SepDefaults.LineFeedByte;
+    public static byte CarriageReturn => SepDefaults.CarriageReturnByte;
+    public static byte Quote => SepDefaults.QuoteByte;
+    public static byte Space => SepDefaults.SpaceByte;
+}
 ```
 - Build — no behavioral change, just new types.
 
-### Step 2: `ISepUtf8Parser` — Byte Parser Interface
+### Step 2: `SepUnescape<TChar, TCharInfo>` — Generic Unescape
+**Modify** `src/Sep/Internals/SepUnescape.cs`
+- Make `UnescapeInPlace` and `TrimUnescapeInPlace` generic:
+  `UnescapeInPlace<TChar, TCharInfo>(ref TChar charRef, int length)`
+  where `TCharInfo : struct, ISepCharInfo<TChar>`
+- Replace `SepDefaults.Quote` → `TCharInfo.Quote`
+- Replace `SepDefaults.Space` → `TCharInfo.Space`
+- Keep the existing non-generic methods as thin wrappers calling the generic
+  version (avoids breaking internal callers):
+  ```csharp
+  internal static int UnescapeInPlace(ref char charRef, int length)
+      => UnescapeInPlace<char, SepCharInfoUtf16>(ref charRef, length);
+  ```
+- Build + test — existing behavior unchanged.
+
+### Step 3: `SepReaderStateBase<TChar, TCharInfo>` — Extract Generic Base
+**Create** `src/Sep/SepReaderStateBase.cs`
+- Extract from `SepReaderState.cs` all TChar-agnostic fields and methods:
+  - Fields: `_buffer` (renamed from `_chars`), `_charsDataStart`, `_charsDataEnd`,
+    `_trailingCarriageReturn`, `_charsParseStart`, `_parsingLineNumber`,
+    `_parsingRowCharsStartIndex`, `_parsingRowColEndsOrInfosStartIndex`,
+    `_parsingRowColCount`, `_colSpanFlags`, `_colCountExpected`,
+    `_colEndsOrColInfos`, `_parsedRows`, `_parsedRowsCount`, `_parsedRowIndex`,
+    `_currentRowColCount`, `_currentRowColEndsOrInfosOffset`,
+    `_currentRowLineNumberFrom`, `_currentRowLineNumberTo`, `_rowIndex`,
+    `_header`, `_hasHeader`, `_cultureInfo`, `_arrayPool`, `_colNameCache`,
+    `_cacheIndex`
+  - Methods: `MoveNextAlreadyParsed()`, `RowStartEnd()`, `RowSpan()`,
+    `GetCachedColIndex()`, `TryGetCachedColIndex()`, `GetColRange()`,
+    `GetColSpan()`, `GetColSpanTrimmed()`, `GetColSpanTrimmedRange()`,
+    `TrimSpace()` (now uses `TCharInfo.Space`),
+    `CheckColInfosCapacityMaybeDouble()`, `DoubleColInfosCapacityCopyState()`,
+    `SwapParsedRowsTo()`, `GetColsEntireSpanAs<T>()`, `GetColInfosLength()`,
+    `GetIntegersPerColInfo()`, `GetColsRefAs<T>()`
+  - Dispose: `ArrayPool<TChar>.Shared.Return(_buffer)`, `_colEndsOrColInfos`,
+    `_parsedRows`, `_arrayPool`
+  - Unescape calls in `GetColSpan()` become `SepUnescape.UnescapeInPlace<TChar, TCharInfo>(...)`
+  - `ThrowInvalidDataExceptionColCountMismatch`: make virtual/abstract `CreateRowString()`
+    method — char version uses `new string(...)`, byte version uses `Encoding.UTF8.GetString(...)`
+
+**Modify** `src/Sep/SepReaderState.cs`
+- Change: `public class SepReaderState : SepReaderStateBase<char, SepCharInfoUtf16>`
+- Keep **only** char-specific members:
+  - `_singleCharToString`, `_createToString`, `_toString`,
+    `_fastFloatDecimalSeparatorOrZero`
+  - `ToStringDefault()`, `ToStringDirect()`, `TryGetStaticallyCachedString()`
+  - `Parse<T>()`, `TryParse<T>()` (ISpanParsable)
+  - All `#region Cols` methods that produce strings: `ToStringsArray`, `ToStrings`,
+    `ParseToArray`, `Parse`, `TryParse`, `ColsSelect`, `Join`, `JoinToString`,
+    `JoinPathsToString`, `CombinePathsToString`
+  - `UnsafeToStringDelegate`
+  - `DisposeManaged()` override: dispose `_toString`, call `base.DisposeManaged()`
+- The `SepReaderState(SepReader other)` copy-constructor remains in
+  `SepReaderState`, calling `base(other)` for shared fields
+
+- **Critical**: `SepReader` already inherits from `SepReaderState`. Since
+  `SepReaderState` now inherits from `SepReaderStateBase<char, SepCharInfoUtf16>`,
+  `SepReader` transitively gets all the base methods. No change needed in
+  `SepReader.cs` itself.
+
+- Build + run all existing tests — must pass identically. This is a **refactor
+  with no functional change**. The JIT produces identical code because all
+  `SepCharInfoUtf16` static abstract calls are inlined as constants.
+
+### Step 4: `SepParseMask` Generic Overloads
+**Modify** `src/Sep/Internals/SepParseMask.cs`
+- Add generic overloads that take `ref TChar` instead of `ref char`:
+  ```csharp
+  internal static ref TColInfo ParseAny<TChar, TCharInfo, TColInfo, TColInfoMethods>(
+      scoped ref TChar charsRef, int charsIndex, int relativeIndex, TChar separator,
+      scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
+      ref TColInfo colInfosRef, scoped ref int lineNumber)
+      where TChar : unmanaged, IEquatable<TChar>
+      where TCharInfo : struct, ISepCharInfo<TChar>
+      where TColInfo : unmanaged
+      where TColInfoMethods : ISepColInfoMethods<TColInfo>
+  ```
+- Replace hardcoded `CarriageReturn`/`LineFeed`/`Quote` → `TCharInfo.XXX`
+- Replace `==` comparisons → `.Equals()` or `EqualityComparer<TChar>.Default`
+  (the JIT devirtualizes for `char.Equals(char)` and `byte.Equals(byte)`)
+- Keep existing non-generic `ParseAnyChar` methods as thin wrappers:
+  ```csharp
+  internal static ref TColInfo ParseAnyChar<TColInfo, TColInfoMethods>(...)
+      => ref ParseAny<char, SepCharInfoUtf16, TColInfo, TColInfoMethods>(...);
+  ```
+- Similarly for `ParseSeparatorsLineEndingsMasks`, `ParseLineEndingMask`,
+  `ParseSeparatorLineEndingChar`
+- Build + test — all existing tests pass (wrappers ensure binary compatibility).
+
+### Step 5: `ISepUtf8Parser` — Byte Parser Interface
 **Create** `src/Sep/Internals/ISepUtf8Parser.cs`
 ```csharp
 internal interface ISepUtf8Parser
@@ -578,50 +941,29 @@ internal interface ISepUtf8Parser
 }
 ```
 - Mirrors `ISepParser` exactly but takes `SepUtf8ReaderState`.
-- Build (requires forward-declared `SepUtf8ReaderState` — create empty class stub).
+- Build (requires forward-declared `SepUtf8ReaderState` — create minimal stub).
 
-### Step 3: `SepUtf8ReaderState` — Byte Buffer State
-**Create** `src/Sep/SepUtf8ReaderState.cs`
-- Copy from `SepReaderState.cs` (~950 lines)
-- Replace `char[] _chars` → `byte[] _bytes`
-- Replace `ReadOnlySpan<char>` → `ReadOnlySpan<byte>` in col span methods
-- Replace `ISpanParsable<T>.Parse(ReadOnlySpan<char>)` →
-  `IUtf8SpanParsable<T>.Parse(ReadOnlySpan<byte>)` in Parse methods
-- Replace `SepToString _toString` → `SepToBytes _toBytes` for byte pooling
-- Replace `ToStringDefault` → `ToBytesDefault` returning `ReadOnlyMemory<byte>`
-- Add `ToStringDefault` that decodes via `Encoding.UTF8.GetString(span)`
-- Replace `_singleCharToString` cache → single-byte ASCII `byte[]` cache
-- Replace csFastFloat char overloads → byte overloads
-- Keep all col tracking (`_colEndsOrColInfos`, `_parsedRows`, etc.) identical
-- Build. No tests yet (no IO, no parser wired up).
-
-### Step 4: `SepParseMask` Byte Overloads
-**Modify** `src/Sep/Internals/SepParseMask.cs`
-- Add `ParseAnyByte` method parallel to `ParseAnyChar`
-- Same mask-walking logic, but `ref byte` instead of `ref char`
-- Comparison targets are identical ASCII values (cast to `byte`)
-- Build.
-
-### Step 5: `SepUtf8ParserIndexOfAny` — First Byte Parser
+### Step 6: `SepUtf8ParserIndexOfAny` — First Byte Parser
 **Create** `src/Sep/Internals/SepUtf8ParserIndexOfAny.cs`
 - Port `SepParserIndexOfAny` for bytes
 - Replace `string.IndexOfAny` → `Span<byte>.IndexOfAny(SearchValues<byte>)`
+  (or `byte[]` special chars array)
+- Uses `SepParseMask` generic overloads (`ParseAny<byte, SepCharInfoUtf8, ...>`)
 - Implement `ISepUtf8Parser`
-- Uses `SepParseMask` byte overloads from Step 4
 - Build.
 
-### Step 6: `SepUtf8ParserFactory`
+### Step 7: `SepUtf8ParserFactory`
 **Create** `src/Sep/Internals/SepUtf8ParserFactory.cs`
 - For now returns `SepUtf8ParserIndexOfAny` only (simple, correct)
 - Same `SepParserOptions` input (separator + disableQuotesParsing)
 - SIMD byte parsers added later as optimization
 - Build.
 
-### Step 6b: `SepToBytes` — ReadOnlyMemory\<byte\> Pooling Abstraction
+### Step 8: `SepToBytes` — ReadOnlyMemory\<byte\> Pooling Abstraction
 **Create** `src/Sep/SepToBytes.cs`
 ```csharp
 public delegate SepToBytes SepCreateToBytes(
-    SepReaderHeader? maybeHeader, int colCount);
+    SepUtf8ReaderHeader? maybeHeader, int colCount);
 
 public abstract class SepToBytes : IDisposable
 {
@@ -652,7 +994,40 @@ public abstract class SepToBytes : IDisposable
 
 - Build.
 
-### Step 7: `SepUtf8ReaderOptions` — Options Record
+### Step 9: `SepUtf8ReaderState` — Byte-Specific Derived Class
+**Create** `src/Sep/SepUtf8ReaderState.cs`
+```csharp
+public class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
+{
+    internal SepUtf8ReaderHeader _utf8Header;  // byte-based header (alongside base _header)
+    internal SepCreateToBytes _createToBytes;
+    internal SepToBytes _toBytes;
+    internal byte _fastFloatDecimalSeparatorOrZero;
+
+    // Parse via IUtf8SpanParsable<T>
+    internal T Parse<T>(int index) where T : IUtf8SpanParsable<T>;
+    internal bool TryParse<T>(int index, out T value) where T : IUtf8SpanParsable<T>;
+
+    // Byte pooling
+    internal ReadOnlyMemory<byte> ToBytesDefault(int index);
+    // String convenience (decodes UTF-8)
+    internal string ToStringDefault(int index);
+
+    // Cols multi-column methods (parallel to SepReaderState)
+    internal Span<T> Parse<T>(ReadOnlySpan<int> colIndices) where T : IUtf8SpanParsable<T>;
+    // ... etc.
+
+    internal override void DisposeManaged()
+    {
+        _toBytes?.Dispose();
+        base.DisposeManaged();
+    }
+}
+```
+- Uses csFastFloat byte overloads for float/double fast paths
+- Build.
+
+### Step 10: `SepUtf8ReaderOptions` — Options Record
 **Create** `src/Sep/SepUtf8ReaderOptions.cs`
 ```csharp
 public readonly record struct SepUtf8ReaderOptions
@@ -674,16 +1049,20 @@ public readonly record struct SepUtf8ReaderOptions
 - Mirror `SepReaderOptions` (omit `AsyncContinueOnCapturedContext` initially).
 - Build.
 
-### Step 8: `SepUtf8Reader` + Row/Col/Cols — Main Reader
+### Step 11: `SepUtf8Reader` + Row/Col/Cols — Main Reader
 **Create** `src/Sep/SepUtf8Reader.cs`
 - Sealed class inheriting `SepUtf8ReaderState`
 - Owns `Stream _stream` (not TextReader)
 - Constructor: takes `Info`, `SepUtf8ReaderOptions`, `Stream`
 - `Initialize()`: first buffer fill, BOM detection (skip 3 bytes if `0xEF BB BF`),
-  separator auto-detection, header parsing
+  separator auto-detection, header parsing. Builds **both** `SepReaderHeader`
+  (decodes col names to strings, stored in base `_header`) and
+  `SepUtf8ReaderHeader` (stores raw UTF-8 byte col names in `_utf8Header`).
 - `MoveNext()` / `ParseNewRows()` / `FillAndMaybeDoubleBytesBuffer()`:
   copy from `SepReader.IO.Sync.cs`, replace `_reader.Read(Span<char>)` →
-  `_stream.Read(Span<byte>)`
+  `_stream.Read(Span<byte>)`. Note: the carriage return lookahead logic is
+  simpler for bytes since `Stream.Read` reads bytes directly (no character
+  encoding complications). The `_trailingCarriageReturn` pattern works identically.
 - `Dispose()`: dispose stream + base
 
 **Create** `src/Sep/SepUtf8Reader.Row.cs`
@@ -691,8 +1070,8 @@ public readonly record struct SepUtf8ReaderOptions
 public readonly ref struct Row
 {
     public Col this[int index] => ...;
-    public Col this[string colName] => ...;
-    public Col this[ReadOnlySpan<byte> utf8ColName] => ...;
+    public Col this[string colName] => ...;      // string-based (via header)
+    public Col this[ReadOnlySpan<byte> utf8ColName] => ...; // UTF-8 byte-based
     public Cols this[Range range] => ...;
     // Mirror SepReader.Row API
 }
@@ -714,7 +1093,7 @@ public readonly ref struct Col
 
 - Build.
 
-### Step 9: IO Extensions — FromFile / FromBytes / From(Stream)
+### Step 12: IO Extensions — FromFile / FromBytes / From(Stream)
 **Create** `src/Sep/SepUtf8ReaderExtensions.cs`
 ```csharp
 public static partial class SepUtf8ReaderExtensions
@@ -746,15 +1125,16 @@ public static partial class SepUtf8ReaderExtensions
 
 - Build. **Reader is now usable end-to-end!**
 
-### Step 10: Header UTF-8 Lookup
-**Modify** `src/Sep/SepReaderHeader.cs`
-- Add `IndexOf(ReadOnlySpan<byte> utf8ColName)` overload
-- Add `TryIndexOf(ReadOnlySpan<byte> utf8ColName, out int colIndex)` overload
-- Add lazy `byte[][]? _utf8ColNames` cache
-- `SequenceEqual` based lookup for allocation-free hot path
+### Step 13: `SepUtf8ReaderHeader` — Byte Header
+**Create** `src/Sep/SepUtf8ReaderHeader.cs`
+- Stores `byte[] _row` (raw UTF-8 header row) and `byte[][] _utf8ColNames`
+- `IndexOf(ReadOnlySpan<byte>)` — linear scan with `SequenceEqual` (allocation-free)
+- `TryIndexOf(ReadOnlySpan<byte>, out int)` — same
+- `IndicesOf(params ReadOnlySpan<ReadOnlyMemory<byte>>)` — batch lookup
+- `Utf8ColNames` property returns `IReadOnlyList<ReadOnlyMemory<byte>>`
 - Build.
 
-### Step 11: Tests
+### Step 14: Tests
 **Create** `src/Sep.Test/SepUtf8ReaderTest.cs` (or add to existing test project)
 - Basic CSV parsing from byte array
 - Separator auto-detection
@@ -768,7 +1148,7 @@ public static partial class SepUtf8ReaderExtensions
 - Header column count mismatch
 - Build + test all. Verify existing tests still pass.
 
-### Step 12: SIMD Byte Parsers (Optimization)
+### Step 15: SIMD Byte Parsers (Optimization)
 **Create** byte variants of key SIMD parsers (skip char→byte pack step):
 - `SepUtf8ParserAvx2CmpOrMoveMaskTzcnt.cs` — direct `Vector256<byte>` load
 - `SepUtf8ParserSse2CmpOrMoveMaskTzcnt.cs` — direct `Vector128<byte>` load
@@ -776,7 +1156,7 @@ public static partial class SepUtf8ReaderExtensions
 **Modify** `SepUtf8ParserFactory.cs` — select best parser based on ISA
 - Build + test. Benchmark to verify SIMD advantage.
 
-### Step 13: Writer (Future Phase)
+### Step 16: Writer (Future Phase)
 Separate PR/phase. Uses `Stream.Write(ReadOnlySpan<byte>)` for output.
 `IBufferWriter<byte>` support for Kestrel scenarios.
 Not planned for this execution pass.
@@ -786,18 +1166,22 @@ Not planned for this execution pass.
 | Step | Action | File |
 |------|--------|------|
 | 1 | Create | `src/Sep/Internals/ISepCharInfo.cs` |
-| 2 | Create | `src/Sep/Internals/ISepUtf8Parser.cs` |
-| 3 | Create | `src/Sep/SepUtf8ReaderState.cs` |
+| 2 | Modify | `src/Sep/Internals/SepUnescape.cs` |
+| 3 | Create | `src/Sep/SepReaderStateBase.cs` |
+| 3 | Modify | `src/Sep/SepReaderState.cs` (extract base) |
 | 4 | Modify | `src/Sep/Internals/SepParseMask.cs` |
-| 5 | Create | `src/Sep/Internals/SepUtf8ParserIndexOfAny.cs` |
-| 6 | Create | `src/Sep/Internals/SepUtf8ParserFactory.cs` |
-| 7 | Create | `src/Sep/SepUtf8ReaderOptions.cs` |
-| 8 | Create | `src/Sep/SepUtf8Reader.cs`, `SepUtf8Reader.Row.cs`, `.Col.cs`, `.Cols.cs` |
-| 9 | Create | `src/Sep/SepUtf8ReaderExtensions.cs`, `.IO.Sync.cs` |
-| 9 | Modify | `src/Sep/Sep.cs` |
-| 10 | Modify | `src/Sep/SepReaderHeader.cs` |
-| 11 | Create | `src/Sep.Test/SepUtf8ReaderTest.cs` + related |
-| 12 | Create | SIMD byte parsers (optimization) |
+| 5 | Create | `src/Sep/Internals/ISepUtf8Parser.cs` |
+| 6 | Create | `src/Sep/Internals/SepUtf8ParserIndexOfAny.cs` |
+| 7 | Create | `src/Sep/Internals/SepUtf8ParserFactory.cs` |
+| 8 | Create | `src/Sep/SepToBytes.cs`, `SepToBytesDirect.cs`, `SepBytesHashPool.cs`, `SepToBytesHashPoolPerCol.cs` |
+| 9 | Create | `src/Sep/SepUtf8ReaderState.cs` |
+| 10 | Create | `src/Sep/SepUtf8ReaderOptions.cs` |
+| 11 | Create | `src/Sep/SepUtf8Reader.cs`, `SepUtf8Reader.Row.cs`, `.Col.cs`, `.Cols.cs` |
+| 12 | Create | `src/Sep/SepUtf8ReaderExtensions.cs`, `.IO.Sync.cs` |
+| 12 | Modify | `src/Sep/Sep.cs` |
+| 13 | Create | `src/Sep/SepUtf8ReaderHeader.cs` |
+| 14 | Create | `src/Sep.Test/SepUtf8ReaderTest.cs` + related |
+| 15 | Create | SIMD byte parsers (optimization) |
 
 ## Key Design Decisions
 
@@ -836,7 +1220,7 @@ Not planned for this execution pass.
    `SepToString` for the char reader but avoids UTF-8→UTF-16 transcoding:
    ```csharp
    public delegate SepToBytes SepCreateToBytes(
-       SepReaderHeader? maybeHeader, int colCount);
+       SepUtf8ReaderHeader? maybeHeader, int colCount);
 
    public abstract class SepToBytes : IDisposable
    {
@@ -858,11 +1242,14 @@ Not planned for this execution pass.
    `Col.ToString()` is still available via `Encoding.UTF8.GetString(span)` but
    is a separate, non-pooled convenience path.
 
-8. **Header lookup via UTF-8 bytes**: `SepReaderHeader` is extended (not replaced)
-   with `IndexOf(ReadOnlySpan<byte>)` overloads. A lazy `byte[][]` cache of
-   UTF-8-encoded column names enables allocation-free `SequenceEqual` lookup on
-   the hot path. This benefits both `SepUtf8Reader` (primary) and any advanced
-   `SepReader` users who have column names as UTF-8 bytes.
+8. **Header: dual headers for UTF-8 reader**: `SepReaderHeader` (string-based)
+   lives in the generic base class, unchanged. `SepUtf8ReaderHeader` (byte-based)
+   is an additional header held by `SepUtf8ReaderState`. During UTF-8 reader
+   initialization, both are built: strings decoded from UTF-8 for `SepReaderHeader`,
+   raw bytes stored in `SepUtf8ReaderHeader`. `Row[string]` uses the base header's
+   cache. `Row[ReadOnlySpan<byte>]` uses the byte header's `SequenceEqual` lookup.
+   This avoids interfaces or virtual dispatch in the base class and keeps the char
+   reader completely unchanged.
 
 9. **IO abstraction: Stream over PipeReader**: `Stream` is the primary input
    abstraction because (a) Sep's pull model needs to fill its own contiguous,

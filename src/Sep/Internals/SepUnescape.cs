@@ -1,11 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using static System.Runtime.CompilerServices.Unsafe;
 
 namespace nietras.SeparatedValues;
 
 static class SepUnescape
 {
-    internal static int UnescapeInPlace(ref char charRef, int length)
+    internal static int UnescapeInPlace(ref char charRef, int length) =>
+        UnescapeInPlace<char, SepCharInfoUtf16>(ref charRef, length);
+
+    internal static int UnescapeInPlace<TChar, TCharInfo>(ref TChar charRef, int length)
+        where TChar : unmanaged, IEquatable<TChar>
+        where TCharInfo : struct, ISepCharInfo<TChar>
     {
         nint unescapedLength = 0;
         nint quoteCount = 1; // We start just past first quote
@@ -13,7 +19,7 @@ static class SepUnescape
         {
             var c = Add(ref charRef, i);
             Add(ref charRef, unescapedLength) = c;
-            nint quote = c == SepDefaults.Quote ? 1 : 0;
+            nint quote = c.Equals(TCharInfo.Quote) ? 1 : 0;
             nint notQuote = quote ^ 1;
             quoteCount += quote;
             nint increment = quoteCount & 1 | notQuote;
@@ -21,22 +27,27 @@ static class SepUnescape
         }
         for (var i = unescapedLength; i < length; i++)
         {
-            Add(ref charRef, i) = SepDefaults.Quote;
+            Add(ref charRef, i) = TCharInfo.Quote;
         }
         return (int)unescapedLength;
     }
 
-    internal static int TrimUnescapeInPlace(ref char charRef, int length)
+    internal static int TrimUnescapeInPlace(ref char charRef, int length) =>
+        TrimUnescapeInPlace<char, SepCharInfoUtf16>(ref charRef, length);
+
+    internal static int TrimUnescapeInPlace<TChar, TCharInfo>(ref TChar charRef, int length)
+        where TChar : unmanaged, IEquatable<TChar>
+        where TCharInfo : struct, ISepCharInfo<TChar>
     {
         nint unescapedLength = 0;
         nint quoteCount = 1; // We start just past first quote
         nint i = 1;
-        for (; i < length && Add(ref charRef, i) == SepDefaults.Space; i++) { }
+        for (; i < length && Add(ref charRef, i).Equals(TCharInfo.Space); i++) { }
         for (; i < length; i++)
         {
             var c = Add(ref charRef, i);
             Add(ref charRef, unescapedLength) = c;
-            nint quote = c == SepDefaults.Quote ? 1 : 0;
+            nint quote = c.Equals(TCharInfo.Quote) ? 1 : 0;
             nint notQuote = quote ^ 1;
             quoteCount += quote;
             nint increment = quoteCount & 1 | notQuote;
@@ -44,9 +55,9 @@ static class SepUnescape
         }
         for (i = unescapedLength; i < length; i++)
         {
-            Add(ref charRef, i) = SepDefaults.Quote;
+            Add(ref charRef, i) = TCharInfo.Quote;
         }
-        for (; unescapedLength > 0 && Add(ref charRef, unescapedLength - 1) == SepDefaults.Space;
+        for (; unescapedLength > 0 && Add(ref charRef, unescapedLength - 1).Equals(TCharInfo.Space);
              --unescapedLength)
         { }
         return (int)unescapedLength;

@@ -2663,6 +2663,19 @@ namespace nietras.SeparatedValues
         public delegate T RowFunc<T>(nietras.SeparatedValues.SepUtf8Reader.Row row);
         public delegate bool RowTryFunc<T>(nietras.SeparatedValues.SepUtf8Reader.Row row, out T value);
     }
+    public static class SepUtf8ReaderExtensions
+    {
+        public static nietras.SeparatedValues.SepUtf8Reader From(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, System.IO.Stream stream) { }
+        public static nietras.SeparatedValues.SepUtf8Reader FromBytes(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, byte[] buffer) { }
+        public static nietras.SeparatedValues.SepUtf8Reader FromFile(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, string filePath) { }
+        public static nietras.SeparatedValues.SepUtf8Reader FromText(this in nietras.SeparatedValues.SepUtf8ReaderOptions options, string text) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.Sep sep) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.Sep? sep) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.SepSpec spec) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.Sep sep, System.Func<nietras.SeparatedValues.SepUtf8ReaderOptions, nietras.SeparatedValues.SepUtf8ReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.Sep? sep, System.Func<nietras.SeparatedValues.SepUtf8ReaderOptions, nietras.SeparatedValues.SepUtf8ReaderOptions> configure) { }
+        public static nietras.SeparatedValues.SepUtf8ReaderOptions Utf8Reader(this nietras.SeparatedValues.SepSpec spec, System.Func<nietras.SeparatedValues.SepUtf8ReaderOptions, nietras.SeparatedValues.SepUtf8ReaderOptions> configure) { }
+    }
     public readonly struct SepUtf8ReaderOptions : System.IEquatable<nietras.SeparatedValues.SepUtf8ReaderOptions>
     {
         public SepUtf8ReaderOptions() { }

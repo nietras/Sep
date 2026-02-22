@@ -52,32 +52,24 @@ public class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
 
     internal T Parse<T>(int index) where T : IUtf8SpanParsable<T>
     {
-        if (typeof(T) == typeof(string))
+        var span = GetColSpan(index);
+        var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+        if (decimalSeparator != 0)
         {
-            var s = ToStringDefault(index);
-            return Unsafe.As<string, T>(ref s);
-        }
-        else
-        {
-            var span = GetColSpan(index);
-            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-            if (decimalSeparator != 0)
+            if (typeof(T) == typeof(float))
             {
-                if (typeof(T) == typeof(float))
-                {
-                    var v = csFastFloat.FastFloatParser.ParseFloat(span,
-                        decimal_separator: decimalSeparator);
-                    return Unsafe.As<float, T>(ref v);
-                }
-                else if (typeof(T) == typeof(double))
-                {
-                    var v = csFastFloat.FastDoubleParser.ParseDouble(span,
-                        decimal_separator: decimalSeparator);
-                    return Unsafe.As<double, T>(ref v);
-                }
+                var v = csFastFloat.FastFloatParser.ParseFloat(span,
+                    decimal_separator: decimalSeparator);
+                return Unsafe.As<float, T>(ref v);
             }
-            return T.Parse(span, _cultureInfo);
+            else if (typeof(T) == typeof(double))
+            {
+                var v = csFastFloat.FastDoubleParser.ParseDouble(span,
+                    decimal_separator: decimalSeparator);
+                return Unsafe.As<double, T>(ref v);
+            }
         }
+        return T.Parse(span, _cultureInfo);
     }
 
     internal T? TryParse<T>(int index) where T : struct, IUtf8SpanParsable<T> =>
@@ -85,50 +77,34 @@ public class SepUtf8ReaderState : SepReaderStateBase<byte, SepCharInfoUtf8>
 
     internal bool TryParse<T>(int index, out T value) where T : IUtf8SpanParsable<T>
     {
-        if (typeof(T) == typeof(string))
+        var span = GetColSpan(index);
+        var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+        if (decimalSeparator != 0)
         {
-            var s = ToStringDefault(index);
-            value = Unsafe.As<string, T>(ref s);
-            return true;
-        }
-        else
-        {
-            var span = GetColSpan(index);
-            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-            if (decimalSeparator != 0)
+            if (typeof(T) == typeof(float))
             {
-                if (typeof(T) == typeof(float))
+                if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
+                    decimal_separator: decimalSeparator))
                 {
-                    if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
-                        decimal_separator: decimalSeparator))
-                    {
-                        value = Unsafe.As<float, T>(ref v);
-                        return true;
-                    }
-                    value = default!;
-                    return false;
+                    value = Unsafe.As<float, T>(ref v);
+                    return true;
                 }
-                else if (typeof(T) == typeof(double))
-                {
-                    if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
-                        decimal_separator: decimalSeparator))
-                    {
-                        value = Unsafe.As<double, T>(ref v);
-                        return true;
-                    }
-                    value = default!;
-                    return false;
-                }
+                value = default!;
+                return false;
             }
-            return T.TryParse(span, _cultureInfo, out value!);
+            else if (typeof(T) == typeof(double))
+            {
+                if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
+                    decimal_separator: decimalSeparator))
+                {
+                    value = Unsafe.As<double, T>(ref v);
+                    return true;
+                }
+                value = default!;
+                return false;
+            }
         }
-    }
-
-    internal void SwapParsedRowsTo(SepUtf8ReaderState other)
-    {
-        SwapParsedRowsBuffersTo(other);
-        (other._toString, _toString) = (_toString, other._toString);
-        (other._toBytes, _toBytes) = (_toBytes, other._toBytes);
+        return T.TryParse(span, _cultureInfo, out value!);
     }
 
     #region Cols Indices

@@ -47,9 +47,33 @@ public partial class SepUtf8Reader
             ? _state.ToStringsArray(_colIndices)
             : _state.ToStringsArray(_colStartIfRange, _colIndices.Length);
 
+        public Span<string> ToStrings() => IsIndices()
+            ? _state.ToStrings(_colIndices)
+            : _state.ToStrings(_colStartIfRange, _colIndices.Length);
+
         public T[] ParseToArray<T>() where T : IUtf8SpanParsable<T> => IsIndices()
             ? _state.ParseToArray<T>(_colIndices)
             : _state.ParseToArray<T>(_colStartIfRange, _colIndices.Length);
+
+        public Span<T> Parse<T>() where T : IUtf8SpanParsable<T> => IsIndices()
+            ? _state.Parse<T>(_colIndices)
+            : _state.Parse<T>(_colStartIfRange, _colIndices.Length);
+
+        public void Parse<T>(Span<T> span) where T : IUtf8SpanParsable<T>
+        {
+            if (IsIndices()) { _state.Parse<T>(_colIndices, span); }
+            else { _state.Parse<T>(_colStartIfRange, _colIndices.Length, span); }
+        }
+
+        public Span<T?> TryParse<T>() where T : struct, IUtf8SpanParsable<T> => IsIndices()
+            ? _state.TryParse<T>(_colIndices)
+            : _state.TryParse<T>(_colStartIfRange, _colIndices.Length);
+
+        public void TryParse<T>(Span<T?> span) where T : struct, IUtf8SpanParsable<T>
+        {
+            if (IsIndices()) { _state.TryParse<T>(_colIndices, span); }
+            else { _state.TryParse<T>(_colStartIfRange, _colIndices.Length, span); }
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         bool IsIndices() => _colStartIfRange < 0;

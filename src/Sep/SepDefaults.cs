@@ -41,6 +41,7 @@ public static class SepDefaults
     internal const byte LineFeedByte = (byte)LineFeed;
     internal const byte CarriageReturnByte = (byte)CarriageReturn;
     internal const byte QuoteByte = (byte)Quote;
+    internal const byte SpaceByte = (byte)Space;
     //internal const byte CommentByte = (byte)Comment;
 
     internal const byte EmptyFlag = 0b0000_0000;

@@ -2364,6 +2364,7 @@ namespace nietras.SeparatedValues
         TChar LineFeed { get; }
         TChar Quote { get; }
         TChar Space { get; }
+        System.Buffers.SearchValues<TChar> CreateSearchValues(System.ReadOnlySpan<TChar> values);
     }
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
     {
@@ -2386,6 +2387,7 @@ namespace nietras.SeparatedValues
         public static char LineFeed { get; }
         public static char Quote { get; }
         public static char Space { get; }
+        public static System.Buffers.SearchValues<char> CreateSearchValues(System.ReadOnlySpan<char> values) { }
     }
     public readonly struct SepCharInfoUtf8 : nietras.SeparatedValues.ISepCharInfo<byte>
     {
@@ -2393,6 +2395,7 @@ namespace nietras.SeparatedValues
         public static byte LineFeed { get; }
         public static byte Quote { get; }
         public static byte Space { get; }
+        public static System.Buffers.SearchValues<byte> CreateSearchValues(System.ReadOnlySpan<byte> values) { }
     }
     public enum SepColNotSetOption : byte
     {

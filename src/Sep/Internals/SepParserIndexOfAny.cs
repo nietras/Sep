@@ -1,22 +1,24 @@
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.Unsafe;
-using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserIndexOfAny : ISepParser
+class SepParserIndexOfAny<TChar, TCharInfo> : ISepParser<TChar, TCharInfo>
+    where TChar : unmanaged, IEquatable<TChar>
+    where TCharInfo : struct, ISepCharInfo<TChar>
 {
-    readonly char _separator;
-    readonly char[] _specialChars;
+    readonly TChar _separator;
+    readonly SearchValues<TChar> _specialChars;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserIndexOfAny(SepParserOptions options)
+    public SepParserIndexOfAny(TChar separator, TChar quotesOrSeparatorIfDisabled)
     {
-        _separator = options.Separator;
-        // TODO: No quote if disabled
-        _specialChars = [options.Separator, CarriageReturn, LineFeed, options.QuotesOrSeparatorIfDisabled];
+        _separator = separator;
+        _specialChars = TCharInfo.CreateSearchValues(
+            [separator, TCharInfo.CarriageReturn, TCharInfo.LineFeed, quotesOrSeparatorIfDisabled]);
     }
 
     public int PaddingLength => 4;
@@ -24,20 +26,20 @@ sealed class SepParserIndexOfAny : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColEnds(SepReaderStateBase<char, SepCharInfoUtf16> s)
+    public void ParseColEnds(SepReaderStateBase<TChar, TCharInfo> s)
     {
         Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColInfos(SepReaderStateBase<char, SepCharInfoUtf16> s)
+    public void ParseColInfos(SepReaderStateBase<TChar, TCharInfo> s)
     {
         Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderStateBase<char, SepCharInfoUtf16> s)
+    void Parse<TColInfo, TColInfoMethods>(SepReaderStateBase<TChar, TCharInfo> s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
@@ -71,19 +73,19 @@ sealed class SepParserIndexOfAny : ISepParser
         ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
         var span = chars.AsSpan(0, charsEnd);
-        var specialCharsSpan = _specialChars.AsSpan();
+        var specialChars = _specialChars;
         while ((uint)charsIndex < (uint)charsEnd &&
                !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            // https://github.com/dotnet/runtime/blob/942ce9af6e4858b74cc3a1429e9a64065ffb207a/src/libraries/System.Private.CoreLib/src/System/SpanHelpers.T.cs#L1926-L2045
-            var relativeIndex = span.Slice(charsIndex).IndexOfAny(specialCharsSpan);
+            var relativeIndex = span.Slice(charsIndex).IndexOfAny(specialChars);
             if (relativeIndex >= 0)
             {
                 A.Assert(charsIndex < charsEnd, $"{nameof(charsIndex)} >= {nameof(charsEnd)}");
 
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
                 var rowLineEndingOffset = 0;
-                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
+                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TChar, TCharInfo, TColInfo, TColInfoMethods>(
+                    ref charsCurrentRef, charsIndex, relativeIndex,
                     separator, ref rowLineEndingOffset, ref quoteCount, ref colInfosRefCurrent, ref lineNumber);
                 charsIndex += relativeIndex + 1;
 
@@ -125,4 +127,10 @@ sealed class SepParserIndexOfAny : ISepParser
         // Step is VecUI8.Count so may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
     }
+}
+
+sealed class SepParserIndexOfAny : SepParserIndexOfAny<char, SepCharInfoUtf16>, ISepParser
+{
+    public SepParserIndexOfAny(SepParserOptions options)
+        : base(options.Separator, options.QuotesOrSeparatorIfDisabled) { }
 }

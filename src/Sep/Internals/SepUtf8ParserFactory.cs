@@ -3,5 +3,5 @@
 static class SepUtf8ParserFactory
 {
     internal static ISepParser<byte, SepCharInfoUtf8> Create(SepUtf8ParserOptions options) =>
-        new SepUtf8ParserIndexOfAny(options);
+        new SepParserIndexOfAny<byte, SepCharInfoUtf8>(options.Separator, options.QuotesOrSeparatorIfDisabled);
 }

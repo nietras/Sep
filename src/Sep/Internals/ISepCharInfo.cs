@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 
 namespace nietras.SeparatedValues;
 
@@ -8,6 +9,7 @@ public interface ISepCharInfo<TChar> where TChar : unmanaged, IEquatable<TChar>
     static abstract TChar CarriageReturn { get; }
     static abstract TChar Quote { get; }
     static abstract TChar Space { get; }
+    static abstract SearchValues<TChar> CreateSearchValues(ReadOnlySpan<TChar> values);
 }
 
 public readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
@@ -16,6 +18,7 @@ public readonly struct SepCharInfoUtf16 : ISepCharInfo<char>
     public static char CarriageReturn => SepDefaults.CarriageReturn;
     public static char Quote => SepDefaults.Quote;
     public static char Space => SepDefaults.Space;
+    public static SearchValues<char> CreateSearchValues(ReadOnlySpan<char> values) => SearchValues.Create(values);
 }
 
 public readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
@@ -24,4 +27,5 @@ public readonly struct SepCharInfoUtf8 : ISepCharInfo<byte>
     public static byte CarriageReturn => SepDefaults.CarriageReturnByte;
     public static byte Quote => SepDefaults.QuoteByte;
     public static byte Space => SepDefaults.SpaceByte;
+    public static SearchValues<byte> CreateSearchValues(ReadOnlySpan<byte> values) => SearchValues.Create(values);
 }

@@ -1,31 +1,17 @@
-﻿using System;
+using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using static nietras.SeparatedValues.Test.SepColsTestData;
 
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
 public class SepUtf8ReaderColsTest
 {
-    const int _colsCount = 5;
-    static readonly int[] _colIndices = Enumerable.Range(0, _colsCount).ToArray();
-    static readonly int[] _colValues = [10, 11, 12, 13, 14];
-    static readonly float[] _colValuesFloat = _colValues.Select(i => (float)i).ToArray();
-    static readonly string[] _colTexts = _colValues.Select(i => i.ToString()).ToArray();
-    const string Text = """
-                         A;B;C;D;E
-                         10;11;12;13;14
-                         """;
-    static readonly int?[] _colValuesUnparseable = [null, null, 12, null, 14];
-    const string TextUnparseable = """
-                                   A;B;C;D;E
-                                   1a;;12;;14
-                                   """;
-
     [TestMethod]
     public void SepUtf8ReaderColsTest_Length()
     {
-        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(_colsCount).Length, cols.Count),
+        Run((cols, range) => Assert.AreEqual(range.GetOffsetAndLength(ColsCount).Length, cols.Count),
             checkIndexOutOfRange: false);
     }
 
@@ -34,7 +20,7 @@ public class SepUtf8ReaderColsTest
     {
         Run((cols, range) =>
         {
-            var expectedTexts = _colTexts[range];
+            var expectedTexts = ColTexts[range];
             for (var i = 0; i < expectedTexts.Length; i++)
             {
                 Assert.AreEqual(expectedTexts[i], cols[i].ToString());
@@ -62,27 +48,27 @@ public class SepUtf8ReaderColsTest
     [TestMethod]
     public void SepUtf8ReaderColsTest_ToStringsArray()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.ToStringsArray()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColTexts[range], cols.ToStringsArray()));
     }
 
     [TestMethod]
     public void SepUtf8ReaderColsTest_ToStrings()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.ToStrings().ToArray()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColTexts[range], cols.ToStrings().ToArray()));
     }
 
     [TestMethod]
     public void SepUtf8ReaderColsTest_ParseToArray()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colValues[range], cols.ParseToArray<int>()));
-        Run((cols, range) => CollectionAssert.AreEqual(_colValuesFloat[range], cols.ParseToArray<float>()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColValues[range], cols.ParseToArray<int>()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColValuesFloat[range], cols.ParseToArray<float>()));
     }
 
     [TestMethod]
     public void SepUtf8ReaderColsTest_Parse()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colValues[range], cols.Parse<int>().ToArray()));
-        Run((cols, range) => CollectionAssert.AreEqual(_colValuesFloat[range], cols.Parse<float>().ToArray()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColValues[range], cols.Parse<int>().ToArray()));
+        Run((cols, range) => CollectionAssert.AreEqual(ColValuesFloat[range], cols.Parse<float>().ToArray()));
     }
 
     [TestMethod]
@@ -92,7 +78,7 @@ public class SepUtf8ReaderColsTest
         {
             Span<int> colValues = stackalloc int[cols.Count];
             cols.Parse(colValues);
-            CollectionAssert.AreEqual(_colValues[range], colValues.ToArray());
+            CollectionAssert.AreEqual(ColValues[range], colValues.ToArray());
         });
     }
 
@@ -117,7 +103,7 @@ public class SepUtf8ReaderColsTest
     [TestMethod]
     public void SepUtf8ReaderColsTest_TryParse_Return()
     {
-        Run((cols, range) => CollectionAssert.AreEqual(_colValuesUnparseable[range], cols.TryParse<int>().ToArray()), TextUnparseable);
+        Run((cols, range) => CollectionAssert.AreEqual(ColValuesUnparseable[range], cols.TryParse<int>().ToArray()), TextUnparseable);
     }
 
     [TestMethod]
@@ -127,7 +113,7 @@ public class SepUtf8ReaderColsTest
         {
             Span<int?> colValues = stackalloc int?[cols.Count];
             cols.TryParse(colValues);
-            CollectionAssert.AreEqual(_colValues[range], colValues.ToArray());
+            CollectionAssert.AreEqual(ColValues[range], colValues.ToArray());
         });
     }
 
@@ -152,37 +138,21 @@ public class SepUtf8ReaderColsTest
 
     static void Run(ColsTestAction action, string text = Text, bool checkIndexOutOfRange = true)
     {
-        var ranges = new Range[]
-        {
-            ..,
-            0..0,
-            0..1,
-            0..2,
-            0..3,
-            0..4,
-            0.._colsCount,
-            1..1,
-            1..2,
-            1..3,
-            1.._colsCount,
-            2..2,
-            2.._colsCount,
-        };
         {
             using var reader = Sep.Utf8Reader().FromText(text);
-            Run(reader, ranges, action, checkIndexOutOfRange);
+            Run(reader, Ranges, action, checkIndexOutOfRange);
         }
         {
             using var reader = Sep.Utf8Reader(o => o with { Unescape = true }).FromText(text);
-            Run(reader, ranges, action, checkIndexOutOfRange);
+            Run(reader, Ranges, action, checkIndexOutOfRange);
         }
         {
             using var reader = Sep.Utf8Reader(o => o with { Trim = SepTrim.All }).FromText(text);
-            Run(reader, ranges, action, checkIndexOutOfRange);
+            Run(reader, Ranges, action, checkIndexOutOfRange);
         }
         {
             using var reader = Sep.Utf8Reader(o => o with { Unescape = true, Trim = SepTrim.All }).FromText(text);
-            Run(reader, ranges, action, checkIndexOutOfRange);
+            Run(reader, Ranges, action, checkIndexOutOfRange);
         }
     }
 
@@ -190,13 +160,10 @@ public class SepUtf8ReaderColsTest
     {
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        // Indices-based access via params ReadOnlySpan<int>
-        action(row[_colIndices.AsSpan()], ..);
+        action(row[ColIndices.AsSpan()], ..);
         foreach (var range in ranges)
         {
-            // Indices-based
-            action(row[_colIndices[range].AsSpan()], range);
-            // Range-based
+            action(row[ColIndices[range].AsSpan()], range);
             action(row[range], range);
         }
         if (checkIndexOutOfRange)

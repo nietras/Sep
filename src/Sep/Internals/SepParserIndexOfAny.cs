@@ -21,6 +21,13 @@ class SepParserIndexOfAny<TChar, TCharInfo> : ISepParser<TChar, TCharInfo>
             [separator, TCharInfo.CarriageReturn, TCharInfo.LineFeed, quotesOrSeparatorIfDisabled]);
     }
 
+    internal static SepParserIndexOfAny<TChar, TCharInfo> Create(Sep sep, bool disableQuotesParsing)
+    {
+        var separator = TCharInfo.FromChar(sep.Separator);
+        var quote = disableQuotesParsing ? separator : TCharInfo.Quote;
+        return new(separator, quote);
+    }
+
     public int PaddingLength => 4;
     public int QuoteCount => (int)_quoteCount;
 

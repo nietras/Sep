@@ -52,7 +52,7 @@ public sealed partial class SepUtf8Reader : SepUtf8ReaderState
         var sep = options.Sep;
         if (sep.HasValue)
         {
-            _parser = SepUtf8ParserFactory.Create(new(sep.Value, _disableQuotesParsing));
+            _parser = SepParserIndexOfAny<byte, SepCharInfoUtf8>.Create(sep.Value, _disableQuotesParsing);
             _charsPaddingLength = _parser.PaddingLength;
             _separator = (byte)sep.Value.Separator;
         }
@@ -328,7 +328,7 @@ public sealed partial class SepUtf8Reader : SepUtf8ReaderState
         {
             var sep = maybeSep.Value;
             _separator = (byte)sep.Separator;
-            _parser = SepUtf8ParserFactory.Create(new(sep, _disableQuotesParsing));
+            _parser = SepParserIndexOfAny<byte, SepCharInfoUtf8>.Create(sep, _disableQuotesParsing);
             _charsPaddingLength = _parser.PaddingLength;
         }
     }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -34,20 +34,20 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderStateBase<char, SepCharInfoUtf16> s)
     {
         Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderStateBase<char, SepCharInfoUtf16> s)
     {
         Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    void Parse<TColInfo, TColInfoMethods>(SepReaderStateBase<char, SepCharInfoUtf16> s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {

@@ -2640,9 +2640,18 @@ namespace nietras.SeparatedValues
         {
             public int Count { get; }
             public nietras.SeparatedValues.SepUtf8Reader.Col this[int index] { get; }
+            public System.Span<T> Parse<T>()
+                where T : System.IUtf8SpanParsable<T> { }
+            public void Parse<T>(System.Span<T> span)
+                where T : System.IUtf8SpanParsable<T> { }
             public T[] ParseToArray<T>()
                 where T : System.IUtf8SpanParsable<T> { }
+            public System.Span<string> ToStrings() { }
             public string[] ToStringsArray() { }
+            public System.Span<T?> TryParse<T>()
+                where T :  struct, System.IUtf8SpanParsable<T> { }
+            public void TryParse<T>(System.Span<T?> span)
+                where T :  struct, System.IUtf8SpanParsable<T> { }
         }
         [System.Diagnostics.DebuggerDisplay("{DebuggerDisplayPrefix,nq}{Span}")]
         public readonly ref struct Row

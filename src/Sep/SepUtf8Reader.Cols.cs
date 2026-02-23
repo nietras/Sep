@@ -82,7 +82,11 @@ public partial class SepUtf8Reader
         int GetRangeIndex(int index)
         {
             A.Assert(_colStartIfRange >= 0);
-            return _colStartIfRange + index;
+            if ((uint)index >= (uint)_colIndices.Length)
+            {
+                SepThrow.IndexOutOfRangeException();
+            }
+            return index + _colStartIfRange;
         }
     }
 }

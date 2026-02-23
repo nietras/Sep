@@ -7,7 +7,7 @@ using static nietras.SeparatedValues.SepDefaults;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepUtf8ParserIndexOfAny : ISepUtf8Parser
+sealed class SepUtf8ParserIndexOfAny : ISepParser<byte, SepCharInfoUtf8>
 {
     readonly byte _separator;
     readonly SearchValues<byte> _specialChars;

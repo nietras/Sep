@@ -19,7 +19,7 @@ public sealed partial class SepUtf8Reader : SepUtf8ReaderState
     byte _separator;
     readonly bool _disableQuotesParsing;
     readonly Stream _stream;
-    ISepUtf8Parser? _parser;
+    ISepParser<byte, SepCharInfoUtf8>? _parser;
 
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;

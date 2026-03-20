@@ -19,7 +19,7 @@
 
 Modern, minimal, fast, zero allocation, reading and writing of separated values
 (`csv`, `tsv` etc.). Cross-platform, trimmable and AOT/NativeAOT compatible.
-Featuring an opinionated API design and pragmatic implementation targetted at
+Featuring an opinionated API design and pragmatic implementation targeted at
 machine learning use cases.
 
 ⭐ Please star this project if you like it. ⭐
@@ -706,7 +706,7 @@ static IEnumerable<(string Key, double Value)> Enumerate(SepReader reader)
 }
 ```
 
-To accomodate this Sep provides an overload for `Enumerate` that is similar to:
+To accommodate this Sep provides an overload for `Enumerate` that is similar to:
 ```csharp
 static IEnumerable<T> Enumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect)
 {

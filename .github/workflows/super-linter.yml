@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
 
       - name: Super-linter
-        uses: super-linter/super-linter@61abc07d755095a68f4987d1c2c3d1d64408f1f9 # v8.5.0
+        uses: super-linter/super-linter@9e863354e3ff62e0727d37183162c4a88873df41 # v8.6.0
         env:
           VALIDATE_GITHUB_ACTIONS: false
           VALIDATE_GITHUB_ACTIONS_ZIZMOR: false

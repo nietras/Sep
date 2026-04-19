@@ -29,4 +29,19 @@ public class SepWriterOptionsTest
         };
         Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
     }
+
+    [TestMethod]
+    public void SepWriterOptionsTest_Strict()
+    {
+        var sut = new SepWriterOptions()
+        {
+            WriteHeader = false,
+            Escape = false,
+            AsyncContinueOnCapturedContext = true,
+        }.Strict();
+
+        Assert.IsFalse(sut.WriteHeader);
+        Assert.IsTrue(sut.Escape);
+        Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
+    }
 }

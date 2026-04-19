@@ -261,9 +261,7 @@ public partial class ReadMeTest
             new("Charlie", new DateOnly(2000, 12, 31), "789 Pine Rd, 3."),
         ];
         // Write
-        using var writer = Sep.New(',')
-            .Writer(o => o with { Escape = true })
-            .ToText();
+        using var writer = Sep.New(',').Writer().Strict().ToText();
         foreach (var person in writePersons)
         {
             using var row = writer.NewRow();
@@ -273,9 +271,7 @@ public partial class ReadMeTest
         }
         var text = writer.ToString();
         // Read
-        using var reader = Sep.New(',')
-            .Reader(o => o with { Unescape = true })
-            .FromText(text);
+        using var reader = Sep.New(',').Reader().Strict().FromText(text);
         var readPersons = reader.Enumerate<Person>(row =>
                 new(Name: row[nameof(Person.Name)].ToString(),
                     BirthDay: row[nameof(Person.BirthDay)].Parse<DateOnly>(),

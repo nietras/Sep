@@ -23,6 +23,12 @@ public static partial class SepWriterExtensions
             AsyncContinueOnCapturedContext = spec.AsyncContinueOnCapturedContext
         };
 
+    /// <summary>
+    /// Set strict writer options e.g. enable escaping.
+    /// </summary>
+    public static SepWriterOptions Strict(this in SepWriterOptions options) =>
+        options with { Escape = true };
+
     public static SepWriterOptions Writer(this Sep sep, Func<SepWriterOptions, SepWriterOptions> configure)
     {
         Contract.Assume(configure != null);

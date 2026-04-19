@@ -48,4 +48,21 @@ public class SepReaderOptionsTest
         Assert.IsTrue(sut.DisableColCountCheck);
         Assert.IsTrue(sut.AsyncContinueOnCapturedContext);
     }
+
+    [TestMethod]
+    public void SepReaderOptionsTest_Strict()
+    {
+        var sut = new SepReaderOptions
+        {
+            HasHeader = false,
+            DisableQuotesParsing = true,
+            Unescape = false,
+            Trim = SepTrim.All,
+        }.Strict();
+
+        Assert.IsFalse(sut.HasHeader);
+        Assert.IsFalse(sut.DisableQuotesParsing);
+        Assert.IsTrue(sut.Unescape);
+        Assert.AreEqual(SepTrim.All, sut.Trim);
+    }
 }

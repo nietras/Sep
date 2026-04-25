@@ -50,12 +50,16 @@ public sealed partial class SepReader : SepReaderState
         _continueOnCapturedContext = options.AsyncContinueOnCapturedContext;
         _arrayPool = new();
 
-        var decimalSeparator = _cultureInfo?.NumberFormat.CurrencyDecimalSeparator ??
-            System.Globalization.CultureInfo.InvariantCulture.NumberFormat.CurrencyDecimalSeparator;
+        var decimalSeparator = _cultureInfo?.NumberFormat.NumberDecimalSeparator ??
+            System.Globalization.CultureInfo.InvariantCulture.NumberFormat.NumberDecimalSeparator;
         _fastFloatDecimalSeparatorOrZero =
             decimalSeparator.Length == 1 && !options.DisableFastFloat
             ? decimalSeparator[0]
             : '\0';
+        var groupSeparator = _cultureInfo?.NumberFormat.NumberGroupSeparator ??
+            System.Globalization.CultureInfo.InvariantCulture.NumberFormat.NumberGroupSeparator;
+        _fastFloatGroupSeparatorOrZero =
+            groupSeparator.Length == 1 ? groupSeparator[0] : '\0';
 
         int? maybeReaderLengthEstimate = TryGetTextReaderLength(_reader, out var longReaderLength)
             // TextReader length can be greater than int.MaxValue so have to

@@ -23,6 +23,7 @@ public class SepReaderState : IDisposable
     internal SepReaderHeader _header = null!;
     internal bool _hasHeader;
     internal char _fastFloatDecimalSeparatorOrZero;
+    internal char _fastFloatGroupSeparatorOrZero;
     internal CultureInfo? _cultureInfo;
     internal SepCreateToString _createToString = default!;
 
@@ -105,6 +106,8 @@ public class SepReaderState : IDisposable
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatDecimalSeparatorOrZero != '\0');
+        _fastFloatGroupSeparatorOrZero = other._fastFloatGroupSeparatorOrZero;
+        System.Diagnostics.Debug.Assert(_fastFloatGroupSeparatorOrZero != '\0');
         _cultureInfo = other._cultureInfo;
         _createToString = other._createToString;
 
@@ -532,16 +535,18 @@ public class SepReaderState : IDisposable
             var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
             if (decimalSeparator != '\0')
             {
-                if (typeof(T) == typeof(float))
+                if (typeof(T) == typeof(float) && 
+                    !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     var v = csFastFloat.FastFloatParser.ParseFloat(span,
                         decimal_separator: decimalSeparator);
                     return Unsafe.As<float, T>(ref v);
                 }
-                else if (typeof(T) == typeof(double))
+                else if (typeof(T) == typeof(double) &&
+                         !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     var v = csFastFloat.FastDoubleParser.ParseDouble(span,
-                        decimal_separator: decimalSeparator);
+                    decimal_separator: decimalSeparator);
                     return Unsafe.As<double, T>(ref v);
                 }
             }
@@ -568,7 +573,8 @@ public class SepReaderState : IDisposable
             var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
             if (decimalSeparator != '\0')
             {
-                if (typeof(T) == typeof(float))
+                if (typeof(T) == typeof(float) &&
+                    !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
                         decimal_separator: decimalSeparator))
@@ -579,7 +585,8 @@ public class SepReaderState : IDisposable
                     value = default!;
                     return false;
                 }
-                else if (typeof(T) == typeof(double))
+                else if (typeof(T) == typeof(double) &&
+                         !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
                         decimal_separator: decimalSeparator))

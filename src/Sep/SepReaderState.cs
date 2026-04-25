@@ -536,20 +536,34 @@ public class SepReaderState : IDisposable
             {
                 var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
                 var groupSeparator = _fastFloatGroupSeparatorOrZero;
-                if (decimalSeparator != '\0' && groupSeparator != '\0' &&
-                    !span.Contains(_fastFloatGroupSeparatorOrZero))
+                if (decimalSeparator != '\0' && groupSeparator != '\0'
+                    && !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     if (typeof(T) == typeof(float))
                     {
                         var v = csFastFloat.FastFloatParser.ParseFloat(span,
+                            out var charsConsumed,
                             decimal_separator: decimalSeparator);
-                        return Unsafe.As<float, T>(ref v);
+                        // For safety only use FastFloat result if consumed
+                        // matches length. However, FastFloat does not count
+                        // leading spaces so may discard in some "good" cases.
+                        if (charsConsumed == span.Length)
+                        {
+                            return Unsafe.As<float, T>(ref v);
+                        }
                     }
                     else if (typeof(T) == typeof(double))
                     {
                         var v = csFastFloat.FastDoubleParser.ParseDouble(span,
-                        decimal_separator: decimalSeparator);
-                        return Unsafe.As<double, T>(ref v);
+                            out var charsConsumed,
+                            decimal_separator: decimalSeparator);
+                        // For safety only use FastFloat result if consumed
+                        // matches length. However, FastFloat does not count
+                        // leading spaces so may discard in some "good" cases.
+                        if (charsConsumed == span.Length)
+                        {
+                            return Unsafe.As<double, T>(ref v);
+                        }
                     }
                 }
             }
@@ -577,30 +591,46 @@ public class SepReaderState : IDisposable
             {
                 var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
                 var groupSeparator = _fastFloatGroupSeparatorOrZero;
-                if (decimalSeparator != '\0' && groupSeparator != '\0' &&
-                    !span.Contains(_fastFloatGroupSeparatorOrZero))
+                if (decimalSeparator != '\0' && groupSeparator != '\0'
+                    && !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
                     if (typeof(T) == typeof(float))
                     {
-                        if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
-                        decimal_separator: decimalSeparator))
+                        var fastParsed = csFastFloat.FastFloatParser.TryParseFloat(span,
+                            out var charsConsumed, out var v,
+                            decimal_separator: decimalSeparator);
+                        // For safety only use FastFloat result if consumed
+                        // matches length. However, FastFloat does not count
+                        // leading spaces so may discard in some "good" cases.
+                        if (charsConsumed == span.Length)
                         {
-                            value = Unsafe.As<float, T>(ref v);
-                            return true;
+                            if (fastParsed)
+                            {
+                                value = Unsafe.As<float, T>(ref v);
+                                return true;
+                            }
+                            value = default!;
+                            return false;
                         }
-                        value = default!;
-                        return false;
                     }
                     else if (typeof(T) == typeof(double))
                     {
-                        if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
-                            decimal_separator: decimalSeparator))
+                        var fastParsed = csFastFloat.FastDoubleParser.TryParseDouble(span,
+                            out var charsConsumed, out var v,
+                            decimal_separator: decimalSeparator);
+                        // For safety only use FastFloat result if consumed
+                        // matches length. However, FastFloat does not count
+                        // leading spaces so may discard in some "good" cases.
+                        if (charsConsumed == span.Length)
                         {
-                            value = Unsafe.As<double, T>(ref v);
-                            return true;
+                            if (fastParsed)
+                            {
+                                value = Unsafe.As<double, T>(ref v);
+                                return true;
+                            }
+                            value = default!;
+                            return false;
                         }
-                        value = default!;
-                        return false;
                     }
                 }
             }

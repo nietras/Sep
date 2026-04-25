@@ -602,15 +602,10 @@ public class SepReaderState : IDisposable
                         // For safety only use FastFloat result if consumed
                         // matches length. However, FastFloat does not count
                         // leading spaces so may discard in some "good" cases.
-                        if (charsConsumed == span.Length)
+                        if (fastParsed && charsConsumed == span.Length)
                         {
-                            if (fastParsed)
-                            {
-                                value = Unsafe.As<float, T>(ref v);
-                                return true;
-                            }
-                            value = default!;
-                            return false;
+                            value = Unsafe.As<float, T>(ref v);
+                            return true;
                         }
                     }
                     else if (typeof(T) == typeof(double))
@@ -621,15 +616,10 @@ public class SepReaderState : IDisposable
                         // For safety only use FastFloat result if consumed
                         // matches length. However, FastFloat does not count
                         // leading spaces so may discard in some "good" cases.
-                        if (charsConsumed == span.Length)
+                        if (fastParsed && charsConsumed == span.Length)
                         {
-                            if (fastParsed)
-                            {
-                                value = Unsafe.As<double, T>(ref v);
-                                return true;
-                            }
-                            value = default!;
-                            return false;
+                            value = Unsafe.As<double, T>(ref v);
+                            return true;
                         }
                     }
                 }

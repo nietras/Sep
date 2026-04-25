@@ -532,22 +532,25 @@ public class SepReaderState : IDisposable
         else
         {
             var span = GetColSpan(index);
-            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-            if (decimalSeparator != '\0')
+            if (typeof(T) == typeof(float) || typeof(T) == typeof(double))
             {
-                if (typeof(T) == typeof(float) && 
+                var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+                var groupSeparator = _fastFloatGroupSeparatorOrZero;
+                if (decimalSeparator != '\0' && groupSeparator != '\0' &&
                     !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
-                    var v = csFastFloat.FastFloatParser.ParseFloat(span,
+                    if (typeof(T) == typeof(float))
+                    {
+                        var v = csFastFloat.FastFloatParser.ParseFloat(span,
+                            decimal_separator: decimalSeparator);
+                        return Unsafe.As<float, T>(ref v);
+                    }
+                    else if (typeof(T) == typeof(double))
+                    {
+                        var v = csFastFloat.FastDoubleParser.ParseDouble(span,
                         decimal_separator: decimalSeparator);
-                    return Unsafe.As<float, T>(ref v);
-                }
-                else if (typeof(T) == typeof(double) &&
-                         !span.Contains(_fastFloatGroupSeparatorOrZero))
-                {
-                    var v = csFastFloat.FastDoubleParser.ParseDouble(span,
-                    decimal_separator: decimalSeparator);
-                    return Unsafe.As<double, T>(ref v);
+                        return Unsafe.As<double, T>(ref v);
+                    }
                 }
             }
             return T.Parse(span, _cultureInfo);
@@ -570,32 +573,35 @@ public class SepReaderState : IDisposable
         else
         {
             var span = GetColSpan(index);
-            var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
-            if (decimalSeparator != '\0')
+            if (typeof(T) == typeof(float) || typeof(T) == typeof(double))
             {
-                if (typeof(T) == typeof(float) &&
+                var decimalSeparator = _fastFloatDecimalSeparatorOrZero;
+                var groupSeparator = _fastFloatGroupSeparatorOrZero;
+                if (decimalSeparator != '\0' && groupSeparator != '\0' &&
                     !span.Contains(_fastFloatGroupSeparatorOrZero))
                 {
-                    if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
-                        decimal_separator: decimalSeparator))
+                    if (typeof(T) == typeof(float))
                     {
-                        value = Unsafe.As<float, T>(ref v);
-                        return true;
-                    }
-                    value = default!;
-                    return false;
-                }
-                else if (typeof(T) == typeof(double) &&
-                         !span.Contains(_fastFloatGroupSeparatorOrZero))
-                {
-                    if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
+                        if (csFastFloat.FastFloatParser.TryParseFloat(span, out var v,
                         decimal_separator: decimalSeparator))
-                    {
-                        value = Unsafe.As<double, T>(ref v);
-                        return true;
+                        {
+                            value = Unsafe.As<float, T>(ref v);
+                            return true;
+                        }
+                        value = default!;
+                        return false;
                     }
-                    value = default!;
-                    return false;
+                    else if (typeof(T) == typeof(double))
+                    {
+                        if (csFastFloat.FastDoubleParser.TryParseDouble(span, out var v,
+                            decimal_separator: decimalSeparator))
+                        {
+                            value = Unsafe.As<double, T>(ref v);
+                            return true;
+                        }
+                        value = default!;
+                        return false;
+                    }
                 }
             }
             return T.TryParse(span, _cultureInfo, out value!);

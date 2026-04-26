@@ -12,11 +12,11 @@ MaxIterationCount=15  MinIterationCount=5  WarmupCount=6
 Quotes=True  Reader=String  
 
 ```
-| Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
-|--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 |  8.953 ms |  1.00 | 41 | 4655.0 |  179.1 |     960 B |        1.00 |
-| Sep_Trim                   | Cols  | 50000 | 12.411 ms |  1.39 | 41 | 3357.8 |  248.2 |     960 B |        1.00 |
-| Sep_TrimUnescape           | Cols  | 50000 | 13.070 ms |  1.46 | 41 | 3188.5 |  261.4 |     960 B |        1.00 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 | 14.613 ms |  1.63 | 41 | 2851.8 |  292.3 |     960 B |        1.00 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 88.212 ms |  9.85 | 41 |  472.4 | 1764.2 |  462096 B |      481.35 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 86.002 ms |  9.61 | 41 |  484.6 | 1720.0 |  459464 B |      478.61 |
+| Method                     | Scope | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
+|--------------------------- |------ |------ |-----------:|------:|---:|-------:|-------:|----------:|------------:|
+| Sep_                       | Cols  | 50000 |   9.444 ms |  1.00 | 41 | 4412.9 |  188.9 |     960 B |        1.00 |
+| Sep_Trim                   | Cols  | 50000 |  14.682 ms |  1.56 | 41 | 2838.5 |  293.6 |     960 B |        1.00 |
+| Sep_TrimUnescape           | Cols  | 50000 |  14.711 ms |  1.56 | 41 | 2832.8 |  294.2 |     960 B |        1.00 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 |  16.572 ms |  1.76 | 41 | 2514.8 |  331.4 |     960 B |        1.00 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 100.034 ms | 10.60 | 41 |  416.6 | 2000.7 |  462096 B |      481.35 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 |  94.797 ms | 10.05 | 41 |  439.6 | 1895.9 |  456296 B |      475.31 |

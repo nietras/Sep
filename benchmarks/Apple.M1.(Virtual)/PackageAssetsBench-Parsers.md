@@ -14,10 +14,10 @@ Quotes=False  Reader=String
 ```
 | Method | Parser                                          | Scope | Rows  | Mean      | MB | MB/s   | ns/row | Allocated |
 |------- |------------------------------------------------ |------ |------ |----------:|---:|-------:|-------:|----------:|
-| Sep_   | SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt       | Row   | 50000 |  2.961 ms | 29 | 9823.5 |   59.2 |     960 B |
-| Sep_   | SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt | Row   | 50000 |  3.384 ms | 29 | 8595.7 |   67.7 |     960 B |
-| Sep_   | SepParserVector128NrwCmpExtMsbTzcnt             | Row   | 50000 |  4.501 ms | 29 | 6461.4 |   90.0 |     976 B |
-| Sep_   | SepParserVector64NrwCmpExtMsbTzcnt              | Row   | 50000 |  4.932 ms | 29 | 5897.9 |   98.6 |     936 B |
-| Sep_   | SepParserVector512NrwCmpExtMsbTzcnt             | Row   | 50000 | 14.411 ms | 29 | 2018.3 |  288.2 |    1216 B |
-| Sep_   | SepParserVector256NrwCmpExtMsbTzcnt             | Row   | 50000 | 14.975 ms | 29 | 1942.3 |  299.5 |    1056 B |
-| Sep_   | SepParserIndexOfAny                             | Row   | 50000 | 18.075 ms | 29 | 1609.1 |  361.5 |     936 B |
+| Sep_   | SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt       | Row   | 50000 |  3.550 ms | 29 | 8193.7 |   71.0 |     960 B |
+| Sep_   | SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt | Row   | 50000 |  4.046 ms | 29 | 7189.5 |   80.9 |     960 B |
+| Sep_   | SepParserVector64NrwCmpExtMsbTzcnt              | Row   | 50000 |  6.289 ms | 29 | 4624.7 |  125.8 |     959 B |
+| Sep_   | SepParserVector128NrwCmpExtMsbTzcnt             | Row   | 50000 |  6.750 ms | 29 | 4309.0 |  135.0 |     976 B |
+| Sep_   | SepParserVector512NrwCmpExtMsbTzcnt             | Row   | 50000 | 17.263 ms | 29 | 1684.8 |  345.3 |    1216 B |
+| Sep_   | SepParserVector256NrwCmpExtMsbTzcnt             | Row   | 50000 | 20.229 ms | 29 | 1437.9 |  404.6 |    1056 B |
+| Sep_   | SepParserIndexOfAny                             | Row   | 50000 | 21.556 ms | 29 | 1349.3 |  431.1 |     936 B |

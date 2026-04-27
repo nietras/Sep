@@ -34,19 +34,16 @@ public sealed partial class SepReader : SepReaderState
     readonly bool _disableQuotesParsing;
     internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
-    readonly ISepTextReaderDisposer _textReaderDisposer;
     ISepParser? _parser;
 
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
 
-    internal SepReader(Info info, in SepReaderOptions options,
-        TextReader reader, ISepTextReaderDisposer textReaderDisposer)
+    internal SepReader(Info info, in SepReaderOptions options, TextReader reader)
         : base(colUnquoteUnescape: options.Unescape, trim: options.Trim)
     {
         _info = info;
         _reader = reader;
-        _textReaderDisposer = textReaderDisposer;
         _cultureInfo = options.CultureInfo;
         _createToString = options.CreateToString;
         _disableQuotesParsing = options.DisableQuotesParsing;
@@ -302,7 +299,7 @@ public sealed partial class SepReader : SepReaderState
 
     internal override void DisposeManaged()
     {
-        _textReaderDisposer.Dispose(_reader);
+        _reader.Dispose();
         base.DisposeManaged();
     }
 }

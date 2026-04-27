@@ -455,6 +455,11 @@ public partial class ReadMeTest
     {
         var readmeFilePath = s_readmeFilePath;
 
+        var processorDirectoriesToExclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "AMD.EPYC.9V74",
+        };
+
         var benchmarkFileNameToConfig = new Dictionary<string, (string Description, string ReadmeBefore, string ReadmeEnd, string SectionPrefix)>()
         {
             { "PackageAssetsBench.md", new("PackageAssets Benchmark Results", "##### PackageAssets Benchmark Results", "##### PackageAssets", "###### ") },
@@ -483,15 +488,18 @@ public partial class ReadMeTest
                 var contentsFilePath = Path.Combine(processorDirectory, fileName);
                 if (File.Exists(contentsFilePath))
                 {
-                    var versionsFilePath = Path.Combine(processorDirectory, "Versions.txt");
-                    var versions = File.ReadAllText(versionsFilePath);
-                    var contents = File.ReadAllText(contentsFilePath);
                     var processor = LastDirectoryName(processorDirectory);
+                    if (!processorDirectoriesToExclude.Contains(processor))
+                    {
+                        var versionsFilePath = Path.Combine(processorDirectory, "Versions.txt");
+                        var versions = File.ReadAllText(versionsFilePath);
+                        var contents = File.ReadAllText(contentsFilePath);
 
-                    var section = $"{prefix}{processor} - {description} ({versions})";
-                    var benchmarkTable = GetBenchmarkTable(contents);
-                    var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
-                    all += readmeContents;
+                        var section = $"{prefix}{processor} - {description} ({versions})";
+                        var benchmarkTable = GetBenchmarkTable(contents);
+                        var readmeContents = $"{section}{Environment.NewLine}{Environment.NewLine}{benchmarkTable}{Environment.NewLine}";
+                        all += readmeContents;
+                    }
                 }
             }
             readmeLines = ReplaceReadmeLines(readmeLines, [all], readmeBefore, prefix, 0, readmeEndLine, 0);

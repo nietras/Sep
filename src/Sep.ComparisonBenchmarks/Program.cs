@@ -38,6 +38,7 @@ await PackageAssetsTestData.EnsurePackageAssets().ConfigureAwait(true);
 if (args.Length > 0)
 {
     var exporter = new CustomMarkdownExporter();
+    var hasExportedGitHubCpuEnvironment = false;
 
     var baseConfig = ManualConfig.CreateEmpty()
         .AddColumnProvider(DefaultColumnProviders.Instance)
@@ -84,6 +85,12 @@ if (args.Length > 0)
                 .Replace(" ", ".").Replace("/", "").Replace("\\", "")
                 .Replace(".Graphics", "");
             log(processorName);
+
+            if (!hasExportedGitHubCpuEnvironment)
+            {
+                ExportGitHubEnvironmentVariables(processorName, processorNameInDirectory);
+                hasExportedGitHubCpuEnvironment = true;
+            }
 
             var sourceDirectory = GetSourceDirectory();
             var directory = $"{sourceDirectory}/../../benchmarks/{processorNameInDirectory}";
@@ -152,6 +159,18 @@ static string GetVersions() =>
 
 static string GetFileVersion(Assembly assembly) =>
     FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion!;
+
+static void ExportGitHubEnvironmentVariables(string processorName, string processorNameInDirectory)
+{
+    var githubEnvFilePath = Environment.GetEnvironmentVariable("GITHUB_ENV");
+    if (string.IsNullOrWhiteSpace(githubEnvFilePath)) { return; }
+
+    File.AppendAllLines(githubEnvFilePath,
+    [
+        $"BENCHMARK_CPU={processorName}",
+        $"BENCHMARK_CPU_DIRECTORY={processorNameInDirectory}",
+    ]);
+}
 
 static string GetSourceDirectory([CallerFilePath] string filePath = "") => Path.GetDirectoryName(filePath)!;
 

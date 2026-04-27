@@ -51,6 +51,68 @@ public partial class SepReaderTest
         Assert.AreEqual(512, reader.CharsLength);
     }
 
+    [DataRow(true)]
+    [DataRow(false)]
+    [TestMethod]
+    public async ValueTask SepReaderTest_Extensions_FromStream_LeaveOpen(bool leaveOpen)
+    {
+        {
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes("A\n1\n"));
+            using (var reader = Sep.Reader().From(stream, leaveOpen))
+            {
+                Assert.IsTrue(reader.MoveNext());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            Assert.AreEqual(leaveOpen, stream.CanRead && stream.CanWrite && stream.CanSeek);
+        }
+        {
+            var stream = new MemoryStream(Encoding.UTF8.GetBytes("A\n1\n"));
+            using (var reader = await Sep.Reader().FromAsync(stream, leaveOpen))
+            {
+                Assert.IsTrue(await reader.MoveNextAsync());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            Assert.AreEqual(leaveOpen, stream.CanRead && stream.CanWrite && stream.CanSeek);
+        }
+    }
+
+    [DataRow(true)]
+    [DataRow(false)]
+    [TestMethod]
+    public async ValueTask SepReaderTest_Extensions_FromTextReader_LeaveOpen(bool leaveOpen)
+    {
+        {
+            var textReader = new StringReader("A\n1\n");
+            using (var reader = Sep.Reader().From(textReader, leaveOpen))
+            {
+                Assert.IsTrue(reader.MoveNext());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            AssertStringReader(leaveOpen, textReader);
+        }
+        {
+            var textReader = new StringReader("A\n1\n");
+            using (var reader = await Sep.Reader().FromAsync(textReader, leaveOpen))
+            {
+                Assert.IsTrue(await reader.MoveNextAsync());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            AssertStringReader(leaveOpen, textReader);
+        }
+
+        static void AssertStringReader(bool leaveOpen, StringReader textReader)
+        {
+            if (!leaveOpen)
+            {
+                Assert.ThrowsExactly<ObjectDisposedException>(() => textReader.Read());
+            }
+            else
+            {
+                Assert.AreEqual(-1, textReader.Read());
+            }
+        }
+    }
+
     [TestMethod]
     public void SepReaderTest_Spec()
     {

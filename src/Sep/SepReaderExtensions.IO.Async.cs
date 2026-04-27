@@ -174,8 +174,14 @@ public static partial class SepReaderExtensions
         }
         catch (Exception)
         {
-            sepReader?.Dispose();
-            reader.Dispose();
+            if (sepReader != null)
+            {
+                sepReader.Dispose();
+            }
+            else
+            {
+                reader.Dispose();
+            }
             throw;
         }
     }

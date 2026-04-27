@@ -60,12 +60,12 @@ jobs:
           path: ${{ env.BenchmarksDirectory }}
 
       - name: Create Pull Request with Benchmark Results
-        if: github.event.inputs.createPullRequest == 'true' && github.repository == 'nietras/Sep' && github.actor == 'nietras' && matrix.config.os != 'windows-latest' && matrix.config.os != 'ubuntu-24.04-arm'
+        if: github.event.inputs.createPullRequest == 'true' && github.repository == 'nietras/Sep' && github.actor == 'nietras'
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           commit-message: "Update ${{ env.BENCHMARK_CPU_DIRECTORY }} benchmarks for runner ${{ matrix.config.os }}"
           title: "Update ${{ env.BENCHMARK_CPU_DIRECTORY }} benchmarks for runner ${{ matrix.config.os }}"
           body: ""
-          branch: "benchmarks/update-${{ matrix.config.os }}"
+          branch: "benchmarks/update-${{ env.BENCHMARK_CPU_DIRECTORY }}-${{ matrix.config.os }}"
           add-paths: |
             benchmarks/**

@@ -34,16 +34,19 @@ public sealed partial class SepReader : SepReaderState
     readonly bool _disableQuotesParsing;
     internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
+    readonly ISepTextReaderDisposer _textReaderDisposer;
     ISepParser? _parser;
 
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
 
-    internal SepReader(Info info, in SepReaderOptions options, TextReader reader)
+    internal SepReader(Info info, in SepReaderOptions options,
+        TextReader reader, ISepTextReaderDisposer textReaderDisposer)
         : base(colUnquoteUnescape: options.Unescape, trim: options.Trim)
     {
         _info = info;
         _reader = reader;
+        _textReaderDisposer = textReaderDisposer;
         _cultureInfo = options.CultureInfo;
         _createToString = options.CreateToString;
         _disableQuotesParsing = options.DisableQuotesParsing;
@@ -124,25 +127,20 @@ public sealed partial class SepReader : SepReaderState
         : IAsyncEnumerator<Row>
 #endif
     {
-        readonly SepReader _reader;
+        readonly SepReader _sepReader;
         readonly CancellationToken _cancellationToken;
 
         internal AsyncEnumerator(SepReader reader, CancellationToken cancellationToken)
         {
-            _reader = reader;
+            _sepReader = reader;
             _cancellationToken = cancellationToken;
         }
 
-        public Row Current => _reader.Current;
+        public Row Current => _sepReader.Current;
 
-        public ValueTask<bool> MoveNextAsync() => _reader.MoveNextAsync(_cancellationToken);
+        public ValueTask<bool> MoveNextAsync() => _sepReader.MoveNextAsync(_cancellationToken);
 
-        public ValueTask DisposeAsync()
-        {
-            // No Async dispose since TextReader has none
-            _reader.Dispose();
-            return ValueTask.CompletedTask;
-        }
+        public ValueTask DisposeAsync() => _sepReader.DisposeAsync();
     }
 
     public string ToString(int index) => ToStringDefault(index);
@@ -299,7 +297,13 @@ public sealed partial class SepReader : SepReaderState
 
     internal override void DisposeManaged()
     {
-        _reader.Dispose();
+        _textReaderDisposer.Dispose(_reader);
+        base.DisposeManaged();
+    }
+
+    internal override async ValueTask DisposeManagedAsync()
+    {
+        await _textReaderDisposer.DisposeAsync(_reader);
         base.DisposeManaged();
     }
 }

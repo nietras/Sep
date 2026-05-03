@@ -94,10 +94,11 @@ public static partial class SepReaderExtensions
         ArgumentNullException.ThrowIfNull(nameToStream);
         var reader = new StreamReader(nameToStream(name), leaveOpen: leaveOpen);
         Func<SepReader.Info, string> display = static info => $"Stream Name='{info.Source}'";
+        // leaveOpen: false for StreamReader is not the same as for Stream
 #if SYNC
-        return FromWithInfo(new(name, display), options, reader, leaveOpen);
+        return FromWithInfo(new(name, display), options, reader, leaveOpen: false);
 #else
-        return await FromWithInfoAsync(new(name, display), options, reader, leaveOpen, cancellationToken);
+        return await FromWithInfoAsync(new(name, display), options, reader, leaveOpen: false, cancellationToken);
 #endif
     }
 
@@ -115,10 +116,11 @@ public static partial class SepReaderExtensions
     {
         var reader = new StreamReader(stream, leaveOpen: leaveOpen);
         Func<SepReader.Info, string> display = static info => $"Stream='{info.Source}'";
+        // leaveOpen: false for StreamReader is not the same as for Stream
 #if SYNC
-        return FromWithInfo(new(stream, display), options, reader, leaveOpen);
+        return FromWithInfo(new(stream, display), options, reader, leaveOpen: false);
 #else
-        return await FromWithInfoAsync(new(stream, display), options, reader, leaveOpen, cancellationToken);
+        return await FromWithInfoAsync(new(stream, display), options, reader, leaveOpen: false, cancellationToken);
 #endif
     }
 

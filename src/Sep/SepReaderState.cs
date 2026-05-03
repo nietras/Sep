@@ -7,7 +7,6 @@ using System.IO;
 #endif
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading.Tasks;
 using static nietras.SeparatedValues.SepReader;
 
 namespace nietras.SeparatedValues;
@@ -1066,12 +1065,6 @@ public class SepReaderState : IDisposable
         _toString?.Dispose();
     }
 
-    internal virtual ValueTask DisposeManagedAsync()
-    {
-        DisposeManaged();
-        return ValueTask.CompletedTask;
-    }
-
     #region Dispose
     bool _disposed;
 #pragma warning disable CA1063 // Implement IDisposable Correctly
@@ -1093,16 +1086,6 @@ public class SepReaderState : IDisposable
     {
         // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    internal async ValueTask DisposeAsync()
-    {
-        if (!_disposed)
-        {
-            await DisposeManagedAsync();
-            _disposed = true;
-        }
         GC.SuppressFinalize(this);
     }
 

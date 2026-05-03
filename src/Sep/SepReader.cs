@@ -303,5 +303,6 @@ public sealed partial class SepReader : SepReaderState
     internal override void DisposeManaged()
     {
         _textReaderDisposer.Dispose(_reader);
+        base.DisposeManaged();
     }
 }

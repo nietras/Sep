@@ -17,7 +17,9 @@ jobs:
     permissions:
       contents: read
       packages: read
-      # To report GitHub Actions status checks
+      # Required: super-linter uses the GitHub Commit Statuses API
+      # (/repos/{owner}/{repo}/statuses/{sha}), not the Checks API,
+      # so statuses:write is the correct minimum permission (not checks:write)
       statuses: write
 
     steps:

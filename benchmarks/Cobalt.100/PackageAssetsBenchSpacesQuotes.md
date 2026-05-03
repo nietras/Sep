@@ -14,9 +14,9 @@ Quotes=True  Reader=String
 ```
 | Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
 |--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 |  13.32 ms |  1.00 | 41 | 3135.6 |  266.4 |     960 B |        1.00 |
-| Sep_Trim                   | Cols  | 50000 |  17.66 ms |  1.33 | 41 | 2365.2 |  353.2 |     960 B |        1.00 |
-| Sep_TrimUnescape           | Cols  | 50000 |  18.50 ms |  1.39 | 41 | 2257.8 |  370.0 |     960 B |        1.00 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 |  20.43 ms |  1.53 | 41 | 2044.7 |  408.6 |     960 B |        1.00 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 119.10 ms |  8.94 | 41 |  350.7 | 2382.0 |  462174 B |      481.43 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 116.16 ms |  8.72 | 41 |  359.6 | 2323.3 |  456374 B |      475.39 |
+| Sep_                       | Cols  | 50000 |  12.87 ms |  1.00 | 41 | 3244.6 |  257.5 |     968 B |        1.00 |
+| Sep_Trim                   | Cols  | 50000 |  17.48 ms |  1.36 | 41 | 2390.1 |  349.5 |     970 B |        1.00 |
+| Sep_TrimUnescape           | Cols  | 50000 |  18.18 ms |  1.41 | 41 | 2297.6 |  363.6 |     968 B |        1.00 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 |  20.10 ms |  1.56 | 41 | 2078.6 |  401.9 |     968 B |        1.00 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 119.89 ms |  9.32 | 41 |  348.4 | 2397.9 |  462174 B |      477.45 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 115.61 ms |  8.98 | 41 |  361.3 | 2312.1 |  456374 B |      471.46 |

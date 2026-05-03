@@ -188,14 +188,8 @@ public static partial class SepReaderExtensions
         }
         catch (Exception)
         {
-            if (sepReader != null)
-            {
-                sepReader.Dispose();
-            }
-            else
-            {
-                textReaderDisposer.Dispose(reader);
-            }
+            sepReader?.Dispose();
+            textReaderDisposer.Dispose(reader);
             throw;
         }
     }

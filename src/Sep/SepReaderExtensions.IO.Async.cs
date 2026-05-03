@@ -2,7 +2,6 @@
 #pragma warning disable CA2007
 using System;
 using System.IO;
-using System.Text;
 #if !SYNC
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +92,7 @@ public static partial class SepReaderExtensions
 #endif
     {
         ArgumentNullException.ThrowIfNull(nameToStream);
-        var reader = new StreamReader(nameToStream(name), Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: -1, leaveOpen: leaveOpen);
+        var reader = new StreamReader(nameToStream(name), leaveOpen: leaveOpen);
         Func<SepReader.Info, string> display = static info => $"Stream Name='{info.Source}'";
 #if SYNC
         return FromWithInfo(new(name, display), options, reader, leaveOpen);
@@ -114,7 +113,7 @@ public static partial class SepReaderExtensions
     public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, Stream stream, bool leaveOpen, CancellationToken cancellationToken = default)
 #endif
     {
-        var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: -1, leaveOpen: leaveOpen);
+        var reader = new StreamReader(stream, leaveOpen: leaveOpen);
         Func<SepReader.Info, string> display = static info => $"Stream='{info.Source}'";
 #if SYNC
         return FromWithInfo(new(stream, display), options, reader, leaveOpen);

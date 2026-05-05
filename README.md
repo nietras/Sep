@@ -366,9 +366,12 @@ public bool Unescape { get; init; } = false;
 /// Note that trimming may happen in-place e.g. if also unescaping, which
 /// means the <see cref="SepReader.Row.Span" /> will be modified and contain
 /// "garbage" state for trimmed/unescaped cols. This is for efficiency to
-/// avoid allocating secondary memory for trimmed/unescaped columns. Header
-/// columns/names will also be trimmed. Note that only the space ` ` (ASCII
-/// 32) character is trimmed, not any whitespace character.
+/// avoid allocating secondary memory for trimmed/unescaped columns. That
+/// is, the column span <see cref="SepReader.Col.Span" /> will be correct
+/// with trimmed text, but the row span <see cref="SepReader.Row.Span" />
+/// may have "garbage" state between columns if any column had spaces
+/// removed. Header columns/names will also be trimmed. Note that only the
+/// space ` ` (ASCII 32) character is trimmed, not any whitespace character.
 /// </remarks>
 public SepTrim Trim { get; init; } = SepTrim.None;
 /// <summary>

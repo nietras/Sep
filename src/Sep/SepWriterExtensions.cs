@@ -24,7 +24,8 @@ public static partial class SepWriterExtensions
         };
 
     /// <summary>
-    /// Set strict writer options e.g. enable escaping.
+    /// Set strict writer options e.g. <see cref="SepWriterOptions.Escape" /> to
+    /// <c>true</c>. See options for details and caveats.
     /// </summary>
     public static SepWriterOptions Strict(this in SepWriterOptions options) =>
         options with { Escape = true };

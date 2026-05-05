@@ -15,7 +15,9 @@ public static partial class SepReaderExtensions
         };
 
     /// <summary>
-    /// Set strict reader options e.g. enable quote parsing and unescaping.
+    /// Set strict reader options e.g. <see cref="SepReaderOptions.Unescape" />
+    /// to <c>true</c> and <see cref="SepReaderOptions.DisableQuotesParsing" />
+    /// to <c>false</c>. See those for details and caveats.
     /// </summary>
     public static SepReaderOptions Strict(this in SepReaderOptions options) =>
         options with

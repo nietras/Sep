@@ -348,11 +348,14 @@ public bool DisableQuotesParsing { get; init; } = false;
 /// When true, if a column starts with a quote then the two outermost quotes
 /// are removed and every second inner quote is removed. Note that
 /// unquote/unescape happens in-place, which means the <see
-/// cref="SepReader.Row.Span" /> will be modified and contain "garbage"
-/// state after unescaped cols before next col. This is for efficiency to
-/// avoid allocating secondary memory for unescaped columns. Header
-/// columns/names will also be unescaped.
-/// Requires <see cref="DisableQuotesParsing"/> to be false.
+/// cref="SepReader.Row.Span" /> (<b>row</b> span) will be modified and
+/// contain "garbage" state after unescaped cols before next col. This is
+/// for efficiency to avoid allocating secondary memory for unescaped
+/// columns. That is, the column span <see cref="SepReader.Col.Span" /> will
+/// be correct with unescaped text, but the row span <see
+/// cref="SepReader.Row.Span" /> may have "garbage" state between columns if
+/// any column had quotes removed. Header columns/names will also be
+/// unescaped. Requires <see cref="DisableQuotesParsing"/> to be false.
 /// </remarks>
 public bool Unescape { get; init; } = false;
 /// <summary>
@@ -363,9 +366,12 @@ public bool Unescape { get; init; } = false;
 /// Note that trimming may happen in-place e.g. if also unescaping, which
 /// means the <see cref="SepReader.Row.Span" /> will be modified and contain
 /// "garbage" state for trimmed/unescaped cols. This is for efficiency to
-/// avoid allocating secondary memory for trimmed/unescaped columns. Header
-/// columns/names will also be trimmed. Note that only the space ` ` (ASCII
-/// 32) character is trimmed, not any whitespace character.
+/// avoid allocating secondary memory for trimmed/unescaped columns. That
+/// is, the column span <see cref="SepReader.Col.Span" /> will be correct
+/// with trimmed text, but the row span <see cref="SepReader.Row.Span" />
+/// may have "garbage" state between columns if any column had spaces
+/// removed. Header columns/names will also be trimmed. Note that only the
+/// space ` ` (ASCII 32) character is trimmed, not any whitespace character.
 /// </remarks>
 public SepTrim Trim { get; init; } = SepTrim.None;
 /// <summary>

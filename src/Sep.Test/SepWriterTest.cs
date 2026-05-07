@@ -800,12 +800,12 @@ R4C1;R4C2;R4C3;
     [DataRow(".txt")]
     [DataRow(".log")]
     [TestMethod]
-    public void SepWriterTest_ToFileByExtension_PlainText_Utf8(string extension)
+    public void SepWriterTest_ToFileAutoCompress_PlainText_Utf8(string extension)
     {
         var filePath = CreateTempFilePath(extension);
         try
         {
-            using (var writer = Sep.Writer().ToFileByExtension(filePath))
+            using (var writer = Sep.Writer().ToFileAutoCompress(filePath))
             {
                 WriteForDebuggerDisplay(writer);
             }
@@ -822,12 +822,12 @@ R4C1;R4C2;R4C3;
     [DataRow(".gz")]
     [DataRow(".br")]
     [TestMethod]
-    public void SepWriterTest_ToFileByExtension_Compressed(string extension)
+    public void SepWriterTest_ToFileAutoCompress_Compressed(string extension)
     {
         var filePath = CreateTempFilePath($".csv{extension}");
         try
         {
-            using (var writer = Sep.Writer().ToFileByExtension(filePath))
+            using (var writer = Sep.Writer().ToFileAutoCompress(filePath))
             {
                 WriteForDebuggerDisplay(writer);
             }
@@ -842,12 +842,12 @@ R4C1;R4C2;R4C3;
     }
 
     [TestMethod]
-    public void SepWriterTest_DebuggerDisplay_ToFileByExtension()
+    public void SepWriterTest_DebuggerDisplay_ToFileAutoCompress()
     {
         var filePath = CreateTempFilePath(".csv.gz");
         try
         {
-            using var writer = Sep.Writer().ToFileByExtension(filePath);
+            using var writer = Sep.Writer().ToFileAutoCompress(filePath);
             Assert.AreEqual($"File='{filePath}' Compression='GZip'", writer.DebuggerDisplay);
         }
         finally
@@ -857,18 +857,50 @@ R4C1;R4C2;R4C3;
     }
 
     [TestMethod]
-    public void SepWriterTest_ToFileByExtension_Zip_Throws()
+    public void SepWriterTest_ToFileAutoCompress_Zip_Throws()
     {
         var filePath = CreateTempFilePath(".csv.zip");
         try
         {
-            var e = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Writer().ToFileByExtension(filePath));
+            var e = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Writer().ToFileAutoCompress(filePath));
             Assert.Contains("'.zip'", e.Message);
         }
         finally
         {
             File.Delete(filePath);
         }
+    }
+
+    [DataRow(".gz", true)]
+    [DataRow(".gz", false)]
+    [DataRow(".br", true)]
+    [DataRow(".br", false)]
+    [TestMethod]
+    public void SepWriterTest_ToAutoCompress_NameStream(string extension, bool leaveOpen)
+    {
+        var name = $"test.csv{extension}";
+        var stream = new MemoryStream();
+        using (var writer = Sep.Writer().ToAutoCompress(name, _ => stream, leaveOpen))
+        {
+            Assert.AreEqual($"Stream Name='{name}' Compression='{(extension == ".gz" ? "GZip" : "Brotli")}'", writer.DebuggerDisplay);
+            WriteForDebuggerDisplay(writer);
+        }
+        Assert.AreEqual(leaveOpen, stream.CanRead && stream.CanWrite && stream.CanSeek);
+        if (!leaveOpen)
+        {
+            return;
+        }
+        stream.Position = 0;
+        var text = ReadCompressedText(stream, extension);
+        Assert.AreEqual($"A;B{Environment.NewLine}1;2{Environment.NewLine}", text);
+    }
+
+    [TestMethod]
+    public void SepWriterTest_ToAutoCompress_NameStream_Zip_Throws()
+    {
+        var stream = new MemoryStream();
+        var e = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Writer().ToAutoCompress("test.csv.zip", _ => stream));
+        Assert.Contains("'.zip'", e.Message);
     }
 
     [TestMethod]
@@ -958,10 +990,15 @@ R4C1;R4C2;R4C3;
     static string ReadCompressedText(string filePath, string extension)
     {
         using var file = File.OpenRead(filePath);
+        return ReadCompressedText(file, extension);
+    }
+
+    static string ReadCompressedText(Stream stream, string extension)
+    {
         using Stream compressed = extension switch
         {
-            ".gz" => new GZipStream(file, CompressionMode.Decompress, leaveOpen: false),
-            ".br" => new BrotliStream(file, CompressionMode.Decompress, leaveOpen: false),
+            ".gz" => new GZipStream(stream, CompressionMode.Decompress, leaveOpen: false),
+            ".br" => new BrotliStream(stream, CompressionMode.Decompress, leaveOpen: false),
             _ => throw new ArgumentOutOfRangeException(nameof(extension), extension, null),
         };
         using var reader = new StreamReader(compressed, Encoding.UTF8);

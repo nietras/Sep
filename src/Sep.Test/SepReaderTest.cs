@@ -926,13 +926,13 @@ public partial class SepReaderTest
     [DataRow(".txt")]
     [DataRow(".log")]
     [TestMethod]
-    public async ValueTask SepReaderTest_FromFileByExtension_PlainText(string extension)
+    public async ValueTask SepReaderTest_FromFileAutoDecompress_PlainText(string extension)
     {
         var filePath = CreateTempFilePath(extension);
         try
         {
             await File.WriteAllTextAsync(filePath, "A;B\n1;2\n", Encoding.UTF8);
-            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            await FromSyncAsync(new(), o => o.FromFileAutoDecompress(filePath), o => o.FromFileAutoDecompressAsync(filePath), r =>
             {
                 Assert.IsTrue(r.MoveNext());
                 Assert.AreEqual("1", r.Current["A"].ToString());
@@ -948,13 +948,13 @@ public partial class SepReaderTest
     [DataRow(".gz")]
     [DataRow(".br")]
     [TestMethod]
-    public async ValueTask SepReaderTest_FromFileByExtension_Compressed(string extension)
+    public async ValueTask SepReaderTest_FromFileAutoDecompress_Compressed(string extension)
     {
         var filePath = CreateTempFilePath($".csv{extension}");
         try
         {
             await WriteCompressedTextAsync(filePath, extension, "A;B\n1;2\n");
-            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            await FromSyncAsync(new(), o => o.FromFileAutoDecompress(filePath), o => o.FromFileAutoDecompressAsync(filePath), r =>
             {
                 Assert.IsTrue(r.MoveNext());
                 Assert.AreEqual("1", r.Current["A"].ToString());
@@ -968,13 +968,13 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_DebuggerDisplay_FromFileByExtension()
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromFileAutoDecompress()
     {
         var filePath = CreateTempFilePath(".csv.gz");
         try
         {
             await WriteCompressedTextAsync(filePath, ".gz", "A;B");
-            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            await FromSyncAsync(new(), o => o.FromFileAutoDecompress(filePath), o => o.FromFileAutoDecompressAsync(filePath), r =>
             {
                 Assert.AreEqual($"File='{filePath}' Decompression='GZip'", r.DebuggerDisplay);
             });
@@ -986,22 +986,63 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_FromFileByExtension_Zip_Throws()
+    public async ValueTask SepReaderTest_FromFileAutoDecompress_Zip_Throws()
     {
         var filePath = CreateTempFilePath(".csv.zip");
         try
         {
             await File.WriteAllTextAsync(filePath, "A;B\n1;2\n", Encoding.UTF8);
-            var sync = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Reader().FromFileByExtension(filePath));
+            var sync = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Reader().FromFileAutoDecompress(filePath));
             Assert.Contains("'.zip'", sync.Message);
 
-            var async = await Assert.ThrowsExactlyAsync<NotSupportedException>(() => Sep.Reader().FromFileByExtensionAsync(filePath).AsTask());
+            var async = await Assert.ThrowsExactlyAsync<NotSupportedException>(() => Sep.Reader().FromFileAutoDecompressAsync(filePath).AsTask());
             Assert.Contains("'.zip'", async.Message);
         }
         finally
         {
             File.Delete(filePath);
         }
+    }
+
+    [DataRow(".gz", true)]
+    [DataRow(".gz", false)]
+    [DataRow(".br", true)]
+    [DataRow(".br", false)]
+    [TestMethod]
+    public async ValueTask SepReaderTest_FromAutoDecompress_NameStream(string extension, bool leaveOpen)
+    {
+        var name = $"test.csv{extension}";
+        var utf8Bytes = Encoding.UTF8.GetBytes("A;B\n1;2\n");
+        {
+            var stream = CreateCompressedStream(utf8Bytes, extension);
+            using (var reader = Sep.Reader().FromAutoDecompress(name, _ => stream, leaveOpen))
+            {
+                Assert.AreEqual($"Stream Name='{name}' Decompression='{(extension == ".gz" ? "GZip" : "Brotli")}'", reader.DebuggerDisplay);
+                Assert.IsTrue(reader.MoveNext());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            Assert.AreEqual(leaveOpen, stream.CanRead && stream.CanWrite && stream.CanSeek);
+        }
+        {
+            var stream = CreateCompressedStream(utf8Bytes, extension);
+            using (var reader = await Sep.Reader().FromAutoDecompressAsync(name, _ => stream, leaveOpen))
+            {
+                Assert.AreEqual($"Stream Name='{name}' Decompression='{(extension == ".gz" ? "GZip" : "Brotli")}'", reader.DebuggerDisplay);
+                Assert.IsTrue(await reader.MoveNextAsync());
+                Assert.AreEqual("1", reader.Current["A"].ToString());
+            }
+            Assert.AreEqual(leaveOpen, stream.CanRead && stream.CanWrite && stream.CanSeek);
+        }
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_FromAutoDecompress_NameStream_Zip_Throws()
+    {
+        var sync = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Reader().FromAutoDecompress("test.csv.zip", _ => new MemoryStream()));
+        Assert.Contains("'.zip'", sync.Message);
+
+        var async = await Assert.ThrowsExactlyAsync<NotSupportedException>(() => Sep.Reader().FromAutoDecompressAsync("test.csv.zip", _ => new MemoryStream()).AsTask());
+        Assert.Contains("'.zip'", async.Message);
     }
 
     [TestMethod]
@@ -1223,6 +1264,22 @@ public partial class SepReaderTest
         };
         await using var writer = new StreamWriter(compressed, Encoding.UTF8);
         await writer.WriteAsync(text);
+    }
+
+    static MemoryStream CreateCompressedStream(byte[] bytes, string extension)
+    {
+        var stream = new MemoryStream();
+        using (Stream compressed = extension switch
+        {
+            ".gz" => new GZipStream(stream, CompressionMode.Compress, leaveOpen: true),
+            ".br" => new BrotliStream(stream, CompressionMode.Compress, leaveOpen: true),
+            _ => throw new ArgumentOutOfRangeException(nameof(extension), extension, null),
+        })
+        {
+            compressed.Write(bytes, 0, bytes.Length);
+        }
+        stream.Position = 0;
+        return stream;
     }
 
     static async Task AssertLineEndings(int lineEndingCount, string text)

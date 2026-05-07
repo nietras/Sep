@@ -65,9 +65,9 @@ public static partial class SepReaderExtensions
     }
 
 #if SYNC
-    public static SepReader FromFileByExtension(this in SepReaderOptions options, string filePath)
+    public static SepReader FromFileAutoDecompress(this in SepReaderOptions options, string filePath)
 #else
-    public static async ValueTask<SepReader> FromFileByExtensionAsync(this SepReaderOptions options, string filePath, CancellationToken cancellationToken = default)
+    public static async ValueTask<SepReader> FromFileAutoDecompressAsync(this SepReaderOptions options, string filePath, CancellationToken cancellationToken = default)
 #endif
     {
         var reader = SepFileByExtension.CreateReader(filePath,
@@ -83,6 +83,29 @@ public static partial class SepReaderExtensions
         return FromWithInfo(new(filePath, display), options, reader, leaveOpen: false);
 #else
         return await FromWithInfoAsync(new(filePath, display), options, reader, leaveOpen: false, cancellationToken);
+#endif
+    }
+
+#if SYNC
+    public static SepReader FromAutoDecompress(this in SepReaderOptions options, string name, Func<string, Stream> nameToStream) =>
+        FromAutoDecompress(options, name, nameToStream, leaveOpen: false);
+
+    public static SepReader FromAutoDecompress(this in SepReaderOptions options, string name, Func<string, Stream> nameToStream, bool leaveOpen)
+#else
+    public static ValueTask<SepReader> FromAutoDecompressAsync(this SepReaderOptions options, string name, Func<string, Stream> nameToStream, CancellationToken cancellationToken = default) =>
+        FromAutoDecompressAsync(options, name, nameToStream, leaveOpen: false, cancellationToken);
+
+    public static async ValueTask<SepReader> FromAutoDecompressAsync(this SepReaderOptions options, string name, Func<string, Stream> nameToStream, bool leaveOpen, CancellationToken cancellationToken = default)
+#endif
+    {
+        ArgumentNullException.ThrowIfNull(nameToStream);
+        var stream = nameToStream(name);
+        var reader = SepFileByExtension.CreateReader(name, stream, out var display, leaveOpen);
+        // leaveOpen: false for StreamReader is not the same as for Stream
+#if SYNC
+        return FromWithInfo(new(name, display), options, reader, leaveOpen: false);
+#else
+        return await FromWithInfoAsync(new(name, display), options, reader, leaveOpen: false, cancellationToken);
 #endif
     }
 

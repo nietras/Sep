@@ -54,10 +54,18 @@ public static partial class SepWriterExtensions
         return ToWithInfo(new(filePath, display), options, writer, leaveOpen: false);
     }
 
-    public static SepWriter ToFileByExtension(this in SepWriterOptions options, string filePath)
+    public static SepWriter ToFileAutoCompress(this in SepWriterOptions options, string filePath)
     {
         var writer = SepFileByExtension.CreateWriter(filePath, s_streamWriterOptions, out var display);
         return ToWithInfo(new(filePath, display), options, writer, leaveOpen: false);
+    }
+
+    public static SepWriter ToAutoCompress(this in SepWriterOptions options, string name, Func<string, Stream> nameToStream, bool leaveOpen = false)
+    {
+        ArgumentNullException.ThrowIfNull(nameToStream);
+        var stream = nameToStream(name);
+        var writer = SepFileByExtension.CreateWriter(name, stream, out var display, leaveOpen);
+        return ToWithInfo(new(name, display), options, writer, leaveOpen: false);
     }
 
     public static SepWriter To(this in SepWriterOptions options, StringBuilder stringBuilder)

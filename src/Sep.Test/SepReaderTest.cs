@@ -993,10 +993,10 @@ public partial class SepReaderTest
         {
             await File.WriteAllTextAsync(filePath, "A;B\n1;2\n", Encoding.UTF8);
             var sync = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Reader().FromFileByExtension(filePath));
-            StringAssert.Contains(sync.Message, "'.zip'");
+            Assert.Contains("'.zip'", sync.Message);
 
             var async = await Assert.ThrowsExactlyAsync<NotSupportedException>(() => Sep.Reader().FromFileByExtensionAsync(filePath).AsTask());
-            StringAssert.Contains(async.Message, "'.zip'");
+            Assert.Contains("'.zip'", async.Message);
         }
         finally
         {

@@ -863,7 +863,7 @@ R4C1;R4C2;R4C3;
         try
         {
             var e = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Writer().ToFileByExtension(filePath));
-            StringAssert.Contains(e.Message, "'.zip'");
+            Assert.Contains("'.zip'", e.Message);
         }
         finally
         {

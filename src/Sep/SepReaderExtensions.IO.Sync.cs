@@ -65,6 +65,28 @@ public static partial class SepReaderExtensions
     }
 
 #if SYNC
+    public static SepReader FromFileByExtension(this in SepReaderOptions options, string filePath)
+#else
+    public static async ValueTask<SepReader> FromFileByExtensionAsync(this SepReaderOptions options, string filePath, CancellationToken cancellationToken = default)
+#endif
+    {
+        var reader = SepFileByExtension.CreateReader(filePath,
+#if SYNC
+            s_streamReaderOptionsSync,
+            out var display
+#else
+            s_streamReaderOptionsAsync,
+            out var display
+#endif
+            );
+#if SYNC
+        return FromWithInfo(new(filePath, display), options, reader, leaveOpen: false);
+#else
+        return await FromWithInfoAsync(new(filePath, display), options, reader, leaveOpen: false, cancellationToken);
+#endif
+    }
+
+#if SYNC
     public static SepReader From(this in SepReaderOptions options, byte[] buffer)
 #else
     public static async ValueTask<SepReader> FromAsync(this SepReaderOptions options, byte[] buffer, CancellationToken cancellationToken = default)

@@ -54,6 +54,12 @@ public static partial class SepWriterExtensions
         return ToWithInfo(new(filePath, display), options, writer, leaveOpen: false);
     }
 
+    public static SepWriter ToFileByExtension(this in SepWriterOptions options, string filePath)
+    {
+        var writer = SepFileByExtension.CreateWriter(filePath, s_streamWriterOptions, out var display);
+        return ToWithInfo(new(filePath, display), options, writer, leaveOpen: false);
+    }
+
     public static SepWriter To(this in SepWriterOptions options, StringBuilder stringBuilder)
     {
         DebuggerDisplayFunc display = static (info, writer) =>

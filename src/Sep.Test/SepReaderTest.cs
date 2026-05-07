@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -921,6 +922,88 @@ public partial class SepReaderTest
         File.Delete(filePath);
     }
 
+    [DataRow(".csv")]
+    [DataRow(".txt")]
+    [DataRow(".log")]
+    [TestMethod]
+    public async ValueTask SepReaderTest_FromFileByExtension_PlainText(string extension)
+    {
+        var filePath = CreateTempFilePath(extension);
+        try
+        {
+            await File.WriteAllTextAsync(filePath, "A;B\n1;2\n", Encoding.UTF8);
+            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            {
+                Assert.IsTrue(r.MoveNext());
+                Assert.AreEqual("1", r.Current["A"].ToString());
+                Assert.AreEqual("2", r.Current["B"].ToString());
+            });
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [DataRow(".gz")]
+    [DataRow(".br")]
+    [TestMethod]
+    public async ValueTask SepReaderTest_FromFileByExtension_Compressed(string extension)
+    {
+        var filePath = CreateTempFilePath($".csv{extension}");
+        try
+        {
+            await WriteCompressedTextAsync(filePath, extension, "A;B\n1;2\n");
+            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            {
+                Assert.IsTrue(r.MoveNext());
+                Assert.AreEqual("1", r.Current["A"].ToString());
+                Assert.AreEqual("2", r.Current["B"].ToString());
+            });
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_DebuggerDisplay_FromFileByExtension()
+    {
+        var filePath = CreateTempFilePath(".csv.gz");
+        try
+        {
+            await WriteCompressedTextAsync(filePath, ".gz", "A;B");
+            await FromSyncAsync(new(), o => o.FromFileByExtension(filePath), o => o.FromFileByExtensionAsync(filePath), r =>
+            {
+                Assert.AreEqual($"File='{filePath}' Decompression='GZip'", r.DebuggerDisplay);
+            });
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_FromFileByExtension_Zip_Throws()
+    {
+        var filePath = CreateTempFilePath(".csv.zip");
+        try
+        {
+            await File.WriteAllTextAsync(filePath, "A;B\n1;2\n", Encoding.UTF8);
+            var sync = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Reader().FromFileByExtension(filePath));
+            StringAssert.Contains(sync.Message, "'.zip'");
+
+            var async = await Assert.ThrowsExactlyAsync<NotSupportedException>(() => Sep.Reader().FromFileByExtensionAsync(filePath).AsTask());
+            StringAssert.Contains(async.Message, "'.zip'");
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
     [TestMethod]
     public async ValueTask SepReaderTest_DebuggerDisplay_FromBytes()
     {
@@ -1124,6 +1207,22 @@ public partial class SepReaderTest
             using var reader = await fromFuncAsync(options);
             assert(reader);
         }
+    }
+
+    static string CreateTempFilePath(string extension) =>
+        Path.Combine(Path.GetTempPath(), $"sep-{Guid.NewGuid():N}{extension}");
+
+    static async ValueTask WriteCompressedTextAsync(string filePath, string extension, string text)
+    {
+        await using var file = File.Create(filePath);
+        await using Stream compressed = extension switch
+        {
+            ".gz" => new GZipStream(file, CompressionMode.Compress, leaveOpen: false),
+            ".br" => new BrotliStream(file, CompressionMode.Compress, leaveOpen: false),
+            _ => throw new ArgumentOutOfRangeException(nameof(extension), extension, null),
+        };
+        await using var writer = new StreamWriter(compressed, Encoding.UTF8);
+        await writer.WriteAsync(text);
     }
 
     static async Task AssertLineEndings(int lineEndingCount, string text)

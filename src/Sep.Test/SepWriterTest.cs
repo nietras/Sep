@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -795,6 +796,81 @@ R4C1;R4C2;R4C3;
         File.Delete(filePath);
     }
 
+    [DataRow(".csv")]
+    [DataRow(".txt")]
+    [DataRow(".log")]
+    [TestMethod]
+    public void SepWriterTest_ToFileByExtension_PlainText_Utf8(string extension)
+    {
+        var filePath = CreateTempFilePath(extension);
+        try
+        {
+            using (var writer = Sep.Writer().ToFileByExtension(filePath))
+            {
+                WriteForDebuggerDisplay(writer);
+            }
+
+            var expected = Encoding.UTF8.GetBytes($"A;B{Environment.NewLine}1;2{Environment.NewLine}");
+            CollectionAssert.AreEqual(expected, File.ReadAllBytes(filePath));
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [DataRow(".gz")]
+    [DataRow(".br")]
+    [TestMethod]
+    public void SepWriterTest_ToFileByExtension_Compressed(string extension)
+    {
+        var filePath = CreateTempFilePath($".csv{extension}");
+        try
+        {
+            using (var writer = Sep.Writer().ToFileByExtension(filePath))
+            {
+                WriteForDebuggerDisplay(writer);
+            }
+
+            var text = ReadCompressedText(filePath, extension);
+            Assert.AreEqual($"A;B{Environment.NewLine}1;2{Environment.NewLine}", text);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterTest_DebuggerDisplay_ToFileByExtension()
+    {
+        var filePath = CreateTempFilePath(".csv.gz");
+        try
+        {
+            using var writer = Sep.Writer().ToFileByExtension(filePath);
+            Assert.AreEqual($"File='{filePath}' Compression='GZip'", writer.DebuggerDisplay);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterTest_ToFileByExtension_Zip_Throws()
+    {
+        var filePath = CreateTempFilePath(".csv.zip");
+        try
+        {
+            var e = Assert.ThrowsExactly<NotSupportedException>(() => Sep.Writer().ToFileByExtension(filePath));
+            StringAssert.Contains(e.Message, "'.zip'");
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
     [TestMethod]
     public void SepWriterTest_DebuggerDisplay_To_StringBuilder()
     {
@@ -874,6 +950,22 @@ R4C1;R4C2;R4C3;
         using var row = writer.NewRow();
         row["A"].Set("1");
         row["B"].Set("2");
+    }
+
+    static string CreateTempFilePath(string extension) =>
+        Path.Combine(Path.GetTempPath(), $"sep-{Guid.NewGuid():N}{extension}");
+
+    static string ReadCompressedText(string filePath, string extension)
+    {
+        using var file = File.OpenRead(filePath);
+        using Stream compressed = extension switch
+        {
+            ".gz" => new GZipStream(file, CompressionMode.Decompress, leaveOpen: false),
+            ".br" => new BrotliStream(file, CompressionMode.Decompress, leaveOpen: false),
+            _ => throw new ArgumentOutOfRangeException(nameof(extension), extension, null),
+        };
+        using var reader = new StreamReader(compressed, Encoding.UTF8);
+        return reader.ReadToEnd();
     }
 
     static SepWriter CreateWriter() =>

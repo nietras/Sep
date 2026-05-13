@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
@@ -187,5 +189,115 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static nuint MoveMask(VecUI8 v) => v.ExtractMostSignificantBits();
+    static nuint MoveMask(VecUI8 v)
+    {
+        if (AdvSimd.IsSupported)
+        {
+            var nibbleMask = AdvSimdExtractBitMask(v);
+            var mask = Get16BitMask(nibbleMask);
+            return mask;
+        }
+        else
+        {
+            return v.ExtractMostSignificantBits();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ushort Get16BitMask(ulong x)
+    {
+        // Isolate bit 0 of each nibble
+        x &= 0x1111111111111111;
+
+        // Fold bits down log2 style.
+        // Masks prevent unwanted bits from bleeding into adjacent logical blocks
+        // during the logical OR accumulation.
+        x = (x | (x >> 3)) & 0x0303030303030303;
+        x = (x | (x >> 6)) & 0x000F000F000F000F;
+        x = (x | (x >> 12)) & 0x000000FF000000FF;
+        x = (x | (x >> 24));
+
+        // Cast handles the final 0xFFFF mask
+        return (ushort)x;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ulong AdvSimdExtractBitMask<T>(Vector128<T> vector)
+    {
+        // This expects vector to have each element be one of Zero or AllBitsSet
+        // and will not produce correct results otherwise.
+        //
+        // Given this, we can treat it as ushort and do a logical-right-shift by 4 to
+        // compact the mask into half the space, giving us the following possibilities for
+        // each pair of bytes:
+        // * 0x00_00 - 0x00
+        // * 0x00_FF - 0x0F
+        // * 0xFF_00 - 0xF0
+        // * 0xFF_FF - 0xFF
+        //
+        // This allows us to extract the full metadata as a 64-bit scalar which can then
+        // be consumed by bit-counting APIs, such as PopCount, LeadingZeroCount, or TrailingZeroCount,
+        // and then adjusted by AdvSimdFixupBitCount to get the actual count of elements
+        // that were masked.
+
+        return AdvSimd.ShiftRightLogicalNarrowingLower(vector.AsUInt16(), 4).AsUInt64().ToScalar();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int AdvSimdFixupBitCount<T>(int bitCount)
+        where T : unmanaged
+    {
+        // This API is meant to be consumed alongside AdvSimdExtractBitMask and will
+        // not produce correct results for arbitrary inputs. It adjusts the bit count
+        // assuming that sequences of 1 or 0 were in groups of 4 bits per byte.
+
+        unsafe
+        {
+            return bitCount >>> (2 + int.Log2(sizeof(T)));
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int CountMatches<T>(Vector128<T> vector)
+        where T : unmanaged
+    {
+        if (AdvSimd.IsSupported)
+        {
+            return AdvSimdFixupBitCount<T>(BitOperations.PopCount(AdvSimdExtractBitMask(vector)));
+        }
+        else
+        {
+            return BitOperations.PopCount(vector.ExtractMostSignificantBits());
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int IndexOfFirstMatch<T>(Vector128<T> vector)
+        where T : unmanaged
+    {
+        if (AdvSimd.IsSupported)
+        {
+            int result = AdvSimdFixupBitCount<T>(BitOperations.TrailingZeroCount(AdvSimdExtractBitMask(vector)));
+            return (result != Vector128<T>.Count) ? result : -1;
+        }
+        else
+        {
+            int result = BitOperations.TrailingZeroCount(vector.ExtractMostSignificantBits());
+            return (result != 32) ? result : -1;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static int IndexOfLastMatch<T>(Vector128<T> vector)
+        where T : unmanaged
+    {
+        if (AdvSimd.IsSupported)
+        {
+            return (Vector128<T>.Count - 1) - AdvSimdFixupBitCount<T>(BitOperations.LeadingZeroCount(AdvSimdExtractBitMask(vector)));
+        }
+        else
+        {
+            return 31 - BitOperations.LeadingZeroCount(vector.ExtractMostSignificantBits());
+        }
+    }
 }

@@ -73,7 +73,7 @@ static class SepParserFactory
         { Add(parsers, nameof(SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt), static sep => new SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt(sep)); }
 #endif
 #if NET10_0_OR_GREATER
-        if (Environment.Is64BitProcess && Vector.IsHardwareAccelerated)
+        if (Environment.Is64BitProcess && Vector.IsHardwareAccelerated && Vector<byte>.IsSupported && Vector<byte>.Count <= Vector512<byte>.Count)
         { Add(parsers, nameof(SepParserVectorNrwCmpMoveMaskTzcnt), static sep => new SepParserVectorNrwCmpMoveMaskTzcnt(sep)); }
 #endif
         if (Sse2.IsSupported)

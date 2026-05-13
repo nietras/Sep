@@ -1,7 +1,6 @@
 ﻿#if NET10_0_OR_GREATER
 #pragma warning disable SYSLIB5003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -15,14 +14,6 @@ using VecUI8 = System.Numerics.Vector<byte>;
 
 namespace nietras.SeparatedValues;
 
-// Based primarily on Geoff Langdale's:
-// "Fitting My Head Through The ARM Holes or:
-//  Two Sequences to Substitute for the Missing PMOVMSKB Instruction on ARM NEON"
-// https://branchfree.org/2019/04/01/fitting-my-head-through-the-arm-holes-or-two-sequences-to-substitute-for-the-missing-pmovmskb-instruction-on-arm-neon/
-// Other sources for inspiration:
-// https://lemire.me/blog/2017/07/10/pruning-spaces-faster-on-arm-processors-with-vector-table-lookups/
-// https://community.arm.com/arm-community-blogs/b/servers-and-cloud-computing-blog/posts/porting-x86-vector-bitmask-optimizations-to-arm-neon
-// https://developer.arm.com/architectures/instruction-sets/intrinsics
 sealed class SepParserSveNrwCmpMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;

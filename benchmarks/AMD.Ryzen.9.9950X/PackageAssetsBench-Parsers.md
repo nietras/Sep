@@ -14,14 +14,14 @@ Quotes=False  Reader=String
 ```
 | Method | Parser                                 | Scope | Rows  | Mean      | MB | MB/s    | ns/row | Allocated |
 |------- |--------------------------------------- |------ |------ |----------:|---:|--------:|-------:|----------:|
-| Sep_   | SepParserAvx512To256CmpOrMoveMaskTzcnt | Row   | 50000 |  1.402 ms | 29 | 20813.0 |   28.0 |    1048 B |
-| Sep_   | SepParserSveNrwCmpMoveMaskTzcnt        | Row   | 50000 |  1.454 ms | 29 | 20071.5 |   29.1 |    1032 B |
-| Sep_   | SepParserVector256NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.455 ms | 29 | 20050.7 |   29.1 |    1080 B |
-| Sep_   | SepParserAvx2PackCmpOrMoveMaskTzcnt    | Row   | 50000 |  1.463 ms | 29 | 19941.1 |   29.3 |    1048 B |
-| Sep_   | SepParserAvx512PackCmpOrMoveMaskTzcnt  | Row   | 50000 |  1.493 ms | 29 | 19541.5 |   29.9 |    1208 B |
-| Sep_   | SepParserSse2PackCmpOrMoveMaskTzcnt    | Row   | 50000 |  1.530 ms | 29 | 19075.8 |   30.6 |     968 B |
-| Sep_   | SepParserAvx256To128CmpOrMoveMaskTzcnt | Row   | 50000 |  1.548 ms | 29 | 18848.9 |   31.0 |     968 B |
-| Sep_   | SepParserVector512NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.606 ms | 29 | 18167.3 |   32.1 |    1272 B |
-| Sep_   | SepParserVector128NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.614 ms | 29 | 18081.3 |   32.3 |     984 B |
-| Sep_   | SepParserIndexOfAny                    | Row   | 50000 |  9.339 ms | 29 |  3124.7 |  186.8 |     945 B |
-| Sep_   | SepParserVector64NrwCmpExtMsbTzcnt     | Row   | 50000 | 51.440 ms | 29 |   567.3 | 1028.8 |     944 B |
+| Sep_   | SepParserAvx512To256CmpOrMoveMaskTzcnt | Row   | 50000 |  1.482 ms | 29 | 19696.7 |   29.6 |    1048 B |
+| Sep_   | SepParserVectorNrwCmpMoveMaskTzcnt     | Row   | 50000 |  1.507 ms | 29 | 19359.5 |   30.1 |    1032 B |
+| Sep_   | SepParserVector256NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.517 ms | 29 | 19239.2 |   30.3 |    1080 B |
+| Sep_   | SepParserAvx512PackCmpOrMoveMaskTzcnt  | Row   | 50000 |  1.585 ms | 29 | 18408.3 |   31.7 |    1208 B |
+| Sep_   | SepParserAvx2PackCmpOrMoveMaskTzcnt    | Row   | 50000 |  1.601 ms | 29 | 18227.0 |   32.0 |    1048 B |
+| Sep_   | SepParserAvx256To128CmpOrMoveMaskTzcnt | Row   | 50000 |  1.609 ms | 29 | 18137.9 |   32.2 |     968 B |
+| Sep_   | SepParserSse2PackCmpOrMoveMaskTzcnt    | Row   | 50000 |  1.650 ms | 29 | 17684.9 |   33.0 |     968 B |
+| Sep_   | SepParserVector512NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.660 ms | 29 | 17574.4 |   33.2 |    1272 B |
+| Sep_   | SepParserVector128NrwCmpExtMsbTzcnt    | Row   | 50000 |  1.712 ms | 29 | 17049.1 |   34.2 |     984 B |
+| Sep_   | SepParserIndexOfAny                    | Row   | 50000 |  9.564 ms | 29 |  3051.2 |  191.3 |     945 B |
+| Sep_   | SepParserVector64NrwCmpExtMsbTzcnt     | Row   | 50000 | 52.194 ms | 29 |   559.1 | 1043.9 |     944 B |

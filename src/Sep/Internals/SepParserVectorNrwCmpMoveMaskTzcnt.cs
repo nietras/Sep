@@ -1,5 +1,4 @@
-﻿#if NET10_0_OR_GREATER
-#pragma warning disable SYSLIB5003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+﻿#if NET9_0_OR_GREATER
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -17,6 +16,9 @@ namespace nietras.SeparatedValues;
 sealed class SepParserVectorNrwCmpMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
+#if !NET10_0_OR_GREATER
+    readonly VecUI16 _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
+#endif
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts = Vec.Create(QuoteByte);
@@ -61,6 +63,9 @@ sealed class SepParserVectorNrwCmpMoveMaskTzcnt : ISepParser
         var separator = _separator;
         var quoteCount = _quoteCount;
         // Use instance fields to force values into registers
+#if !NET10_0_OR_GREATER
+        var max = _max;
+#endif
         var nls = _nls; //Vec.Create(LineFeedByte);
         var crs = _crs; //Vec.Create(CarriageReturnByte);
         var qts = _qts; //Vec.Create(QuoteByte);
@@ -102,7 +107,13 @@ sealed class SepParserVectorNrwCmpMoveMaskTzcnt : ISepParser
             ref var byteRef = ref As<char, byte>(ref charsRef);
             var v0 = ReadUnaligned<VecUI16>(ref byteRef);
             var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
+#if NET10_0_OR_GREATER
             var bytes = Vec.NarrowWithSaturation(v0, v1);
+#else
+            var limit0 = Vec.Min(v0, max);
+            var limit1 = Vec.Min(v1, max);
+            var bytes = Vec.Narrow(limit0, limit1);
+#endif
             var nlsEq = Vec.Equals(bytes, nls);
             var crsEq = Vec.Equals(bytes, crs);
             var qtsEq = Vec.Equals(bytes, qts);

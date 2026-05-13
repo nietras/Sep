@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -72,10 +73,8 @@ static class SepParserFactory
         { Add(parsers, nameof(SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt), static sep => new SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt(sep)); }
 #endif
 #if NET10_0_OR_GREATER
-#pragma warning disable SYSLIB5003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        if (Environment.Is64BitProcess && Sve.IsSupported)
-        { Add(parsers, nameof(SepParserSveNrwCmpMoveMaskTzcnt), static sep => new SepParserSveNrwCmpMoveMaskTzcnt(sep)); }
-#pragma warning restore SYSLIB5003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (Environment.Is64BitProcess && Vector.IsHardwareAccelerated)
+        { Add(parsers, nameof(SepParserVectorNrwCmpMoveMaskTzcnt), static sep => new SepParserVectorNrwCmpMoveMaskTzcnt(sep)); }
 #endif
         if (Sse2.IsSupported)
         { Add(parsers, nameof(SepParserSse2PackCmpOrMoveMaskTzcnt), static sep => new SepParserSse2PackCmpOrMoveMaskTzcnt(sep)); }

@@ -14,7 +14,7 @@ using VecUI8 = System.Numerics.Vector<byte>;
 
 namespace nietras.SeparatedValues;
 
-sealed class SepParserSveNrwCmpMoveMaskTzcnt : ISepParser
+sealed class SepParserVectorNrwCmpMoveMaskTzcnt : ISepParser
 {
     readonly char _separator;
     readonly VecUI8 _nls = Vec.Create(LineFeedByte);
@@ -23,7 +23,7 @@ sealed class SepParserSveNrwCmpMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserSveNrwCmpMoveMaskTzcnt(SepParserOptions options)
+    public unsafe SepParserVectorNrwCmpMoveMaskTzcnt(SepParserOptions options)
     {
         A.Assert(Environment.Is64BitProcess);
         _separator = options.Separator;
@@ -103,10 +103,10 @@ sealed class SepParserSveNrwCmpMoveMaskTzcnt : ISepParser
             var v0 = ReadUnaligned<VecUI16>(ref byteRef);
             var v1 = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count));
             var bytes = Vec.NarrowWithSaturation(v0, v1);
-            var nlsEq = Sve.CompareEqual(bytes, nls);
-            var crsEq = Sve.CompareEqual(bytes, crs);
-            var qtsEq = Sve.CompareEqual(bytes, qts);
-            var spsEq = Sve.CompareEqual(bytes, sps);
+            var nlsEq = Vec.Equals(bytes, nls);
+            var crsEq = Vec.Equals(bytes, crs);
+            var qtsEq = Vec.Equals(bytes, qts);
+            var spsEq = Vec.Equals(bytes, sps);
 
             var lineEndings = nlsEq | crsEq;
             var lineEndingsSeparators = spsEq | lineEndings;
@@ -201,7 +201,8 @@ sealed class SepParserSveNrwCmpMoveMaskTzcnt : ISepParser
         {
             return (nuint)Vector512.ExtractMostSignificantBits(As<VecUI8, Vector512<byte>>(ref v));
         }
-        throw new NotSupportedException($"Unsupported vector length '{VecUI8.Count}'.");
+        SepThrow.NotSupportedException_UnsupportedDynamicVectorLength();
+        return default;
     }
 }
 #endif

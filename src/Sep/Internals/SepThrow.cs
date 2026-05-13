@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using static nietras.SeparatedValues.SepWriter;
@@ -181,5 +182,11 @@ static class SepThrow
     internal static void InvalidDataException_Utf8ToUtf16Failed()
     {
         throw new InvalidDataException("Invalid UTF-8 data.");
+    }
+
+    [DoesNotReturn]
+    internal static void NotSupportedException_UnsupportedDynamicVectorLength()
+    {
+        throw new NotSupportedException($"Unsupported Vector<byte> length '{Vector<byte>.Count}'");
     }
 }

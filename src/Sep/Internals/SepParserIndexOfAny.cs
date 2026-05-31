@@ -12,7 +12,7 @@ sealed class SepParserIndexOfAny : ISepParser
     readonly char[] _specialChars;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserIndexOfAny(SepParserOptions options)
+    public SepParserIndexOfAny(SepParserOptions options)
     {
         _separator = options.Separator;
         // TODO: No quote if disabled

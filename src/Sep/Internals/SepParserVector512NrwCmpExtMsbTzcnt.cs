@@ -21,7 +21,7 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserVector512NrwCmpExtMsbTzcnt(SepParserOptions options)
+    public SepParserVector512NrwCmpExtMsbTzcnt(SepParserOptions options)
     {
         A.Assert(Environment.Is64BitProcess);
         _separator = options.Separator;

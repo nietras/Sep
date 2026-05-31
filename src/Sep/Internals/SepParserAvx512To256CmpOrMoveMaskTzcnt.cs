@@ -27,7 +27,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _sps;
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
+    public SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);

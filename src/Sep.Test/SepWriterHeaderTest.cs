@@ -202,7 +202,7 @@ public class SepWriterHeaderTest
         header.Write();
 
         var e = Assert.ThrowsExactly<InvalidOperationException>(() => header.Add("B"));
-        Assert.AreEqual("Cannot add column name 'B since header or first row already written.", e.Message);
+        Assert.AreEqual("Cannot add column name 'B' since header or first row already written.", e.Message);
     }
 
     [TestMethod]
@@ -214,7 +214,7 @@ public class SepWriterHeaderTest
         using (var row = writer.NewRow()) { row["A"].Set("1"); }
 
         var e = Assert.ThrowsExactly<InvalidOperationException>(() => header.Add("B"));
-        Assert.AreEqual("Cannot add column name 'B since header or first row already written.", e.Message);
+        Assert.AreEqual("Cannot add column name 'B' since header or first row already written.", e.Message);
     }
 
     [TestMethod]

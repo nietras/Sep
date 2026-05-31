@@ -31,7 +31,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 
     nuint _quoteCount = 0;
 
-    public unsafe SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
+    public SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
         _sps = Vec.Create((byte)_separator);

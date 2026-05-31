@@ -14,7 +14,7 @@ static class SepHash
     internal static uint Default(ReadOnlySpan<char> chars) => SumMultiplyPrimesNUInt(chars);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal unsafe static uint SumMultiplyPrimesNUInt(ReadOnlySpan<char> chars)
+    internal static uint SumMultiplyPrimesNUInt(ReadOnlySpan<char> chars)
     {
         // Four completely random prime numbers (probably horrible hash):
         // 31 = 0x001F, 127 = 0x007F, 191 = 0x00BF, 251 = 0x00FB
@@ -44,7 +44,7 @@ static class SepHash
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal unsafe static uint UnrollSumMultiply31(ReadOnlySpan<char> chars)
+    internal static uint UnrollSumMultiply31(ReadOnlySpan<char> chars)
     {
         ref var charsCurrent = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(chars));
         ref var charsEnd = ref Unsafe.Add(ref charsCurrent, chars.Length);

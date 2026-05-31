@@ -41,14 +41,14 @@ public unsafe class SepParseSeparatorsMaskBench
     public IEnumerable<MaskSpec> Masks() => _masks;
 
     [Benchmark]
-    public unsafe ref int DummyForWarmup()
+    public ref int DummyForWarmup()
     {
         return ref SepParseMask.ParseSeparatorsMask(
             _maskValue, _dataIndex, ref *_colEndsOrColInfos);
     }
 
     [Benchmark(Baseline = true)]
-    public unsafe ref int ParseSeparatorsMask()
+    public ref int ParseSeparatorsMask()
     {
         return ref SepParseMask.ParseSeparatorsMask(
             _maskValue, _dataIndex, ref *_colEndsOrColInfos);

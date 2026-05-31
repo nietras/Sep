@@ -164,7 +164,7 @@ public class SepReaderColsTest
     }
 
     [TestMethod]
-    public unsafe void SepReaderColsTest_Select_ToString()
+    public void SepReaderColsTest_Select_ToString()
     {
         Run((cols, range) => CollectionAssert.AreEqual(_colTexts[range], cols.Select(c => c.ToString()).ToArray()));
     }

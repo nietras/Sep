@@ -122,7 +122,7 @@ public class PackageAssetsTest
     public void PackageAssetsTest_ParallelEnumerate_Empty_DegreeOfParallism(SepCreateToString createToString)
     {
         var text = string.Empty;
-        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallelism: 5));
     }
     [TestMethod]
     [DynamicData(nameof(ToStrings))]
@@ -136,7 +136,7 @@ public class PackageAssetsTest
     public void PackageAssetsTest_ParallelEnumerate_Empty_RowTryFunc_DegreeOfParallism(SepCreateToString createToString)
     {
         var text = string.Empty;
-        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallelism: 5));
     }
 
     [TestMethod]
@@ -160,7 +160,7 @@ public class PackageAssetsTest
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
 #endif
-        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+        VerifyEnumerate(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallelism: 5));
     }
 
     [TestMethod]
@@ -196,7 +196,7 @@ public class PackageAssetsTest
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(NoQuotes, 100));
 #endif
-        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallism: 5));
+        VerifyEnumerateTry(text, createToString, (reader, select) => reader.ParallelEnumerate(select, degreeOfParallelism: 5));
     }
 
     [TestMethod]

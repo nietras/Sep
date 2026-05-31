@@ -97,20 +97,20 @@ public static partial class SepReaderExtensions
         return ParallelEnumerateAsParallel(reader, trySelect);
     }
 
-    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select, int degreeOfParallism)
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowFunc<T> select, int degreeOfParallelism)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(select);
         if (!reader.HasRows) { return Array.Empty<T>(); }
-        return ParallelEnumerateAsParallel(reader, select, p => p.WithDegreeOfParallelism(degreeOfParallism));
+        return ParallelEnumerateAsParallel(reader, select, p => p.WithDegreeOfParallelism(degreeOfParallelism));
     }
 
-    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect, int degreeOfParallism)
+    public static IEnumerable<T> ParallelEnumerate<T>(this SepReader reader, SepReader.RowTryFunc<T> trySelect, int degreeOfParallelism)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(trySelect);
         if (!reader.HasRows) { return Array.Empty<T>(); }
-        return ParallelEnumerateAsParallel(reader, trySelect, p => p.WithDegreeOfParallelism(degreeOfParallism));
+        return ParallelEnumerateAsParallel(reader, trySelect, p => p.WithDegreeOfParallelism(degreeOfParallelism));
     }
 
     static IEnumerable<T> ParallelEnumerateAsParallel<T>(this SepReader reader, SepReader.RowFunc<T> select,

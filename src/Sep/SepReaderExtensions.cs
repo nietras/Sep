@@ -39,7 +39,7 @@ public static partial class SepReaderExtensions
     public static SepReaderOptions Reader(this SepSpec spec, Func<SepReaderOptions, SepReaderOptions> configure)
     {
         Contract.Assume(configure != null);
-        return configure(Reader(spec.Sep));
+        return configure(Reader(spec));
     }
 
     internal static Sep? DetectSep(ReadOnlySpan<char> chars, bool nothingLeftToRead, bool disableQuotesParsing)

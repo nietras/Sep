@@ -135,7 +135,13 @@ public sealed partial class SepWriter : IDisposable
         //static ulong IndexOfFirstSet(ulong v) => ((((v - 1) & 0x0001000100010001ul) * 0x0001000100010001ul) >> 60) - 1;
     }
 
-    public ValueTask DisposeAsync() => DisposeManagedAsync(default);
+    public ValueTask DisposeAsync()
+    {
+        if (_disposed) { return ValueTask.CompletedTask; }
+        _disposed = true;
+        GC.SuppressFinalize(this);
+        return DisposeManagedAsync(default);
+    }
 
     #region Dispose
     bool _disposed;

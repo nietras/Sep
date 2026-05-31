@@ -91,7 +91,7 @@ var text = """
            CSV;✅;2;2.2;0.2;1.5
            """;
 
-using var reader = Sep.Reader().FromText(text);   // Infers separator 'Sep' from header
+using var reader = Sep.Reader().FromText(text);   // Infers separator ';' from header
 using var writer = reader.Spec.Writer().ToText(); // Writer defined from reader 'Spec'
                                                   // Use .FromFile(...)/ToFile(...) for files
 var idx = reader.Header.IndexOf("B");
@@ -202,7 +202,7 @@ or
 using var writer = Sep.New(',').Writer().ToFile("titanic.csv");
 ```
 where you have to specify a valid separator, since it cannot be inferred. To
-fascillitate easy flow of the separator and `CultureInfo` both `SepReader` and
+facilitate easy flow of the separator and `CultureInfo` both `SepReader` and
 `SepWriter` expose a `Spec` property of type [`SepSpec`](src/Sep/SepSpec.cs) that simply defines those
 two. This means you can write:
 ```csharp
@@ -278,7 +278,7 @@ That is, to use `SepReader` follow the points below:
  1. Optionally access the header. For example, to get all columns starting with
     `GT_` use:
     ```csharp
-    var colNames = header.NamesStarting("GT_");
+    var colNames = header.NamesStartingWith("GT_");
     var colIndices = header.IndicesOf(colNames);
     ```
  1. Enumerate rows. One row at a time.
@@ -463,7 +463,7 @@ there is a starting quote after spaces.
 #### SepReader Debuggability
 Debuggability is an important part of any library and while this is still a work
 in progress for Sep, `SepReader` does have a unique feature when looking at it
-and it's row or cols in a debug context. Given the below example code:
+and its row or cols in a debug context. Given the below example code:
 ```csharp
 var text = """
            Key;Value
@@ -563,8 +563,8 @@ basically be no different than a `ReadLine` approach as benchmarked in
 
 This is perhaps also the reason why no other efficient .NET CSV parser (known to
 author) implements an API pattern like Sep, but instead let the reader define
-all functionality directly and hence only let's you access the current row and
-cols on that. This API, however, is in this authors opinion not ideal and can be
+all functionality directly and hence only lets you access the current row and
+cols on that. This API, however, is in this author's opinion not ideal and can be
 a bit confusing, which is why Sep is designed like it is. The downside is the
 above caveat.
 
@@ -770,7 +770,7 @@ extension methods, that should be used carefully. Alongside these there are
 enumeration. See [benchmarks](#comparison-benchmarks) for numbers and [Public
 API Reference](#public-api-reference).
 
-`ParallelEnumerate` is build on top of LINQ `AsParallel().AsOrdered()` and will
+`ParallelEnumerate` is built on top of LINQ `AsParallel().AsOrdered()` and will
 return exactly the same as `Enumerate` but with enumeration parallelized. This
 will use more memory during execution and as many threads as possible via the
 .NET thread pool. When using `ParallelEnumerate` one should, therefore (as
@@ -818,7 +818,7 @@ That is, to use `SepWriter` follow the points below:
     For all options see [SepWriterOptions](#sepwriteroptions).
  1. Specify destination e.g. file, text (`string` via `StringWriter`),
     `TextWriter`, etc. via `To` extension methods.
- 1. MISSING: `SepWriter` currently does not allow you to define the header up
+ 1. `SepWriter` currently does not allow you to define the header up
     front. Instead, header is defined by the order in which column names are
     accessed/created when defining the row.
  1. Define new rows with `NewRow`. ⚠ Be sure to dispose any new rows before
@@ -909,7 +909,7 @@ public bool AsyncContinueOnCapturedContext { get; init; } = false;
 
 #### Escaping
 Escaping is not enabled by default in Sep, but when it is it gives the same
-results as other popular CSV librares as shown below. Although, CsvHelper
+results as other popular CSV libraries as shown below. Although, CsvHelper
 appears to be escaping spaces as well, which is not necessary.
 
 | Input | CsvHelper | Sylvan | Sep¹ |
@@ -1117,7 +1117,7 @@ The following reader scenarios are benchmarked:
 * [**Floats**](#floats-reader-comparison-benchmarks) as for example in machine learning.
 
 Details for each can be found in the following. However, for each of these 3
-different scopes are benchmarked to better assertain the low-level performance
+different scopes are benchmarked to better ascertain the low-level performance
 of each library and approach and what parts of the parsing consume the most
 time:
 
@@ -1159,7 +1159,7 @@ of the async code path.
 [NCsvPerf](https://github.com/joelverhagen/NCsvPerf) from [The fastest CSV
    parser in
    .NET](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers) is a
-   benchmark which in [Joel Verhagen](https://twitter.com/joelverhagen) own
+   benchmark which in [Joel Verhagen](https://twitter.com/joelverhagen)'s own
    words was defined with:
 
 > My goal was to find the fastest low-level CSV parser. Essentially, all I
@@ -1225,7 +1225,7 @@ only a fraction of the memory due to extensive use of pooling and the
 `ArrayPool<T>`.
 
 This is in many aspects due to Sep having extremely optimized string pooling and
-optimized hashing of `ReadOnlySpan<char>`, and thus not really due the the
+optimized hashing of `ReadOnlySpan<char>`, and thus not really due to the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
 

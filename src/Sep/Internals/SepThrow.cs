@@ -174,7 +174,7 @@ static class SepThrow
     [DoesNotReturn]
     internal static void InvalidOperationException_CannotAddColNameHeaderAlreadyWritten(string colName)
     {
-        throw new InvalidOperationException($"Cannot add column name '{colName} since header or first row already written.");
+        throw new InvalidOperationException($"Cannot add column name '{colName}' since header or first row already written.");
     }
 
     [DoesNotReturn]

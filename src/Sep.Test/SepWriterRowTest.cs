@@ -10,7 +10,18 @@ public class SepWriterRowTest
 {
     static readonly string NL = Environment.NewLine;
 
-    // TODO: ColIndex only if no header
+    [TestMethod]
+    public void SepWriterRowTest_Indexer_ColIndex_Only()
+    {
+        Run(row => { row[0].Set("1"); row[0].Set("11"); }, $"11{NL}", writeHeader: false);
+        Run(row =>
+            {
+                row[0].Set("1");
+                row[1].Set("2");
+                row[1].Set("22");
+            },
+            $"1;22{NL}", writeHeader: false);
+    }
 
     [TestMethod]
     public void SepWriterRowTest_Indexer_ColIndex_After_ColName()
@@ -195,12 +206,12 @@ public class SepWriterRowTest
         Assert.AreEqual(expected, writer.ToString());
     }
 
-    static void Run(SepWriter.RowAction action, string expected) =>
-        Run(action, actual => Assert.AreEqual(expected, actual));
+    static void Run(SepWriter.RowAction action, string expected, bool writeHeader = true) =>
+        Run(action, actual => Assert.AreEqual(expected, actual), writeHeader);
 
-    static void Run(SepWriter.RowAction action, Action<string>? assert = null)
+    static void Run(SepWriter.RowAction action, Action<string>? assert = null, bool writeHeader = true)
     {
-        using var writer = Sep.Writer().ToText();
+        using var writer = Sep.Writer(o => o with { WriteHeader = writeHeader }).ToText();
         {
             using var row = writer.NewRow();
             action(row);
@@ -214,6 +225,7 @@ public class SepWriterRowTest
         using var writer = Sep.Writer().ToText();
         {
             using var row = writer.NewRow();
+            // Cannot use Assert.Throws<> here since row is ref struct
             try
             {
                 action(row);

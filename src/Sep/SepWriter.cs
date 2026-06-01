@@ -33,7 +33,6 @@ public sealed partial class SepWriter : IDisposable
     readonly ISepTextWriterDisposer _textWriterDisposer;
     internal readonly List<(string ColName, int ColIndex)> _colNameCache = new(DefaultCapacity);
 
-    // TODO: Add Stack<ColImpl> for remove/add cols when manipulating
     internal readonly Dictionary<string, ColImpl> _colNameToCol = new(DefaultCapacity);
     // Once header is written cols cannot be added or removed
     internal List<ColImpl> _cols = new(DefaultCapacity);

@@ -5,7 +5,8 @@ namespace nietras.SeparatedValues;
 
 public partial class SepWriter
 {
-    // Problem here is Col is a ref struct so can't use Action<Col,...>
+    // Problem here is Col is a ref struct so couldn't use Action<Col,...>
+    // before .NET 10 and `allows ref struct`
     public delegate void ColAction(Col col);
     public delegate void ColAction<T>(Col col, T value);
 
@@ -80,8 +81,6 @@ public partial class SepWriter
             }
         }
 
-        // TODO: Add overloads for Format with Action
-
         public void Format<T>(ReadOnlySpan<T> values, ColAction<T> format)
         {
             ArgumentNullException.ThrowIfNull(format);
@@ -91,7 +90,5 @@ public partial class SepWriter
                 format(new(_cols[i]), values[i]);
             }
         }
-
-        // TODO: Support interpolated string formatting for spans
     }
 }

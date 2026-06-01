@@ -41,7 +41,6 @@ public static class SepDefaults
     internal const byte LineFeedByte = (byte)LineFeed;
     internal const byte CarriageReturnByte = (byte)CarriageReturn;
     internal const byte QuoteByte = (byte)Quote;
-    //internal const byte CommentByte = (byte)Comment;
 
     internal const byte EmptyFlag = 0b0000_0000;
     internal const byte LineFeedFlag = 0b0000_0001;
@@ -49,23 +48,4 @@ public static class SepDefaults
     internal const byte QuoteFlag = 0b0000_0100;
     internal const byte SeparatorFlag = 0b0000_1000;
     internal const byte EndOfTextFlag = 0b0001_0000;
-    //internal const byte CommentFlag = 0b0010_0000;
-
-    // Make test for building this, define in separate file
-    //internal static ReadOnlySpan<byte> CharToFlags => new byte[256];
-    //internal readonly byte[] CharToFlags = CreateCharToFlags();
-    //static byte[] CreateCharToFlags()
-    //{
-    //    var bytes = new byte[byte.MaxValue + 1];
-    //    bytes[LineFeed] = LineFeedFlag;
-    //    bytes[CarriageReturn] = CarriageReturnFlag;
-    //    bytes[Quote] = QuoteFlag;
-    //    bytes[CommentFlag] = CommentFlag;
-    //    bytes[';'] = SeparatorFlag;
-    //    bytes[','] = SeparatorFlag;
-    //    bytes['\t'] = SeparatorFlag;
-    //    bytes['|'] = SeparatorFlag;
-    //    // TODO: Handle other separators
-    //    return bytes;
-    //}
 }

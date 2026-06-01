@@ -14,7 +14,6 @@ namespace nietras.SeparatedValues.Test;
 [TestClass]
 public class SepParserTest
 {
-    // TODO: Add randomized long tests using baseline naive parser implementation
     readonly SepReaderState _state = new();
     readonly SepReaderState _stateUnescape = new(colUnquoteUnescape: true);
     readonly char[] _chars;

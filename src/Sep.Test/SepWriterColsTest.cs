@@ -169,6 +169,23 @@ public class SepWriterColsTest
     }
 
     [TestMethod]
+    public void SepWriterColsTest_Format_Action_InterpolatedString_Span()
+    {
+        using var writer = CreateWriter();
+        ReadOnlySpan<string> values0 = _colTexts0;
+        ReadOnlySpan<string> values1 = _colTexts1;
+        using (var row0 = writer.NewRow()) { row0[_colNames].Format(values0, static (c, v) => c.Set($"[{v}]-{v.Length}")); }
+        using (var row1 = writer.NewRow()) { row1[_colNames].Format(values1, static (c, v) => c.Set($"[{v}]-{v.Length}")); }
+        const string expected = """
+                                A;B;C
+                                [10]-2;[11]-2;[12]-2
+                                [20]-2;[21]-2;[22]-2
+
+                                """;
+        Assert.AreEqual(expected, writer.ToString());
+    }
+
+    [TestMethod]
     public void SepWriterColsTest_SetIReadOnlyList_Null_Throws()
     {
         using var writer = CreateWriter();

@@ -15,8 +15,9 @@ sealed class SepParserIndexOfAny : ISepParser
     public SepParserIndexOfAny(SepParserOptions options)
     {
         _separator = options.Separator;
-        // TODO: No quote if disabled
-        _specialChars = [options.Separator, CarriageReturn, LineFeed, options.QuotesOrSeparatorIfDisabled];
+        _specialChars = options.Separator != options.QuotesOrSeparatorIfDisabled
+            ? [options.Separator, CarriageReturn, LineFeed, options.QuotesOrSeparatorIfDisabled]
+            : [options.Separator, CarriageReturn, LineFeed];
     }
 
     public int PaddingLength => 4;

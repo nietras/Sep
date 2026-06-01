@@ -535,8 +535,6 @@ public partial class SepReaderTest
         Assert.IsNotNull(info.DebuggerDisplay);
     }
 
-    // TODO: Need test of quotes at end
-
 #pragma warning disable IDE0055
     public static IEnumerable<object[]> ColCountMismatchData =>
     [

@@ -54,7 +54,6 @@ public class SepReaderColTest
         AssertParseFloats(o => o);
         AssertParseFloats(o => o with { DisableFastFloat = true });
         AssertParseFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
-
     }
 
     [TestMethod]

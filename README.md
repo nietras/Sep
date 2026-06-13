@@ -848,7 +848,7 @@ The following options are available:
 /// </summary>
 public Sep Sep { get; init; }
 /// <summary>
-/// Specifies the culture used for parsing. 
+/// Specifies the culture used for formatting. 
 /// May be `null` for default culture.
 /// </summary>
 public CultureInfo? CultureInfo { get; init; }
@@ -891,7 +891,7 @@ public SepColNotSetOption ColNotSetOption { get; init; } = SepColNotSetOption.Th
 /// <remarks>
 /// When true, if a column contains a separator 
 /// (e.g. `;`), carriage return (`\r`), line 
-/// feed (`\n` or quote (`"`) then the column 
+/// feed (`\n`) or quote (`"`) then the column 
 /// is prefixed and suffixed with quotes `"` 
 /// and any quote in the column is escaped by
 /// adding an extra quote so it becomes `""`.

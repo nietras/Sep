@@ -31,7 +31,7 @@ public partial class ReadMeTest
                    CSV;✅;2;2.2;0.2;1.5
                    """;
 
-        using var reader = Sep.Reader().FromText(text);   // Infers separator 'Sep' from header
+        using var reader = Sep.Reader().FromText(text);   // Infers separator 'Sep' (`;`) from header
         using var writer = reader.Spec.Writer().ToText(); // Writer defined from reader 'Spec'
                                                           // Use .FromFile(...)/ToFile(...) for files
         var idx = reader.Header.IndexOf("B");
@@ -574,7 +574,7 @@ public partial class ReadMeTest
     }
 
     // Only update public API in README for latest .NET version to keep consistent
-#if NET9_0
+#if NET10_0
     [TestMethod]
 #endif
     public void ReadMeTest_PublicApi()

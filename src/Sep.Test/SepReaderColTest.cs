@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -53,6 +54,16 @@ public class SepReaderColTest
         AssertParseFloats(o => o);
         AssertParseFloats(o => o with { DisableFastFloat = true });
         AssertParseFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
+    }
+
+    [TestMethod]
+    public void SepReaderColTest_Parse_CultureInfo_MultiCharacterDecimalAndGroupSeparator()
+    {
+        var cultureInfoWithMultiCharacterGroupSeparator = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+        cultureInfoWithMultiCharacterGroupSeparator.NumberFormat.NumberGroupSeparator = "__";
+        cultureInfoWithMultiCharacterGroupSeparator.NumberFormat.NumberDecimalSeparator = "..";
+        Run(col => Assert.AreEqual(1234567.89f, col.Parse<float>()), "1__234__567..89",
+            o => o with { CultureInfo = cultureInfoWithMultiCharacterGroupSeparator });
     }
 
     [TestMethod]

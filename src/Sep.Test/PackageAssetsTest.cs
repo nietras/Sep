@@ -168,7 +168,7 @@ public class PackageAssetsTest
     public void PackageAssetsTest_ParallelEnumerate_WithQuotes(SepCreateToString createToString)
     {
 #if SEPREADERTRACE
-                var text = NoQuotes;
+        var text = WithQuotes;
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
 #endif
@@ -204,7 +204,7 @@ public class PackageAssetsTest
     public void PackageAssetsTest_ParallelEnumerate_RowTryFunc_WithQuotes(SepCreateToString createToString)
     {
 #if SEPREADERTRACE
-        var text = NoQuotes;
+        var text = WithQuotes;
 #else
         var text = string.Join(string.Empty, Enumerable.Repeat(WithQuotes, 100));
 #endif

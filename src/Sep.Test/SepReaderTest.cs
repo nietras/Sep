@@ -130,6 +130,16 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
+    public async ValueTask SepReaderTest_CreateWithInitialBufferLengthTooLong()
+    {
+        Assert.ThrowsExactly<OutOfMemoryException>(() =>
+            Sep.Reader(o => o with { InitialBufferLength = int.MaxValue }).FromText(""));
+        await Assert.ThrowsExactlyAsync<OutOfMemoryException>(async () =>
+            await Sep.Reader(o => o with { InitialBufferLength = int.MaxValue })
+                .FromTextAsync(""));
+    }
+
+    [TestMethod]
     public void SepReaderTest_ToString_ColIndex()
     {
         using var reader = Sep.Reader().FromText("A;B\nX;Y");

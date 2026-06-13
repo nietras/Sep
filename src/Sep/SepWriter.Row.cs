@@ -91,9 +91,10 @@ public partial class SepWriter
         {
             if (_writer is not null)
             {
-                return _writer.EndRowAsync();
+                var writer = _writer;
+                _writer = null;
+                return writer.EndRowAsync();
             }
-            _writer = null;
             return ValueTask.CompletedTask;
         }
     }

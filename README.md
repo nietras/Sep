@@ -461,9 +461,9 @@ there is a starting quote after spaces.
 `SepReaderOptions`
 
 #### SepReader Debuggability
-Debuggability is an important part of any library and while this is still a work
-in progress for Sep, `SepReader` does have a unique feature when looking at it
-and its row or cols in a debug context. Given the below example code:
+Debuggability is an important part of any library and in Sep. `SepReader` has a
+unique feature when looking at it and its rows or cols in a debug context. Given
+the following example code:
 ```csharp
 var text = """
            Key;Value

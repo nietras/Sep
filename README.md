@@ -819,7 +819,7 @@ That is, to use `SepWriter` follow the points below:
  1. Specify destination e.g. file, text (`string` via `StringWriter`),
     `TextWriter`, etc. via `To` extension methods.
  1. `SepWriter` does allow you to define the header up front via
-    `SepWriter.Header.Add)...)`. However, header is usually defined by the order
+    `SepWriter.Header.Add(...)`. However, header is usually defined by the order
     in which column names are accessed/created when defining the row.
  1. Define new rows with `NewRow`. ⚠ Be sure to dispose any new rows before
     starting the next! For convenience Sep provides an overload for `NewRow` that

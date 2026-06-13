@@ -15,7 +15,7 @@ public partial class SepReader
 #endif
         ;
     public delegate void ColAction(Col col);
-    public delegate void ColsAction(Cols col);
+    public delegate void ColsAction(Cols cols);
 
     public readonly ref struct Cols
     {

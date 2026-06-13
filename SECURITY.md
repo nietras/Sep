@@ -1,7 +1,7 @@
 # Reporting Security Issues
 
 Security bugs in Sep are taken seriously. Your efforts to responsibly disclose
-your findings is appreciated, and every effort will be made to acknowledge your
+your findings are appreciated, and every effort will be made to acknowledge your
 contributions.
 
 To report a security issue, please use the GitHub Security Advisory ["Report a

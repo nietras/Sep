@@ -80,7 +80,7 @@ static class SepAssert
         /// <summary>The handler we use to perform the formatting.</summary>
         StringBuilder.AppendInterpolatedStringHandler _stringBuilderHandler;
 
-        /// <summary>Creates an instance of the handler..</summary>
+        /// <summary>Creates an instance of the handler.</summary>
         /// <param name="literalLength">The number of constant characters outside of interpolation expressions in the interpolated string.</param>
         /// <param name="formattedCount">The number of interpolation expressions in the interpolated string.</param>
         /// <param name="condition">The condition Boolean passed to the <see cref="Debug"/> method.</param>

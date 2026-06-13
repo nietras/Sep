@@ -2349,6 +2349,7 @@ Ask questions on GitHub and this section will be expanded. :)
 ## Public API Reference
 ```csharp
 [assembly: System.CLSCompliant(false)]
+[assembly: System.Reflection.AssemblyMetadata("IsAotCompatible", "True")]
 [assembly: System.Reflection.AssemblyMetadata("IsTrimmable", "True")]
 [assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/nietras/Sep/")]
 [assembly: System.Resources.NeutralResourcesLanguage("en")]
@@ -2356,7 +2357,7 @@ Ask questions on GitHub and this section will be expanded. :)
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.ComparisonBenchmarks")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.Test")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Sep.XyzTest")]
-[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v9.0", FrameworkDisplayName=".NET 9.0")]
+[assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName=".NET 10.0")]
 namespace nietras.SeparatedValues
 {
     public readonly struct Sep : System.IEquatable<nietras.SeparatedValues.Sep>
@@ -2465,7 +2466,7 @@ namespace nietras.SeparatedValues
         }
         public delegate void ColAction(nietras.SeparatedValues.SepReader.Col col);
         public delegate T ColFunc<T>(nietras.SeparatedValues.SepReader.Col col);
-        public delegate void ColsAction(nietras.SeparatedValues.SepReader.Cols col);
+        public delegate void ColsAction(nietras.SeparatedValues.SepReader.Cols cols);
         public delegate void RowAction(nietras.SeparatedValues.SepReader.Row row);
         public delegate T RowFunc<T>(nietras.SeparatedValues.SepReader.Row row);
         public delegate bool RowTryFunc<T>(nietras.SeparatedValues.SepReader.Row row, out T value);

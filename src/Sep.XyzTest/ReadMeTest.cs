@@ -574,7 +574,7 @@ public partial class ReadMeTest
     }
 
     // Only update public API in README for latest .NET version to keep consistent
-#if NET9_0
+#if NET10_0
     [TestMethod]
 #endif
     public void ReadMeTest_PublicApi()

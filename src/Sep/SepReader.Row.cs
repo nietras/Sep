@@ -33,6 +33,7 @@ public partial class SepReader
         public int RowIndex => _state._rowIndex;
 
         public int LineNumberFrom => _state._currentRowLineNumberFrom;
+        // Excl is acceptable abbreviation for Exclusivenit 
         public int LineNumberToExcl => _state._currentRowLineNumberTo;
 
         public int ColCount => _state._currentRowColCount;

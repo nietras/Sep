@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <PackageId>Sep.SourceGenerator</PackageId>
+    <Description>High-performance source generator for Sep CSV models.</Description>
+    <PackageTags>sep;csv;source-generator;roslyn</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/nietras/Sep/</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>false</IncludeSymbols>
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 4.8 is the Roslyn version hosted by the oldest supported .NET 8 SDK. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <!-- Generated source calls Sep directly, but the analyzer itself has no runtime Sep dependency. -->
+    <PackageReference Include="Sep" Version="0.15.1" Condition="'$(TargetFramework)' == 'net8.0'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    <None Include="../../README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <Target Name="AddAnalyzerToPackage" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <AnalyzerBuildOutputPath>$(BaseOutputPath)$([System.String]::Copy('$(Configuration)').ToLowerInvariant())_netstandard2.0\$(AssemblyName).dll</AnalyzerBuildOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <None Include="$(AnalyzerBuildOutputPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Sep.SourceGenerator.Test</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

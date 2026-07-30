@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>nietras.SeparatedValues.SourceGenerator.Test</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+    <CoverletOutput>$(BaseIntermediateOutputPath)coverage\</CoverletOutput>
+    <Threshold>100</Threshold>
+    <ThresholdType>line</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
+    <Include>[Sep.SourceGenerator]*</Include>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sep\Sep.csproj" />
+    <ProjectReference Include="..\Sep.SourceGenerator\Sep.SourceGenerator.csproj"
+                      OutputItemType="Analyzer" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="10.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="10.0.1" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <PackageReference Include="MSTest" Version="4.3.2" />
+  </ItemGroup>
+
+  <Target Name="PackSourceGeneratorForPackageTests" BeforeTargets="VSTest">
+    <MSBuild Projects="..\Sep.SourceGenerator\Sep.SourceGenerator.csproj"
+             Targets="Pack"
+             Properties="Configuration=$(Configuration);Restore=false" />
+  </Target>
+
+</Project>

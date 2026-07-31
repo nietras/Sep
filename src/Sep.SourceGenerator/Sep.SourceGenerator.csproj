@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- The generator ships as its own package rather than inside the Sep package. Bundling is the
+         more common pattern, see System.Text.Json and Microsoft.Extensions.Logging, but it makes
+         the generator unavoidable: a generator injects its attributes into every compilation and is
+         loaded and run by Roslyn even when unused. Sep is about not paying for what you do not use,
+         so source generation is opt in and costs nothing for those who do not reference this. -->
+
     <!-- netstandard2.0 is what Roslyn loads and is the only assembly shipped in the package. The
          net8.0 target framework builds no code, it exists solely so the package can declare a
-         net8.0 dependency group for Sep, see the Sep package reference below. -->
+         net8.0 dependency group for Sep, see the Sep project reference below. -->
     <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>

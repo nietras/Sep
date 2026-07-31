@@ -253,6 +253,94 @@ public class SepSourceGeneratorTest
     }
 
     [TestMethod]
+    public void SepSourceGeneratorTest_GeneratesAdvancedMappings()
+    {
+        var result = Run("""
+            using System.ComponentModel;
+
+            public enum State { Unknown, Ready }
+            public readonly record struct StrongId(int Value);
+
+            public static class StrongIdConverter
+            {
+                public static StrongId Parse(SepReader.Col col) => new(col.Parse<int>());
+                public static bool TryParse(SepReader.Col col, out StrongId value)
+                {
+                    if (col.TryParse<int>(out var parsed))
+                    {
+                        value = new(parsed);
+                        return true;
+                    }
+                    value = default;
+                    return false;
+                }
+                public static void Format(SepWriter.Col col, StrongId value) => col.Format(value.Value);
+            }
+
+            public sealed record Address(
+                [property: SepCol(Names = ["LegacyStreet"])] string Street,
+                State State)
+            {
+                [SepCol(Ignore = true)]
+                public object? Ignored { get; init; }
+            }
+
+            public sealed record Person(
+                [property: SepCol(Names = ["LegacyId"])] int Id,
+                [property: SepCol(Names = ["LegacyName"])] string? Name,
+                [property: SepCol(Names = ["LegacyScore"])] int? Score,
+                [property: SepCol(Optional = true), DefaultValue(7)] int Version,
+                [property: SepCol(Optional = true), DefaultValue(null)] string? OptionalName,
+                [property: SepCol(Optional = true), DefaultValue(State.Ready)] State OptionalState,
+                [property: SepCol(Converter = typeof(StrongIdConverter))] StrongId StrongId,
+                [property: SepCol(Optional = true, Converter = typeof(StrongIdConverter))] StrongId OptionalStrongId,
+                [property: SepCol(Prefix = "Address.")] Address Address)
+            {
+                [SepCol(Ignore = true)]
+                public object? Ignored { get; init; }
+            }
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions { }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_ReportsInvalidConverterWhenSepTypesAreUnavailable()
+    {
+        var source = """
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions { }
+            public class Person
+            {
+                [SepCol(Converter = typeof(Converter))]
+                public int Id { get; set; }
+            }
+            public static class Converter { }
+            """;
+        var references = s_references
+            .Where(reference => !string.Equals(reference.Display, typeof(Sep).Assembly.Location, StringComparison.Ordinal))
+            .ToImmutableArray();
+        var compilation = CSharpCompilation.Create(
+            "MissingSep",
+            [CSharpSyntaxTree.ParseText(
+                SourcePrefix + source,
+                CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview))],
+            references,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+        var driver = CreateDriver();
+
+        driver = driver.RunGenerators(compilation);
+
+        Assert.AreEqual("SEPGEN003", driver.GetRunResult().Diagnostics.Single().Id);
+    }
+
+    [TestMethod]
     public void SepSourceGeneratorTest_AllowsCaseSensitiveColumnNames()
     {
         var result = Run("""
@@ -626,6 +714,138 @@ public class SepSourceGeneratorTest
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSepExtensions { }
+        public class Person { [SepCol("Id", Names = ["Id"])] public int Id { get; set; } }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person { [SepCol(0, Optional = true)] public int Id { get; set; } }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person { [SepCol(Prefix = "Nested.")] public string Name { get; set; } = ""; }
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person { [SepCol(Converter = typeof(BadConverter))] public int Id { get; set; } }
+        public static class BadConverter { }
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person { [SepCol(Names = [" "])] public int Id { get; set; } }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person
+        {
+            [SepCol(Ignore = true)] public int Id { get; set; }
+        }
+        """, "SEPGEN004")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested? Nested);
+        public record Nested(int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested([property: SepCol(0)] int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested([property: SepCol(Prefix = "Deeper.")] Deeper Deeper);
+        public record Deeper(int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested([property: SepCol(Ignore = true)] int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Callback Nested);
+        public delegate void Callback();
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested(object Unsupported);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person(
+            [property: SepCol("Address.Id")] int Existing,
+            [property: SepCol(Prefix = "Address.")] Nested Address);
+        public record Nested(int Id);
+        """, "SEPGEN006")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person
+        {
+            [SepCol(Prefix = "Address.")]
+            public Nested Address { private get; set; } = new();
+        }
+        public record Nested(int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public record Person([property: SepCol(Prefix = "Address.")] Nested Address);
+        public class Nested
+        {
+            private Nested() { }
+            public int Id { get; set; }
+        }
+        """, "SEPGEN003")]
+    [DataRow("""
+        public class Container
+        {
+            private static class Converter
+            {
+                public static int Parse(SepReader.Col col) => 0;
+                public static bool TryParse(SepReader.Col col, out int value) { value = 0; return true; }
+                public static void Format(SepWriter.Col col, int value) { }
+            }
+            public class Person
+            {
+                [SepCol(Converter = typeof(Converter))]
+                public int Id { get; set; }
+            }
+        }
+        [SepSourceGeneration(typeof(Container.Person))]
+        public static partial class PersonSepExtensions { }
+        """, "SEPGEN003")]
+    [DataRow("""
+        public static class Converter
+        {
+            public static int Parse(SepReader.Col col) => 0;
+            public static bool TryParse(SepReader.Col col, out int value) { value = 0; return true; }
+            public static void Format(SepWriter.Col col, int value) { }
+        }
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
+        public class Person
+        {
+            [SepCol(Format = "X", Converter = typeof(Converter))]
+            public int Id { get; set; }
+        }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions { }
         public class Person { public int Id { private get; private set; } }
         """, "SEPGEN003")]
     [DataRow("""
@@ -772,6 +992,13 @@ public class SepSourceGeneratorTest
         // is used instead. These are the properties the incremental caching relies on.
         var withNullFormat = CreateEnumMember("Ready");
         var withEmptyFormat = CreateEnumMember("Ready").WithMapping(new SepSourceGenerator.ColumnMapping("c", null, ""));
+        var withAlternateName = CreateEnumMember("Ready").WithMapping(new SepSourceGenerator.ColumnMapping(
+            "c",
+            ImmutableArray.Create("legacy"),
+            index: null,
+            format: null,
+            optional: false,
+            defaultValueExpression: null));
         var reordered = new SepSourceGenerator.ConstructionPlan(
             ImmutableArray.Create(
                 new SepSourceGenerator.ConstructorParameter("@a", 0),
@@ -784,6 +1011,7 @@ public class SepSourceGeneratorTest
             ImmutableArray<int>.Empty);
 
         Assert.AreNotEqual(withNullFormat.GetHashCode(), withEmptyFormat.GetHashCode());
+        Assert.AreNotEqual(withNullFormat.GetHashCode(), withAlternateName.GetHashCode());
         Assert.AreNotEqual(reordered.GetHashCode(), swapped.GetHashCode());
         Assert.AreEqual(reordered.GetHashCode(), new SepSourceGenerator.ConstructionPlan(
             ImmutableArray.Create(

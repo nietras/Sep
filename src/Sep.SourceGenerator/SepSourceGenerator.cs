@@ -18,6 +18,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 {
     const string AttributeMetadataName = "nietras.SeparatedValues.SepSourceGenerationAttribute";
     const string ColumnAttributeMetadataName = "nietras.SeparatedValues.SepColAttribute";
+    const string DefaultValueAttributeMetadataName = "System.ComponentModel.DefaultValueAttribute";
     // Enough for any realistic enum name or flags combination, so the pooled fallback is never hit.
     const int EnumStackallocCharCount = 256;
 
@@ -38,6 +39,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     const string ArrayPoolName = "global::System.Buffers.ArrayPool<char>";
     const string EnumerableName = "global::System.Collections.Generic.IEnumerable";
     const string EnumeratorName = "global::System.Collections.Generic.IEnumerator";
+    const string KeyNotFoundExceptionName = "global::System.Collections.Generic.KeyNotFoundException";
     const string AsyncEnumerableName = "global::System.Collections.Generic.IAsyncEnumerable";
     const string CancellationTokenName = "global::System.Threading.CancellationToken";
     const string ValueTaskName = "global::System.Threading.Tasks.ValueTask";
@@ -162,6 +164,40 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         {
             cancellationToken.ThrowIfCancellationRequested();
             var symbol = symbols[order];
+            if (IsIgnored(symbol))
+            {
+                continue;
+            }
+            if (TryGetPrefix(symbol, out var prefix))
+            {
+                if (!TryCreateNestedMember(
+                    symbol,
+                    order,
+                    prefix,
+                    compilation,
+                    adapter,
+                    cancellationToken,
+                    out var nestedMember,
+                    out var nestedError))
+                {
+                    return Model.Invalid(Issue.Create(
+                        IssueId.UnsupportedMember,
+                        symbol.Locations.FirstOrDefault(),
+                        symbol.Name,
+                        nestedError));
+                }
+                foreach (var nestedColumn in nestedMember.NestedModel!.Members.SelectMany(AllColumnNames))
+                {
+                    if (names.TryGetValue(nestedColumn, out var existingName))
+                    {
+                        return Model.Invalid(Issue.Create(IssueId.DuplicateColumn, symbol.Locations.FirstOrDefault(),
+                            $"name '{nestedColumn}'", existingName, symbol.Name));
+                    }
+                    names.Add(nestedColumn, symbol.Name);
+                }
+                members.Add(nestedMember);
+                continue;
+            }
             if (symbol is IPropertySymbol property && property.IsIndexer)
             {
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, property.Locations.FirstOrDefault(), property.Name,
@@ -171,16 +207,19 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             {
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
-            if (!TryGetColumnMapping(symbol, member.IsString, out var mapping, out error))
+            if (!TryGetColumnMapping(symbol, member.IsString, member.ConverterName is not null, out var mapping, out error))
             {
                 return Model.Invalid(Issue.Create(IssueId.InvalidColumn, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
-            if (names.TryGetValue(mapping.Name, out var existingName))
+            foreach (var columnName in mapping.AlternateNames.Insert(0, mapping.Name))
             {
-                return Model.Invalid(Issue.Create(IssueId.DuplicateColumn, symbol.Locations.FirstOrDefault(),
-                    $"name '{mapping.Name}'", existingName, symbol.Name));
+                if (names.TryGetValue(columnName, out var existingName))
+                {
+                    return Model.Invalid(Issue.Create(IssueId.DuplicateColumn, symbol.Locations.FirstOrDefault(),
+                        $"name '{columnName}'", existingName, symbol.Name));
+                }
+                names.Add(columnName, symbol.Name);
             }
-            names.Add(mapping.Name, symbol.Name);
             if (mapping.Index is int index)
             {
                 if (indices.TryGetValue(index, out var existingIndex))
@@ -194,6 +233,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
 
         var immutableMembers = members.ToImmutable();
+        if (immutableMembers.Length == 0)
+        {
+            return Model.Invalid(Issue.Create(IssueId.NoMembers, model.Locations.FirstOrDefault(), model.Name));
+        }
         var usesIndexes = indices.Count > 0;
         if (usesIndexes && !HasCompleteIndexedLayout(immutableMembers))
         {
@@ -221,6 +264,135 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         !CSharpSyntaxTree.ParseText(
             "static class C { extension(object) { public static void M() { } } }",
             parseOptions).GetDiagnostics().Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+
+    static bool IsIgnored(ISymbol symbol) =>
+        GetColumnAttribute(symbol)?.NamedArguments.Any(static argument =>
+            argument.Key == "Ignore" && argument.Value.Value is true) == true;
+
+    static AttributeData? GetColumnAttribute(ISymbol symbol) =>
+        symbol.GetAttributes().FirstOrDefault(static attribute =>
+            attribute.AttributeClass?.ToDisplayString() == ColumnAttributeMetadataName);
+
+    static bool TryGetPrefix(ISymbol symbol, out string prefix)
+    {
+        prefix = GetColumnAttribute(symbol)?.NamedArguments.FirstOrDefault(static argument => argument.Key == "Prefix")
+            .Value.Value as string ?? "";
+        return prefix.Length > 0;
+    }
+
+    static IEnumerable<string> AllColumnNames(Member member)
+    {
+        yield return member.ColumnName;
+        foreach (var alternateName in member.AlternateNames)
+        {
+            yield return alternateName;
+        }
+    }
+
+    static bool TryCreateNestedMember(
+        ISymbol symbol,
+        int order,
+        string prefix,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
+        CancellationToken cancellationToken,
+        out Member member,
+        out string error)
+    {
+        var type = symbol is IPropertySymbol property ? property.Type : ((IFieldSymbol)symbol).Type;
+        if (type.NullableAnnotation == NullableAnnotation.Annotated)
+        {
+            member = default!;
+            error = "specifies Prefix on a nullable nested member, which is not supported";
+            return false;
+        }
+        if (type is not INamedTypeSymbol nestedType || !IsValidModel(nestedType) ||
+            !compilation.IsSymbolAccessibleWithin(nestedType, adapter))
+        {
+            member = default!;
+            error = "specifies Prefix but is not an accessible class or struct";
+            return false;
+        }
+        if (symbol is IPropertySymbol readableProperty && !IsAccessible(compilation, adapter, readableProperty.GetMethod))
+        {
+            member = default!;
+            error = "does not have an accessible getter";
+            return false;
+        }
+        var canWrite = symbol is IPropertySymbol writableProperty
+            ? IsAccessible(compilation, adapter, writableProperty.SetMethod)
+            : !((IFieldSymbol)symbol).IsReadOnly;
+
+        var nestedSymbols = GetPublicInstanceMembers(nestedType, cancellationToken);
+        var nestedMembers = ImmutableArray.CreateBuilder<Member>(nestedSymbols.Length);
+        for (var nestedOrder = 0; nestedOrder < nestedSymbols.Length; ++nestedOrder)
+        {
+            var nestedSymbol = nestedSymbols[nestedOrder];
+            if (IsIgnored(nestedSymbol))
+            {
+                continue;
+            }
+            if (TryGetPrefix(nestedSymbol, out _))
+            {
+                member = default!;
+                error = "nested Prefix mappings cannot contain another Prefix mapping";
+                return false;
+            }
+            if (!TryCreateMember(nestedSymbol, nestedOrder, compilation, adapter, out var nestedMember, out error) ||
+                !TryGetColumnMapping(
+                    nestedSymbol,
+                    nestedMember.IsString,
+                    nestedMember.ConverterName is not null,
+                    out var mapping,
+                    out error))
+            {
+                member = default!;
+                return false;
+            }
+            if (mapping.Index is not null)
+            {
+                member = default!;
+                error = "nested Prefix mappings cannot use indexed columns";
+                return false;
+            }
+            nestedMembers.Add(nestedMember.WithMapping(mapping.WithPrefix(prefix)));
+        }
+        var immutableNestedMembers = nestedMembers.ToImmutable();
+        if (immutableNestedMembers.Length == 0 ||
+            !TryCreateConstructionPlan(
+                nestedType,
+                immutableNestedMembers,
+                compilation,
+                adapter,
+                cancellationToken,
+                out var construction,
+                out _))
+        {
+            member = default!;
+            error = "specifies Prefix but its nested type has no usable construction plan";
+            return false;
+        }
+
+        var nestedModel = new Model(
+            null,
+            "",
+            "",
+            "",
+            nestedType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            immutableNestedMembers,
+            construction!,
+            usesIndexes: false);
+        member = Member.CreateNested(
+            symbol.Name,
+            type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            canWrite,
+            symbol is IPropertySymbol,
+            IsRequired(symbol),
+            order,
+            nestedModel);
+        error = "";
+        return true;
+    }
 
     static ImmutableArray<ISymbol> GetPublicInstanceMembers(INamedTypeSymbol model, CancellationToken cancellationToken)
     {
@@ -284,7 +456,15 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var isEnum = valueType.TypeKind == TypeKind.Enum;
         var isNullableReference = !isNullableValue && !valueType.IsValueType &&
             type.NullableAnnotation == NullableAnnotation.Annotated;
-        if (!isString && !isEnum && !SupportsSpanConversion(valueType))
+        var converter = GetConverterType(symbol);
+        if (converter is not null &&
+            !IsValidConverter(converter, valueType, compilation, adapter))
+        {
+            member = default!;
+            error = "specifies a converter that must expose accessible static Parse, TryParse, and Format methods";
+            return false;
+        }
+        if (converter is null && !isString && !isEnum && !SupportsSpanConversion(valueType))
         {
             member = default!;
             error = "must be a string, enum, or implement ISpanParsable<TSelf> and ISpanFormattable";
@@ -301,6 +481,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             isNullableValue || isNullableReference,
             isNullableValue,
             isEnum ? GetEnumMemberNames(valueType) : ImmutableArray<string>.Empty,
+            converter?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             canWrite,
             symbol is IPropertySymbol,
             IsRequired(symbol),
@@ -308,6 +489,53 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         error = string.Empty;
         return true;
     }
+
+    static INamedTypeSymbol? GetConverterType(ISymbol symbol) =>
+        GetColumnAttribute(symbol)?.NamedArguments.FirstOrDefault(static argument => argument.Key == "Converter")
+            .Value.Value as INamedTypeSymbol;
+
+    static bool IsValidConverter(
+        INamedTypeSymbol converter,
+        ITypeSymbol memberType,
+        Compilation compilation,
+        INamedTypeSymbol adapter)
+    {
+        if (!compilation.IsSymbolAccessibleWithin(converter, adapter))
+        {
+            return false;
+        }
+        var readerCol = compilation.GetTypeByMetadataName("nietras.SeparatedValues.SepReader+Col");
+        var writerCol = compilation.GetTypeByMetadataName("nietras.SeparatedValues.SepWriter+Col");
+        if (readerCol is null || writerCol is null)
+        {
+            return false;
+        }
+
+        return converter.GetMembers("Parse").OfType<IMethodSymbol>().Any(method =>
+                   IsAccessibleStaticMethod(method, compilation, adapter) &&
+                   method.Parameters.Length == 1 &&
+                   SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, readerCol) &&
+                   SymbolEqualityComparer.IncludeNullability.Equals(method.ReturnType, memberType)) &&
+               converter.GetMembers("TryParse").OfType<IMethodSymbol>().Any(method =>
+                   IsAccessibleStaticMethod(method, compilation, adapter) &&
+                   method.ReturnType.SpecialType == SpecialType.System_Boolean &&
+                   method.Parameters.Length == 2 &&
+                   SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, readerCol) &&
+                   method.Parameters[1].RefKind == RefKind.Out &&
+                   SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType)) &&
+               converter.GetMembers("Format").OfType<IMethodSymbol>().Any(method =>
+                   IsAccessibleStaticMethod(method, compilation, adapter) &&
+                   method.ReturnsVoid &&
+                   method.Parameters.Length == 2 &&
+                   SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, writerCol) &&
+                   SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType));
+    }
+
+    static bool IsAccessibleStaticMethod(
+        IMethodSymbol method,
+        Compilation compilation,
+        INamedTypeSymbol adapter) =>
+        method.IsStatic && compilation.IsSymbolAccessibleWithin(method, adapter);
 
     static ImmutableArray<string> GetEnumMemberNames(ITypeSymbol type)
     {
@@ -343,14 +571,25 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         @interface.MetadataName == "ISpanFormattable" &&
         @interface.ContainingNamespace.ToDisplayString() == "System");
 
-    static bool TryGetColumnMapping(ISymbol symbol, bool isString, out ColumnMapping mapping, out string error)
+    static bool TryGetColumnMapping(
+        ISymbol symbol,
+        bool isString,
+        bool hasConverter,
+        out ColumnMapping mapping,
+        out string error)
     {
         var attributes = symbol.GetAttributes()
             .Where(static attribute => attribute.AttributeClass?.ToDisplayString() == ColumnAttributeMetadataName)
             .ToArray();
         if (attributes.Length == 0)
         {
-            mapping = new ColumnMapping(symbol.Name, null, null);
+            mapping = new ColumnMapping(
+                symbol.Name,
+                ImmutableArray<string>.Empty,
+                null,
+                null,
+                optional: false,
+                DefaultValueExpression(symbol));
             error = string.Empty;
             return true;
         }
@@ -364,6 +603,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         string? name = null;
         string? format = null;
         int? index = null;
+        var alternateNames = ImmutableArray<string>.Empty;
+        var optional = false;
         var attribute = attributes[0];
         var constructor = attribute.AttributeConstructor;
         if (constructor is not null)
@@ -380,7 +621,21 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
         foreach (var argument in attribute.NamedArguments)
         {
-            SetColumnMappingValue(argument.Key, argument.Value.Value, ref name, ref index, ref format);
+            if (argument.Key == "Names")
+            {
+                alternateNames = argument.Value.Values
+                    .Where(static value => value.Value is string)
+                    .Select(static value => (string)value.Value!)
+                    .ToImmutableArray();
+            }
+            else if (argument.Key == "Optional")
+            {
+                optional = argument.Value.Value is true;
+            }
+            else
+            {
+                SetColumnMappingValue(argument.Key, argument.Value.Value, ref name, ref index, ref format);
+            }
         }
 
         name ??= symbol.Name;
@@ -396,6 +651,25 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             error = "the column index must be zero or greater";
             return false;
         }
+        if (alternateNames.Any(string.IsNullOrWhiteSpace))
+        {
+            mapping = default;
+            error = "alternate column names cannot be empty";
+            return false;
+        }
+        if (alternateNames.Distinct(StringComparer.Ordinal).Count() != alternateNames.Length ||
+            alternateNames.Contains(name, StringComparer.Ordinal))
+        {
+            mapping = default;
+            error = "column names and alternate names must be unique";
+            return false;
+        }
+        if (index is not null && (optional || alternateNames.Length > 0))
+        {
+            mapping = default;
+            error = "optional and alternate names are only supported for name-based mappings";
+            return false;
+        }
 
         // Strings are formatted verbatim, so a format would be silently ignored.
         if (isString && format is not null)
@@ -404,10 +678,41 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             error = "a format cannot be specified for a string member";
             return false;
         }
+        if (hasConverter && format is not null)
+        {
+            mapping = default;
+            error = "a format cannot be specified when a converter is used";
+            return false;
+        }
 
-        mapping = new ColumnMapping(name, index, format);
+        mapping = new ColumnMapping(
+            name,
+            alternateNames,
+            index,
+            format,
+            optional,
+            DefaultValueExpression(symbol));
         error = string.Empty;
         return true;
+    }
+
+    static string? DefaultValueExpression(ISymbol symbol)
+    {
+        var attribute = symbol.GetAttributes().FirstOrDefault(static attribute =>
+            attribute.AttributeClass?.ToDisplayString() == DefaultValueAttributeMetadataName);
+        if (attribute is null || attribute.ConstructorArguments.Length != 1)
+        {
+            return null;
+        }
+        var value = attribute.ConstructorArguments[0];
+        if (value.IsNull)
+        {
+            return "null";
+        }
+        var literal = SymbolDisplay.FormatPrimitive(value.Value!, quoteStrings: true, useHexadecimalNumbers: false);
+        return value.Type?.TypeKind == TypeKind.Enum
+            ? "(" + value.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ")" + literal
+            : literal;
     }
 
     static void SetColumnMappingValue(
@@ -676,11 +981,24 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         EmitWriteAsyncOverloads(extensions, model);
         AppendIndented(source, extensions, "    ");
         source.AppendLine("    }");
-        if (model.Members.Any(static member => member.IsEnum))
+        foreach (var member in model.Members.Where(static member => member.NestedModel is not null))
+        {
+            source.AppendLine();
+            EmitParse(source, member.NestedModel!, NestedParseMethod(member), "    static");
+            source.AppendLine();
+            EmitTryParse(source, member.NestedModel!, NestedTryParseMethod(member), "    static");
+            source.AppendLine();
+            EmitFormat(source, member.NestedModel!, NestedFormatMethod(member), "    static");
+        }
+        if (ContainsEnum(model))
         {
             source.AppendLine();
             EmitSetEnum(source);
         }
+
+        static bool ContainsEnum(Model model) =>
+            model.Members.Any(static member =>
+                member.IsEnum || member.NestedModel is not null && ContainsEnum(member.NestedModel));
         source.AppendLine();
         EmitEnumerator(source, model);
         source.AppendLine("}");
@@ -703,26 +1021,42 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             issue.Location?.ToLocation(),
             issue.Arguments.Cast<object>().ToArray());
 
-    static void EmitParse(StringBuilder source, Model model)
+    static void EmitParse(
+        StringBuilder source,
+        Model model,
+        string methodName = "Parse",
+        string modifiers = "    public static")
     {
-        source.Append("    public static ").Append(model.ModelName)
-            .Append(" Parse(").Append(SepReaderRowName).AppendLine(" row)");
+        source.Append(modifiers).Append(' ').Append(model.ModelName)
+            .Append(' ').Append(methodName).Append('(').Append(SepReaderRowName).AppendLine(" row)");
         source.AppendLine("    {");
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
         {
             var member = model.Members[memberIndex];
-            if (!member.IsNullable)
+            if (!NeedsColumnLocal(member))
             {
                 continue;
             }
-            // Hoist the column so the empty check and the parse share a single column lookup.
-            source.Append("        var ").Append(ColumnLocal(memberIndex)).Append(" = ")
-                .Append(ColumnAccess(model, member)).AppendLine(";");
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: false);
             source.Append("        ");
-            AppendLocalType(source, member);
-            source.Append(' ').Append(ValueLocal(memberIndex)).Append(" = ")
-                .Append(ColumnLocal(memberIndex)).Append(".Span.IsEmpty ? null : ");
-            AppendValueExpression(source, member, ColumnLocal(memberIndex));
+            if (member.IsNullable)
+            {
+                AppendLocalType(source, member);
+            }
+            else
+            {
+                source.Append(member.TypeName);
+            }
+            source.Append(' ').Append(ValueLocal(memberIndex)).Append(" = ");
+            if (member.Optional)
+            {
+                source.Append(ColumnFoundLocal(memberIndex)).Append(" ? ");
+            }
+            AppendColumnValueExpression(source, member, ColumnLocal(memberIndex));
+            if (member.Optional)
+            {
+                source.Append(" : ").Append(member.DefaultValueExpression ?? "default!");
+            }
             source.AppendLine(";");
         }
         source.Append("        return ");
@@ -734,7 +1068,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static void AppendParseValue(StringBuilder source, Model model, int memberIndex)
     {
         var member = model.Members[memberIndex];
-        if (member.IsNullable)
+        if (member.NestedModel is not null)
+        {
+            source.Append(NestedParseMethod(member)).Append("(row)");
+            return;
+        }
+        if (NeedsColumnLocal(member))
         {
             source.Append(ValueLocal(memberIndex));
             return;
@@ -744,7 +1083,62 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
     static string ColumnLocal(int memberIndex) => "__col" + memberIndex;
 
+    static string ColumnFoundLocal(int memberIndex) => "__found" + memberIndex;
+
     static string ValueLocal(int memberIndex) => "__sep" + memberIndex;
+
+    static bool NeedsColumnLocal(Member member) =>
+        member.IsNullable || member.Optional || member.AlternateNames.Length > 0;
+
+    static void EmitColumnLocal(
+        StringBuilder source,
+        Model model,
+        Member member,
+        int memberIndex,
+        bool returnFalse)
+    {
+        var column = ColumnLocal(memberIndex);
+        if (member.AlternateNames.Length == 0 && !member.Optional)
+        {
+            source.Append("        var ").Append(column).Append(" = ")
+                .Append(ColumnAccess(model, member)).AppendLine(";");
+            return;
+        }
+
+        source.Append("        var ").Append(ColumnFoundLocal(memberIndex)).Append(" = ");
+        AppendTryGetColumn(source, member, column);
+        source.AppendLine(";");
+        if (!member.Optional)
+        {
+            source.Append("        if (!").Append(ColumnFoundLocal(memberIndex)).AppendLine(")");
+            source.AppendLine("        {");
+            if (returnFalse)
+            {
+                source.AppendLine("            value = default!;");
+                source.AppendLine("            return false;");
+            }
+            else
+            {
+                source.Append("            throw new ").Append(KeyNotFoundExceptionName).Append("(");
+                AppendStringLiteral(source, "Column '" + member.ColumnName + "' was not found.");
+                source.AppendLine(");");
+            }
+            source.AppendLine("        }");
+        }
+    }
+
+    static void AppendTryGetColumn(StringBuilder source, Member member, string column)
+    {
+        source.Append("row.TryGet(");
+        AppendStringLiteral(source, member.ColumnName);
+        source.Append(", out var ").Append(column).Append(')');
+        foreach (var alternateName in member.AlternateNames)
+        {
+            source.Append(" || row.TryGet(");
+            AppendStringLiteral(source, alternateName);
+            source.Append(", out ").Append(column).Append(')');
+        }
+    }
 
     static string ColumnAccess(Model model, Member member) => model.UsesIndexes
         ? "row[" + member.Index!.Value + "]"
@@ -761,7 +1155,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
     static void AppendValueExpression(StringBuilder source, Member member, string column)
     {
-        if (member.IsString)
+        if (member.ConverterName is not null)
+        {
+            source.Append(member.ConverterName).Append(".Parse(").Append(column).Append(')');
+        }
+        else if (member.IsString)
         {
             source.Append(column).Append(".ToString()");
         }
@@ -776,9 +1174,23 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
     }
 
-    static void EmitTryParse(StringBuilder source, Model model)
+    static void AppendColumnValueExpression(StringBuilder source, Member member, string column)
     {
-        source.Append("    public static bool TryParse(").Append(SepReaderRowName).Append(" row, out ")
+        if (member.IsNullable)
+        {
+            source.Append(column).Append(".Span.IsEmpty ? null : ");
+        }
+        AppendValueExpression(source, member, column);
+    }
+
+    static void EmitTryParse(
+        StringBuilder source,
+        Model model,
+        string methodName = "TryParse",
+        string modifiers = "    public static")
+    {
+        source.Append(modifiers).Append(" bool ").Append(methodName).Append('(')
+            .Append(SepReaderRowName).Append(" row, out ")
             .Append(model.ModelName).AppendLine(" value)");
         source.AppendLine("    {");
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
@@ -796,6 +1208,37 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static void EmitTryParseMember(StringBuilder source, Model model, Member member, int memberIndex)
     {
         var local = ValueLocal(memberIndex);
+        if (member.NestedModel is not null)
+        {
+            source.Append("        if (!").Append(NestedTryParseMethod(member))
+                .Append("(row, out var ").Append(local).AppendLine("))");
+            source.AppendLine("        {");
+            source.AppendLine("            value = default!;");
+            source.AppendLine("            return false;");
+            source.AppendLine("        }");
+            return;
+        }
+        if (member.Optional)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
+            source.Append("        ").Append(member.TypeName).Append(' ').Append(local).AppendLine(";");
+            source.Append("        if (!").Append(ColumnFoundLocal(memberIndex)).AppendLine(")");
+            source.AppendLine("        {");
+            source.Append("            ").Append(local).Append(" = ")
+                .Append(member.DefaultValueExpression ?? "default!").AppendLine(";");
+            source.AppendLine("        }");
+            source.AppendLine("        else");
+            source.AppendLine("        {");
+            EmitTryParsePresentColumn(source, member, ColumnLocal(memberIndex), local, "            ", localDeclared: true);
+            source.AppendLine("        }");
+            return;
+        }
+        if (member.AlternateNames.Length > 0)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
+            EmitTryParsePresentColumn(source, member, ColumnLocal(memberIndex), local, "        ", localDeclared: false);
+            return;
+        }
         if (member.IsNullable)
         {
             // Hoist the column so the empty check and the parse share a single column lookup.
@@ -834,10 +1277,93 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         EmitTryParseValue(source, member, ColumnAccess(model, member), local, "        ");
     }
 
+    static void EmitTryParsePresentColumn(
+        StringBuilder source,
+        Member member,
+        string column,
+        string local,
+        string indent,
+        bool localDeclared)
+    {
+        if (member.IsNullable)
+        {
+            if (!localDeclared)
+            {
+                source.Append(indent).Append(member.TypeName).Append(' ').Append(local).AppendLine(";");
+            }
+            source.Append(indent).Append("if (").Append(column).AppendLine(".Span.IsEmpty)");
+            source.Append(indent).AppendLine("{");
+            source.Append(indent).Append("    ").Append(local).AppendLine(" = null;");
+            source.Append(indent).AppendLine("}");
+            source.Append(indent).AppendLine("else");
+            source.Append(indent).AppendLine("{");
+            if (member.IsString)
+            {
+                source.Append(indent).Append("    ").Append(local).Append(" = ").Append(column).AppendLine(".ToString();");
+            }
+            else
+            {
+                EmitTryParseValue(source, member, column, local + "Value", indent + "    ");
+                source.Append(indent).Append("    ").Append(local).Append(" = ").Append(local).AppendLine("Value;");
+            }
+            source.Append(indent).AppendLine("}");
+        }
+        else if (member.IsString)
+        {
+            source.Append(indent).Append(localDeclared ? "" : "var ").Append(local)
+                .Append(" = ").Append(column).AppendLine(".ToString();");
+        }
+        else
+        {
+            if (localDeclared)
+            {
+                EmitTryParseValueIntoExistingLocal(source, member, column, local, indent);
+            }
+            else
+            {
+                EmitTryParseValue(source, member, column, local, indent);
+            }
+        }
+    }
+
+    static void EmitTryParseValueIntoExistingLocal(
+        StringBuilder source,
+        Member member,
+        string column,
+        string local,
+        string indent)
+    {
+        source.Append(indent).Append("if (!");
+        if (member.ConverterName is not null)
+        {
+            source.Append(member.ConverterName).Append(".TryParse(").Append(column)
+                .Append(", out ").Append(local).AppendLine("))");
+        }
+        else if (member.IsEnum)
+        {
+            source.Append(EnumName).Append(".TryParse<").Append(member.ValueTypeName).Append(">(")
+                .Append(column).Append(".Span, out ").Append(local).AppendLine("))");
+        }
+        else
+        {
+            source.Append(column).Append(".TryParse<").Append(member.ValueTypeName)
+                .Append(">(out ").Append(local).AppendLine("))");
+        }
+        source.Append(indent).AppendLine("{");
+        source.Append(indent).AppendLine("    value = default!;");
+        source.Append(indent).AppendLine("    return false;");
+        source.Append(indent).AppendLine("}");
+    }
+
     static void EmitTryParseValue(StringBuilder source, Member member, string column, string local, string indent)
     {
         source.Append(indent).Append("if (!");
-        if (member.IsEnum)
+        if (member.ConverterName is not null)
+        {
+            source.Append(member.ConverterName).Append(".TryParse(").Append(column)
+                .Append(", out var ").Append(local).AppendLine("))");
+        }
+        else if (member.IsEnum)
         {
             source.Append(EnumName).Append(".TryParse<").Append(member.ValueTypeName).Append(">(")
                 .Append(column).Append(".Span, out var ").Append(local).AppendLine("))");
@@ -963,19 +1489,38 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             .Append(model.ModelName).AppendLine(".Parse);");
     }
 
-    static void EmitFormat(StringBuilder source, Model model)
+    static void EmitFormat(
+        StringBuilder source,
+        Model model,
+        string methodName = "Format",
+        string modifiers = "    public static")
     {
-        source.Append("    public static void Format(").Append(SepWriterRowName).Append(" row, ")
+        source.Append(modifiers).Append(" void ").Append(methodName).Append('(')
+            .Append(SepWriterRowName).Append(" row, ")
             .Append(model.ModelName).AppendLine(" value)");
         source.AppendLine("    {");
         foreach (var member in model.Members
             .OrderBy(member => model.UsesIndexes ? member.Index : member.Order)
             .ThenBy(static member => member.Order))
         {
-            EmitFormatMember(source, member);
+            if (member.NestedModel is not null)
+            {
+                source.Append("        ").Append(NestedFormatMethod(member))
+                    .Append("(row, value.@").Append(member.Name).AppendLine(");");
+            }
+            else
+            {
+                EmitFormatMember(source, member);
+            }
         }
         source.AppendLine("    }");
     }
+
+    static string NestedParseMethod(Member member) => "ParseNested" + member.Order;
+
+    static string NestedTryParseMethod(Member member) => "TryParseNested" + member.Order;
+
+    static string NestedFormatMethod(Member member) => "FormatNested" + member.Order;
 
     static void EmitFormatMember(StringBuilder source, Member member)
     {
@@ -1018,6 +1563,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
     static void EmitFormatValue(StringBuilder source, Member member, string column, string value, string indent)
     {
+        if (member.ConverterName is not null)
+        {
+            source.Append(indent).Append(member.ConverterName).Append(".Format(")
+                .Append(column).Append(", ").Append(value).AppendLine(");");
+            return;
+        }
         if (member.IsEnum)
         {
             EmitFormatEnum(source, member, column, value, indent);
@@ -1246,8 +1797,13 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             }
 
             public string? Name { get; set; }
+            public string[]? Names { get; set; }
             public int Index { get; set; }
             public string? Format { get; set; }
+            public bool Ignore { get; set; }
+            public bool Optional { get; set; }
+            public global::System.Type? Converter { get; set; }
+            public string? Prefix { get; set; }
         }
         """;
 
@@ -1429,15 +1985,41 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     internal readonly struct ColumnMapping
     {
         public ColumnMapping(string name, int? index, string? format)
+            : this(name, ImmutableArray<string>.Empty, index, format, optional: false, defaultValueExpression: null)
+        {
+        }
+
+        public ColumnMapping(
+            string name,
+            ImmutableArray<string> alternateNames,
+            int? index,
+            string? format,
+            bool optional,
+            string? defaultValueExpression)
         {
             Name = name;
+            AlternateNames = alternateNames;
             Index = index;
             Format = format;
+            Optional = optional;
+            DefaultValueExpression = defaultValueExpression;
         }
 
         public string Name { get; }
+        public ImmutableArray<string> AlternateNames { get; }
         public int? Index { get; }
         public string? Format { get; }
+        public bool Optional { get; }
+        public string? DefaultValueExpression { get; }
+
+        public ColumnMapping WithPrefix(string prefix) =>
+            new(
+                prefix + Name,
+                AlternateNames.Select(name => prefix + name).ToImmutableArray(),
+                Index,
+                Format,
+                Optional,
+                DefaultValueExpression);
     }
 
     internal sealed class Member : IEquatable<Member>
@@ -1453,7 +2035,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeName, valueTypeName, isString, isEnum, isNullable, isNullable,
-                ImmutableArray<string>.Empty, canWrite, true, isRequired, string.Empty, null, null, order)
+                ImmutableArray<string>.Empty, null, canWrite, true, isRequired, string.Empty,
+                ImmutableArray<string>.Empty, null, null, false, null, order, null)
         {
         }
 
@@ -1472,7 +2055,28 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
-                enumMemberNames, canWrite, isProperty, isRequired, string.Empty, null, null, order)
+                enumMemberNames, null, canWrite, isProperty, isRequired, order)
+        {
+        }
+
+        public Member(
+            string name,
+            string typeName,
+            string typeIdentityName,
+            string valueTypeName,
+            bool isString,
+            bool isEnum,
+            bool isNullable,
+            bool isNullableValue,
+            ImmutableArray<string> enumMemberNames,
+            string? converterName,
+            bool canWrite,
+            bool isProperty,
+            bool isRequired,
+            int order)
+            : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
+                enumMemberNames, converterName, canWrite, isProperty, isRequired, string.Empty,
+                ImmutableArray<string>.Empty, null, null, false, null, order, null)
         {
         }
 
@@ -1486,13 +2090,18 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isNullable,
             bool isNullableValue,
             ImmutableArray<string> enumMemberNames,
+            string? converterName,
             bool canWrite,
             bool isProperty,
             bool isRequired,
             string columnName,
+            ImmutableArray<string> alternateNames,
             int? index,
             string? format,
-            int order)
+            bool optional,
+            string? defaultValueExpression,
+            int order,
+            Model? nestedModel)
         {
             Name = name;
             TypeName = typeName;
@@ -1503,13 +2112,18 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullable = isNullable;
             IsNullableValue = isNullableValue;
             EnumMemberNames = enumMemberNames;
+            ConverterName = converterName;
             CanWrite = canWrite;
             IsProperty = isProperty;
             IsRequired = isRequired;
             ColumnName = columnName;
+            AlternateNames = alternateNames;
             Index = index;
             Format = format;
+            Optional = optional;
+            DefaultValueExpression = defaultValueExpression;
             Order = order;
+            NestedModel = nestedModel;
         }
 
         public string Name { get; }
@@ -1521,17 +2135,54 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         public bool IsNullable { get; }
         public bool IsNullableValue { get; }
         public ImmutableArray<string> EnumMemberNames { get; }
+        public string? ConverterName { get; }
         public bool CanWrite { get; }
         public bool IsProperty { get; }
         public bool IsRequired { get; }
         public string ColumnName { get; }
+        public ImmutableArray<string> AlternateNames { get; }
         public int? Index { get; }
         public string? Format { get; }
+        public bool Optional { get; }
+        public string? DefaultValueExpression { get; }
         public int Order { get; }
+        public Model? NestedModel { get; }
+
+        public static Member CreateNested(
+            string name,
+            string typeName,
+            bool canWrite,
+            bool isProperty,
+            bool isRequired,
+            int order,
+            Model nestedModel) =>
+            new(
+                name,
+                typeName,
+                typeName,
+                typeName,
+                isString: false,
+                isEnum: false,
+                isNullable: false,
+                isNullableValue: false,
+                ImmutableArray<string>.Empty,
+                converterName: null,
+                canWrite,
+                isProperty,
+                isRequired,
+                columnName: "",
+                ImmutableArray<string>.Empty,
+                index: null,
+                format: null,
+                optional: false,
+                defaultValueExpression: null,
+                order,
+                nestedModel);
 
         public Member WithMapping(ColumnMapping mapping) =>
             new(Name, TypeName, TypeIdentityName, ValueTypeName, IsString, IsEnum, IsNullable, IsNullableValue,
-                EnumMemberNames, CanWrite, IsProperty, IsRequired, mapping.Name, mapping.Index, mapping.Format, Order);
+                EnumMemberNames, ConverterName, CanWrite, IsProperty, IsRequired, mapping.Name, mapping.AlternateNames,
+                mapping.Index, mapping.Format, mapping.Optional, mapping.DefaultValueExpression, Order, NestedModel);
 
         public bool Equals(Member? other) =>
             other is not null &&
@@ -1544,12 +2195,17 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullable == other.IsNullable &&
             IsNullableValue == other.IsNullableValue &&
             EnumMemberNames.SequenceEqual(other.EnumMemberNames, StringComparer.Ordinal) &&
+            string.Equals(ConverterName, other.ConverterName, StringComparison.Ordinal) &&
             CanWrite == other.CanWrite &&
             IsProperty == other.IsProperty &&
             IsRequired == other.IsRequired &&
             string.Equals(ColumnName, other.ColumnName, StringComparison.Ordinal) &&
+            AlternateNames.SequenceEqual(other.AlternateNames, StringComparer.Ordinal) &&
             Index == other.Index &&
             string.Equals(Format, other.Format, StringComparison.Ordinal) &&
+            Optional == other.Optional &&
+            string.Equals(DefaultValueExpression, other.DefaultValueExpression, StringComparison.Ordinal) &&
+            Equals(NestedModel, other.NestedModel) &&
             Order == other.Order;
 
         public override bool Equals(object? obj) => Equals(obj as Member);
@@ -1569,12 +2225,20 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             {
                 hashCode.Add(enumMemberName, StringComparer.Ordinal);
             }
+            hashCode.Add(ConverterName, StringComparer.Ordinal);
             hashCode.Add(CanWrite);
             hashCode.Add(IsProperty);
             hashCode.Add(IsRequired);
             hashCode.Add(ColumnName, StringComparer.Ordinal);
+            foreach (var alternateName in AlternateNames)
+            {
+                hashCode.Add(alternateName, StringComparer.Ordinal);
+            }
             hashCode.Add(Index);
             hashCode.Add(Format, StringComparer.Ordinal);
+            hashCode.Add(Optional);
+            hashCode.Add(DefaultValueExpression, StringComparer.Ordinal);
+            hashCode.Add(NestedModel);
             hashCode.Add(Order);
             return hashCode.ToHashCode();
         }

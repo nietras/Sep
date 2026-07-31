@@ -1221,19 +1221,20 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override int GetHashCode()
         {
-            var hashCode = StringComparer.Ordinal.GetHashCode(Namespace ?? string.Empty);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(Accessibility);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(AdapterName);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(AdapterIdentity);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(ModelName);
-            hashCode = (hashCode * 397) ^ UsesIndexes.GetHashCode();
-            hashCode = (hashCode * 397) ^ (Issue?.GetHashCode() ?? 0);
-            hashCode = (hashCode * 397) ^ Construction.GetHashCode();
+            var hashCode = new HashCode();
+            hashCode.Add(Namespace, StringComparer.Ordinal);
+            hashCode.Add(Accessibility, StringComparer.Ordinal);
+            hashCode.Add(AdapterName, StringComparer.Ordinal);
+            hashCode.Add(AdapterIdentity, StringComparer.Ordinal);
+            hashCode.Add(ModelName, StringComparer.Ordinal);
+            hashCode.Add(UsesIndexes);
+            hashCode.Add(Issue);
+            hashCode.Add(Construction);
             foreach (var member in Members)
             {
-                hashCode = (hashCode * 397) ^ member.GetHashCode();
+                hashCode.Add(member);
             }
-            return hashCode;
+            return hashCode.ToHashCode();
         }
     }
 
@@ -1272,12 +1273,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override bool Equals(object? obj) => Equals(obj as LocationInfo);
 
-        public override int GetHashCode()
-        {
-            var hashCode = StringComparer.Ordinal.GetHashCode(FilePath);
-            hashCode = (hashCode * 397) ^ TextSpan.GetHashCode();
-            return (hashCode * 397) ^ LineSpan.GetHashCode();
-        }
+        public override int GetHashCode() => HashCode.Combine(FilePath, TextSpan, LineSpan);
     }
 
     internal sealed class Issue : IEquatable<Issue>
@@ -1319,13 +1315,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override int GetHashCode()
         {
-            var hashCode = (int)Id;
-            hashCode = (hashCode * 397) ^ (Location?.GetHashCode() ?? 0);
+            var hashCode = new HashCode();
+            hashCode.Add(Id);
+            hashCode.Add(Location);
             foreach (var argument in Arguments)
             {
-                hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(argument);
+                hashCode.Add(argument, StringComparer.Ordinal);
             }
-            return hashCode;
+            return hashCode.ToHashCode();
         }
     }
 
@@ -1454,24 +1451,26 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override int GetHashCode()
         {
-            var hashCode = StringComparer.Ordinal.GetHashCode(Name);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(TypeName);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(TypeIdentityName);
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(ValueTypeName);
-            hashCode = (hashCode * 397) ^ IsString.GetHashCode();
-            hashCode = (hashCode * 397) ^ IsEnum.GetHashCode();
-            hashCode = (hashCode * 397) ^ IsNullable.GetHashCode();
-            hashCode = (hashCode * 397) ^ IsNullableValue.GetHashCode();
+            var hashCode = new HashCode();
+            hashCode.Add(Name, StringComparer.Ordinal);
+            hashCode.Add(TypeName, StringComparer.Ordinal);
+            hashCode.Add(TypeIdentityName, StringComparer.Ordinal);
+            hashCode.Add(ValueTypeName, StringComparer.Ordinal);
+            hashCode.Add(IsString);
+            hashCode.Add(IsEnum);
+            hashCode.Add(IsNullable);
+            hashCode.Add(IsNullableValue);
             foreach (var enumMemberName in EnumMemberNames)
             {
-                hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(enumMemberName);
+                hashCode.Add(enumMemberName, StringComparer.Ordinal);
             }
-            hashCode = (hashCode * 397) ^ CanWrite.GetHashCode();
-            hashCode = (hashCode * 397) ^ IsRequired.GetHashCode();
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(ColumnName);
-            hashCode = (hashCode * 397) ^ Index.GetHashCode();
-            hashCode = (hashCode * 397) ^ StringComparer.Ordinal.GetHashCode(Format ?? string.Empty);
-            return (hashCode * 397) ^ Order;
+            hashCode.Add(CanWrite);
+            hashCode.Add(IsRequired);
+            hashCode.Add(ColumnName, StringComparer.Ordinal);
+            hashCode.Add(Index);
+            hashCode.Add(Format, StringComparer.Ordinal);
+            hashCode.Add(Order);
+            return hashCode.ToHashCode();
         }
     }
 
@@ -1517,16 +1516,16 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override int GetHashCode()
         {
-            var hashCode = 0;
+            var hashCode = new HashCode();
             foreach (var parameter in Parameters)
             {
-                hashCode = (hashCode * 397) ^ parameter.GetHashCode();
+                hashCode.Add(parameter);
             }
             foreach (var initializer in Initializers)
             {
-                hashCode = (hashCode * 397) ^ initializer;
+                hashCode.Add(initializer);
             }
-            return hashCode;
+            return hashCode.ToHashCode();
         }
     }
 
@@ -1546,6 +1545,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public override bool Equals(object? obj) => obj is ConstructorParameter other && Equals(other);
 
-        public override int GetHashCode() => (StringComparer.Ordinal.GetHashCode(Name) * 397) ^ MemberIndex;
+        public override int GetHashCode() => HashCode.Combine(Name, MemberIndex);
     }
 }

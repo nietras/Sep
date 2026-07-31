@@ -1,12 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- netstandard2.0 is what Roslyn loads and is the only assembly shipped in the package. The
+         net8.0 target framework builds no code, it exists solely so the package can declare a
+         net8.0 dependency group for Sep, see the Sep package reference below. -->
     <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
     <IsRoslynComponent>true</IsRoslynComponent>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <PackageId>Sep.SourceGenerator</PackageId>
-    <Description>High-performance source generator for Sep CSV models.</Description>
+    <Description>Source generator for Sep the World's Fastest .NET CSV Parser.</Description>
     <PackageTags>sep;csv;source-generator;roslyn</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -16,18 +19,34 @@
     <NoWarn>$(NoWarn);NU5128</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- Compiling the generator for net8.0 too would waste build time on an assembly that is never
+       shipped and that could be mistaken for the real analyzer, so net8.0 builds nothing. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <Compile Remove="**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <!-- 4.8 is the Roslyn version hosted by the oldest supported .NET 8 SDK. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
-    <!-- The analyzer itself only ships as netstandard2.0 and has no runtime Sep dependency, but the
-         generated source calls Sep, so the package must declare Sep as a dependency. Sep has no
-         netstandard2.0 asset, hence the extra net8.0 target framework carrying the dependency and
-         defining the minimum Sep version whose APIs the generated source uses. -->
-    <PackageReference Include="Sep" Version="0.15.1" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- The generated source calls Sep, so the package must declare Sep as a dependency, even
+         though the analyzer assembly itself never references Sep. Sep targets net8.0 and later
+         only, so it cannot be referenced from netstandard2.0 and the dependency has to live in a
+         net8.0 dependency group. A project reference is used rather than a package reference so
+         the dependency version always matches the Sep built from this repository, which MinVer
+         derives from the git tag. Note ReferenceOutputAssembly must not be set to false here,
+         since that also suppresses the nuspec dependency this reference exists to declare. -->
+    <ProjectReference Include="..\Sep\Sep.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
     <None Include="../../README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 

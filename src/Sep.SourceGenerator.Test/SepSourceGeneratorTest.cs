@@ -758,6 +758,38 @@ public class SepSourceGeneratorTest
         Assert.IsTrue(result.Diagnostics.Any(static diagnostic => diagnostic.Id == "SEPGEN003"));
     }
 
+    [TestMethod]
+    public void SepSourceGeneratorTest_HashCodesDistinguishNullFromEmptyAndOrder()
+    {
+        // The analyzer ships as netstandard2.0 where System.HashCode does not exist and a polyfill
+        // is used instead. These are the properties the incremental caching relies on.
+        var withNullFormat = CreateEnumMember("Ready");
+        var withEmptyFormat = CreateEnumMember("Ready").WithMapping(new SepSourceGenerator.ColumnMapping("c", null, ""));
+        var reordered = new SepSourceGenerator.ConstructionPlan(
+            ImmutableArray.Create(
+                new SepSourceGenerator.ConstructorParameter("@a", 0),
+                new SepSourceGenerator.ConstructorParameter("@b", 1)),
+            ImmutableArray<int>.Empty);
+        var swapped = new SepSourceGenerator.ConstructionPlan(
+            ImmutableArray.Create(
+                new SepSourceGenerator.ConstructorParameter("@b", 1),
+                new SepSourceGenerator.ConstructorParameter("@a", 0)),
+            ImmutableArray<int>.Empty);
+
+        Assert.AreNotEqual(withNullFormat.GetHashCode(), withEmptyFormat.GetHashCode());
+        Assert.AreNotEqual(reordered.GetHashCode(), swapped.GetHashCode());
+        Assert.AreEqual(reordered.GetHashCode(), new SepSourceGenerator.ConstructionPlan(
+            ImmutableArray.Create(
+                new SepSourceGenerator.ConstructorParameter("@a", 0),
+                new SepSourceGenerator.ConstructorParameter("@b", 1)),
+            ImmutableArray<int>.Empty).GetHashCode());
+        Assert.AreEqual(
+            SepSourceGenerator.ConstructionPlan.Empty.GetHashCode(),
+            new SepSourceGenerator.ConstructionPlan(
+                ImmutableArray<SepSourceGenerator.ConstructorParameter>.Empty,
+                ImmutableArray<int>.Empty).GetHashCode());
+    }
+
     static SepSourceGenerator.Member CreateEnumMember(string enumMemberName) =>
         new("State", "global::State", "global::State", "global::State",
             isString: false, isEnum: true, isNullable: false, isNullableValue: false,

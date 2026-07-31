@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using nietras.SeparatedValues;
 
 namespace nietras.SeparatedValues.SourceGenerator.Test;
@@ -173,3 +174,94 @@ public readonly record struct ValuePerson
     public ValueFlags Flags { get; init; }
     public int? Optional { get; init; }
 }
+
+[SepSourceGeneration(typeof(Person))]
+public static partial class PersonSepExtensions
+{
+}
+
+public sealed record Person(int Id, string Name, decimal Score);
+
+[SepSourceGeneration(typeof(NamedPerson))]
+public static partial class NamedPersonSepExtensions
+{
+}
+
+public sealed record NamedPerson
+{
+    [SepCol("person_id")]
+    public int Id { get; set; }
+
+    [SepCol(Name = "display_name")]
+    public string Name { get; set; } = "";
+}
+
+[SepSourceGeneration(typeof(IndexedPerson))]
+public static partial class IndexedPersonSepExtensions
+{
+}
+
+public sealed record IndexedPerson
+{
+    [SepCol("person_id", 2)]
+    public int Id { get; set; }
+
+    [SepCol("full_name", 0)]
+    public string Name { get; set; } = "";
+
+    [SepCol(1)]
+    public decimal Score { get; set; }
+}
+
+[SepSourceGeneration(typeof(EvolvingPerson))]
+public static partial class EvolvingPersonSepExtensions
+{
+}
+
+public sealed record EvolvingPerson(
+    [property: SepCol(Names = ["legacy_id"])] int Id,
+    string Name,
+    [property: SepCol(Optional = true), DefaultValue(7)] int Version)
+{
+    [SepCol(Ignore = true)]
+    public object? Ignored { get; init; }
+}
+
+[SepSourceGeneration(typeof(ConvertedPerson))]
+public static partial class ConvertedPersonSepExtensions
+{
+}
+
+public readonly record struct StrongId(int Value);
+
+public sealed record ConvertedPerson(
+    [property: SepCol(Converter = typeof(StrongIdConverter))] StrongId Id);
+
+public static class StrongIdConverter
+{
+    public static StrongId Parse(SepReader.Col col) => new(col.Parse<int>());
+
+    public static bool TryParse(SepReader.Col col, out StrongId value)
+    {
+        if (col.TryParse<int>(out var parsed))
+        {
+            value = new(parsed);
+            return true;
+        }
+        value = default;
+        return false;
+    }
+
+    public static void Format(SepWriter.Col col, StrongId value) => col.Format(value.Value);
+}
+
+[SepSourceGeneration(typeof(NestedPerson))]
+public static partial class NestedPersonSepExtensions
+{
+}
+
+public sealed record NestedPerson(
+    int Id,
+    [property: SepCol(Prefix = "Address.")] Address Address);
+
+public sealed record Address(string Street, string City);

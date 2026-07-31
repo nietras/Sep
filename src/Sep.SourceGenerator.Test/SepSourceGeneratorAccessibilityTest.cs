@@ -97,7 +97,7 @@ public class SepSourceGeneratorAccessibilityTest
         var consumerSource = $$"""
             using nietras.SeparatedValues;
             [SepSourceGeneration(typeof({{modelTypeName}}))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             """;
         var compilation = CSharpCompilation.Create("Consumer",
             [Parse(consumerSource)],

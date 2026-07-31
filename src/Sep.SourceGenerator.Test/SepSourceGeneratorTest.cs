@@ -25,7 +25,7 @@ public class SepSourceGeneratorTest
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep
+            public static partial class PersonSepExtensions
             {
             }
 
@@ -55,7 +55,7 @@ public class SepSourceGeneratorTest
     }
 
     [TestMethod]
-    public void SepSourceGeneratorTest_GeneratesModernModelsNullableEnumAndAsyncRead()
+    public void SepSourceGeneratorTest_GeneratesModernModelsNullableEnumAndAsyncEnumeration()
     {
         var result = Run("""
             namespace Example;
@@ -67,7 +67,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(ClassPerson))]
-            internal static partial class ClassPersonSep { }
+            internal static partial class ClassPersonSepExtensions { }
             public class ClassPerson
             {
                 public required int Id { get; init; }
@@ -81,41 +81,41 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(StructPerson))]
-            internal static partial class StructPersonSep { }
+            internal static partial class StructPersonSepExtensions { }
             public struct StructPerson
             {
                 public int Id { get; set; }
             }
 
             [SepSourceGeneration(typeof(RecordClassPerson))]
-            internal static partial class RecordClassPersonSep { }
+            internal static partial class RecordClassPersonSepExtensions { }
             public record class RecordClassPerson
             {
                 public required int Id { get; init; }
             }
 
             [SepSourceGeneration(typeof(RecordStructPerson))]
-            internal static partial class RecordStructPersonSep { }
+            internal static partial class RecordStructPersonSepExtensions { }
             public record struct RecordStructPerson
             {
                 public int Id { get; init; }
             }
 
             [SepSourceGeneration(typeof(ReadonlyRecordStructPerson))]
-            internal static partial class ReadonlyRecordStructPersonSep { }
+            internal static partial class ReadonlyRecordStructPersonSepExtensions { }
             public readonly record struct ReadonlyRecordStructPerson
             {
                 public int Id { get; init; }
             }
 
             [SepSourceGeneration(typeof(PositionalPerson))]
-            internal static partial class PositionalPersonSep { }
+            internal static partial class PositionalPersonSepExtensions { }
             public record PositionalPerson(
                 [property: SepCol("id", 0)] int Id,
                 [property: SepCol("name", 1)] string? Name);
 
             [SepSourceGeneration(typeof(ImmutablePerson))]
-            internal static partial class ImmutablePersonSep { }
+            internal static partial class ImmutablePersonSepExtensions { }
             public sealed class ImmutablePerson
             {
                 public ImmutablePerson(int id, string name)
@@ -129,7 +129,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(FieldPerson))]
-            internal static partial class FieldPersonSep { }
+            internal static partial class FieldPersonSepExtensions { }
             public class FieldPerson
             {
                 public FieldPerson(int id, string ignored = "ignored")
@@ -150,10 +150,10 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(Outer.NestedPerson))]
-            internal static partial class NestedPersonSep { }
+            internal static partial class NestedPersonSepExtensions { }
 
             [SepSourceGeneration(typeof(NullableAnnotationPerson))]
-            internal static partial class NullableAnnotationPersonSep { }
+            internal static partial class NullableAnnotationPersonSepExtensions { }
             public sealed class NullableAnnotationPerson
             {
                 public NullableAnnotationPerson(string name)
@@ -165,7 +165,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(RequiredConstructorPerson))]
-            internal static partial class RequiredConstructorPersonSep { }
+            internal static partial class RequiredConstructorPersonSepExtensions { }
             public sealed class RequiredConstructorPerson
             {
                 public RequiredConstructorPerson(int id)
@@ -176,7 +176,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(SetsRequiredPerson))]
-            internal static partial class SetsRequiredPersonSep { }
+            internal static partial class SetsRequiredPersonSepExtensions { }
             public sealed class SetsRequiredPerson
             {
                 [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
@@ -211,7 +211,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(NullableReferencePerson))]
-            internal static partial class NullableReferencePersonSep { }
+            internal static partial class NullableReferencePersonSepExtensions { }
             public sealed class NullableReferencePerson
             {
                 [SepCol(Format = "X")]
@@ -219,7 +219,7 @@ public class SepSourceGeneratorTest
             }
 
             [SepSourceGeneration(typeof(RequiredFieldPerson))]
-            internal static partial class RequiredFieldPersonSep { }
+            internal static partial class RequiredFieldPersonSepExtensions { }
             public sealed class RequiredFieldPerson
             {
                 public required int Id;
@@ -233,6 +233,7 @@ public class SepSourceGeneratorTest
         StringAssert.Contains(result.GeneratedSource, "global::System.Enum.Parse<global::Example.State>");
         StringAssert.Contains(result.GeneratedSource, "global::System.Enum.TryParse<global::Example.State>");
         StringAssert.Contains(result.GeneratedSource, "EnumerateAsync(global::nietras.SeparatedValues.SepReader reader)");
+        StringAssert.Contains(result.GeneratedSource, "WriteAsync(global::nietras.SeparatedValues.SepWriter writer");
         StringAssert.Contains(result.GeneratedSource, "extension(global::Example.ClassPerson)");
         StringAssert.Contains(result.GeneratedSource, ".Format(value.@Created, \"O\")");
         StringAssert.Contains(result.GeneratedSource, ".Span.IsEmpty ? null");
@@ -256,7 +257,7 @@ public class SepSourceGeneratorTest
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
 
             public class Person
             {
@@ -279,14 +280,14 @@ public class SepSourceGeneratorTest
             namespace One
             {
                 [SepSourceGeneration(typeof(Person))]
-                public static partial class PersonSep { }
+                public static partial class PersonSepExtensions { }
                 public class Person { public int Id { get; set; } }
             }
 
             namespace Two
             {
                 [SepSourceGeneration(typeof(Person))]
-                public static partial class PersonSep { }
+                public static partial class PersonSepExtensions { }
                 public class Person { public int Id { get; set; } }
             }
             """);
@@ -295,9 +296,9 @@ public class SepSourceGeneratorTest
         var sources = result.RunResult.Results.Single().GeneratedSources
             .Where(static source => source.HintName.EndsWith(".Sep.g.cs", StringComparison.Ordinal))
             .ToArray();
-        Assert.AreEqual(2, sources.Length);
+        Assert.HasCount(2, sources);
         Assert.AreNotEqual(sources[0].HintName, sources[1].HintName);
-        Assert.IsTrue(sources.All(static source => source.HintName.StartsWith("PersonSep_", StringComparison.Ordinal)),
+        Assert.IsTrue(sources.All(static source => source.HintName.StartsWith("PersonSepExtensions_", StringComparison.Ordinal)),
             string.Join(", ", sources.Select(static source => source.HintName)));
         Assert.IsEmpty(result.CompilationDiagnostics);
     }
@@ -308,11 +309,11 @@ public class SepSourceGeneratorTest
         var result = Run(
             """
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             public class Person { public int Id { get; set; } }
             """,
             """
-            public static partial class PersonSep
+            public static partial class PersonSepExtensions
             {
                 public static int Extra => 42;
             }
@@ -332,7 +333,7 @@ public class SepSourceGeneratorTest
             public enum Empty { }
 
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             public class Person
             {
                 public State Value { get; set; }
@@ -366,11 +367,11 @@ public class SepSourceGeneratorTest
     }
 
     [TestMethod]
-    public void SepSourceGeneratorTest_ReadsEachColumnOnlyOnceForNullableMembers()
+    public void SepSourceGeneratorTest_AccessesEachColumnOnlyOncePerGeneratedOperation()
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             public class Person
             {
                 public int? Id { get; set; }
@@ -385,7 +386,7 @@ public class SepSourceGeneratorTest
         StringAssert.Contains(result.GeneratedSource, "int? __sep0 = __col0.Span.IsEmpty ? null : __col0.Parse<int>();");
         StringAssert.Contains(result.GeneratedSource, "__sep1 = __col1.ToString();");
         Assert.AreEqual(0, CountOccurrences(result.GeneratedSource, "row[\"Id\"].Span.IsEmpty"));
-        // One column lookup per nullable member in each of Read, TryRead and Write.
+        // One column lookup per nullable member in each of Parse, TryParse and Format.
         Assert.AreEqual(3, CountOccurrences(result.GeneratedSource, "= row[\"Id\"];"));
     }
 
@@ -427,7 +428,7 @@ public class SepSourceGeneratorTest
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            file static partial class PersonSep { }
+            file static partial class PersonSepExtensions { }
 
             public class Person
             {
@@ -444,12 +445,12 @@ public class SepSourceGeneratorTest
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
 
             public class Person
             {
-                public int ReadValue { get; protected internal set; }
-                public int WriteValue { protected internal get; set; }
+                public int ProtectedInternalSetter { get; protected internal set; }
+                public int ProtectedInternalGetter { protected internal get; set; }
             }
             """);
 
@@ -463,7 +464,7 @@ public class SepSourceGeneratorTest
     {
         var invalid = """
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             public class Person
             {
                 [SepCol("")]
@@ -570,41 +571,41 @@ public class SepSourceGeneratorTest
     [TestMethod]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public class PersonSep { }
+        public class PersonSepExtensions { }
         public class Person { public int Id { get; set; } }
         """, "SEPGEN001")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public abstract class Person { public int Id { get; set; } }
         """, "SEPGEN002")]
     [DataRow("""
         [SepSourceGeneration(null)]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         """, "SEPGEN002")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { public object Value { get; set; } = new(); }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { }
         """, "SEPGEN004")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { [SepCol("")] public int Id { get; set; } }
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { [SepCol(Index = -1)] public int Id { get; set; } }
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             [SepCol("a")]
@@ -614,27 +615,27 @@ public class SepSourceGeneratorTest
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { public int this[int index] { get => index; set { } } }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { [SepCol(Format = "X")] public string Name { get; set; } = ""; }
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { public int Id { private get; private set; } }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person { public int Id { set { } } }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             [SepCol("id")] public int Id { get; set; }
@@ -643,7 +644,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN006")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             [SepCol(0)] public int Id { get; set; }
@@ -652,7 +653,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN006")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             [SepCol(0)] public int Id { get; set; }
@@ -661,7 +662,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN007")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             private Person() { }
@@ -670,7 +671,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN008")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             public Person(int id) { }
@@ -681,7 +682,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN009")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             public Person() { }
@@ -690,7 +691,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN012")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             public Person(int id, int ID) { }
@@ -699,7 +700,7 @@ public class SepSourceGeneratorTest
         """, "SEPGEN010")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person
         {
             public Person(string name) { }
@@ -708,12 +709,12 @@ public class SepSourceGeneratorTest
         """, "SEPGEN012")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person<>))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Person<T> { public int Id { get; set; } }
         """, "SEPGEN011")]
     [DataRow("""
         [SepSourceGeneration(typeof(Outer<int>.Person))]
-        public static partial class PersonSep { }
+        public static partial class PersonSepExtensions { }
         public class Outer<T>
         {
             public class Person { public int Id { get; set; } }
@@ -731,7 +732,7 @@ public class SepSourceGeneratorTest
     {
         var result = Run("""
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
 
             public readonly struct Value : ISpanParsable<int>, ISpanFormattable
             {
@@ -810,7 +811,7 @@ public class SepSourceGeneratorTest
             using System.Collections.Generic;
 
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSep { }
+            public static partial class PersonSepExtensions { }
             public class Person { public int Id { get; set; } }
 
             public static class Caller

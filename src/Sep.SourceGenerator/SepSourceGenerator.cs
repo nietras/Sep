@@ -39,6 +39,9 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     const string EnumerableName = "global::System.Collections.Generic.IEnumerable";
     const string EnumeratorName = "global::System.Collections.Generic.IEnumerator";
     const string AsyncEnumerableName = "global::System.Collections.Generic.IAsyncEnumerable";
+    const string CancellationTokenName = "global::System.Threading.CancellationToken";
+    const string ValueTaskName = "global::System.Threading.Tasks.ValueTask";
+    const string TaskAsyncEnumerableExtensionsName = "global::System.Threading.Tasks.TaskAsyncEnumerableExtensions";
     const string NonGenericEnumerableName = "global::System.Collections.IEnumerable";
     const string NonGenericEnumeratorName = "global::System.Collections.IEnumerator";
 
@@ -262,8 +265,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         out string error)
     {
         var type = symbol is IPropertySymbol property ? property.Type : ((IFieldSymbol)symbol).Type;
-        // Every mapped member is written, so a member that cannot be read would silently drop its
-        // column and make reading back what was written fail.
+        // Every mapped member is formatted, so an inaccessible getter would silently drop its
+        // column and make parsing the formatted output fail.
         if (symbol is IPropertySymbol readableProperty && !IsAccessible(compilation, adapter, readableProperty.GetMethod))
         {
             member = default!;
@@ -394,7 +397,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             return false;
         }
 
-        // Strings are written verbatim, so a format would be silently ignored.
+        // Strings are formatted verbatim, so a format would be silently ignored.
         if (isString && format is not null)
         {
             mapping = default;
@@ -658,17 +661,19 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.Append("    extension(").Append(model.ModelName).AppendLine(")");
         source.AppendLine("    {");
         var extensions = new StringBuilder();
-        EmitRead(extensions, model);
+        EmitParse(extensions, model);
         extensions.AppendLine();
-        EmitTryRead(extensions, model);
+        EmitTryParse(extensions, model);
         extensions.AppendLine();
-        EmitReadEnumerable(extensions, model);
+        EmitEnumerate(extensions, model);
         extensions.AppendLine();
-        EmitReadAsyncEnumerable(extensions, model);
+        EmitEnumerateAsync(extensions, model);
+        extensions.AppendLine();
+        EmitFormat(extensions, model);
         extensions.AppendLine();
         EmitWrite(extensions, model);
         extensions.AppendLine();
-        EmitWriteEnumerable(extensions, model);
+        EmitWriteAsyncOverloads(extensions, model);
         AppendIndented(source, extensions, "    ");
         source.AppendLine("    }");
         if (model.Members.Any(static member => member.IsEnum))
@@ -698,7 +703,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             issue.Location?.ToLocation(),
             issue.Arguments.Cast<object>().ToArray());
 
-    static void EmitRead(StringBuilder source, Model model)
+    static void EmitParse(StringBuilder source, Model model)
     {
         source.Append("    public static ").Append(model.ModelName)
             .Append(" Parse(").Append(SepReaderRowName).AppendLine(" row)");
@@ -721,12 +726,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             source.AppendLine(";");
         }
         source.Append("        return ");
-        AppendConstruction(source, model, memberIndex => AppendReadValue(source, model, memberIndex));
+        AppendConstruction(source, model, memberIndex => AppendParseValue(source, model, memberIndex));
         source.AppendLine(";");
         source.AppendLine("    }");
     }
 
-    static void AppendReadValue(StringBuilder source, Model model, int memberIndex)
+    static void AppendParseValue(StringBuilder source, Model model, int memberIndex)
     {
         var member = model.Members[memberIndex];
         if (member.IsNullable)
@@ -771,14 +776,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
     }
 
-    static void EmitTryRead(StringBuilder source, Model model)
+    static void EmitTryParse(StringBuilder source, Model model)
     {
         source.Append("    public static bool TryParse(").Append(SepReaderRowName).Append(" row, out ")
             .Append(model.ModelName).AppendLine(" value)");
         source.AppendLine("    {");
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
         {
-            EmitTryReadMember(source, model, model.Members[memberIndex], memberIndex);
+            EmitTryParseMember(source, model, model.Members[memberIndex], memberIndex);
         }
         source.AppendLine();
         source.Append("        value = ");
@@ -788,7 +793,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("    }");
     }
 
-    static void EmitTryReadMember(StringBuilder source, Model model, Member member, int memberIndex)
+    static void EmitTryParseMember(StringBuilder source, Model model, Member member, int memberIndex)
     {
         var local = ValueLocal(memberIndex);
         if (member.IsNullable)
@@ -812,7 +817,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             }
             else
             {
-                EmitTryParse(source, member, column, local + "Value", "            ");
+                EmitTryParseValue(source, member, column, local + "Value", "            ");
                 source.Append("            ").Append(local).Append(" = ").Append(local).AppendLine("Value;");
             }
             source.AppendLine("        }");
@@ -826,10 +831,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             return;
         }
 
-        EmitTryParse(source, member, ColumnAccess(model, member), local, "        ");
+        EmitTryParseValue(source, member, ColumnAccess(model, member), local, "        ");
     }
 
-    static void EmitTryParse(StringBuilder source, Member member, string column, string local, string indent)
+    static void EmitTryParseValue(StringBuilder source, Member member, string column, string local, string indent)
     {
         source.Append(indent).Append("if (!");
         if (member.IsEnum)
@@ -848,12 +853,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.Append(indent).AppendLine("}");
     }
 
-    static void EmitReadEnumerable(StringBuilder source, Model model)
+    static void EmitEnumerate(StringBuilder source, Model model)
     {
-        // A struct enumerable and enumerator keep reading of value type models free of heap
+        // A struct enumerable and enumerator keep parsing value type models free of heap
         // allocations, unlike an iterator based IEnumerable<T>.
-        source.Append("    public static RowEnumerable Enumerate(").Append(SepReaderName)
-            .AppendLine(" reader) => new RowEnumerable(reader);");
+        source.Append("    public static ModelEnumerable Enumerate(").Append(SepReaderName)
+            .AppendLine(" reader) => new ModelEnumerable(reader);");
     }
 
     static void EmitEnumerator(StringBuilder source, Model model)
@@ -861,17 +866,17 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var enumerableInterface = EnumerableName + "<" + model.ModelName + ">";
         var enumeratorInterface = EnumeratorName + "<" + model.ModelName + ">";
         var readerField = "        readonly " + SepReaderName + " _reader;";
-        source.Append("    public readonly struct RowEnumerable : ").AppendLine(enumerableInterface);
+        source.Append("    public readonly struct ModelEnumerable : ").AppendLine(enumerableInterface);
         source.AppendLine("    {");
         source.AppendLine(readerField);
         source.AppendLine();
-        source.Append("        internal RowEnumerable(").Append(SepReaderName).AppendLine(" reader)");
+        source.Append("        internal ModelEnumerable(").Append(SepReaderName).AppendLine(" reader)");
         source.AppendLine("        {");
         source.Append("            ").Append(ArgumentNullExceptionName).AppendLine(".ThrowIfNull(reader);");
         source.AppendLine("            _reader = reader;");
         source.AppendLine("        }");
         source.AppendLine();
-        source.AppendLine("        public RowEnumerator GetEnumerator() => new RowEnumerator(_reader);");
+        source.AppendLine("        public ModelEnumerator GetEnumerator() => new ModelEnumerator(_reader);");
         source.AppendLine();
         source.Append("        ").Append(enumeratorInterface).Append(' ').Append(enumerableInterface)
             .AppendLine(".GetEnumerator() => GetEnumerator();");
@@ -880,12 +885,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             .AppendLine(".GetEnumerator() => GetEnumerator();");
         source.AppendLine("    }");
         source.AppendLine();
-        source.Append("    public struct RowEnumerator : ").AppendLine(enumeratorInterface);
+        source.Append("    public struct ModelEnumerator : ").AppendLine(enumeratorInterface);
         source.AppendLine("    {");
         source.AppendLine(readerField);
         source.Append("        ").Append(model.ModelName).AppendLine(" _current;");
         source.AppendLine();
-        source.Append("        internal RowEnumerator(").Append(SepReaderName).AppendLine(" reader)");
+        source.Append("        internal ModelEnumerator(").Append(SepReaderName).AppendLine(" reader)");
         source.AppendLine("        {");
         source.AppendLine("            _reader = reader;");
         source.AppendLine("            _current = default!;");
@@ -950,7 +955,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("    }");
     }
 
-    static void EmitReadAsyncEnumerable(StringBuilder source, Model model)
+    static void EmitEnumerateAsync(StringBuilder source, Model model)
     {
         source.Append("    public static ").Append(AsyncEnumerableName).Append('<')
             .Append(model.ModelName).Append("> EnumerateAsync(").Append(SepReaderName).Append(" reader) => ")
@@ -958,7 +963,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             .Append(model.ModelName).AppendLine(".Parse);");
     }
 
-    static void EmitWrite(StringBuilder source, Model model)
+    static void EmitFormat(StringBuilder source, Model model)
     {
         source.Append("    public static void Format(").Append(SepWriterRowName).Append(" row, ")
             .Append(model.ModelName).AppendLine(" value)");
@@ -967,12 +972,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             .OrderBy(member => model.UsesIndexes ? member.Index : member.Order)
             .ThenBy(static member => member.Order))
         {
-            EmitWriteMember(source, member);
+            EmitFormatMember(source, member);
         }
         source.AppendLine("    }");
     }
 
-    static void EmitWriteMember(StringBuilder source, Member member)
+    static void EmitFormatMember(StringBuilder source, Member member)
     {
         var value = "value.@" + member.Name;
         if (member.IsString)
@@ -994,7 +999,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         if (!member.IsNullable)
         {
-            EmitWriteValue(source, member, column, value, "        ");
+            EmitFormatValue(source, member, column, value, "        ");
             return;
         }
 
@@ -1003,7 +1008,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var innerValue = member.IsNullableValue ? value + ".GetValueOrDefault()" : value;
         source.Append("        if (").Append(hasValue).AppendLine(")");
         source.AppendLine("        {");
-        EmitWriteValue(source, member, column, innerValue, "            ");
+        EmitFormatValue(source, member, column, innerValue, "            ");
         source.AppendLine("        }");
         source.AppendLine("        else");
         source.AppendLine("        {");
@@ -1011,11 +1016,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("        }");
     }
 
-    static void EmitWriteValue(StringBuilder source, Member member, string column, string value, string indent)
+    static void EmitFormatValue(StringBuilder source, Member member, string column, string value, string indent)
     {
         if (member.IsEnum)
         {
-            EmitWriteEnum(source, member, column, value, indent);
+            EmitFormatEnum(source, member, column, value, indent);
             return;
         }
         source.Append(indent).Append(column).Append(".Format(").Append(value);
@@ -1030,10 +1035,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     // Enums cannot use Col.Format like other ISpanFormattable types. ISpanFormattable is implemented
     // by System.Enum, not by each enum type, so the constrained call a generic
     // `Format<T>(T) where T : ISpanFormattable` compiles to has to box the value, which allocates
-    // 24 bytes per value. Reading has the same shape of problem: enums do not implement
+    // 24 bytes per value. Parsing has the same shape of problem: enums do not implement
     // ISpanParsable<TSelf> at all, so Col.Parse<T> cannot even be used. Knowing the concrete enum
     // type at generation time makes both allocation free.
-    static void EmitWriteEnum(StringBuilder source, Member member, string column, string value, string indent)
+    static void EmitFormatEnum(StringBuilder source, Member member, string column, string value, string indent)
     {
         var isGeneralFormat = member.Format is null || string.Equals(member.Format, "G", StringComparison.OrdinalIgnoreCase);
         if (!isGeneralFormat || member.EnumMemberNames.Length == 0)
@@ -1111,7 +1116,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static void AppendStringLiteral(StringBuilder source, string value) =>
         source.Append(SymbolDisplay.FormatLiteral(value, quote: true));
 
-    static void EmitWriteEnumerable(StringBuilder source, Model model)
+    static void EmitWrite(StringBuilder source, Model model)
     {
         // A span overload avoids the enumerator allocation an IEnumerable<T> enumeration incurs.
         // params is not used since that requires C# 13 which consumers cannot be assumed to use.
@@ -1145,6 +1150,37 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("        foreach (var value in values)");
         source.AppendLine("        {");
         source.AppendLine("            using var row = writer.NewRow();");
+        source.Append("            ").Append(model.ModelName).AppendLine(".Format(row, value);");
+        source.AppendLine("        }");
+        source.AppendLine("    }");
+    }
+
+    static void EmitWriteAsyncOverloads(StringBuilder source, Model model)
+    {
+        EmitWriteAsync(source, model, EnumerableName + "<" + model.ModelName + ">", asyncValues: false);
+        source.AppendLine();
+        EmitWriteAsync(source, model, AsyncEnumerableName + "<" + model.ModelName + ">", asyncValues: true);
+    }
+
+    static void EmitWriteAsync(StringBuilder source, Model model, string valuesType, bool asyncValues)
+    {
+        source.Append("    public static async ").Append(ValueTaskName).Append(" WriteAsync(")
+            .Append(SepWriterName).Append(" writer, ").Append(valuesType).Append(" values, ")
+            .Append(CancellationTokenName).AppendLine(" cancellationToken = default)");
+        source.AppendLine("    {");
+        source.Append("        ").Append(ArgumentNullExceptionName).AppendLine(".ThrowIfNull(writer);");
+        source.Append("        ").Append(ArgumentNullExceptionName).AppendLine(".ThrowIfNull(values);");
+        if (asyncValues)
+        {
+            source.Append("        await foreach (var value in ").Append(TaskAsyncEnumerableExtensionsName)
+                .AppendLine(".WithCancellation(values, cancellationToken).ConfigureAwait(false))");
+        }
+        else
+        {
+            source.AppendLine("        foreach (var value in values)");
+        }
+        source.AppendLine("        {");
+        source.AppendLine("            await using var row = writer.NewRow(cancellationToken);");
         source.Append("            ").Append(model.ModelName).AppendLine(".Format(row, value);");
         source.AppendLine("        }");
         source.AppendLine("    }");

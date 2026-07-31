@@ -1,10 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.SourceGenerator.Test;
@@ -50,7 +48,7 @@ public class SepSourceGeneratorDiagnosticTest
         var ids = s_ids.Select(SepSourceGenerator.DiagnosticId).ToArray();
 
         Assert.AreEqual("SEPGEN001", ids[0]);
-        Assert.AreEqual(ids.Length, ids.Distinct(StringComparer.Ordinal).Count());
+        Assert.HasCount(ids.Length, ids.Distinct(StringComparer.Ordinal));
         Assert.IsTrue(ids.All(static id => id.Length == "SEPGEN000".Length),
             string.Join(", ", ids));
     }
@@ -65,7 +63,7 @@ public class SepSourceGeneratorDiagnosticTest
             .Where(static value => value.StartsWith("SEPGEN", StringComparison.Ordinal))
             .ToArray();
 
-        CollectionAssert.AreEqual(s_ids.Select(SepSourceGenerator.DiagnosticId).ToArray(), documented);
+        Assert.AreSequenceEqual(s_ids.Select(SepSourceGenerator.DiagnosticId).ToArray(), documented);
     }
 
     static string FindRepositoryRoot()

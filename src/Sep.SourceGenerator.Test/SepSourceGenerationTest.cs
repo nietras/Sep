@@ -1,5 +1,9 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.SourceGenerator.Test;
@@ -7,33 +11,49 @@ namespace nietras.SeparatedValues.SourceGenerator.Test;
 [TestClass]
 public class SepSourceGenerationTest
 {
+    const string PersonCsv = "Id;Name;Score\r\n42;Ada;12.5\r\n7;Lin;9.25\r\n";
+    const string SinglePersonCsv = "Id;Name;Score\r\n42;Ada;12.5\r\n";
+    static readonly Person s_ada = new(42, "Ada", 12.5m);
+    static readonly Person[] s_people = [s_ada, new(7, "Lin", 9.25m)];
+
     [TestMethod]
-    public void SepSourceGenerationTest_ReadAndWrite_UsesGeneratedSpanConversions()
+    public void SepSourceGenerationTest_Write_UsesGeneratedSpanConversions()
     {
         using var writer = Sep.Default.Writer().ToText();
-        Person.Write(writer,
-        [
-            new() { Id = 42, Name = "Ada", Score = 12.5m },
-            new() { Id = 7, Name = "Lin", Score = 9.25m },
-        ]);
+        Person.Write(writer, s_people);
 
-        var text = writer.ToString();
-        Assert.AreEqual("Id;Name;Score\r\n42;Ada;12.5\r\n7;Lin;9.25\r\n", text);
-
-        using var reader = Sep.Default.Reader().FromText(text);
-        var people = Person.Enumerate(reader).ToArray();
-
-        Assert.HasCount(2, people);
-        Assert.AreEqual(42, people[0].Id);
-        Assert.AreEqual("Ada", people[0].Name);
-        Assert.AreEqual(12.5m, people[0].Score);
-        Assert.AreEqual(7, people[1].Id);
-        Assert.AreEqual("Lin", people[1].Name);
-        Assert.AreEqual(9.25m, people[1].Score);
+        Assert.AreEqual(PersonCsv, writer.ToString());
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_TryRead_ReturnsFalseForInvalidSpanParsableValue()
+    public void SepSourceGenerationTest_Enumerate_UsesGeneratedSpanConversions()
+    {
+        using var reader = Sep.Default.Reader().FromText(PersonCsv);
+
+        Assert.AreSequenceEqual(s_people, Person.Enumerate(reader).ToArray());
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_Parse_ReturnsRecord()
+    {
+        using var reader = Sep.Default.Reader().FromText(SinglePersonCsv);
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.AreEqual(s_ada, Person.Parse(reader.Current));
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_TryParse_ReturnsRecord()
+    {
+        using var reader = Sep.Default.Reader().FromText(SinglePersonCsv);
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.IsTrue(Person.TryParse(reader.Current, out var actual));
+        Assert.AreEqual(s_ada, actual);
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_TryParse_ReturnsFalseForInvalidSpanParsableValue()
     {
         using var reader = Sep.Default.Reader().FromText("Id;Name;Score\r\nnot-an-int;Ada;12.5\r\n");
         Assert.IsTrue(reader.MoveNext());
@@ -43,14 +63,69 @@ public class SepSourceGenerationTest
     }
 
     [TestMethod]
+    public void SepSourceGenerationTest_Format_WritesSingleRow()
+    {
+        using var writer = Sep.Default.Writer().ToText();
+        using (var row = writer.NewRow())
+        {
+            Person.Format(row, s_ada);
+        }
+
+        Assert.AreEqual(SinglePersonCsv, writer.ToString());
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_WriteAsync_Enumerable()
+    {
+        await using var writer = Sep.Default.Writer().ToText();
+
+        await Person.WriteAsync(writer, (IEnumerable<Person>)s_people);
+
+        Assert.AreEqual(PersonCsv, writer.ToString());
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_WriteAsync_AsyncEnumerable()
+    {
+        await using var writer = Sep.Default.Writer().ToText();
+
+        await Person.WriteAsync(writer, AsAsyncEnumerable(s_people));
+
+        Assert.AreEqual(PersonCsv, writer.ToString());
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_EnumerateAsync_ReturnsRecords()
+    {
+        using var reader = Sep.Default.Reader().FromText(PersonCsv);
+        var actual = new List<Person>();
+        await foreach (var person in Person.EnumerateAsync(reader))
+        {
+            actual.Add(person);
+        }
+
+        Assert.AreSequenceEqual(s_people, actual);
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_WriteAsync_PropagatesCancellation()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await using var writer = Sep.Default.Writer().ToText();
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(async () =>
+            await Person.WriteAsync(writer, AsAsyncEnumerable(s_people), cancellation.Token));
+    }
+
+    [TestMethod]
     public void SepSourceGenerationTest_SepCol_Name()
     {
+        var expected = new NamedPerson { Id = 42, Name = "Ada" };
         using var reader = Sep.Default.Reader().FromText("display_name;person_id\r\nAda;42\r\n");
         var people = NamedPerson.Enumerate(reader).ToArray();
 
-        Assert.HasCount(1, people);
-        Assert.AreEqual(42, people[0].Id);
-        Assert.AreEqual("Ada", people[0].Name);
+        Assert.AreSequenceEqual(new[] { expected }, people);
 
         using var writer = Sep.Default.Writer().ToText();
         NamedPerson.Write(writer, people);
@@ -60,18 +135,28 @@ public class SepSourceGenerationTest
     [TestMethod]
     public void SepSourceGenerationTest_SepCol_IndexAndName()
     {
+        var expected = new IndexedPerson { Id = 42, Name = "Ada", Score = 12.5m };
         var options = Sep.Default.Reader(o => o with { HasHeader = false });
         using var reader = options.FromText("Ada;12.5;42\r\n");
         var people = IndexedPerson.Enumerate(reader).ToArray();
 
-        Assert.HasCount(1, people);
-        Assert.AreEqual(42, people[0].Id);
-        Assert.AreEqual("Ada", people[0].Name);
-        Assert.AreEqual(12.5m, people[0].Score);
+        Assert.AreSequenceEqual(new[] { expected }, people);
 
         using var writer = Sep.Default.Writer().ToText();
         IndexedPerson.Write(writer, people);
         Assert.AreEqual($"full_name;Score;person_id{Environment.NewLine}Ada;12.5;42{Environment.NewLine}", writer.ToString());
+    }
+
+    static async IAsyncEnumerable<Person> AsAsyncEnumerable(
+        IEnumerable<Person> values,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        foreach (var value in values)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return value;
+            await Task.Yield();
+        }
     }
 }
 
@@ -80,12 +165,7 @@ public static partial class PersonSepExtensions
 {
 }
 
-public sealed record Person
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public decimal Score { get; set; }
-}
+public sealed record Person(int Id, string Name, decimal Score);
 
 [SepSourceGeneration(typeof(NamedPerson))]
 public static partial class NamedPersonSepExtensions

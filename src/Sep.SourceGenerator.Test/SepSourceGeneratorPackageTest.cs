@@ -61,7 +61,7 @@ public class SepSourceGeneratorPackageTest
             .Select(static entry => entry.FullName)
             .ToArray();
 
-        CollectionAssert.AreEqual(new[] { "analyzers/dotnet/cs/Sep.SourceGenerator.dll" }, assemblies);
+        Assert.AreSequenceEqual(new[] { "analyzers/dotnet/cs/Sep.SourceGenerator.dll" }, assemblies);
     }
 
     /// <summary>

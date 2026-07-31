@@ -8,11 +8,11 @@ public static partial class DefaultPersonSepExtensions
 {
 }
 
-public class DefaultPerson
+public sealed record DefaultPerson
 {
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public int @class { get; set; }
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
+    public int @class { get; init; }
 }
 
 public enum RuntimeState
@@ -163,7 +163,7 @@ public static partial class ValuePersonSepExtensions
 }
 
 /// <summary>
-/// Model without any reference type members, so reading and writing it must not allocate at all.
+/// Model without any reference type members, so parsing and formatting it must not allocate.
 /// </summary>
 public readonly record struct ValuePerson
 {

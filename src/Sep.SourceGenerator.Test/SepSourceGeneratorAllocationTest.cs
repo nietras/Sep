@@ -8,7 +8,7 @@ namespace nietras.SeparatedValues.SourceGenerator.Test;
 
 /// <summary>
 /// Sep promises best in class performance and zero allocation, so source generated code must not
-/// allocate when reading or writing models consisting only of value types.
+/// allocate when parsing or formatting models consisting only of value types.
 /// </summary>
 [TestClass]
 public class SepSourceGeneratorAllocationTest
@@ -18,9 +18,9 @@ public class SepSourceGeneratorAllocationTest
     static readonly ValuePerson[] s_values = CreateValues();
 
     [TestMethod]
-    public void SepSourceGeneratorAllocationTest_ReadRowDoesNotAllocate()
+    public void SepSourceGeneratorAllocationTest_ParseDoesNotAllocate()
     {
-        var allocated = MeasureRead(static reader =>
+        var allocated = MeasureParsing(static reader =>
         {
             var total = 0;
             foreach (var row in reader)
@@ -34,9 +34,9 @@ public class SepSourceGeneratorAllocationTest
     }
 
     [TestMethod]
-    public void SepSourceGeneratorAllocationTest_TryReadRowDoesNotAllocate()
+    public void SepSourceGeneratorAllocationTest_TryParseDoesNotAllocate()
     {
-        var allocated = MeasureRead(static reader =>
+        var allocated = MeasureParsing(static reader =>
         {
             var total = 0;
             foreach (var row in reader)
@@ -55,7 +55,7 @@ public class SepSourceGeneratorAllocationTest
     [TestMethod]
     public void SepSourceGeneratorAllocationTest_EnumerateDoesNotAllocate()
     {
-        var allocated = MeasureRead(static reader =>
+        var allocated = MeasureParsing(static reader =>
         {
             var total = 0;
             // Must bind to the generated struct enumerator, not to IEnumerable<T>.
@@ -72,17 +72,17 @@ public class SepSourceGeneratorAllocationTest
     [TestMethod]
     public void SepSourceGeneratorAllocationTest_EnumeratorIsValueType()
     {
-        Assert.IsTrue(typeof(ValuePersonSepExtensions.RowEnumerable).IsValueType);
-        Assert.IsTrue(typeof(ValuePersonSepExtensions.RowEnumerator).IsValueType);
+        Assert.IsTrue(typeof(ValuePersonSepExtensions.ModelEnumerable).IsValueType);
+        Assert.IsTrue(typeof(ValuePersonSepExtensions.ModelEnumerator).IsValueType);
         using var reader = Sep.Reader().FromText(s_csv);
         // Resolved by the compiler via the pattern based foreach, so no interface dispatch.
         Assert.AreEqual(
-            typeof(ValuePersonSepExtensions.RowEnumerator),
+            typeof(ValuePersonSepExtensions.ModelEnumerator),
             ValuePerson.Enumerate(reader).GetEnumerator().GetType());
     }
 
     [TestMethod]
-    public void SepSourceGeneratorAllocationTest_WriteRowDoesNotAllocate()
+    public void SepSourceGeneratorAllocationTest_FormatDoesNotAllocate()
     {
         using var textWriter = new DiscardingTextWriter();
         using var writer = Sep.Writer().To(textWriter);
@@ -271,7 +271,7 @@ public class SepSourceGeneratorAllocationTest
         Assert.AreEqual(0, tryFormatAllocated);
     }
 
-    static long MeasureRead(Func<SepReader, int> action)
+    static long MeasureParsing(Func<SepReader, int> action)
     {
         // Creating the reader allocates, so only the enumeration itself is measured. Warming up
         // first ensures jitting and array pool rents do not count as allocations either.

@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Xml.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -13,7 +14,9 @@ public class SepSourceGeneratorPackageTest
     [TestMethod]
     public void SepSourceGeneratorPackageTest_ContainsAnalyzerAndSepRuntimeDependency()
     {
-        var packageDirectory = Path.Combine(FindRepositoryRoot(), "artifacts", "package", "debug");
+        var packageDirectory = typeof(SepSourceGeneratorPackageTest).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .Single(static attribute => attribute.Key == "SepPackageDirectory").Value!;
         var packagePath = Directory.GetFiles(packageDirectory, "Sep.SourceGenerator.*.nupkg")
             .OrderByDescending(File.GetLastWriteTimeUtc)
             .First();
@@ -29,17 +32,5 @@ public class SepSourceGeneratorPackageTest
         var excludedAssets = dependency.Attribute("exclude")?.Value ?? string.Empty;
         Assert.IsFalse(excludedAssets.Contains("Compile", StringComparison.Ordinal));
         Assert.IsFalse(excludedAssets.Contains("Runtime", StringComparison.Ordinal));
-    }
-
-    static string FindRepositoryRoot()
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            if (File.Exists(Path.Combine(directory.FullName, "Sep.slnx")))
-            {
-                return directory.FullName;
-            }
-        }
-        throw new DirectoryNotFoundException("Could not find the repository root.");
     }
 }

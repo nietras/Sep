@@ -19,7 +19,10 @@
   <ItemGroup>
     <!-- 4.8 is the Roslyn version hosted by the oldest supported .NET 8 SDK. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
-    <!-- Generated source calls Sep directly, but the analyzer itself has no runtime Sep dependency. -->
+    <!-- The analyzer itself only ships as netstandard2.0 and has no runtime Sep dependency, but the
+         generated source calls Sep, so the package must declare Sep as a dependency. Sep has no
+         netstandard2.0 asset, hence the extra net8.0 target framework carrying the dependency and
+         defining the minimum Sep version whose APIs the generated source uses. -->
     <PackageReference Include="Sep" Version="0.15.1" Condition="'$(TargetFramework)' == 'net8.0'" />
   </ItemGroup>
 
@@ -29,11 +32,11 @@
   </ItemGroup>
 
   <Target Name="AddAnalyzerToPackage" BeforeTargets="_GetPackageFiles">
-    <PropertyGroup>
-      <AnalyzerBuildOutputPath>$(BaseOutputPath)$([System.String]::Copy('$(Configuration)').ToLowerInvariant())_netstandard2.0\$(AssemblyName).dll</AnalyzerBuildOutputPath>
-    </PropertyGroup>
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="GetTargetPath" Properties="TargetFramework=netstandard2.0">
+      <Output TaskParameter="TargetOutputs" ItemName="_SepAnalyzerAssembly" />
+    </MSBuild>
     <ItemGroup>
-      <None Include="$(AnalyzerBuildOutputPath)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="@(_SepAnalyzerAssembly)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
   </Target>
 

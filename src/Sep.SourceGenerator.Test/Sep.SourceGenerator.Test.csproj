@@ -17,8 +17,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Sep\Sep.csproj" />
+    <!-- Use the netstandard2.0 build since that is the analyzer shipped in the package. -->
     <ProjectReference Include="..\Sep.SourceGenerator\Sep.SourceGenerator.csproj"
-                      OutputItemType="Analyzer" />
+                      OutputItemType="Analyzer"
+                      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadata">
+      <_Parameter1>SepPackageDirectory</_Parameter1>
+      <_Parameter2>$(ArtifactsPath)/package/$([System.String]::Copy('$(Configuration)').ToLowerInvariant())</_Parameter2>
+    </AssemblyAttribute>
   </ItemGroup>
 
   <ItemGroup>

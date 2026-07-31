@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.SourceGenerator.Test;
@@ -242,7 +243,11 @@ public class SepSourceGeneratorTest
             "new global::Example.SetsRequiredPerson(@id: row[\"Id\"].Parse<int>()) { @Id",
             StringComparison.Ordinal));
         StringAssert.Contains(result.GeneratedSource, "@Id = row[\"Id\"].Parse<int>()");
-        StringAssert.Contains(result.GeneratedSource, "value.@Value is null");
+        StringAssert.Contains(result.GeneratedSource,
+            "new global::Example.StructPerson() { @Id = row[\"Id\"].Parse<int>() }");
+        StringAssert.Contains(result.GeneratedSource, "value.@Value is not null");
+        Assert.IsFalse(result.GeneratedSource.Contains(".ToString(\"", StringComparison.Ordinal),
+            "Generated code must format via Sep columns instead of allocating with ToString.");
     }
 
     [TestMethod]
@@ -291,7 +296,107 @@ public class SepSourceGeneratorTest
             .ToArray();
         Assert.AreEqual(2, sources.Length);
         Assert.AreNotEqual(sources[0].HintName, sources[1].HintName);
+        Assert.IsTrue(sources.All(static source => source.HintName.StartsWith("PersonSep_", StringComparison.Ordinal)),
+            string.Join(", ", sources.Select(static source => source.HintName)));
         Assert.IsEmpty(result.CompilationDiagnostics);
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_SupportsPartialAdapterDeclaredInMultipleFiles()
+    {
+        var result = Run(
+            """
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSep { }
+            public class Person { public int Id { get; set; } }
+            """,
+            """
+            public static partial class PersonSep
+            {
+                public static int Extra => 42;
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_GeneratesConstantEnumNamesAndHonorsExplicitFormat()
+    {
+        var result = Run("""
+            public enum State { Unknown, Ready, Alias = Ready }
+            public enum Empty { }
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSep { }
+            public class Person
+            {
+                public State Value { get; set; }
+                public State? Optional { get; set; }
+                [SepCol(Format = "D")]
+                public State Numeric { get; set; }
+                [SepCol(Format = "g")]
+                public State General { get; set; }
+                public Empty Nothing { get; set; }
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(result.GeneratedSource, "case global::State.@Unknown:");
+        StringAssert.Contains(result.GeneratedSource, "__col0.Set(global::System.MemoryExtensions.AsSpan(\"Unknown\"));");
+        StringAssert.Contains(result.GeneratedSource, "SetEnum(__col0, value.@Value, default);");
+        StringAssert.Contains(result.GeneratedSource, "switch (value.@Optional.GetValueOrDefault())");
+        StringAssert.Contains(result.GeneratedSource, "SetEnum(__col2, value.@Numeric, \"D\");");
+        StringAssert.Contains(result.GeneratedSource, "switch (value.@General)");
+        // An enum without any members has no constant names to switch on.
+        StringAssert.Contains(result.GeneratedSource, "SetEnum(__col4, value.@Nothing, default);");
+        Assert.IsFalse(result.GeneratedSource.Contains("switch (value.@Nothing)", StringComparison.Ordinal));
+        StringAssert.Contains(result.GeneratedSource, "global::System.Enum.TryFormat(value, chars, out var charsWritten, format)");
+        // Aliases share the value of the member they alias and would be duplicate switch labels.
+        Assert.IsFalse(result.GeneratedSource.Contains("@Alias", StringComparison.Ordinal));
+        Assert.IsFalse(result.GeneratedSource.Contains("ToString", StringComparison.Ordinal),
+            "Generated code must format via Sep columns instead of allocating with ToString.");
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_ReadsEachColumnOnlyOnceForNullableMembers()
+    {
+        var result = Run("""
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSep { }
+            public class Person
+            {
+                public int? Id { get; set; }
+                public string? Name { get; set; }
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics);
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(result.GeneratedSource, "var __col0 = row[\"Id\"];");
+        StringAssert.Contains(result.GeneratedSource, "int? __sep0 = __col0.Span.IsEmpty ? null : __col0.Parse<int>();");
+        StringAssert.Contains(result.GeneratedSource, "__sep1 = __col1.ToString();");
+        Assert.AreEqual(0, CountOccurrences(result.GeneratedSource, "row[\"Id\"].Span.IsEmpty"));
+        // One column lookup per nullable member in each of Read, TryRead and Write.
+        Assert.AreEqual(3, CountOccurrences(result.GeneratedSource, "= row[\"Id\"];"));
+    }
+
+    static int CountOccurrences(string source, string value)
+    {
+        var count = 0;
+        for (var index = source.IndexOf(value, StringComparison.Ordinal); index >= 0;
+             index = source.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+        {
+            ++count;
+        }
+        return count;
     }
 
     [TestMethod]
@@ -355,7 +460,7 @@ public class SepSourceGeneratorTest
     [TestMethod]
     public void SepSourceGeneratorTest_UpdatesSameIdDiagnosticAcrossIncrementalEdits()
     {
-        var invalid = SourcePrefix + """
+        var invalid = """
             [SepSourceGeneration(typeof(Person))]
             public static partial class PersonSep { }
             public class Person
@@ -380,11 +485,11 @@ public class SepSourceGeneratorTest
     [TestMethod]
     public void SepSourceGeneratorTest_ValueModelsUseCompleteEquality()
     {
-        var member = new SepSourceGenerator.Member("Id", "int", "int", false, false, false, true, true, false, 0)
+        var member = new SepSourceGenerator.Member("Id", "int", "int", false, false, false, true, false, 0)
             .WithMapping(new SepSourceGenerator.ColumnMapping("id", 0, null));
-        var equalMember = new SepSourceGenerator.Member("Id", "int", "int", false, false, false, true, true, false, 0)
+        var equalMember = new SepSourceGenerator.Member("Id", "int", "int", false, false, false, true, false, 0)
             .WithMapping(new SepSourceGenerator.ColumnMapping("id", 0, null));
-        var differentMember = new SepSourceGenerator.Member("Name", "string", "string", true, false, true, true, true, true, 1)
+        var differentMember = new SepSourceGenerator.Member("Name", "string", "string", true, false, true, true, true, 1)
             .WithMapping(new SepSourceGenerator.ColumnMapping("name", 1, "G"));
         var plan = new SepSourceGenerator.ConstructionPlan(
             ImmutableArray.Create(new SepSourceGenerator.ConstructorParameter("@id", 0)),
@@ -413,8 +518,12 @@ public class SepSourceGeneratorTest
         var anotherInitializerPlan = new SepSourceGenerator.ConstructionPlan(
             ImmutableArray.Create(new SepSourceGenerator.ConstructorParameter("@id", 0)),
             ImmutableArray.Create(2));
-        var issue = SepSourceGenerator.Issue.Create("SEPGEN005", Location.None, "Id", "name");
+        var issue = SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, Location.None, "Id", "name");
 
+        var enumMember = CreateEnumMember("Ready");
+        Assert.IsTrue(enumMember.Equals(CreateEnumMember("Ready")));
+        Assert.IsFalse(enumMember.Equals(CreateEnumMember("Other")));
+        Assert.AreEqual(enumMember.GetHashCode(), CreateEnumMember("Ready").GetHashCode());
         Assert.IsTrue(member.Equals(equalMember));
         Assert.IsFalse(member.Equals(differentMember));
         Assert.IsFalse(member.Equals(new object()));
@@ -433,12 +542,24 @@ public class SepSourceGeneratorTest
         Assert.IsFalse(model.Equals(differentMemberModel));
         Assert.IsFalse(model.Equals(new object()));
         Assert.AreEqual(model.GetHashCode(), equalModel.GetHashCode());
-        Assert.IsTrue(issue.Equals(SepSourceGenerator.Issue.Create("SEPGEN005", Location.None, "Id", "name")));
-        Assert.IsFalse(issue.Equals(SepSourceGenerator.Issue.Create("SEPGEN005", Location.None, "Name", "name")));
+        Assert.IsTrue(issue.Equals(SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, Location.None, "Id", "name")));
+        Assert.IsFalse(issue.Equals(SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, Location.None, "Name", "name")));
+        Assert.IsFalse(issue.Equals(SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.NoMembers, Location.None, "Id", "name")));
         Assert.IsFalse(issue.Equals(new object()));
-        Assert.AreNotEqual(issue.GetHashCode(), SepSourceGenerator.Issue.Create("SEPGEN005", Location.None, "Name", "name").GetHashCode());
-        Assert.Throws<InvalidOperationException>(() =>
-            SepSourceGenerator.CreateDiagnostic(SepSourceGenerator.Issue.Create("unknown", Location.None)));
+        Assert.AreNotEqual(issue.GetHashCode(), SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, Location.None, "Name", "name").GetHashCode());
+        var location = Location.Create("Test.cs", new TextSpan(1, 2), new LinePositionSpan(new(0, 1), new(0, 3)));
+        var locatedIssue = SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, location, "Id", "name");
+        var otherLocation = Location.Create("Other.cs", new TextSpan(1, 2), new LinePositionSpan(new(0, 1), new(0, 3)));
+        Assert.IsTrue(locatedIssue.Equals(SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, location, "Id", "name")));
+        Assert.IsFalse(locatedIssue.Equals(issue));
+        Assert.IsFalse(locatedIssue.Equals(SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, otherLocation, "Id", "name")));
+        Assert.AreEqual(
+            locatedIssue.GetHashCode(),
+            SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, location, "Id", "name").GetHashCode());
+        var locationInfo = SepSourceGenerator.LocationInfo.Create(location)!;
+        Assert.IsFalse(locationInfo.Equals(new object()));
+        Assert.IsNull(SepSourceGenerator.LocationInfo.Create(Location.None));
+        Assert.AreEqual(location.GetLineSpan(), locationInfo.ToLocation().GetLineSpan());
         var parameter = new SepSourceGenerator.ConstructorParameter("@id", 0);
         Assert.IsTrue(parameter.Equals(new SepSourceGenerator.ConstructorParameter("@id", 0)));
         Assert.IsFalse(parameter.Equals(new object()));
@@ -499,6 +620,11 @@ public class SepSourceGeneratorTest
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSep { }
         public class Person { public int Id { private get; private set; } }
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSep { }
+        public class Person { public int Id { set { } } }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
@@ -632,10 +758,15 @@ public class SepSourceGeneratorTest
         Assert.IsTrue(result.Diagnostics.Any(static diagnostic => diagnostic.Id == "SEPGEN003"));
     }
 
-    static DriverResult Run(string source)
+    static SepSourceGenerator.Member CreateEnumMember(string enumMemberName) =>
+        new("State", "global::State", "global::State", "global::State",
+            isString: false, isEnum: true, isNullable: false, isNullableValue: false,
+            ImmutableArray.Create(enumMemberName), canWrite: true, isRequired: false, order: 2);
+
+    static DriverResult Run(params string[] sources)
     {
         GeneratorDriver driver = CreateDriver();
-        driver = driver.RunGeneratorsAndUpdateCompilation(CreateCompilation(SourcePrefix + source), out var outputCompilation, out _);
+        driver = driver.RunGeneratorsAndUpdateCompilation(CreateCompilation(sources), out var outputCompilation, out _);
         var runResult = driver.GetRunResult();
         var generatedSource = string.Concat(runResult.Results.Single().GeneratedSources
             .Where(static source => source.HintName.EndsWith(".Sep.g.cs", StringComparison.Ordinal))
@@ -647,10 +778,11 @@ public class SepSourceGeneratorTest
             generatedSource);
     }
 
-    static CSharpCompilation CreateCompilation(string source) =>
+    static CSharpCompilation CreateCompilation(params string[] sources) =>
         CSharpCompilation.Create(
             "SepSourceGeneratorTest",
-            [CSharpSyntaxTree.ParseText(source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview))],
+            sources.Select(static source => CSharpSyntaxTree.ParseText(
+                SourcePrefix + source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview))),
             s_references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 

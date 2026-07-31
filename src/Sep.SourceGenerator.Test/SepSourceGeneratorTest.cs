@@ -232,7 +232,8 @@ public class SepSourceGeneratorTest
             string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
         StringAssert.Contains(result.GeneratedSource, "global::System.Enum.Parse<global::Example.State>");
         StringAssert.Contains(result.GeneratedSource, "global::System.Enum.TryParse<global::Example.State>");
-        StringAssert.Contains(result.GeneratedSource, "ReadAsync(global::nietras.SeparatedValues.SepReader reader)");
+        StringAssert.Contains(result.GeneratedSource, "EnumerateAsync(global::nietras.SeparatedValues.SepReader reader)");
+        StringAssert.Contains(result.GeneratedSource, "extension(global::Example.ClassPerson)");
         StringAssert.Contains(result.GeneratedSource, ".Format(value.@Created, \"O\")");
         StringAssert.Contains(result.GeneratedSource, ".Span.IsEmpty ? null");
         StringAssert.Contains(result.GeneratedSource,
@@ -619,6 +620,11 @@ public class SepSourceGeneratorTest
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSep { }
+        public class Person { [SepCol(Format = "X")] public string Name { get; set; } = ""; }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSep { }
         public class Person { public int Id { private get; private set; } }
         """, "SEPGEN003")]
     [DataRow("""
@@ -681,7 +687,7 @@ public class SepSourceGeneratorTest
             public Person() { }
             public int Id { get; }
         }
-        """, "SEPGEN010")]
+        """, "SEPGEN012")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSep { }
@@ -699,7 +705,7 @@ public class SepSourceGeneratorTest
             public Person(string name) { }
             public int Id { get; }
         }
-        """, "SEPGEN010")]
+        """, "SEPGEN012")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person<>))]
         public static partial class PersonSep { }
@@ -790,15 +796,65 @@ public class SepSourceGeneratorTest
                 ImmutableArray<int>.Empty).GetHashCode());
     }
 
+    [TestMethod]
+    [DataRow("array", "Person.Write(writer, array);")]
+    [DataRow("list", "Person.Write(writer, list);")]
+    [DataRow("sequence", "Person.Write(writer, sequence);")]
+    [DataRow("span", "Person.Write(writer, new Person[0].AsSpan());")]
+    [DataRow("collection expression", "Person.Write(writer, [new Person()]);")]
+    public void SepSourceGeneratorTest_WriteOverloadsAreNotAmbiguous(string description, string call)
+    {
+        // The span overload exists to avoid an enumerator allocation, but it must not make ordinary
+        // calls with an array, a list or a sequence ambiguous against the IEnumerable overload.
+        var result = Run($$"""
+            using System.Collections.Generic;
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSep { }
+            public class Person { public int Id { get; set; } }
+
+            public static class Caller
+            {
+                public static void Call(SepWriter writer, Person[] array, List<Person> list, IEnumerable<Person> sequence)
+                {
+                    {{call}}
+                }
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics);
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            $"{description}: " +
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_RequiresCSharp14()
+    {
+        var result = Run(LanguageVersion.CSharp13, """
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions { }
+            public class Person { public int Id { get; set; } }
+            """);
+
+        Assert.AreEqual("SEPGEN013", result.Diagnostics.Single().Id);
+        Assert.IsEmpty(result.GeneratedSource);
+    }
+
     static SepSourceGenerator.Member CreateEnumMember(string enumMemberName) =>
         new("State", "global::State", "global::State", "global::State",
             isString: false, isEnum: true, isNullable: false, isNullableValue: false,
-            ImmutableArray.Create(enumMemberName), canWrite: true, isRequired: false, order: 2);
+            ImmutableArray.Create(enumMemberName), canWrite: true, isProperty: true, isRequired: false, order: 2);
 
-    static DriverResult Run(params string[] sources)
+    static DriverResult Run(params string[] sources) => Run(LanguageVersion.Preview, sources);
+
+    static DriverResult Run(LanguageVersion languageVersion, params string[] sources)
     {
-        GeneratorDriver driver = CreateDriver();
-        driver = driver.RunGeneratorsAndUpdateCompilation(CreateCompilation(sources), out var outputCompilation, out _);
+        GeneratorDriver driver = CreateDriver(languageVersion);
+        driver = driver.RunGeneratorsAndUpdateCompilation(
+            CreateCompilation(languageVersion, sources),
+            out var outputCompilation,
+            out _);
         var runResult = driver.GetRunResult();
         var generatedSource = string.Concat(runResult.Results.Single().GeneratedSources
             .Where(static source => source.HintName.EndsWith(".Sep.g.cs", StringComparison.Ordinal))
@@ -811,17 +867,22 @@ public class SepSourceGeneratorTest
     }
 
     static CSharpCompilation CreateCompilation(params string[] sources) =>
+        CreateCompilation(LanguageVersion.Preview, sources);
+
+    static CSharpCompilation CreateCompilation(LanguageVersion languageVersion, params string[] sources) =>
         CSharpCompilation.Create(
             "SepSourceGeneratorTest",
-            sources.Select(static source => CSharpSyntaxTree.ParseText(
-                SourcePrefix + source, CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview))),
+            sources.Select(source => CSharpSyntaxTree.ParseText(
+                SourcePrefix + source, CSharpParseOptions.Default.WithLanguageVersion(languageVersion))),
             s_references,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
-    static GeneratorDriver CreateDriver() =>
+    static GeneratorDriver CreateDriver() => CreateDriver(LanguageVersion.Preview);
+
+    static GeneratorDriver CreateDriver(LanguageVersion languageVersion) =>
         CSharpGeneratorDriver.Create(
             [new SepSourceGenerator().AsSourceGenerator()],
-            parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview));
+            parseOptions: CSharpParseOptions.Default.WithLanguageVersion(languageVersion));
 
     static ImmutableArray<MetadataReference> CreateReferences()
     {

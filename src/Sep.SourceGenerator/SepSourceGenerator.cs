@@ -59,13 +59,15 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         AmbiguousConstructor,
         UnbindableConstructor,
         GenericModel,
+        InaccessibleSetter,
+        RequiresCSharp14,
     }
 
     static readonly ImmutableArray<DiagnosticDescriptor> s_descriptors = ImmutableArray.Create(
         CreateDescriptor(IssueId.InvalidAdapter, "Invalid Sep source-generation adapter",
             "Adapter '{0}' must be a non-generic, non-file-local, top-level static partial class"),
         CreateDescriptor(IssueId.InvalidModel, "Invalid Sep source-generation model",
-            "Model '{0}' must be a non-abstract class or struct"),
+            "Model '{0}' must be an accessible non-abstract class or struct"),
         CreateDescriptor(IssueId.UnsupportedMember, "Unsupported Sep source-generation member",
             "Member '{0}' {1}"),
         CreateDescriptor(IssueId.NoMembers, "No Sep source-generation members",
@@ -83,7 +85,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         CreateDescriptor(IssueId.UnbindableConstructor, "Unbindable Sep source-generation constructor",
             "Model '{0}' cannot bind '{1}' to an accessible construction plan"),
         CreateDescriptor(IssueId.GenericModel, "Unsupported generic Sep source-generation model",
-            "Model '{0}' is generic; generic models are not supported"));
+            "Model '{0}' is generic; generic models are not supported"),
+        CreateDescriptor(IssueId.InaccessibleSetter, "Inaccessible Sep source-generation setter",
+            "Member '{0}' does not have an accessible setter and is not bound to a constructor parameter"),
+        CreateDescriptor(IssueId.RequiresCSharp14, "Sep source generation requires C# 14",
+            "Adapter '{0}' requires C# 14 or later because generated APIs use static extension members"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -114,6 +120,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         {
             return Model.Invalid(Issue.Create(IssueId.InvalidAdapter, adapter.Locations.FirstOrDefault(), adapter.Name));
         }
+        var parseOptions = (CSharpParseOptions)context.SemanticModel.SyntaxTree.Options;
+        if (!SupportsStaticExtensionMembers(parseOptions))
+        {
+            return Model.Invalid(Issue.Create(
+                IssueId.RequiresCSharp14,
+                adapter.Locations.FirstOrDefault(),
+                adapter.Name));
+        }
 
         var model = context.Attributes[0].ConstructorArguments[0].Value as INamedTypeSymbol;
         if (model is null)
@@ -124,7 +138,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         {
             return Model.Invalid(Issue.Create(IssueId.GenericModel, model.Locations.FirstOrDefault(), model.Name));
         }
-        if (!IsValidModel(model))
+        // Accessibility must be evaluated from the adapter, since the generated code lives there
+        // and the model may come from another assembly.
+        var compilation = context.SemanticModel.Compilation;
+        if (!IsValidModel(model) || !compilation.IsSymbolAccessibleWithin(model, adapter))
         {
             return Model.Invalid(Issue.Create(IssueId.InvalidModel, model.Locations.FirstOrDefault(), model.Name));
         }
@@ -147,11 +164,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, property.Locations.FirstOrDefault(), property.Name,
                     "is an indexer, which cannot be mapped"));
             }
-            if (!TryCreateMember(symbol, order, out var member, out var error))
+            if (!TryCreateMember(symbol, order, compilation, adapter, out var member, out var error))
             {
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
-            if (!TryGetColumnMapping(symbol, out var mapping, out error))
+            if (!TryGetColumnMapping(symbol, member.IsString, out var mapping, out error))
             {
                 return Model.Invalid(Issue.Create(IssueId.InvalidColumn, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
@@ -181,7 +198,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 "all mapped members must specify contiguous indexes starting at zero"));
         }
 
-        if (!TryCreateConstructionPlan(model, immutableMembers, cancellationToken, out var construction, out var issue))
+        if (!TryCreateConstructionPlan(model, immutableMembers, compilation, adapter, cancellationToken, out var construction, out var issue))
         {
             return Model.Invalid(issue!);
         }
@@ -196,6 +213,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             construction!,
             usesIndexes);
     }
+
+    static bool SupportsStaticExtensionMembers(CSharpParseOptions parseOptions) =>
+        !CSharpSyntaxTree.ParseText(
+            "static class C { extension(object) { public static void M() { } } }",
+            parseOptions).GetDiagnostics().Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
 
     static ImmutableArray<ISymbol> GetPublicInstanceMembers(INamedTypeSymbol model, CancellationToken cancellationToken)
     {
@@ -234,20 +256,22 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static bool TryCreateMember(
         ISymbol symbol,
         int order,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
         out Member member,
         out string error)
     {
         var type = symbol is IPropertySymbol property ? property.Type : ((IFieldSymbol)symbol).Type;
         // Every mapped member is written, so a member that cannot be read would silently drop its
         // column and make reading back what was written fail.
-        if (symbol is IPropertySymbol readableProperty && !IsAccessible(readableProperty.GetMethod))
+        if (symbol is IPropertySymbol readableProperty && !IsAccessible(compilation, adapter, readableProperty.GetMethod))
         {
             member = default!;
             error = "does not have an accessible getter";
             return false;
         }
         var canWrite = symbol is IPropertySymbol writableProperty
-            ? IsAccessible(writableProperty.SetMethod)
+            ? IsAccessible(compilation, adapter, writableProperty.SetMethod)
             : !((IFieldSymbol)symbol).IsReadOnly;
 
         var isNullableValue = type is INamedTypeSymbol namedType &&
@@ -275,6 +299,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             isNullableValue,
             isEnum ? GetEnumMemberNames(valueType) : ImmutableArray<string>.Empty,
             canWrite,
+            symbol is IPropertySymbol,
             IsRequired(symbol),
             order);
         error = string.Empty;
@@ -297,9 +322,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         return names.ToImmutable();
     }
 
-    static bool IsAccessible(IMethodSymbol? method) =>
-        method is not null &&
-        method.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal;
+    // Hand rolled accessibility checks cannot see assembly identity, so an internal member of a
+    // model in another assembly would look accessible and emit code that does not compile.
+    static bool IsAccessible(Compilation compilation, INamedTypeSymbol adapter, IMethodSymbol? method) =>
+        method is not null && compilation.IsSymbolAccessibleWithin(method, adapter);
 
     static bool IsRequired(ISymbol symbol) =>
         symbol is IPropertySymbol property ? property.IsRequired : ((IFieldSymbol)symbol).IsRequired;
@@ -314,7 +340,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         @interface.MetadataName == "ISpanFormattable" &&
         @interface.ContainingNamespace.ToDisplayString() == "System");
 
-    static bool TryGetColumnMapping(ISymbol symbol, out ColumnMapping mapping, out string error)
+    static bool TryGetColumnMapping(ISymbol symbol, bool isString, out ColumnMapping mapping, out string error)
     {
         var attributes = symbol.GetAttributes()
             .Where(static attribute => attribute.AttributeClass?.ToDisplayString() == ColumnAttributeMetadataName)
@@ -368,6 +394,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             return false;
         }
 
+        // Strings are written verbatim, so a format would be silently ignored.
+        if (isString && format is not null)
+        {
+            mapping = default;
+            error = "a format cannot be specified for a string member";
+            return false;
+        }
+
         mapping = new ColumnMapping(name, index, format);
         error = string.Empty;
         return true;
@@ -409,6 +443,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static bool TryCreateConstructionPlan(
         INamedTypeSymbol model,
         ImmutableArray<Member> members,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
         CancellationToken cancellationToken,
         out ConstructionPlan? plan,
         out Issue? issue)
@@ -428,7 +464,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
 
         var accessibleConstructors = model.InstanceConstructors
-            .Where(static constructor => constructor.DeclaredAccessibility is Accessibility.Public or Accessibility.Internal)
+            .Where(constructor => compilation.IsSymbolAccessibleWithin(constructor, adapter))
             .ToImmutableArray();
         if (accessibleConstructors.Length == 0)
         {
@@ -450,8 +486,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         {
             var unassignable = members.FirstOrDefault(static member => !member.CanWrite);
             plan = null;
-            issue = unassignable is not null
-                ? Issue.Create(IssueId.UnbindableConstructor, model.Locations.FirstOrDefault(), model.Name, unassignable.Name)
+            issue = unassignable is { IsProperty: true }
+                ? Issue.Create(IssueId.InaccessibleSetter, model.Locations.FirstOrDefault(), unassignable.Name)
+                : unassignable is not null
+                    ? Issue.Create(IssueId.UnbindableConstructor, model.Locations.FirstOrDefault(), model.Name, unassignable.Name)
                 : Issue.Create(IssueId.UnbindableConstructor, model.Locations.FirstOrDefault(), model.Name, "constructor parameters");
             return false;
         }
@@ -617,17 +655,22 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
         source.Append(model.Accessibility).Append(" static partial class ").Append(model.AdapterName).AppendLine();
         source.AppendLine("{");
-        EmitRead(source, model);
-        source.AppendLine();
-        EmitTryRead(source, model);
-        source.AppendLine();
-        EmitReadEnumerable(source, model);
-        source.AppendLine();
-        EmitReadAsyncEnumerable(source, model);
-        source.AppendLine();
-        EmitWrite(source, model);
-        source.AppendLine();
-        EmitWriteEnumerable(source, model);
+        source.Append("    extension(").Append(model.ModelName).AppendLine(")");
+        source.AppendLine("    {");
+        var extensions = new StringBuilder();
+        EmitRead(extensions, model);
+        extensions.AppendLine();
+        EmitTryRead(extensions, model);
+        extensions.AppendLine();
+        EmitReadEnumerable(extensions, model);
+        extensions.AppendLine();
+        EmitReadAsyncEnumerable(extensions, model);
+        extensions.AppendLine();
+        EmitWrite(extensions, model);
+        extensions.AppendLine();
+        EmitWriteEnumerable(extensions, model);
+        AppendIndented(source, extensions, "    ");
+        source.AppendLine("    }");
         if (model.Members.Any(static member => member.IsEnum))
         {
             source.AppendLine();
@@ -640,6 +683,15 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         context.AddSource(HintName(model), SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
+    static void AppendIndented(StringBuilder source, StringBuilder value, string indent)
+    {
+        using var reader = new System.IO.StringReader(value.ToString());
+        while (reader.ReadLine() is { } line)
+        {
+            source.Append(indent).AppendLine(line);
+        }
+    }
+
     internal static Diagnostic CreateDiagnostic(Issue issue) =>
         Diagnostic.Create(
             s_descriptors[(int)issue.Id - 1],
@@ -649,7 +701,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static void EmitRead(StringBuilder source, Model model)
     {
         source.Append("    public static ").Append(model.ModelName)
-            .Append(" Read(").Append(SepReaderRowName).AppendLine(" row)");
+            .Append(" Parse(").Append(SepReaderRowName).AppendLine(" row)");
         source.AppendLine("    {");
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
         {
@@ -721,7 +773,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
     static void EmitTryRead(StringBuilder source, Model model)
     {
-        source.Append("    public static bool TryRead(").Append(SepReaderRowName).Append(" row, out ")
+        source.Append("    public static bool TryParse(").Append(SepReaderRowName).Append(" row, out ")
             .Append(model.ModelName).AppendLine(" value)");
         source.AppendLine("    {");
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
@@ -800,7 +852,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     {
         // A struct enumerable and enumerator keep reading of value type models free of heap
         // allocations, unlike an iterator based IEnumerable<T>.
-        source.Append("    public static RowEnumerable Read(").Append(SepReaderName)
+        source.Append("    public static RowEnumerable Enumerate(").Append(SepReaderName)
             .AppendLine(" reader) => new RowEnumerable(reader);");
     }
 
@@ -847,7 +899,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("        {");
         source.AppendLine("            if (_reader.MoveNext())");
         source.AppendLine("            {");
-        source.AppendLine("                _current = Read(_reader.Current);");
+        source.Append("                _current = ").Append(model.ModelName).AppendLine(".Parse(_reader.Current);");
         source.AppendLine("                return true;");
         source.AppendLine("            }");
         source.AppendLine("            _current = default!;");
@@ -901,13 +953,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static void EmitReadAsyncEnumerable(StringBuilder source, Model model)
     {
         source.Append("    public static ").Append(AsyncEnumerableName).Append('<')
-            .Append(model.ModelName).Append("> ReadAsync(").Append(SepReaderName).Append(" reader) => ")
-            .Append(SepReaderExtensionsName).AppendLine(".EnumerateAsync(reader, Read);");
+            .Append(model.ModelName).Append("> EnumerateAsync(").Append(SepReaderName).Append(" reader) => ")
+            .Append(SepReaderExtensionsName).Append(".EnumerateAsync(reader, ")
+            .Append(model.ModelName).AppendLine(".Parse);");
     }
 
     static void EmitWrite(StringBuilder source, Model model)
     {
-        source.Append("    public static void Write(").Append(SepWriterRowName).Append(" row, ")
+        source.Append("    public static void Format(").Append(SepWriterRowName).Append(" row, ")
             .Append(model.ModelName).AppendLine(" value)");
         source.AppendLine("    {");
         foreach (var member in model.Members
@@ -1069,8 +1122,19 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("        for (var index = 0; index < values.Length; ++index)");
         source.AppendLine("        {");
         source.AppendLine("            using var row = writer.NewRow();");
-        source.AppendLine("            Write(row, values[index]);");
+        source.Append("            ").Append(model.ModelName).AppendLine(".Format(row, values[index]);");
         source.AppendLine("        }");
+        source.AppendLine("    }");
+        source.AppendLine();
+        // An array converts to both the span and the IEnumerable overload with neither being
+        // better, which makes the most common call ambiguous. This exact match overload resolves
+        // that and keeps arrays on the allocation free span path.
+        source.Append("    public static void Write(").Append(SepWriterName).Append(" writer, ")
+            .Append(model.ModelName).AppendLine("[] values)");
+        source.AppendLine("    {");
+        source.Append("        ").Append(ArgumentNullExceptionName).AppendLine(".ThrowIfNull(values);");
+        source.Append("        Write(writer, new ").Append(ReadOnlySpanName).Append('<')
+            .Append(model.ModelName).AppendLine(">(values));");
         source.AppendLine("    }");
         source.AppendLine();
         source.Append("    public static void Write(").Append(SepWriterName).Append(" writer, ")
@@ -1081,7 +1145,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         source.AppendLine("        foreach (var value in values)");
         source.AppendLine("        {");
         source.AppendLine("            using var row = writer.NewRow();");
-        source.AppendLine("            Write(row, value);");
+        source.Append("            ").Append(model.ModelName).AppendLine(".Format(row, value);");
         source.AppendLine("        }");
         source.AppendLine("    }");
     }
@@ -1353,7 +1417,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeName, valueTypeName, isString, isEnum, isNullable, isNullable,
-                ImmutableArray<string>.Empty, canWrite, isRequired, string.Empty, null, null, order)
+                ImmutableArray<string>.Empty, canWrite, true, isRequired, string.Empty, null, null, order)
         {
         }
 
@@ -1368,10 +1432,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isNullableValue,
             ImmutableArray<string> enumMemberNames,
             bool canWrite,
+            bool isProperty,
             bool isRequired,
             int order)
             : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
-                enumMemberNames, canWrite, isRequired, string.Empty, null, null, order)
+                enumMemberNames, canWrite, isProperty, isRequired, string.Empty, null, null, order)
         {
         }
 
@@ -1386,6 +1451,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isNullableValue,
             ImmutableArray<string> enumMemberNames,
             bool canWrite,
+            bool isProperty,
             bool isRequired,
             string columnName,
             int? index,
@@ -1402,6 +1468,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullableValue = isNullableValue;
             EnumMemberNames = enumMemberNames;
             CanWrite = canWrite;
+            IsProperty = isProperty;
             IsRequired = isRequired;
             ColumnName = columnName;
             Index = index;
@@ -1419,6 +1486,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         public bool IsNullableValue { get; }
         public ImmutableArray<string> EnumMemberNames { get; }
         public bool CanWrite { get; }
+        public bool IsProperty { get; }
         public bool IsRequired { get; }
         public string ColumnName { get; }
         public int? Index { get; }
@@ -1427,7 +1495,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public Member WithMapping(ColumnMapping mapping) =>
             new(Name, TypeName, TypeIdentityName, ValueTypeName, IsString, IsEnum, IsNullable, IsNullableValue,
-                EnumMemberNames, CanWrite, IsRequired, mapping.Name, mapping.Index, mapping.Format, Order);
+                EnumMemberNames, CanWrite, IsProperty, IsRequired, mapping.Name, mapping.Index, mapping.Format, Order);
 
         public bool Equals(Member? other) =>
             other is not null &&
@@ -1441,6 +1509,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullableValue == other.IsNullableValue &&
             EnumMemberNames.SequenceEqual(other.EnumMemberNames, StringComparer.Ordinal) &&
             CanWrite == other.CanWrite &&
+            IsProperty == other.IsProperty &&
             IsRequired == other.IsRequired &&
             string.Equals(ColumnName, other.ColumnName, StringComparison.Ordinal) &&
             Index == other.Index &&
@@ -1465,6 +1534,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 hashCode.Add(enumMemberName, StringComparer.Ordinal);
             }
             hashCode.Add(CanWrite);
+            hashCode.Add(IsProperty);
             hashCode.Add(IsRequired);
             hashCode.Add(ColumnName, StringComparer.Ordinal);
             hashCode.Add(Index);

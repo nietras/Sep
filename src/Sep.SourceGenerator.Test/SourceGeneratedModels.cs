@@ -4,7 +4,7 @@ using nietras.SeparatedValues;
 namespace nietras.SeparatedValues.SourceGenerator.Test;
 
 [SepSourceGeneration(typeof(DefaultPerson))]
-public static partial class DefaultPersonSep
+public static partial class DefaultPersonSepExtensions
 {
 }
 
@@ -22,7 +22,7 @@ public enum RuntimeState
 }
 
 [SepSourceGeneration(typeof(RuntimePerson))]
-public static partial class RuntimePersonSep
+public static partial class RuntimePersonSepExtensions
 {
 }
 
@@ -42,7 +42,7 @@ public record RuntimePerson
 }
 
 [SepSourceGeneration(typeof(OrdinaryRequiredPerson))]
-public static partial class OrdinaryRequiredPersonSep
+public static partial class OrdinaryRequiredPersonSepExtensions
 {
 }
 
@@ -56,7 +56,7 @@ public sealed class OrdinaryRequiredPerson
 }
 
 [SepSourceGeneration(typeof(SetsRequiredPerson))]
-public static partial class SetsRequiredPersonSep
+public static partial class SetsRequiredPersonSepExtensions
 {
 }
 
@@ -113,7 +113,7 @@ public sealed class NullableReferenceValue : ISpanParsable<NullableReferenceValu
 }
 
 [SepSourceGeneration(typeof(NullableReferencePerson))]
-public static partial class NullableReferencePersonSep
+public static partial class NullableReferencePersonSepExtensions
 {
 }
 
@@ -148,7 +148,7 @@ public enum LongFlags
 }
 
 [SepSourceGeneration(typeof(LongFlagsPerson))]
-public static partial class LongFlagsPersonSep
+public static partial class LongFlagsPersonSepExtensions
 {
 }
 
@@ -158,7 +158,7 @@ public readonly record struct LongFlagsPerson
 }
 
 [SepSourceGeneration(typeof(ValuePerson))]
-public static partial class ValuePersonSep
+public static partial class ValuePersonSepExtensions
 {
 }
 

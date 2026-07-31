@@ -15,3 +15,5 @@ SEPGEN008 | Usage | Error | No usable constructor
 SEPGEN009 | Usage | Error | Ambiguous constructor
 SEPGEN010 | Usage | Error | Unbindable constructor
 SEPGEN011 | Usage | Error | Unsupported generic model
+SEPGEN012 | Usage | Error | Inaccessible setter
+SEPGEN013 | Usage | Error | C# 14 required

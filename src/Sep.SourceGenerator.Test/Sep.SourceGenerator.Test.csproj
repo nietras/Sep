@@ -36,7 +36,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="coverlet.msbuild" Version="10.0.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+    <!-- Tests compile generated C# 14 static extension members; the shipped analyzer remains built
+         against Roslyn 4.8 so it can load in older hosts and report SEPGEN013. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" PrivateAssets="all" />
     <PackageReference Include="MSTest" Version="4.3.2" />
   </ItemGroup>
 

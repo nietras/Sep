@@ -25,7 +25,7 @@ public class SepSourceGeneratorAllocationTest
             var total = 0;
             foreach (var row in reader)
             {
-                total += ValuePersonSep.Read(row).Id;
+                total += ValuePerson.Parse(row).Id;
             }
             return total;
         });
@@ -41,7 +41,7 @@ public class SepSourceGeneratorAllocationTest
             var total = 0;
             foreach (var row in reader)
             {
-                if (ValuePersonSep.TryRead(row, out var value))
+                if (ValuePerson.TryParse(row, out var value))
                 {
                     total += value.Id;
                 }
@@ -59,7 +59,7 @@ public class SepSourceGeneratorAllocationTest
         {
             var total = 0;
             // Must bind to the generated struct enumerator, not to IEnumerable<T>.
-            foreach (var value in ValuePersonSep.Read(reader))
+            foreach (var value in ValuePerson.Enumerate(reader))
             {
                 total += value.Id;
             }
@@ -72,13 +72,13 @@ public class SepSourceGeneratorAllocationTest
     [TestMethod]
     public void SepSourceGeneratorAllocationTest_EnumeratorIsValueType()
     {
-        Assert.IsTrue(typeof(ValuePersonSep.RowEnumerable).IsValueType);
-        Assert.IsTrue(typeof(ValuePersonSep.RowEnumerator).IsValueType);
+        Assert.IsTrue(typeof(ValuePersonSepExtensions.RowEnumerable).IsValueType);
+        Assert.IsTrue(typeof(ValuePersonSepExtensions.RowEnumerator).IsValueType);
         using var reader = Sep.Reader().FromText(s_csv);
         // Resolved by the compiler via the pattern based foreach, so no interface dispatch.
         Assert.AreEqual(
-            typeof(ValuePersonSep.RowEnumerator),
-            ValuePersonSep.Read(reader).GetEnumerator().GetType());
+            typeof(ValuePersonSepExtensions.RowEnumerator),
+            ValuePerson.Enumerate(reader).GetEnumerator().GetType());
     }
 
     [TestMethod]
@@ -91,7 +91,7 @@ public class SepSourceGeneratorAllocationTest
             for (var index = 0; index < s_values.Length; ++index)
             {
                 using var row = writer.NewRow();
-                ValuePersonSep.Write(row, s_values[index]);
+                ValuePerson.Format(row, s_values[index]);
             }
             return s_values.Length;
         });
@@ -106,7 +106,23 @@ public class SepSourceGeneratorAllocationTest
         using var writer = Sep.Writer().To(textWriter);
         var allocated = Measure(() =>
         {
-            ValuePersonSep.Write(writer, new ReadOnlySpan<ValuePerson>(s_values));
+            ValuePerson.Write(writer, new ReadOnlySpan<ValuePerson>(s_values));
+            return s_values.Length;
+        });
+
+        Assert.AreEqual(0, allocated);
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorAllocationTest_WriteArrayDoesNotAllocate()
+    {
+        // Arrays bind to the dedicated array overload, which must forward to the span path rather
+        // than fall back to enumerating and allocating an enumerator.
+        using var textWriter = new DiscardingTextWriter();
+        using var writer = Sep.Writer().To(textWriter);
+        var allocated = Measure(() =>
+        {
+            ValuePerson.Write(writer, s_values);
             return s_values.Length;
         });
 
@@ -126,7 +142,7 @@ public class SepSourceGeneratorAllocationTest
         using var writer = Sep.Writer().To(textWriter);
         var allocated = Measure(() =>
         {
-            ValuePersonSep.Write(writer, new ReadOnlySpan<ValuePerson>(values));
+            ValuePerson.Write(writer, new ReadOnlySpan<ValuePerson>(values));
             return values.Length;
         });
 
@@ -142,7 +158,7 @@ public class SepSourceGeneratorAllocationTest
             new ValuePerson { Id = 2, State = RuntimeState.Ready, Flags = ValueFlags.None, Optional = 3 },
         };
         using var writer = Sep.Writer().ToText();
-        ValuePersonSep.Write(writer, new ReadOnlySpan<ValuePerson>(expected));
+        ValuePerson.Write(writer, new ReadOnlySpan<ValuePerson>(expected));
 
         Assert.AreEqual(
             "Id;Value;State;Flags;Optional\r\n1;0;42;First, Second;\r\n2;0;Ready;None;3\r\n",
@@ -150,7 +166,7 @@ public class SepSourceGeneratorAllocationTest
 
         using var reader = Sep.Reader().FromText(writer.ToString());
         var index = 0;
-        foreach (var actual in ValuePersonSep.Read(reader))
+        foreach (var actual in ValuePerson.Enumerate(reader))
         {
             Assert.AreEqual(expected[index], actual);
             ++index;
@@ -171,13 +187,13 @@ public class SepSourceGeneratorAllocationTest
             LongFlags.GolfGolfGolfGolfGolfGolfGolfGolfGolfGolfGolfGo;
         var expected = new LongFlagsPerson { Flags = all };
         using var writer = Sep.Writer(static options => options with { Escape = true }).ToText();
-        LongFlagsPersonSep.Write(writer, new ReadOnlySpan<LongFlagsPerson>([expected]));
+        LongFlagsPerson.Write(writer, new ReadOnlySpan<LongFlagsPerson>([expected]));
 
         var text = writer.ToString();
         Assert.IsGreaterThan(256, text.Length);
 
         using var reader = Sep.Reader(static options => options with { Unescape = true }).FromText(text);
-        foreach (var actual in LongFlagsPersonSep.Read(reader))
+        foreach (var actual in LongFlagsPerson.Enumerate(reader))
         {
             Assert.AreEqual(expected, actual);
         }
@@ -206,7 +222,7 @@ public class SepSourceGeneratorAllocationTest
         var generated = Measure(() =>
         {
             using var row = generatedWriter.NewRow();
-            ValuePersonSep.Write(row, default);
+            ValuePerson.Format(row, default);
             return 1;
         });
 

@@ -11,7 +11,7 @@ public class SepSourceGenerationTest
     public void SepSourceGenerationTest_ReadAndWrite_UsesGeneratedSpanConversions()
     {
         using var writer = Sep.Default.Writer().ToText();
-        PersonSep.Write(writer,
+        Person.Write(writer,
         [
             new() { Id = 42, Name = "Ada", Score = 12.5m },
             new() { Id = 7, Name = "Lin", Score = 9.25m },
@@ -21,7 +21,7 @@ public class SepSourceGenerationTest
         Assert.AreEqual("Id;Name;Score\r\n42;Ada;12.5\r\n7;Lin;9.25\r\n", text);
 
         using var reader = Sep.Default.Reader().FromText(text);
-        var people = PersonSep.Read(reader).ToArray();
+        var people = Person.Enumerate(reader).ToArray();
 
         Assert.HasCount(2, people);
         Assert.AreEqual(42, people[0].Id);
@@ -38,7 +38,7 @@ public class SepSourceGenerationTest
         using var reader = Sep.Default.Reader().FromText("Id;Name;Score\r\nnot-an-int;Ada;12.5\r\n");
         Assert.IsTrue(reader.MoveNext());
 
-        Assert.IsFalse(PersonSep.TryRead(reader.Current, out var person));
+        Assert.IsFalse(Person.TryParse(reader.Current, out var person));
         Assert.IsNull(person);
     }
 
@@ -46,14 +46,14 @@ public class SepSourceGenerationTest
     public void SepSourceGenerationTest_SepCol_Name()
     {
         using var reader = Sep.Default.Reader().FromText("display_name;person_id\r\nAda;42\r\n");
-        var people = NamedPersonSep.Read(reader).ToArray();
+        var people = NamedPerson.Enumerate(reader).ToArray();
 
         Assert.HasCount(1, people);
         Assert.AreEqual(42, people[0].Id);
         Assert.AreEqual("Ada", people[0].Name);
 
         using var writer = Sep.Default.Writer().ToText();
-        NamedPersonSep.Write(writer, people);
+        NamedPerson.Write(writer, people);
         Assert.AreEqual($"person_id;display_name{Environment.NewLine}42;Ada{Environment.NewLine}", writer.ToString());
     }
 
@@ -62,7 +62,7 @@ public class SepSourceGenerationTest
     {
         var options = Sep.Default.Reader(o => o with { HasHeader = false });
         using var reader = options.FromText("Ada;12.5;42\r\n");
-        var people = IndexedPersonSep.Read(reader).ToArray();
+        var people = IndexedPerson.Enumerate(reader).ToArray();
 
         Assert.HasCount(1, people);
         Assert.AreEqual(42, people[0].Id);
@@ -70,13 +70,13 @@ public class SepSourceGenerationTest
         Assert.AreEqual(12.5m, people[0].Score);
 
         using var writer = Sep.Default.Writer().ToText();
-        IndexedPersonSep.Write(writer, people);
+        IndexedPerson.Write(writer, people);
         Assert.AreEqual($"full_name;Score;person_id{Environment.NewLine}Ada;12.5;42{Environment.NewLine}", writer.ToString());
     }
 }
 
 [SepSourceGeneration(typeof(Person))]
-public static partial class PersonSep
+public static partial class PersonSepExtensions
 {
 }
 
@@ -88,7 +88,7 @@ public sealed record Person
 }
 
 [SepSourceGeneration(typeof(NamedPerson))]
-public static partial class NamedPersonSep
+public static partial class NamedPersonSepExtensions
 {
 }
 
@@ -102,7 +102,7 @@ public sealed record NamedPerson
 }
 
 [SepSourceGeneration(typeof(IndexedPerson))]
-public static partial class IndexedPersonSep
+public static partial class IndexedPersonSepExtensions
 {
 }
 

@@ -2344,7 +2344,37 @@ Ask questions on GitHub and this section will be expanded. :)
 
 ## Links
 
-* [Publishing a NuGet package using GitHub and GitHub Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
+### Sep
+
+* [.NET Matrix - Sep](https://matrix.dev-team.org/?category=csv-processing&library=Sep)
+* [Sep on NuGet](https://www.nuget.org/packages/Sep/)
+* [Sep on GitHub](https://github.com/nietras/Sep)
+
+### Blog posts
+
+* [Introducing Sep - Possibly the World's Fastest .NET CSV
+  Parser](https://nietras.com/2023/06/05/introducing-sep/)
+* [Sep 0.2.0 - Even Faster Parsing (~10 GB/s on Zen 3) and
+  More](https://nietras.com/2023/08/07/sep-0-2-0/)
+* [Sep 0.3.0 - Unescape Support (still the Most Efficient .NET CSV
+  Parser)](https://nietras.com/2023/11/27/sep-0-3-0/)
+* [Sep 0.4.0-0.5.2 - Insanely Fast Single- & Multi-threaded .NET CSV
+  Parsing](https://nietras.com/2024/05/05/sep-0-4-0-0-5-2/)
+* [Sep 0.10.0 - 21 GB/s CSV Parsing Using SIMD on AMD
+  9950X](https://nietras.com/2025/05/09/sep-0-10-0/)
+* [Sep 0.11.0 - 9.5 GB/s CSV Parsing Using ARM NEON SIMD on Apple
+  M1](https://nietras.com/2025/06/17/sep-0-11-0/)
+
+### External
+
+* [The fastest CSV parsers in .NET](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
+  and its [NCsvPerf benchmark](https://github.com/joelverhagen/NCsvPerf)
+* [Using Sep to Export a CSV in Razor
+  Pages](https://thomasryan.dev/2025/11/sep-export-csv-razor-pages.html)
+* [From Atari to Sep: Unleashing the Power of Performance in
+  Programming](https://dotnetcore.show/season-6/from-atari-to-sep-unleashing-the-power-of-performance-in-programming-with-niels-rassmussen/)
+* [Publishing a NuGet package using GitHub and GitHub
+  Actions](https://www.meziantou.net/publishing-a-nuget-package-following-best-practices-using-github.htm)
 
 ## Public API Reference
 ```csharp

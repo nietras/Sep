@@ -2447,6 +2447,7 @@ namespace nietras.SeparatedValues
                 where T :  struct, System.ISpanParsable<T> { }
             public bool TryParse<T>(out T value)
                 where T : System.ISpanParsable<T> { }
+            public static System.ReadOnlySpan<char> op_Implicit(nietras.SeparatedValues.SepReader.Col col) { }
         }
         public readonly ref struct Cols
         {

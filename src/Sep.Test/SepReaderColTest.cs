@@ -123,7 +123,7 @@ public class SepReaderColTest
         var row = reader.Current;
         var col = row[ColName];
         // Sep does not have build in support for parsing enums, since enums do
-        // not implememt ISpanParsable, but with the implicit conversion of Col
+        // not implement ISpanParsable, but with the implicit conversion of Col
         // to ReadOnlySpan<T> parsing is as short and easy as below. Same length
         // as if SepReader.Col had a `ParseEnum` method.
         Assert.AreEqual(ColValueEnum, Enum.Parse<TestEnum>(col));

@@ -12,6 +12,9 @@ public class SepReaderColTest
     const string ColName = "A";
     const int ColValue = 123456;
     const string ColText = "123456";
+    enum TestEnum { Aaaaaaaa, Bbbbbbbbbbbbbbb }
+    const TestEnum ColValueEnum = TestEnum.Bbbbbbbbbbbbbbb;
+    const string ColValueEnumText = nameof(TestEnum.Bbbbbbbbbbbbbbb);
 
     [TestMethod]
     public void SepReaderColTest_DebuggerDisplay()
@@ -24,6 +27,16 @@ public class SepReaderColTest
     {
         Run(col => Assert.IsTrue(ColText.AsSpan().SequenceEqual(col.Span)));
         Run(col => Assert.IsTrue(ReadOnlySpan<char>.Empty.SequenceEqual(col.Span)), "");
+    }
+
+    [TestMethod]
+    public void SepReaderColTest_ImplicitSpanConversion()
+    {
+        Run(col =>
+        {
+            ReadOnlySpan<char> span = col;
+            Assert.IsTrue(ColText.AsSpan().SequenceEqual(span));
+        });
     }
 
     [TestMethod]
@@ -89,9 +102,6 @@ public class SepReaderColTest
         AssertTryParseOutFloats(o => o with { CultureInfo = null, DisableFastFloat = true });
     }
 
-#if NET8_0_OR_GREATER
-    // string unfortunately did not implement ISpanParsable until .NET 8
-
     [TestMethod]
     public void SepReaderColTest_Parse_String()
     {
@@ -103,7 +113,21 @@ public class SepReaderColTest
     {
         Run(col => Assert.AreEqual(ColText, col.TryParse<string>(out var v) ? v : null));
     }
-#endif
+
+    [TestMethod]
+    public void SepReaderColTest_Parse_Enum()
+    {
+        var text = $"{ColName}{Environment.NewLine}{ColValueEnumText}{Environment.NewLine}";
+        using var reader = Sep.Reader().FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        var col = row[ColName];
+        // Sep does not have build in support for parsing enums, since enums do
+        // not implement ISpanParsable, but with the implicit conversion of Col
+        // to ReadOnlySpan<T> parsing is as short and easy as below. Same length
+        // as if SepReader.Col had a `ParseEnum` method.
+        Assert.AreEqual(ColValueEnum, Enum.Parse<TestEnum>(col));
+    }
 
     public static IEnumerable<object[]> UnescapeData => SepUnescapeTest.UnescapeData.Concat(
         [

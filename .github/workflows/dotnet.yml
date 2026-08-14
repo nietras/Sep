@@ -14,6 +14,11 @@ on:
       version:
         description: "Release version to tag and create"
         required: false
+      run_test_parsers:
+        description: "Run parser tests when dispatching from a non-main branch"
+        required: false
+        type: boolean
+        default: false
 
 env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
@@ -99,6 +104,7 @@ jobs:
         run: dotnet format --verify-no-changes
 
   test-parsers:
+    if: ${{ github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.run_test_parsers == true) }}
     strategy:
       matrix:
         os:

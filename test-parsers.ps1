@@ -1,5 +1,8 @@
 #!/usr/bin/env pwsh
 Try {
+    dotnet build .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-restore
+    dotnet build .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-restore
+
     $parsers = @(
         "SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt",
         "SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt",
@@ -18,9 +21,9 @@ Try {
     foreach ($parser in $parsers) {
         $env:SEPFORCEPARSER=$parser
         Write-Output "Testing $parser Debug"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug -- /Parallel
+        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-build --no-restore -p:TestTfmsInParallel=true -- /Parallel
         Write-Output "Testing $parser Release"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Release -- /Parallel
+        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-build --no-restore -p:TestTfmsInParallel=true -- /Parallel
     }
 } Finally {
     Remove-Item env:SEPFORCEPARSER

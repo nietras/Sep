@@ -1,9 +1,41 @@
 #!/usr/bin/env pwsh
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+
+$testProjects = @(
+    ".\src\Sep.Test\Sep.Test.csproj"
+    ".\src\Sep.XyzTest\Sep.XyzTest.csproj"
+)
+
+function Test-Projects {
+    param(
+        [string]$Configuration,
+        [string]$Architecture,
+        [switch]$Coverage
+    )
+
+    foreach ($project in $testProjects) {
+        $arguments = @(
+            "--project", $project,
+            "--nologo",
+            "-c", $Configuration,
+            "--arch", $Architecture
+        )
+        if ($Coverage) {
+            $arguments += "--coverage", "--coverage-output-format", "cobertura"
+        }
+        dotnet test @arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "dotnet test failed for $project ($Configuration, $Architecture) with exit code $LASTEXITCODE."
+        }
+    }
+}
+
 Write-Output "Testing Debug X86"
-dotnet test --nologo -c Debug -- RunConfiguration.TargetPlatform=x86 /Parallel
+Test-Projects Debug x86
 Write-Output "Testing Release X86"
-dotnet test --nologo -c Release -- RunConfiguration.TargetPlatform=x86 /Parallel
+Test-Projects Release x86
 Write-Output "Testing Debug X64"
-dotnet test --nologo -c Debug -- RunConfiguration.TargetPlatform=x64 /Parallel
+Test-Projects Debug x64
 Write-Output "Testing Release X64"
-dotnet test --nologo -c Release --collect:"XPlat Code Coverage" -- RunConfiguration.TargetPlatform=x64 /Parallel
+Test-Projects Release x64 -Coverage

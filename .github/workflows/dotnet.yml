@@ -63,15 +63,17 @@ jobs:
       - name: Build
         run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Test
-        run: dotnet test -c ${{ matrix.configuration }} --no-build --no-restore --verbosity normal --collect:"XPlat Code Coverage" -p:TestTfmsInParallel=true -- /Parallel
+        run: dotnet test -c ${{ matrix.configuration }} --no-build --no-restore --verbosity normal --coverage --coverage-output-format cobertura --report-gh -p:TestTfmsInParallel=true
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
+          files: ./TestResults/*.cobertura.xml
           flags: ${{ matrix.os }}
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
+          files: ./TestResults/*.cobertura.xml
           flags: ${{ matrix.configuration }}
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -120,12 +122,13 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup .NET (8.0.x, 9.0.x, global.json)
+      - name: Setup .NET (8.0.x, 9.0.x, 10.0.x, global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
           global-json-file: global.json
 
       - name: Restore dependencies
@@ -149,10 +152,12 @@ jobs:
         if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
         run: |
           git tag v${{ github.event.inputs.version }}
-      - name: Setup .NET (8.0.x, global.json)
+      - name: Setup .NET (8.0.x, 10.0.x, global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
           global-json-file: global.json
       # No need to define min ver version globally now since only uploading release
       # when version and tag is defined.

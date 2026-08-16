@@ -1,7 +1,16 @@
 #!/usr/bin/env pwsh
-Try {
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+
+try {
     dotnet build .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-restore
+    if ($LASTEXITCODE -ne 0) {
+        throw "Debug build failed with exit code $LASTEXITCODE."
+    }
     dotnet build .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-restore
+    if ($LASTEXITCODE -ne 0) {
+        throw "Release build failed with exit code $LASTEXITCODE."
+    }
 
     $parsers = @(
         "SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt",
@@ -19,12 +28,18 @@ Try {
     )
 
     foreach ($parser in $parsers) {
-        $env:SEPFORCEPARSER=$parser
+        $env:SEPFORCEPARSER = $parser
         Write-Output "Testing $parser Debug"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-build --no-restore -p:TestTfmsInParallel=true -- /Parallel
+        dotnet test --project .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-build --no-restore --report-gh
+        if ($LASTEXITCODE -ne 0) {
+            throw "Debug parser test failed for $parser with exit code $LASTEXITCODE."
+        }
         Write-Output "Testing $parser Release"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-build --no-restore -p:TestTfmsInParallel=true -- /Parallel
+        dotnet test --project .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-build --no-restore --report-gh
+        if ($LASTEXITCODE -ne 0) {
+            throw "Release parser test failed for $parser with exit code $LASTEXITCODE."
+        }
     }
-} Finally {
-    Remove-Item env:SEPFORCEPARSER
+} finally {
+    Remove-Item env:SEPFORCEPARSER -ErrorAction SilentlyContinue
 }

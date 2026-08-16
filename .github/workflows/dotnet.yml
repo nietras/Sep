@@ -37,7 +37,7 @@ jobs:
             windows-11-arm,
             ubuntu-24.04-arm,
           ]
-        configuration: ["Debug", "Release"]
+        configuration: [Debug, Release]
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true

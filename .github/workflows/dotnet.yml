@@ -122,13 +122,12 @@ jobs:
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup .NET (8.0.x, 9.0.x, 10.0.x, global.json)
+      - name: Setup .NET (8.0.x, 9.0.x, global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: |
             8.0.x
             9.0.x
-            10.0.x
           global-json-file: global.json
 
       - name: Restore dependencies
@@ -152,12 +151,11 @@ jobs:
         if: ${{ github.event.inputs.version != '' && github.actor == 'nietras' }}
         run: |
           git tag v${{ github.event.inputs.version }}
-      - name: Setup .NET (8.0.x, 10.0.x, global.json)
+      - name: Setup .NET (8.0.x, global.json)
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: |
             8.0.x
-            10.0.x
           global-json-file: global.json
       # No need to define min ver version globally now since only uploading release
       # when version and tag is defined.

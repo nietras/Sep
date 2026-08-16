@@ -20,7 +20,7 @@ foreach ($architecture in $architectures) {
         Write-Output "Testing $configuration $($architecture.ToUpperInvariant())"
 
         foreach ($project in $testProjects) {
-            dotnet test --project $project --nologo -c $configuration --arch $architecture
+            dotnet test --project $project -c $configuration --arch $architecture
         }
     }
 }

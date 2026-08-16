@@ -206,6 +206,28 @@ public class SepWriterColTest
         await Run(col => col.FormatEnum(TestEnum.Aaaa, "D"), ((int)TestEnum.Aaaa).ToString());
     }
 
+    [Flags]
+    enum LongFlags
+    {
+        Flag000 = 1 << 0, Flag001 = 1 << 1, Flag002 = 1 << 2, Flag003 = 1 << 3,
+        Flag004 = 1 << 4, Flag005 = 1 << 5, Flag006 = 1 << 6, Flag007 = 1 << 7,
+        Flag008 = 1 << 8, Flag009 = 1 << 9, Flag010 = 1 << 10, Flag011 = 1 << 11,
+        Flag012 = 1 << 12, Flag013 = 1 << 13, Flag014 = 1 << 14, Flag015 = 1 << 15,
+        Flag016 = 1 << 16, Flag017 = 1 << 17, Flag018 = 1 << 18, Flag019 = 1 << 19,
+        Flag020 = 1 << 20, Flag021 = 1 << 21, Flag022 = 1 << 22, Flag023 = 1 << 23,
+        Flag024 = 1 << 24, Flag025 = 1 << 25, Flag026 = 1 << 26, Flag027 = 1 << 27,
+        Flag028 = 1 << 28, Flag029 = 1 << 29, Flag030 = 1 << 30,
+    }
+    [TestMethod]
+    public async ValueTask SepWriterColTest_FormatEnum_Enum_Long()
+    {
+        var value = (LongFlags)0x7FFFFFFF;
+        var expected = value.ToString();
+        Assert.IsGreaterThan(256, expected.Length);
+
+        await Run(col => col.FormatEnum(value), expected);
+    }
+
     public class LongSpanFormattable : ISpanFormattable
     {
         public string Text { get; } = ColTextLong;

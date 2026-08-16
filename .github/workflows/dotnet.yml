@@ -63,7 +63,7 @@ jobs:
       - name: Build
         run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Test
-        run: dotnet test -c ${{ matrix.configuration }} --no-build --no-restore --verbosity normal --collect:"XPlat Code Coverage" --report-gh -p:TestTfmsInParallel=true -- /Parallel
+        run: dotnet test -c ${{ matrix.configuration }} --no-build --no-restore --verbosity normal --collect:"XPlat Code Coverage" -p:TestTfmsInParallel=true -- /Parallel
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:

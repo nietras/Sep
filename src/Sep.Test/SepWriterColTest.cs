@@ -283,7 +283,7 @@ public class SepWriterColTest
     }
 
     static async ValueTask Run(SepWriter.ColAction action, string? expectedColValue = ColText,
-                               CultureInfo? cultureInfo = null, long? expectedAllocatedBytes = null)
+                               CultureInfo? cultureInfo = null, long? expectedAllocatedBytes = 0)
     {
         Func<SepWriter>[] createWriters =
         [

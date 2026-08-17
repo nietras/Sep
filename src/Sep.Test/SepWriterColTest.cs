@@ -23,14 +23,14 @@ public class SepWriterColTest
     public async ValueTask SepWriterColTest_ColIndex()
     {
         await Run(static col => Assert.AreEqual(0, col.ColIndex),
-                  expectedColValue: null, expectedAllocatedBytes: null);
+                  expectedColValue: null);
     }
 
     [TestMethod]
     public async ValueTask SepWriterColTest_ColName()
     {
         await Run(static col => Assert.AreEqual(ColName, col.ColName),
-                  expectedColValue: null, expectedAllocatedBytes: null);
+                  expectedColValue: null);
     }
 
     [TestMethod]
@@ -186,7 +186,7 @@ public class SepWriterColTest
     [TestMethod]
     public async ValueTask SepWriterColTest_Set_Enum()
     {
-        await Run(col => col.Set($"{TestEnum.Aaaa}"), TestEnum.Aaaa.ToString());
+        await Run(col => col.Set($"{TestEnum.Aaaa}"), TestEnum.Aaaa.ToString(), expectedAllocatedBytes: 0);
     }
     [TestMethod]
     public async ValueTask SepWriterColTest_Format_Enum()
@@ -202,8 +202,8 @@ public class SepWriterColTest
     [TestMethod]
     public async ValueTask SepWriterColTest_FormatEnum_Enum()
     {
-        await Run(col => col.FormatEnum(TestEnum.Aaaa), TestEnum.Aaaa.ToString());
-        await Run(col => col.FormatEnum(TestEnum.Aaaa, "D"), ((int)TestEnum.Aaaa).ToString());
+        await Run(col => col.FormatEnum(TestEnum.Aaaa), TestEnum.Aaaa.ToString(), expectedAllocatedBytes: 0);
+        await Run(col => col.FormatEnum(TestEnum.Aaaa, "D"), ((int)TestEnum.Aaaa).ToString(), expectedAllocatedBytes: 0);
     }
 
     [Flags]
@@ -283,7 +283,7 @@ public class SepWriterColTest
     }
 
     static async ValueTask Run(SepWriter.ColAction action, string? expectedColValue = ColText,
-                               CultureInfo? cultureInfo = null, long? expectedAllocatedBytes = 0)
+                               CultureInfo? cultureInfo = null, long? expectedAllocatedBytes = null)
     {
         Func<SepWriter>[] createWriters =
         [

@@ -2633,6 +2633,10 @@ namespace nietras.SeparatedValues
                 where T : System.ISpanFormattable { }
             public void Format<T>(T value, System.ReadOnlySpan<char> format)
                 where T : System.ISpanFormattable { }
+            public void FormatEnum<T>(T value)
+                where T :  struct, System.Enum { }
+            public void FormatEnum<T>(T value, System.ReadOnlySpan<char> format)
+                where T :  struct, System.Enum { }
             public void Set(System.ReadOnlySpan<byte> utf8Span) { }
             public void Set(System.ReadOnlySpan<char> span) { }
             public void Set([System.Runtime.CompilerServices.InterpolatedStringHandlerArgument("")] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }

@@ -44,7 +44,7 @@ public partial class SepReader
         public T ParseEnum<T>() where T : struct, Enum => Enum.Parse<T>(Span);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryParseEnum<T>(out T value) where T : struct, Enum => Enum.TryParse<T>(Span, out value);
+        public bool TryParseEnum<T>(out T value) where T : struct, Enum => Enum.TryParse(Span, out value);
 
         internal string DebuggerDisplay => new(Span);
     }

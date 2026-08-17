@@ -130,7 +130,6 @@ public class SepReaderColTest
         // ParseEnum<T> as tested below. Keeping this test and example to
         // preserve reasoning.
         Assert.AreEqual(ColValueEnum, Enum.Parse<TestEnum>(col));
-        Assert.AreEqual(ColValueEnum, col.ParseEnum<TestEnum>());
     }
     [TestMethod]
     public void SepReaderColTest_ParseEnum_Enum()

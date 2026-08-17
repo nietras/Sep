@@ -40,6 +40,12 @@ public partial class SepReader
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool TryParse<T>(out T value) where T : ISpanParsable<T> => _state.TryParse<T>(_colIndex, out value);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T ParseEnum<T>() where T : struct, Enum => Enum.Parse<T>(Span);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryParseEnum<T>(out T value) where T : struct, Enum => Enum.TryParse(Span, out value);
+
         internal string DebuggerDisplay => new(Span);
     }
 }

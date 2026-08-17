@@ -2442,11 +2442,15 @@ namespace nietras.SeparatedValues
             public System.ReadOnlySpan<char> Span { get; }
             public T Parse<T>()
                 where T : System.ISpanParsable<T> { }
+            public T ParseEnum<T>()
+                where T :  struct, System.Enum { }
             public override string ToString() { }
             public T? TryParse<T>()
                 where T :  struct, System.ISpanParsable<T> { }
             public bool TryParse<T>(out T value)
                 where T : System.ISpanParsable<T> { }
+            public bool TryParseEnum<T>(out T value)
+                where T :  struct, System.Enum { }
             public static System.ReadOnlySpan<char> op_Implicit(nietras.SeparatedValues.SepReader.Col col) { }
         }
         public readonly ref struct Cols
@@ -2633,6 +2637,10 @@ namespace nietras.SeparatedValues
                 where T : System.ISpanFormattable { }
             public void Format<T>(T value, System.ReadOnlySpan<char> format)
                 where T : System.ISpanFormattable { }
+            public void FormatEnum<T>(T value)
+                where T :  struct, System.Enum { }
+            public void FormatEnum<T>(T value, System.ReadOnlySpan<char> format)
+                where T :  struct, System.Enum { }
             public void Set(System.ReadOnlySpan<byte> utf8Span) { }
             public void Set(System.ReadOnlySpan<char> span) { }
             public void Set([System.Runtime.CompilerServices.InterpolatedStringHandlerArgument("")] ref nietras.SeparatedValues.SepWriter.Col.FormatInterpolatedStringHandler handler) { }

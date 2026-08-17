@@ -145,6 +145,27 @@ public partial class SepWriter
             MarkSet();
         }
 
+        public void FormatEnum<T>(T value) where T : struct, Enum
+        {
+            FormatEnum(value, null);
+        }
+        public void FormatEnum<T>(T value, ReadOnlySpan<char> format) where T : struct, Enum
+        {
+            var impl = _impl;
+            impl.Clear();
+            if (Enum.TryFormat(value, impl._buffer, out var charsWritten, format))
+            {
+                impl._position = charsWritten;
+            }
+            else
+            {
+                var handler = new FormatInterpolatedStringHandler(0, 1, this);
+                handler.AppendFormatted(value);
+                handler.Finish();
+            }
+            MarkSet();
+        }
+
         /// <summary>
         /// Provides a handler used by the language compiler to append
         /// interpolated strings into <see cref="Col"/> instances.

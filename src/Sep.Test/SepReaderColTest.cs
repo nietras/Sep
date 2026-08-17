@@ -126,7 +126,7 @@ public class SepReaderColTest
         // not implement ISpanParsable, but with the implicit conversion of Col
         // to ReadOnlySpan<T> parsing via Enum.Parse is as short and easy as
         // below. However, since SepWriter.Col has FormatEnum<T> due to
-        // performance reasons, to be consistent SepWriter.Col also has
+        // performance reasons, to be consistent SepReader.Col also has
         // ParseEnum<T> as tested below. Keeping this test and example to
         // preserve reasoning.
         Assert.AreEqual(ColValueEnum, Enum.Parse<TestEnum>(col));

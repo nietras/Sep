@@ -2442,11 +2442,15 @@ namespace nietras.SeparatedValues
             public System.ReadOnlySpan<char> Span { get; }
             public T Parse<T>()
                 where T : System.ISpanParsable<T> { }
+            public T ParseEnum<T>()
+                where T :  struct, System.Enum { }
             public override string ToString() { }
             public T? TryParse<T>()
                 where T :  struct, System.ISpanParsable<T> { }
             public bool TryParse<T>(out T value)
                 where T : System.ISpanParsable<T> { }
+            public bool TryParseEnum<T>(out T value)
+                where T :  struct, System.Enum { }
             public static System.ReadOnlySpan<char> op_Implicit(nietras.SeparatedValues.SepReader.Col col) { }
         }
         public readonly ref struct Cols

@@ -16,10 +16,7 @@
   </ItemGroup>
   
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.9.0" PrivateAssets="all" />
     <PackageReference Include="PublicApiGenerator" Version="11.5.4" />
     <PackageReference Include="MSTest" Version="4.3.3" />
     <PackageReference Include="GitHubActionsTestLogger" Version="3.0.5" PrivateAssets="all" />

@@ -48,6 +48,11 @@
     <!--<DefineConstants Condition="'$(Configuration)'=='Release'">$(DefineConstants);SEPUSESTRUCTFORPARSERSFORDISASMO</DefineConstants>-->
   </PropertyGroup>
 
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('Test'))">
+    <EnableMSTestRunner>true</EnableMSTestRunner>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
   <ItemGroup>
     <AssemblyAttribute Include="System.CLSCompliantAttribute">
       <_Parameter1>false</_Parameter1>

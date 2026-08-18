@@ -21,9 +21,9 @@ Try {
     foreach ($parser in $parsers) {
         $env:SEPFORCEPARSER=$parser
         Write-Output "Testing $parser Debug"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Debug --no-build --no-restore -p:TestTfmsInParallel=true --logger GitHubActions -- /Parallel
+        dotnet test --project .\src\Sep.Test\Sep.Test.csproj -c Debug --no-build --no-restore -p:TestTfmsInParallel=true --report-github
         Write-Output "Testing $parser Release"
-        dotnet test .\src\Sep.Test\Sep.Test.csproj --nologo -c Release --no-build --no-restore -p:TestTfmsInParallel=true --logger GitHubActions -- /Parallel
+        dotnet test --project .\src\Sep.Test\Sep.Test.csproj -c Release --no-build --no-restore -p:TestTfmsInParallel=true --report-github
     }
 } Finally {
     Remove-Item env:SEPFORCEPARSER

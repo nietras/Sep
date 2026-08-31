@@ -231,6 +231,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             {
                 return Model.Invalid(Issue.Create(IssueId.InvalidColumn, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
+            if (member.Conventions.Column is not null && mapping.Optional)
+            {
+                return Model.Invalid(Issue.Create(
+                    IssueId.InvalidColumn,
+                    symbol.Locations.FirstOrDefault(),
+                    symbol.Name,
+                    "optional columns cannot use a GetColumn convention"));
+            }
             foreach (var columnName in mapping.AlternateNames.Insert(0, mapping.Name))
             {
                 if (names.TryGetValue(columnName, out var existingName))
@@ -375,6 +383,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                     out error))
             {
                 member = default!;
+                return false;
+            }
+            if (nestedMember.Conventions.Column is not null && mapping.Optional)
+            {
+                member = default!;
+                error = "optional nested columns cannot use a GetColumn convention";
                 return false;
             }
             if (mapping.Index is not null)
@@ -632,7 +646,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             }
             matches.Add(new ColumnConvention(method.Name, result.Value));
         }
-        if (matches.Count != 1)
+        if (matches.Count > 1)
         {
             convention = null;
             issue = Issue.Create(

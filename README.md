@@ -990,7 +990,10 @@ The argument is the current reader header, or `null` when the reader has no
 header. This permits a generated model to adapt its physical layout to the
 input schema while keeping conversion code direct and allocation-free. The
 convention controls reading only; generated writing continues to use the
-declarative column name and order.
+declarative column name and order. It is evaluated for each parsed row, so it
+should remain cheap. A `GetColumn` convention supersedes configured names and
+indexes and cannot be combined with `SepCol.Optional`; use a row parsing
+convention when missing-column behavior also needs customization.
 
 Type-wide column conventions named `Parse`, `TryParse`, and `Format` apply to
 every member with the exact declared type. Member-specific conventions take

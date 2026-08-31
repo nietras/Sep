@@ -828,6 +828,14 @@ public class SepSourceGeneratorTest
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader? header) => 0;
+        }
+        public class Person { [SepCol(Optional = true)] public int Id { get; set; } }
+        """, "SEPGEN005")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSepExtensions { }
         public class Person { [SepCol(Prefix = "Nested.")] public string Name { get; set; } = ""; }
         """, "SEPGEN003")]
@@ -868,6 +876,15 @@ public class SepSourceGeneratorTest
         public static partial class PersonSepExtensions { }
         public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
         public record Nested([property: SepCol(Ignore = true)] int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader? header) => 0;
+        }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested([property: SepCol(Optional = true)] int Id);
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]

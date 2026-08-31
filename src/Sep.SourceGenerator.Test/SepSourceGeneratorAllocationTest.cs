@@ -65,8 +65,8 @@ public class SepSourceGeneratorAllocationTest
                 }
                 return total;
             },
-            "0.5;0\n1.5;1\n",
-            static options => options with { HasHeader = false });
+            "Value;Id\n0.5;0\n1.5;1\n",
+            static options => options);
 
         Assert.AreEqual(0, allocated);
     }

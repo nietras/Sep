@@ -376,7 +376,9 @@ public class SepSourceGeneratorTest
         StringAssert.Contains(result.GeneratedSource, "var __sep2 = @Parse(__col2);");
         StringAssert.Contains(result.GeneratedSource, "@Format(row[\"Other\"], value.@Other);");
         StringAssert.Contains(result.GeneratedSource, "if (!@TryParseCount(row[\"Count\"], out var __sep3))");
-        StringAssert.Contains(result.GeneratedSource, "throw new global::System.FormatException();");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "throw new global::System.FormatException(\"TryParse convention for member 'Count' returned false.\");");
         StringAssert.Contains(result.GeneratedSource, "@FormatCount(row[\"Count\"], value.@Count);");
     }
 

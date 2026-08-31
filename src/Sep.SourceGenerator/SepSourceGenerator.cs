@@ -1456,7 +1456,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             .Append('(').Append(input).Append(", out ")
             .Append(localDeclared ? "" : "var ").Append(local).AppendLine("))");
         source.Append(indent).AppendLine("{");
-        source.Append(indent).Append("    throw new ").Append(FormatExceptionName).AppendLine("();");
+        source.Append(indent).Append("    throw new ").Append(FormatExceptionName).Append('(');
+        AppendStringLiteral(
+            source,
+            "TryParse convention for member '" + member.Name + "' returned false.");
+        source.AppendLine(");");
         source.Append(indent).AppendLine("}");
     }
 

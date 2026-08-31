@@ -241,7 +241,8 @@ public class SepSourceGenerationTest
         using var reader = Sep.Reader().FromText("Id\r\ninvalid\r\n");
         Assert.IsTrue(reader.MoveNext());
 
-        Assert.ThrowsExactly<FormatException>(() => TryOnlyConventionPerson.Parse(reader.Current));
+        var exception = Assert.ThrowsExactly<FormatException>(() => TryOnlyConventionPerson.Parse(reader.Current));
+        StringAssert.Contains(exception.Message, "member 'Id'");
     }
 
     [TestMethod]

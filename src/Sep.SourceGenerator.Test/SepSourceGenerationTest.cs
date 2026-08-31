@@ -213,7 +213,7 @@ public class SepSourceGenerationTest
     {
         using var reader = Sep.Reader().FromText("Id\r\n42\r\n");
 
-        Assert.AreEqual(new ConvertedPerson(new StrongId(42)), ConvertedPerson.Enumerate(reader).Single());
+        Assert.AreEqual(new ConventionPerson(new StrongId(42)), ConventionPerson.Enumerate(reader).Single());
     }
 
     [TestMethod]
@@ -221,7 +221,7 @@ public class SepSourceGenerationTest
     {
         using var writer = Sep.Writer().ToText();
 
-        ConvertedPerson.Write(writer, [new(new StrongId(42))]);
+        ConventionPerson.Write(writer, [new(new StrongId(42))]);
 
         Assert.AreEqual($"Id{Environment.NewLine}42{Environment.NewLine}", writer.ToString());
     }
@@ -232,7 +232,7 @@ public class SepSourceGenerationTest
         using var reader = Sep.Reader().FromText("Id\r\ninvalid\r\n");
         Assert.IsTrue(reader.MoveNext());
 
-        Assert.IsFalse(ConvertedPerson.TryParse(reader.Current, out _));
+        Assert.IsFalse(ConventionPerson.TryParse(reader.Current, out _));
     }
 
     [TestMethod]
@@ -264,6 +264,51 @@ public class SepSourceGenerationTest
         Assert.IsTrue(reader.MoveNext());
 
         Assert.IsFalse(RowConventionPerson.TryParse(reader.Current, out _));
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionSelectsIndexAndNameFromHeader()
+    {
+        using var reader = Sep.Reader().FromText("Name;identifier;display_name\r\nIgnored;42;Ada\r\n");
+
+        Assert.AreEqual(
+            new ColumnConventionPerson(42, "Ada"),
+            ColumnConventionPerson.Enumerate(reader).Single());
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionTryParseSelectsNullableColumn()
+    {
+        using var reader = Sep.Reader().FromText("identifier;display_name\r\n42;\r\n");
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.IsTrue(ColumnConventionPerson.TryParse(reader.Current, out var actual));
+        Assert.AreEqual(new ColumnConventionPerson(42, null), actual);
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionReceivesNullWithoutHeader()
+    {
+        using var reader = Sep.Reader(static options => options with { HasHeader = false })
+            .FromText("12.5;42\r\n");
+
+        Assert.AreEqual(
+            new ColumnConventionValue(42, 12.5),
+            ColumnConventionValue.Enumerate(reader).Single());
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_ColumnConventionIsUsedByEnumerateAsync()
+    {
+        using var reader = Sep.Reader().FromText("identifier;display_name\r\n42;Ada\r\n");
+        var values = new List<ColumnConventionPerson>();
+
+        await foreach (var value in ColumnConventionPerson.EnumerateAsync(reader))
+        {
+            values.Add(value);
+        }
+
+        Assert.AreSequenceEqual([new ColumnConventionPerson(42, "Ada")], values);
     }
 
     [TestMethod]

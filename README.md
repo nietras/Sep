@@ -975,10 +975,27 @@ The same member-specific method names can instead take `SepReader.Row` or
 select columns. Row conventions take precedence over column conventions and
 bypass generated column lookup.
 
+Column selection can be overridden independently from value conversion with
+`GetColumn{Member}` returning either an index or name:
+
+```csharp
+static int GetColumnId(SepReaderHeader? header) =>
+    header is null ? 0 : header.IndexOf("person_id");
+
+static string GetColumnName(SepReaderHeader? header) =>
+    header?.TryIndexOf("display_name", out _) == true ? "display_name" : "Name";
+```
+
+The argument is the current reader header, or `null` when the reader has no
+header. This permits a generated model to adapt its physical layout to the
+input schema while keeping conversion code direct and allocation-free. The
+convention controls reading only; generated writing continues to use the
+declarative column name and order.
+
 Type-wide column conventions named `Parse`, `TryParse`, and `Format` apply to
 every member with the exact declared type. Member-specific conventions take
-precedence, followed by type-wide conventions, the deprecated `SepCol.Converter`
-fallback, and built-in string, enum, and span conversions.
+precedence, followed by type-wide conventions and built-in string, enum, and
+span conversions.
 
 `TryParseId` can be used without `ParseId`; generated `Parse` then throws
 `FormatException` when the method returns `false`. A `ParseId` method must have a
@@ -2500,6 +2517,7 @@ namespace nietras.SeparatedValues
         public readonly ref struct Row
         {
             public int ColCount { get; }
+            public nietras.SeparatedValues.SepReaderHeader? Header { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
             public nietras.SeparatedValues.SepReader.Col this[System.Index index] { get; }
             public nietras.SeparatedValues.SepReader.Col this[string colName] { get; }

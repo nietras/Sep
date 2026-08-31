@@ -20,4 +20,3 @@ SEPGEN013 | Usage | Error | C# 14 required
 SEPGEN014 | Usage | Error | Invalid source-generation convention
 SEPGEN015 | Usage | Error | Ambiguous source-generation convention
 SEPGEN016 | Usage | Error | Parse convention requires TryParse convention
-SEPGEN017 | Usage | Error | Conflicting convention and converter

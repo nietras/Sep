@@ -84,6 +84,16 @@ public class SepReaderRowTest
         Assert.AreEqual(3, row.LineNumberToExcl);
         Assert.AreEqual(_rowText, row.ToString());
         Assert.IsTrue(_rowText.AsSpan().Equals(row.Span, StringComparison.Ordinal));
+        Assert.AreSame(reader.Header, row.Header);
+    }
+
+    [TestMethod]
+    public void SepReaderRowTest_Row_HeaderIsNullWhenReaderHasNoHeader()
+    {
+        using var reader = Sep.Reader(static options => options with { HasHeader = false }).FromText(_rowText);
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.IsNull(reader.Current.Header);
     }
 
     [TestMethod]

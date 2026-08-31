@@ -232,8 +232,8 @@ public sealed record EvolvingPerson(
     public object? Ignored { get; init; }
 }
 
-[SepSourceGeneration(typeof(ConvertedPerson))]
-public static partial class ConvertedPersonSepExtensions
+[SepSourceGeneration(typeof(ConventionPerson))]
+public static partial class ConventionPersonSepExtensions
 {
     static StrongId ParseId(SepReader.Col col) => new(col.Parse<int>());
 
@@ -253,7 +253,7 @@ public static partial class ConvertedPersonSepExtensions
 
 public readonly record struct StrongId(int Value);
 
-public sealed record ConvertedPerson(StrongId Id);
+public sealed record ConventionPerson(StrongId Id);
 
 [SepSourceGeneration(typeof(RowConventionPerson))]
 public static partial class RowConventionPersonSepExtensions
@@ -295,6 +295,28 @@ public static partial class TryOnlyConventionPersonSepExtensions
 }
 
 public sealed record TryOnlyConventionPerson(StrongId Id);
+
+[SepSourceGeneration(typeof(ColumnConventionPerson))]
+public static partial class ColumnConventionPersonSepExtensions
+{
+    static int GetColumnId(SepReaderHeader? header) =>
+        header is null ? 1 : header.IndexOf("identifier");
+
+    static string GetColumnName(SepReaderHeader? header) =>
+        header?.TryIndexOf("display_name", out _) == true ? "display_name" : "Name";
+}
+
+public sealed record ColumnConventionPerson(int Id, string? Name);
+
+[SepSourceGeneration(typeof(ColumnConventionValue))]
+public static partial class ColumnConventionValueSepExtensions
+{
+    static int GetColumnId(SepReaderHeader? header) => header is null ? 1 : header.IndexOf("Id");
+
+    static int GetColumnValue(SepReaderHeader? header) => header is null ? 0 : header.IndexOf("Value");
+}
+
+public readonly record struct ColumnConventionValue(int Id, double Value);
 
 [SepSourceGeneration(typeof(NestedPerson))]
 public static partial class NestedPersonSepExtensions

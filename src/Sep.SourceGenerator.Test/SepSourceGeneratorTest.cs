@@ -356,7 +356,7 @@ public class SepSourceGeneratorTest
         Assert.IsEmpty(result.CompilationDiagnostics,
             string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
         StringAssert.Contains(result.GeneratedSource, "var __sep0 = @ParseId(row);");
-        StringAssert.Contains(result.GeneratedSource, "if (!@TryParseId(row, out var __sep0))");
+        StringAssert.Contains(result.GeneratedSource, "if (!@TryParseId(row, out global::StrongId __sep0))");
         StringAssert.Contains(result.GeneratedSource, "@FormatId(row, value.@Id);");
         StringAssert.Contains(result.GeneratedSource, "global::StrongId? __sep1;");
         StringAssert.Contains(result.GeneratedSource, "__sep1 = @ParseOptional(__col1);");
@@ -368,7 +368,7 @@ public class SepSourceGeneratorTest
             "var __found3 = row.TryGet(\"Legacy\", out var __col3) || row.TryGet(\"OldLegacy\", out __col3);");
         StringAssert.Contains(
             result.GeneratedSource,
-            "if (!@TryParseCount(row[@GetColumnCount(row.Header)], out var __sep4))");
+            "if (!@TryParseCount(row[@GetColumnCount(row.Header)], out int __sep4))");
         StringAssert.Contains(
             result.GeneratedSource,
             "throw new global::System.FormatException(\"TryParse convention for member 'Count' returned false.\");");
@@ -376,6 +376,48 @@ public class SepSourceGeneratorTest
         StringAssert.Contains(
             result.GeneratedSource,
             "var __col5 = row[@GetColumnSelected(row.Header)];");
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_TypeWideTryParseOverloadsUseDeclaredTypes()
+    {
+        var result = Run("""
+            public readonly record struct FirstId(int Value);
+            public readonly record struct SecondId(int Value);
+            public sealed record Person(FirstId First, SecondId Second);
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions
+            {
+                static bool TryParse(SepReader.Col col, out FirstId value)
+                {
+                    var success = col.TryParse<int>(out var parsed);
+                    value = new(parsed);
+                    return success;
+                }
+
+                static bool TryParse(SepReader.Col col, out SecondId value)
+                {
+                    var success = col.TryParse<int>(out var parsed);
+                    value = new(parsed);
+                    return success;
+                }
+
+                static void Format(SepWriter.Col col, FirstId value) => col.Format(value.Value);
+                static void Format(SepWriter.Col col, SecondId value) => col.Format(value.Value);
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "if (!@TryParse(row[\"First\"], out global::FirstId __sep0))");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "if (!@TryParse(row[\"Second\"], out global::SecondId __sep1))");
     }
 
     [TestMethod]

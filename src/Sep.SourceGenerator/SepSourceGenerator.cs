@@ -1459,7 +1459,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         source.Append(indent).Append("if (!@").Append(member.Conventions.TryParse!.MethodName)
             .Append('(').Append(input).Append(", out ")
-            .Append(localDeclared ? "" : "var ").Append(local).AppendLine("))");
+            .Append(localDeclared ? "" : member.TypeName + " ").Append(local).AppendLine("))");
         source.Append(indent).AppendLine("{");
         source.Append(indent).Append("    throw new ").Append(FormatExceptionName).Append('(');
         AppendStringLiteral(
@@ -1686,7 +1686,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var local = ValueLocal(memberIndex);
         if (convention.Input == ConventionInput.Row)
         {
-            EmitTryParseConvention(source, convention, "row", local, "        ", localDeclared: false);
+            EmitTryParseConvention(source, member, convention, "row", local, "        ", localDeclared: false);
             return;
         }
 
@@ -1703,6 +1703,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             source.AppendLine("        {");
             EmitTryParseConvention(
                 source,
+                member,
                 convention,
                 ColumnLocal(memberIndex),
                 local,
@@ -1718,11 +1719,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
             column = ColumnLocal(memberIndex);
         }
-        EmitTryParseConvention(source, convention, column, local, "        ", localDeclared: false);
+        EmitTryParseConvention(source, member, convention, column, local, "        ", localDeclared: false);
     }
 
     static void EmitTryParseConvention(
         StringBuilder source,
+        Member member,
         Convention convention,
         string input,
         string local,
@@ -1730,7 +1732,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         bool localDeclared)
     {
         source.Append(indent).Append("if (!@").Append(convention.MethodName).Append('(')
-            .Append(input).Append(", out ").Append(localDeclared ? "" : "var ").Append(local).AppendLine("))");
+            .Append(input).Append(", out ").Append(localDeclared ? "" : member.TypeName + " ")
+            .Append(local).AppendLine("))");
         source.Append(indent).AppendLine("{");
         source.Append(indent).AppendLine("    value = default!;");
         source.Append(indent).AppendLine("    return false;");

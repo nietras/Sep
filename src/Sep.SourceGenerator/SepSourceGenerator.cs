@@ -35,6 +35,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     const string ReadOnlySpanName = "global::System.ReadOnlySpan";
     const string MemoryExtensionsName = "global::System.MemoryExtensions";
     const string ArgumentNullExceptionName = "global::System.ArgumentNullException";
+    const string FormatExceptionName = "global::System.FormatException";
     const string NotSupportedExceptionName = "global::System.NotSupportedException";
     const string ArrayPoolName = "global::System.Buffers.ArrayPool<char>";
     const string EnumerableName = "global::System.Collections.Generic.IEnumerable";
@@ -66,6 +67,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         GenericModel,
         InaccessibleSetter,
         RequiresCSharp14,
+        InvalidConvention,
+        AmbiguousConvention,
+        MissingTryParseConvention,
+        ConflictingCustomization,
     }
 
     static readonly ImmutableArray<DiagnosticDescriptor> s_descriptors = ImmutableArray.Create(
@@ -94,7 +99,15 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         CreateDescriptor(IssueId.InaccessibleSetter, "Inaccessible Sep source-generation setter",
             "Member '{0}' does not have an accessible setter and is not bound to a constructor parameter"),
         CreateDescriptor(IssueId.RequiresCSharp14, "Sep source generation requires C# 14",
-            "Adapter '{0}' requires C# 14 or later because generated APIs use static extension members"));
+            "Adapter '{0}' requires C# 14 or later because generated APIs use static extension members"),
+        CreateDescriptor(IssueId.InvalidConvention, "Invalid Sep source-generation convention",
+            "Convention method '{0}' has an invalid signature; expected {1}"),
+        CreateDescriptor(IssueId.AmbiguousConvention, "Ambiguous Sep source-generation convention",
+            "Convention method '{0}' has multiple matching overloads for member '{1}'"),
+        CreateDescriptor(IssueId.MissingTryParseConvention, "Incomplete Sep parse convention",
+            "Convention method '{0}' for member '{1}' requires a compatible TryParse convention"),
+        CreateDescriptor(IssueId.ConflictingCustomization, "Conflicting Sep source-generation customization",
+            "Member '{0}' cannot use both convention methods and a converter"));
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -178,8 +191,13 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                     adapter,
                     cancellationToken,
                     out var nestedMember,
-                    out var nestedError))
+                    out var nestedError,
+                    out var nestedIssue))
                 {
+                    if (nestedIssue is not null)
+                    {
+                        return Model.Invalid(nestedIssue);
+                    }
                     return Model.Invalid(Issue.Create(
                         IssueId.UnsupportedMember,
                         symbol.Locations.FirstOrDefault(),
@@ -203,8 +221,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, property.Locations.FirstOrDefault(), property.Name,
                     "is an indexer, which cannot be mapped"));
             }
-            if (!TryCreateMember(symbol, order, compilation, adapter, out var member, out var error))
+            if (!TryCreateMember(symbol, order, compilation, adapter, out var member, out var error, out var memberIssue))
             {
+                if (memberIssue is not null)
+                {
+                    return Model.Invalid(memberIssue);
+                }
                 return Model.Invalid(Issue.Create(IssueId.UnsupportedMember, symbol.Locations.FirstOrDefault(), symbol.Name, error));
             }
             if (!TryGetColumnMapping(symbol, member.IsString, member.ConverterName is not null, out var mapping, out error))
@@ -297,8 +319,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         INamedTypeSymbol adapter,
         CancellationToken cancellationToken,
         out Member member,
-        out string error)
+        out string error,
+        out Issue? issue)
     {
+        issue = null;
         var type = symbol is IPropertySymbol property ? property.Type : ((IFieldSymbol)symbol).Type;
         if (type.NullableAnnotation == NullableAnnotation.Annotated)
         {
@@ -338,7 +362,14 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 error = "nested Prefix mappings cannot contain another Prefix mapping";
                 return false;
             }
-            if (!TryCreateMember(nestedSymbol, nestedOrder, compilation, adapter, out var nestedMember, out error) ||
+            if (!TryCreateMember(
+                    nestedSymbol,
+                    nestedOrder,
+                    compilation,
+                    adapter,
+                    out var nestedMember,
+                    out error,
+                    out issue) ||
                 !TryGetColumnMapping(
                     nestedSymbol,
                     nestedMember.IsString,
@@ -434,8 +465,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         Compilation compilation,
         INamedTypeSymbol adapter,
         out Member member,
-        out string error)
+        out string error,
+        out Issue? issue)
     {
+        issue = null;
         var type = symbol is IPropertySymbol property ? property.Type : ((IFieldSymbol)symbol).Type;
         // Every mapped member is formatted, so an inaccessible getter would silently drop its
         // column and make parsing the formatted output fail.
@@ -457,6 +490,22 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var isNullableReference = !isNullableValue && !valueType.IsValueType &&
             type.NullableAnnotation == NullableAnnotation.Annotated;
         var converter = GetConverterType(symbol);
+        if (!TryResolveConventions(symbol, type, compilation, adapter, out var conventions, out issue))
+        {
+            member = default!;
+            error = "";
+            return false;
+        }
+        if (converter is not null && conventions.HasAny)
+        {
+            member = default!;
+            error = "";
+            issue = Issue.Create(
+                IssueId.ConflictingCustomization,
+                symbol.Locations.FirstOrDefault(),
+                symbol.Name);
+            return false;
+        }
         if (converter is not null &&
             !IsValidConverter(converter, valueType, compilation, adapter))
         {
@@ -464,7 +513,10 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             error = "specifies a converter that must expose accessible static Parse, TryParse, and Format methods";
             return false;
         }
-        if (converter is null && !isString && !isEnum && !SupportsSpanConversion(valueType))
+        var supportsBuiltIn = isString || isEnum || SupportsSpanConversion(valueType);
+        if (converter is null &&
+            (!conventions.HasParse && !supportsBuiltIn ||
+             !conventions.HasFormat && !supportsBuiltIn))
         {
             member = default!;
             error = "must be a string, enum, or implement ISpanParsable<TSelf> and ISpanFormattable";
@@ -482,6 +534,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             isNullableValue,
             isEnum ? GetEnumMemberNames(valueType) : ImmutableArray<string>.Empty,
             converter?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            conventions,
             canWrite,
             symbol is IPropertySymbol,
             IsRequired(symbol),
@@ -493,6 +546,265 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static INamedTypeSymbol? GetConverterType(ISymbol symbol) =>
         GetColumnAttribute(symbol)?.NamedArguments.FirstOrDefault(static argument => argument.Key == "Converter")
             .Value.Value as INamedTypeSymbol;
+
+    static bool TryResolveConventions(
+        ISymbol member,
+        ITypeSymbol memberType,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
+        out Conventions conventions,
+        out Issue? issue)
+    {
+        if (!TryResolveConvention(
+                adapter,
+                "Parse" + member.Name,
+                "Parse",
+                ConventionOperation.Parse,
+                memberType,
+                compilation,
+                member,
+                out var parse,
+                out issue) ||
+            !TryResolveConvention(
+                adapter,
+                "TryParse" + member.Name,
+                "TryParse",
+                ConventionOperation.TryParse,
+                memberType,
+                compilation,
+                member,
+                out var tryParse,
+                out issue) ||
+            !TryResolveConvention(
+                adapter,
+                "Format" + member.Name,
+                "Format",
+                ConventionOperation.Format,
+                memberType,
+                compilation,
+                member,
+                out var format,
+                out issue))
+        {
+            conventions = Conventions.Empty;
+            return false;
+        }
+        if (parse is not null && tryParse is null)
+        {
+            conventions = Conventions.Empty;
+            issue = Issue.Create(
+                IssueId.MissingTryParseConvention,
+                adapter.GetMembers(parse.MethodName).FirstOrDefault()?.Locations.FirstOrDefault(),
+                parse.MethodName,
+                member.Name);
+            return false;
+        }
+
+        conventions = new Conventions(parse, tryParse, format);
+        issue = null;
+        return true;
+    }
+
+    static bool TryResolveConvention(
+        INamedTypeSymbol adapter,
+        string memberMethodName,
+        string typeMethodName,
+        ConventionOperation operation,
+        ITypeSymbol memberType,
+        Compilation compilation,
+        ISymbol member,
+        out Convention? convention,
+        out Issue? issue)
+    {
+        var memberMethods = adapter.GetMembers(memberMethodName).OfType<IMethodSymbol>().ToImmutableArray();
+        if (memberMethods.Length > 0)
+        {
+            return TrySelectConvention(
+                memberMethods,
+                operation,
+                memberType,
+                compilation,
+                adapter,
+                member,
+                allowRow: true,
+                validateEveryMethod: true,
+                out convention,
+                out issue);
+        }
+
+        var typeMethods = adapter.GetMembers(typeMethodName).OfType<IMethodSymbol>()
+            .Where(method => IsConventionForType(method, operation, memberType))
+            .ToImmutableArray();
+        return TrySelectConvention(
+            typeMethods,
+            operation,
+            memberType,
+            compilation,
+            adapter,
+            member,
+            allowRow: false,
+            validateEveryMethod: true,
+            out convention,
+            out issue);
+    }
+
+    static bool IsConventionForType(
+        IMethodSymbol method,
+        ConventionOperation operation,
+        ITypeSymbol memberType) =>
+        operation switch
+        {
+            ConventionOperation.Parse =>
+                SymbolEqualityComparer.IncludeNullability.Equals(method.ReturnType, memberType),
+            ConventionOperation.TryParse =>
+                method.Parameters.Length == 2 &&
+                SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType),
+            ConventionOperation.Format =>
+                method.Parameters.Length == 2 &&
+                SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType),
+            _ => false,
+        };
+
+    static bool TrySelectConvention(
+        ImmutableArray<IMethodSymbol> methods,
+        ConventionOperation operation,
+        ITypeSymbol memberType,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
+        ISymbol member,
+        bool allowRow,
+        bool validateEveryMethod,
+        out Convention? convention,
+        out Issue? issue)
+    {
+        if (methods.Length == 0)
+        {
+            convention = null;
+            issue = null;
+            return true;
+        }
+
+        var matches = ImmutableArray.CreateBuilder<Convention>();
+        foreach (var method in methods)
+        {
+            if (!TryMatchConvention(method, operation, memberType, compilation, adapter, allowRow, out var input))
+            {
+                if (!validateEveryMethod)
+                {
+                    continue;
+                }
+                convention = null;
+                issue = Issue.Create(
+                    IssueId.InvalidConvention,
+                    method.Locations.FirstOrDefault(),
+                    method.Name,
+                    ExpectedConvention(operation, member.Name, memberType, allowRow));
+                return false;
+            }
+            matches.Add(new Convention(method.Name, input));
+        }
+        if (matches.Count == 0)
+        {
+            convention = null;
+            issue = null;
+            return true;
+        }
+
+        var preferredInput = allowRow && matches.Any(static match => match.Input == ConventionInput.Row)
+            ? ConventionInput.Row
+            : ConventionInput.Column;
+        var preferred = matches.Where(match => match.Input == preferredInput).ToArray();
+        if (preferred.Length != 1)
+        {
+            convention = null;
+            issue = Issue.Create(
+                IssueId.AmbiguousConvention,
+                methods[0].Locations.FirstOrDefault(),
+                methods[0].Name,
+                member.Name);
+            return false;
+        }
+
+        convention = preferred[0];
+        issue = null;
+        return true;
+    }
+
+    static bool TryMatchConvention(
+        IMethodSymbol method,
+        ConventionOperation operation,
+        ITypeSymbol memberType,
+        Compilation compilation,
+        INamedTypeSymbol adapter,
+        bool allowRow,
+        out ConventionInput input)
+    {
+        input = ConventionInput.Column;
+        if (!method.IsStatic ||
+            method.Arity != 0 ||
+            !compilation.IsSymbolAccessibleWithin(method, adapter) ||
+            method.Parameters.Length != (operation == ConventionOperation.Parse ? 1 : 2))
+        {
+            return false;
+        }
+
+        var containingType = operation == ConventionOperation.Format ? "SepWriter" : "SepReader";
+        var expectedColumnType = compilation.GetTypeByMetadataName(
+            "nietras.SeparatedValues." + containingType + "+Col");
+        var expectedRowType = compilation.GetTypeByMetadataName(
+            "nietras.SeparatedValues." + containingType + "+Row");
+        var firstParameter = method.Parameters[0];
+        if (firstParameter.RefKind != RefKind.None || expectedColumnType is null || expectedRowType is null)
+        {
+            return false;
+        }
+        if (SymbolEqualityComparer.Default.Equals(firstParameter.Type, expectedRowType))
+        {
+            if (!allowRow)
+            {
+                return false;
+            }
+            input = ConventionInput.Row;
+        }
+        else if (!SymbolEqualityComparer.Default.Equals(firstParameter.Type, expectedColumnType))
+        {
+            return false;
+        }
+
+        if (operation == ConventionOperation.Parse)
+        {
+            return !method.ReturnsVoid &&
+                SymbolEqualityComparer.IncludeNullability.Equals(method.ReturnType, memberType);
+        }
+
+        var valueParameter = method.Parameters[1];
+        if (!SymbolEqualityComparer.IncludeNullability.Equals(valueParameter.Type, memberType))
+        {
+            return false;
+        }
+        return operation == ConventionOperation.TryParse
+            ? method.ReturnType.SpecialType == SpecialType.System_Boolean &&
+                valueParameter.RefKind == RefKind.Out
+            : method.ReturnsVoid && valueParameter.RefKind == RefKind.None;
+    }
+
+    static string ExpectedConvention(
+        ConventionOperation operation,
+        string memberName,
+        ITypeSymbol memberType,
+        bool allowRow)
+    {
+        var typeName = memberType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        var input = operation == ConventionOperation.Format ? "SepWriter" : "SepReader";
+        var inputs = allowRow ? input + ".Row or " + input + ".Col" : input + ".Col";
+        return operation switch
+        {
+            ConventionOperation.Parse => $"{typeName} Parse{memberName}({inputs})",
+            ConventionOperation.TryParse => $"bool TryParse{memberName}({inputs}, out {typeName})",
+            ConventionOperation.Format => $"void Format{memberName}({inputs}, {typeName})",
+            _ => "",
+        };
+    }
 
     static bool IsValidConverter(
         INamedTypeSymbol converter,
@@ -1033,6 +1345,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         for (var memberIndex = 0; memberIndex < model.Members.Length; ++memberIndex)
         {
             var member = model.Members[memberIndex];
+            if (member.Conventions.HasParse)
+            {
+                EmitParseConventionMember(source, model, member, memberIndex);
+                continue;
+            }
             if (!NeedsColumnLocal(member))
             {
                 continue;
@@ -1073,12 +1390,79 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             source.Append(NestedParseMethod(member)).Append("(row)");
             return;
         }
+        if (member.Conventions.HasParse)
+        {
+            source.Append(ValueLocal(memberIndex));
+            return;
+        }
         if (NeedsColumnLocal(member))
         {
             source.Append(ValueLocal(memberIndex));
             return;
         }
         AppendValueExpression(source, member, ColumnAccess(model, member));
+    }
+
+    static void EmitParseConventionMember(
+        StringBuilder source,
+        Model model,
+        Member member,
+        int memberIndex)
+    {
+        var convention = member.Conventions.Parse ?? member.Conventions.TryParse!;
+        var local = ValueLocal(memberIndex);
+        if (convention.Input == ConventionInput.Row)
+        {
+            EmitParseConvention(source, member, "row", local, "        ", localDeclared: false);
+            return;
+        }
+
+        if (member.Optional)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: false);
+            source.Append("        ").Append(member.TypeName).Append(' ').Append(local).AppendLine(";");
+            source.Append("        if (!").Append(ColumnFoundLocal(memberIndex)).AppendLine(")");
+            source.AppendLine("        {");
+            source.Append("            ").Append(local).Append(" = ")
+                .Append(member.DefaultValueExpression ?? "default!").AppendLine(";");
+            source.AppendLine("        }");
+            source.AppendLine("        else");
+            source.AppendLine("        {");
+            EmitParseConvention(source, member, ColumnLocal(memberIndex), local, "            ", localDeclared: true);
+            source.AppendLine("        }");
+            return;
+        }
+
+        var column = ColumnAccess(model, member);
+        if (member.AlternateNames.Length > 0)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: false);
+            column = ColumnLocal(memberIndex);
+        }
+        EmitParseConvention(source, member, column, local, "        ", localDeclared: false);
+    }
+
+    static void EmitParseConvention(
+        StringBuilder source,
+        Member member,
+        string input,
+        string local,
+        string indent,
+        bool localDeclared)
+    {
+        if (member.Conventions.Parse is { } parse)
+        {
+            source.Append(indent).Append(localDeclared ? "" : "var ").Append(local).Append(" = @")
+                .Append(parse.MethodName).Append('(').Append(input).AppendLine(");");
+            return;
+        }
+
+        source.Append(indent).Append("if (!@").Append(member.Conventions.TryParse!.MethodName)
+            .Append('(').Append(input).Append(", out ")
+            .Append(localDeclared ? "" : "var ").Append(local).AppendLine("))");
+        source.Append(indent).AppendLine("{");
+        source.Append(indent).Append("    throw new ").Append(FormatExceptionName).AppendLine("();");
+        source.Append(indent).AppendLine("}");
     }
 
     static string ColumnLocal(int memberIndex) => "__col" + memberIndex;
@@ -1218,6 +1602,11 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             source.AppendLine("        }");
             return;
         }
+        if (member.Conventions.HasParse)
+        {
+            EmitTryParseConventionMember(source, model, member, memberIndex);
+            return;
+        }
         if (member.Optional)
         {
             EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
@@ -1275,6 +1664,67 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         }
 
         EmitTryParseValue(source, member, ColumnAccess(model, member), local, "        ");
+    }
+
+    static void EmitTryParseConventionMember(
+        StringBuilder source,
+        Model model,
+        Member member,
+        int memberIndex)
+    {
+        var convention = member.Conventions.TryParse!;
+        var local = ValueLocal(memberIndex);
+        if (convention.Input == ConventionInput.Row)
+        {
+            EmitTryParseConvention(source, convention, "row", local, "        ", localDeclared: false);
+            return;
+        }
+
+        if (member.Optional)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
+            source.Append("        ").Append(member.TypeName).Append(' ').Append(local).AppendLine(";");
+            source.Append("        if (!").Append(ColumnFoundLocal(memberIndex)).AppendLine(")");
+            source.AppendLine("        {");
+            source.Append("            ").Append(local).Append(" = ")
+                .Append(member.DefaultValueExpression ?? "default!").AppendLine(";");
+            source.AppendLine("        }");
+            source.AppendLine("        else");
+            source.AppendLine("        {");
+            EmitTryParseConvention(
+                source,
+                convention,
+                ColumnLocal(memberIndex),
+                local,
+                "            ",
+                localDeclared: true);
+            source.AppendLine("        }");
+            return;
+        }
+
+        var column = ColumnAccess(model, member);
+        if (member.AlternateNames.Length > 0)
+        {
+            EmitColumnLocal(source, model, member, memberIndex, returnFalse: true);
+            column = ColumnLocal(memberIndex);
+        }
+        EmitTryParseConvention(source, convention, column, local, "        ", localDeclared: false);
+    }
+
+    static void EmitTryParseConvention(
+        StringBuilder source,
+        Convention convention,
+        string input,
+        string local,
+        string indent,
+        bool localDeclared)
+    {
+        source.Append(indent).Append("if (!@").Append(convention.MethodName).Append('(')
+            .Append(input).Append(", out ").Append(localDeclared ? "" : "var ").Append(local).AppendLine("))");
+        source.Append(indent).AppendLine("{");
+        source.Append(indent).AppendLine("    value = default!;");
+        source.Append(indent).AppendLine("    return false;");
+        source.Append(indent).AppendLine("}");
     }
 
     static void EmitTryParsePresentColumn(
@@ -1507,6 +1957,12 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             {
                 source.Append("        ").Append(NestedFormatMethod(member))
                     .Append("(row, value.@").Append(member.Name).AppendLine(");");
+            }
+            else if (member.Conventions.Format is { } format)
+            {
+                var input = format.Input == ConventionInput.Row ? "row" : WriteColumnAccess(member);
+                source.Append("        @").Append(format.MethodName).Append('(').Append(input)
+                    .Append(", value.@").Append(member.Name).AppendLine(");");
             }
             else
             {
@@ -1802,6 +2258,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             public string? Format { get; set; }
             public bool Ignore { get; set; }
             public bool Optional { get; set; }
+            [global::System.Obsolete("Use convention methods on the partial source-generation adapter instead.")]
             public global::System.Type? Converter { get; set; }
             public string? Prefix { get; set; }
         }
@@ -2022,6 +2479,69 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 DefaultValueExpression);
     }
 
+    internal enum ConventionOperation
+    {
+        Parse,
+        TryParse,
+        Format,
+    }
+
+    internal enum ConventionInput
+    {
+        Column,
+        Row,
+    }
+
+    internal sealed class Convention : IEquatable<Convention>
+    {
+        public Convention(string methodName, ConventionInput input)
+        {
+            MethodName = methodName;
+            Input = input;
+        }
+
+        public string MethodName { get; }
+        public ConventionInput Input { get; }
+
+        public bool Equals(Convention? other) =>
+            other is not null &&
+            string.Equals(MethodName, other.MethodName, StringComparison.Ordinal) &&
+            Input == other.Input;
+
+        public override bool Equals(object? obj) => Equals(obj as Convention);
+
+        public override int GetHashCode() => HashCode.Combine(MethodName, Input);
+    }
+
+    internal sealed class Conventions : IEquatable<Conventions>
+    {
+        public static readonly Conventions Empty = new(null, null, null);
+
+        public Conventions(Convention? parse, Convention? tryParse, Convention? format)
+        {
+            Parse = parse;
+            TryParse = tryParse;
+            Format = format;
+        }
+
+        public Convention? Parse { get; }
+        public Convention? TryParse { get; }
+        public Convention? Format { get; }
+        public bool HasParse => Parse is not null || TryParse is not null;
+        public bool HasFormat => Format is not null;
+        public bool HasAny => HasParse || HasFormat;
+
+        public bool Equals(Conventions? other) =>
+            other is not null &&
+            Equals(Parse, other.Parse) &&
+            Equals(TryParse, other.TryParse) &&
+            Equals(Format, other.Format);
+
+        public override bool Equals(object? obj) => Equals(obj as Conventions);
+
+        public override int GetHashCode() => HashCode.Combine(Parse, TryParse, Format);
+    }
+
     internal sealed class Member : IEquatable<Member>
     {
         public Member(
@@ -2035,7 +2555,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeName, valueTypeName, isString, isEnum, isNullable, isNullable,
-                ImmutableArray<string>.Empty, null, canWrite, true, isRequired, string.Empty,
+                ImmutableArray<string>.Empty, null, Conventions.Empty, canWrite, true, isRequired, string.Empty,
                 ImmutableArray<string>.Empty, null, null, false, null, order, null)
         {
         }
@@ -2055,7 +2575,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
-                enumMemberNames, null, canWrite, isProperty, isRequired, order)
+                enumMemberNames, null, Conventions.Empty, canWrite, isProperty, isRequired, order)
         {
         }
 
@@ -2075,7 +2595,29 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isRequired,
             int order)
             : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
-                enumMemberNames, converterName, canWrite, isProperty, isRequired, string.Empty,
+                enumMemberNames, converterName, Conventions.Empty, canWrite, isProperty, isRequired, string.Empty,
+                ImmutableArray<string>.Empty, null, null, false, null, order, null)
+        {
+        }
+
+        public Member(
+            string name,
+            string typeName,
+            string typeIdentityName,
+            string valueTypeName,
+            bool isString,
+            bool isEnum,
+            bool isNullable,
+            bool isNullableValue,
+            ImmutableArray<string> enumMemberNames,
+            string? converterName,
+            Conventions conventions,
+            bool canWrite,
+            bool isProperty,
+            bool isRequired,
+            int order)
+            : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
+                enumMemberNames, converterName, conventions, canWrite, isProperty, isRequired, string.Empty,
                 ImmutableArray<string>.Empty, null, null, false, null, order, null)
         {
         }
@@ -2091,6 +2633,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             bool isNullableValue,
             ImmutableArray<string> enumMemberNames,
             string? converterName,
+            Conventions conventions,
             bool canWrite,
             bool isProperty,
             bool isRequired,
@@ -2113,6 +2656,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullableValue = isNullableValue;
             EnumMemberNames = enumMemberNames;
             ConverterName = converterName;
+            Conventions = conventions;
             CanWrite = canWrite;
             IsProperty = isProperty;
             IsRequired = isRequired;
@@ -2136,6 +2680,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         public bool IsNullableValue { get; }
         public ImmutableArray<string> EnumMemberNames { get; }
         public string? ConverterName { get; }
+        public Conventions Conventions { get; }
         public bool CanWrite { get; }
         public bool IsProperty { get; }
         public bool IsRequired { get; }
@@ -2167,6 +2712,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 isNullableValue: false,
                 ImmutableArray<string>.Empty,
                 converterName: null,
+                Conventions.Empty,
                 canWrite,
                 isProperty,
                 isRequired,
@@ -2181,7 +2727,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
 
         public Member WithMapping(ColumnMapping mapping) =>
             new(Name, TypeName, TypeIdentityName, ValueTypeName, IsString, IsEnum, IsNullable, IsNullableValue,
-                EnumMemberNames, ConverterName, CanWrite, IsProperty, IsRequired, mapping.Name, mapping.AlternateNames,
+                EnumMemberNames, ConverterName, Conventions, CanWrite, IsProperty, IsRequired, mapping.Name, mapping.AlternateNames,
                 mapping.Index, mapping.Format, mapping.Optional, mapping.DefaultValueExpression, Order, NestedModel);
 
         public bool Equals(Member? other) =>
@@ -2196,6 +2742,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             IsNullableValue == other.IsNullableValue &&
             EnumMemberNames.SequenceEqual(other.EnumMemberNames, StringComparer.Ordinal) &&
             string.Equals(ConverterName, other.ConverterName, StringComparison.Ordinal) &&
+            Conventions.Equals(other.Conventions) &&
             CanWrite == other.CanWrite &&
             IsProperty == other.IsProperty &&
             IsRequired == other.IsRequired &&
@@ -2226,6 +2773,7 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 hashCode.Add(enumMemberName, StringComparer.Ordinal);
             }
             hashCode.Add(ConverterName, StringComparer.Ordinal);
+            hashCode.Add(Conventions);
             hashCode.Add(CanWrite);
             hashCode.Add(IsProperty);
             hashCode.Add(IsRequired);

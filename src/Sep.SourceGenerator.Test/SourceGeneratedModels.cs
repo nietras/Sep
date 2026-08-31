@@ -161,6 +161,11 @@ public readonly record struct LongFlagsPerson
 [SepSourceGeneration(typeof(ValuePerson))]
 public static partial class ValuePersonSepExtensions
 {
+    static int ParseId(SepReader.Col col) => col.Parse<int>();
+
+    static bool TryParseId(SepReader.Col col, out int value) => col.TryParse(out value);
+
+    static void FormatId(SepWriter.Col col, int value) => col.Format(value);
 }
 
 /// <summary>
@@ -230,18 +235,9 @@ public sealed record EvolvingPerson(
 [SepSourceGeneration(typeof(ConvertedPerson))]
 public static partial class ConvertedPersonSepExtensions
 {
-}
+    static StrongId ParseId(SepReader.Col col) => new(col.Parse<int>());
 
-public readonly record struct StrongId(int Value);
-
-public sealed record ConvertedPerson(
-    [property: SepCol(Converter = typeof(StrongIdConverter))] StrongId Id);
-
-public static class StrongIdConverter
-{
-    public static StrongId Parse(SepReader.Col col) => new(col.Parse<int>());
-
-    public static bool TryParse(SepReader.Col col, out StrongId value)
+    static bool TryParseId(SepReader.Col col, out StrongId value)
     {
         if (col.TryParse<int>(out var parsed))
         {
@@ -252,8 +248,34 @@ public static class StrongIdConverter
         return false;
     }
 
-    public static void Format(SepWriter.Col col, StrongId value) => col.Format(value.Value);
+    static void FormatId(SepWriter.Col col, StrongId value) => col.Format(value.Value);
 }
+
+public readonly record struct StrongId(int Value);
+
+public sealed record ConvertedPerson(StrongId Id);
+
+[SepSourceGeneration(typeof(RowConventionPerson))]
+public static partial class RowConventionPersonSepExtensions
+{
+    static StrongId ParseId(SepReader.Row row) => new(row["RawId"].Parse<int>() + 1);
+
+    static bool TryParseId(SepReader.Row row, out StrongId value)
+    {
+        if (row["RawId"].TryParse<int>(out var parsed))
+        {
+            value = new(parsed + 1);
+            return true;
+        }
+        value = default;
+        return false;
+    }
+
+    static void FormatId(SepWriter.Row row, StrongId value) => row["RawId"].Format(value.Value - 1);
+}
+
+public sealed record RowConventionPerson(
+    [property: SepCol("Ignored", Optional = true)] StrongId Id);
 
 [SepSourceGeneration(typeof(NestedPerson))]
 public static partial class NestedPersonSepExtensions

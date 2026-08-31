@@ -207,7 +207,7 @@ public class SepSourceGenerationTest
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterParsesCustomType()
+    public void SepSourceGenerationTest_ConventionParsesCustomType()
     {
         using var reader = Sep.Reader().FromText("Id\r\n42\r\n");
 
@@ -215,22 +215,34 @@ public class SepSourceGenerationTest
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterFormatsCustomType()
+    public void SepSourceGenerationTest_ConventionFormatsCustomType()
     {
         using var writer = Sep.Writer().ToText();
 
         ConvertedPerson.Write(writer, [new(new StrongId(42))]);
 
-        Assert.AreEqual("Id\r\n42\r\n", writer.ToString());
+        Assert.AreEqual($"Id{Environment.NewLine}42{Environment.NewLine}", writer.ToString());
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterTryParseReturnsFalse()
+    public void SepSourceGenerationTest_ConventionTryParseReturnsFalse()
     {
         using var reader = Sep.Reader().FromText("Id\r\ninvalid\r\n");
         Assert.IsTrue(reader.MoveNext());
 
         Assert.IsFalse(ConvertedPerson.TryParse(reader.Current, out _));
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_RowConventionControlsColumnAccessAndMissingColumns()
+    {
+        using var reader = Sep.Reader().FromText("RawId\r\n41\r\n");
+
+        Assert.AreEqual(new RowConventionPerson(new StrongId(42)), RowConventionPerson.Enumerate(reader).Single());
+
+        using var writer = Sep.Writer().ToText();
+        RowConventionPerson.Write(writer, [new(new StrongId(42))]);
+        Assert.AreEqual($"RawId{Environment.NewLine}41{Environment.NewLine}", writer.ToString());
     }
 
     [TestMethod]

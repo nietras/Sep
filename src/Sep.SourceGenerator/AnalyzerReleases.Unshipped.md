@@ -17,3 +17,6 @@ SEPGEN010 | Usage | Error | Unbindable constructor
 SEPGEN011 | Usage | Error | Unsupported generic model
 SEPGEN012 | Usage | Error | Inaccessible setter
 SEPGEN013 | Usage | Error | C# 14 required
+SEPGEN014 | Usage | Error | Invalid source-generation convention
+SEPGEN015 | Usage | Error | Ambiguous source-generation convention
+SEPGEN016 | Usage | Error | Parse convention requires TryParse convention

@@ -259,23 +259,6 @@ public class SepSourceGeneratorTest
             using System.ComponentModel;
 
             public enum State { Unknown, Ready }
-            public readonly record struct StrongId(int Value);
-
-            public static class StrongIdConverter
-            {
-                public static StrongId Parse(SepReader.Col col) => new(col.Parse<int>());
-                public static bool TryParse(SepReader.Col col, out StrongId value)
-                {
-                    if (col.TryParse<int>(out var parsed))
-                    {
-                        value = new(parsed);
-                        return true;
-                    }
-                    value = default;
-                    return false;
-                }
-                public static void Format(SepWriter.Col col, StrongId value) => col.Format(value.Value);
-            }
 
             public sealed record Address(
                 [property: SepCol(Names = ["LegacyStreet"])] string Street,
@@ -292,8 +275,6 @@ public class SepSourceGeneratorTest
                 [property: SepCol(Optional = true), DefaultValue(7)] int Version,
                 [property: SepCol(Optional = true), DefaultValue(null)] string? OptionalName,
                 [property: SepCol(Optional = true), DefaultValue(State.Ready)] State OptionalState,
-                [property: SepCol(Converter = typeof(StrongIdConverter))] StrongId StrongId,
-                [property: SepCol(Optional = true, Converter = typeof(StrongIdConverter))] StrongId OptionalStrongId,
                 [property: SepCol(Prefix = "Address.")] Address Address)
             {
                 [SepCol(Ignore = true)]
@@ -311,17 +292,165 @@ public class SepSourceGeneratorTest
     }
 
     [TestMethod]
-    public void SepSourceGeneratorTest_ReportsInvalidConverterWhenSepTypesAreUnavailable()
+    public void SepSourceGeneratorTest_GeneratesConventionOverrides()
+    {
+        var result = Run("""
+            public readonly record struct StrongId(int Value);
+            public readonly record struct TypeId(int Value);
+
+            public sealed record Person(
+                StrongId Id,
+                [property: SepCol(Optional = true)] StrongId? Optional,
+                [property: SepCol(Names = ["LegacyOther"])] TypeId Other,
+                [property: SepCol(Names = ["OldLegacy"])] TypeId Legacy,
+                int Count,
+                int? Selected);
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions
+            {
+                static StrongId ParseId(SepReader.Col col) => new(col.Parse<int>());
+                static StrongId ParseId(SepReader.Row row) => new(row["Id"].Parse<int>());
+                static bool TryParseId(SepReader.Col col, out StrongId value)
+                {
+                    value = default;
+                    return true;
+                }
+                static bool TryParseId(SepReader.Row row, out StrongId value)
+                {
+                    value = default;
+                    return true;
+                }
+                static void FormatId(SepWriter.Col col, StrongId value) { }
+                static void FormatId(SepWriter.Row row, StrongId value) { }
+
+                static StrongId? ParseOptional(SepReader.Col col) => null;
+                static bool TryParseOptional(SepReader.Col col, out StrongId? value)
+                {
+                    value = null;
+                    return true;
+                }
+                static void FormatOptional(SepWriter.Col col, StrongId? value) { }
+
+                static string GetColumnOther(SepReaderHeader? header) =>
+                    header?.TryIndexOf("LegacyOther", out _) == true ? "LegacyOther" : "Other";
+                static TypeId Parse(SepReader.Col col) => new(col.Parse<int>());
+                static bool TryParse(SepReader.Col col, out TypeId value)
+                {
+                    value = default;
+                    return true;
+                }
+                static void Format(SepWriter.Col col, TypeId value) { }
+
+                static int GetColumnCount(SepReaderHeader? header) => header?.IndexOf("Count") ?? 4;
+                static bool TryParseCount(SepReader.Col col, out int value) => col.TryParse<int>(out value);
+                static void FormatCount(SepWriter.Col col, int value) => col.Format(value);
+
+                static int GetColumnSelected(SepReaderHeader? header) =>
+                    header?.IndexOf("Selected") ?? 5;
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(result.GeneratedSource, "var __sep0 = @ParseId(row);");
+        StringAssert.Contains(result.GeneratedSource, "if (!@TryParseId(row, out global::StrongId __sep0))");
+        StringAssert.Contains(result.GeneratedSource, "@FormatId(row, value.@Id);");
+        StringAssert.Contains(result.GeneratedSource, "global::StrongId? __sep1;");
+        StringAssert.Contains(result.GeneratedSource, "__sep1 = @ParseOptional(__col1);");
+        StringAssert.Contains(result.GeneratedSource, "@FormatOptional(row[\"Optional\"], value.@Optional);");
+        StringAssert.Contains(result.GeneratedSource, "var __sep2 = @Parse(row[@GetColumnOther(row.Header)]);");
+        StringAssert.Contains(result.GeneratedSource, "@Format(row[\"Other\"], value.@Other);");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "var __found3 = row.TryGet(\"Legacy\", out var __col3) || row.TryGet(\"OldLegacy\", out __col3);");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "if (!@TryParseCount(row[@GetColumnCount(row.Header)], out int __sep4))");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "throw new global::System.FormatException(\"TryParse convention for member 'Count' returned false.\");");
+        StringAssert.Contains(result.GeneratedSource, "@FormatCount(row[\"Count\"], value.@Count);");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "var __col5 = row[@GetColumnSelected(row.Header)];");
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_TypeWideTryParseOverloadsUseDeclaredTypes()
+    {
+        var result = Run("""
+            public readonly record struct FirstId(int Value);
+            public readonly record struct SecondId(int Value);
+            public sealed record Person(FirstId First, SecondId Second);
+
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions
+            {
+                static bool TryParse(SepReader.Col col, out FirstId value)
+                {
+                    var success = col.TryParse<int>(out var parsed);
+                    value = new(parsed);
+                    return success;
+                }
+
+                static bool TryParse(SepReader.Col col, out SecondId value)
+                {
+                    var success = col.TryParse<int>(out var parsed);
+                    value = new(parsed);
+                    return success;
+                }
+
+                static void Format(SepWriter.Col col, FirstId value) => col.Format(value.Value);
+                static void Format(SepWriter.Col col, SecondId value) => col.Format(value.Value);
+            }
+            """);
+
+        Assert.IsEmpty(result.Diagnostics,
+            string.Join(Environment.NewLine, result.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "if (!@TryParse(row[\"First\"], out global::FirstId __sep0))");
+        StringAssert.Contains(
+            result.GeneratedSource,
+            "if (!@TryParse(row[\"Second\"], out global::SecondId __sep1))");
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_ColumnConventionOverridesIndexedMappingForReading()
+    {
+        var result = Run("""
+            [SepSourceGeneration(typeof(Person))]
+            public static partial class PersonSepExtensions
+            {
+                static int GetColumnId(SepReaderHeader? header) => 1;
+            }
+            public sealed record Person(
+                [property: SepCol(0)] int Id,
+                [property: SepCol(1)] int Other);
+            """);
+
+        Assert.IsEmpty(result.Diagnostics);
+        Assert.IsEmpty(result.CompilationDiagnostics,
+            string.Join(Environment.NewLine, result.CompilationDiagnostics.Select(static diagnostic => diagnostic.ToString())));
+        StringAssert.Contains(result.GeneratedSource, "@Id: row[@GetColumnId(row.Header)].Parse<int>()");
+        StringAssert.Contains(result.GeneratedSource, "@Other: row[1].Parse<int>()");
+    }
+
+    [TestMethod]
+    public void SepSourceGeneratorTest_ReportsInvalidConventionWhenSepTypesAreUnavailable()
     {
         var source = """
             [SepSourceGeneration(typeof(Person))]
-            public static partial class PersonSepExtensions { }
-            public class Person
+            public static partial class PersonSepExtensions
             {
-                [SepCol(Converter = typeof(Converter))]
-                public int Id { get; set; }
+                static int ParseId(object col) => 0;
             }
-            public static class Converter { }
+            public class Person { public int Id { get; set; } }
             """;
         var references = s_references
             .Where(reference => !string.Equals(reference.Display, typeof(Sep).Assembly.Location, StringComparison.Ordinal))
@@ -337,7 +466,7 @@ public class SepSourceGeneratorTest
 
         driver = driver.RunGenerators(compilation);
 
-        Assert.AreEqual("SEPGEN003", driver.GetRunResult().Diagnostics.Single().Id);
+        Assert.AreEqual("SEPGEN014", driver.GetRunResult().Diagnostics.Single().Id);
     }
 
     [TestMethod]
@@ -609,6 +738,15 @@ public class SepSourceGeneratorTest
             ImmutableArray.Create(new SepSourceGenerator.ConstructorParameter("@id", 0)),
             ImmutableArray.Create(2));
         var issue = SepSourceGenerator.Issue.Create(SepSourceGenerator.IssueId.InvalidColumn, Location.None, "Id", "name");
+        var columnConvention = new SepSourceGenerator.ColumnConvention(
+            "GetColumnId", SepSourceGenerator.ColumnConventionResult.Index);
+        var equalColumnConvention = new SepSourceGenerator.ColumnConvention(
+            "GetColumnId", SepSourceGenerator.ColumnConventionResult.Index);
+        var convention = new SepSourceGenerator.Convention("ParseId", SepSourceGenerator.ConventionInput.Column);
+        var equalConvention = new SepSourceGenerator.Convention("ParseId", SepSourceGenerator.ConventionInput.Column);
+        var conventions = new SepSourceGenerator.Conventions(columnConvention, convention, equalConvention, null);
+        var equalConventions = new SepSourceGenerator.Conventions(
+            equalColumnConvention, equalConvention, convention, null);
 
         var enumMember = CreateEnumMember("Ready");
         Assert.IsTrue(enumMember.Equals(CreateEnumMember("Ready")));
@@ -618,6 +756,15 @@ public class SepSourceGeneratorTest
         Assert.IsFalse(member.Equals(differentMember));
         Assert.IsFalse(member.Equals(new object()));
         Assert.AreEqual(member.GetHashCode(), equalMember.GetHashCode());
+        Assert.IsTrue(columnConvention.Equals(equalColumnConvention));
+        Assert.IsFalse(columnConvention.Equals(new object()));
+        Assert.AreEqual(columnConvention.GetHashCode(), equalColumnConvention.GetHashCode());
+        Assert.IsTrue(convention.Equals(equalConvention));
+        Assert.IsFalse(convention.Equals(new object()));
+        Assert.AreEqual(convention.GetHashCode(), equalConvention.GetHashCode());
+        Assert.IsTrue(conventions.Equals(equalConventions));
+        Assert.IsFalse(conventions.Equals(new object()));
+        Assert.AreEqual(conventions.GetHashCode(), equalConventions.GetHashCode());
         Assert.IsTrue(plan.Equals(equalPlan));
         Assert.IsFalse(plan.Equals(SepSourceGenerator.ConstructionPlan.Empty));
         Assert.IsFalse(plan.Equals(differentParameterPlan));
@@ -723,14 +870,16 @@ public class SepSourceGeneratorTest
         """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSepExtensions { }
-        public class Person { [SepCol(Prefix = "Nested.")] public string Name { get; set; } = ""; }
-        """, "SEPGEN003")]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader? header) => 0;
+        }
+        public class Person { [SepCol(Optional = true)] public int Id { get; set; } }
+        """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSepExtensions { }
-        public class Person { [SepCol(Converter = typeof(BadConverter))] public int Id { get; set; } }
-        public static class BadConverter { }
+        public class Person { [SepCol(Prefix = "Nested.")] public string Name { get; set; } = ""; }
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
@@ -772,6 +921,15 @@ public class SepSourceGeneratorTest
         """, "SEPGEN003")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader? header) => 0;
+        }
+        public record Person([property: SepCol(Prefix = "Nested.")] Nested Nested);
+        public record Nested([property: SepCol(Optional = true)] int Id);
+        """, "SEPGEN003")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSepExtensions { }
         public record Person([property: SepCol(Prefix = "Nested.")] Callback Nested);
         public delegate void Callback();
@@ -810,39 +968,6 @@ public class SepSourceGeneratorTest
             public int Id { get; set; }
         }
         """, "SEPGEN003")]
-    [DataRow("""
-        public class Container
-        {
-            private static class Converter
-            {
-                public static int Parse(SepReader.Col col) => 0;
-                public static bool TryParse(SepReader.Col col, out int value) { value = 0; return true; }
-                public static void Format(SepWriter.Col col, int value) { }
-            }
-            public class Person
-            {
-                [SepCol(Converter = typeof(Converter))]
-                public int Id { get; set; }
-            }
-        }
-        [SepSourceGeneration(typeof(Container.Person))]
-        public static partial class PersonSepExtensions { }
-        """, "SEPGEN003")]
-    [DataRow("""
-        public static class Converter
-        {
-            public static int Parse(SepReader.Col col) => 0;
-            public static bool TryParse(SepReader.Col col, out int value) { value = 0; return true; }
-            public static void Format(SepWriter.Col col, int value) { }
-        }
-        [SepSourceGeneration(typeof(Person))]
-        public static partial class PersonSepExtensions { }
-        public class Person
-        {
-            [SepCol(Format = "X", Converter = typeof(Converter))]
-            public int Id { get; set; }
-        }
-        """, "SEPGEN005")]
     [DataRow("""
         [SepSourceGeneration(typeof(Person))]
         public static partial class PersonSepExtensions { }
@@ -940,6 +1065,148 @@ public class SepSourceGeneratorTest
             public class Person { public int Id { get; set; } }
         }
         """, "SEPGEN011")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId<T>(SepReader.Col col) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId(ref SepReader.Col col) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId(string value) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static bool TryParseId(SepReader.Col col, out string value)
+            {
+                value = "";
+                return true;
+            }
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId<T>(SepReader.Col col) => 0;
+        }
+        public record Person([property: SepCol(Prefix = "Address.")] Address Address);
+        public record Address(int Id);
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId(SepReader.Col col) => 0;
+            static int ParseId(SepReader.Col col) => 1;
+            static bool TryParseId(SepReader.Col col, out int value)
+            {
+                value = 0;
+                return true;
+            }
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN015")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId(SepReader.Col col) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN016")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader header) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static object GetColumnId(SepReaderHeader? header) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static string? GetColumnId(SepReaderHeader? header) => null;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId<T>(SepReaderHeader? header) => 0;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int GetColumnId(SepReaderHeader? header) => 0;
+            static int GetColumnId(SepReaderHeader? header) => 1;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN015")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int ParseId(SepReader.Row row) => 0;
+            static bool TryParseId(SepReader.Col col, out int value)
+            {
+                value = 0;
+                return true;
+            }
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN016")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static int Parse(SepReader.Row row) => 0;
+            static bool TryParse(SepReader.Col col, out int value)
+            {
+                value = 0;
+                return true;
+            }
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
+    [DataRow("""
+        [SepSourceGeneration(typeof(Person))]
+        public static partial class PersonSepExtensions
+        {
+            static T Parse<T>(SepReader.Col col) => default!;
+        }
+        public class Person { public int Id { get; set; } }
+        """, "SEPGEN014")]
     public void SepSourceGeneratorTest_ReportsStableDiagnostic(string source, string diagnosticId)
     {
         var result = Run(source);

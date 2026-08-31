@@ -81,7 +81,7 @@ few MBs. 💾
 pragmatic approach towards this especially with regards to quoting and line
 ends. See section [RFC-4180](#rfc-4180).
 
-[Example](#example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
+[Example](#example) | [Naming and Terminology](#naming-and-terminology) | [API](#application-programming-interface-api) | [Source Generation](#source-generation) | [Limitations and Constraints](#limitations-and-constraints) | [Comparison Benchmarks](#comparison-benchmarks) | [Example Catalogue](#example-catalogue) | [RFC-4180](#rfc-4180) | [FAQ](#frequently-asked-questions-faq)  | [Public API Reference](#public-api-reference)
 
 ## Example
 ```csharp
@@ -932,6 +932,80 @@ Separator/delimiter is set to semi-colon `;` (default for Sep)
 `\r`, `\n` are carriage return and line feed special characters to make these visible
 
 ¹ Sep with `Escape = true` in `SepWriterOptions`
+
+## Source Generation
+The optional `Sep.SourceGenerator` package generates allocation-free parsing and
+formatting for classes, structs, and records. Apply `SepSourceGeneration` to a
+static partial adapter associated with the model:
+
+```csharp
+[SepSourceGeneration(typeof(Person))]
+public static partial class PersonSepExtensions
+{
+}
+
+public sealed record Person(int Id, string Name);
+```
+
+This generates `Parse`, `TryParse`, `Enumerate`, `EnumerateAsync`, `Format`,
+`Write`, and `WriteAsync` APIs. `SepCol` can declaratively configure column
+names, indexes, alternate names, optional columns, ignored members, nested
+prefixes, and formats.
+
+Conversion behavior is customized with static convention methods on the partial
+adapter rather than attributes. For a member named `Id` of type `StrongId`, the
+column conventions are:
+
+```csharp
+static StrongId ParseId(SepReader.Col col) => new(col.Parse<int>());
+
+static bool TryParseId(SepReader.Col col, out StrongId value)
+{
+    var success = col.TryParse<int>(out var parsed);
+    value = new(parsed);
+    return success;
+}
+
+static void FormatId(SepWriter.Col col, StrongId value) =>
+    col.Format(value.Value);
+```
+
+The same member-specific method names can instead take `SepReader.Row` or
+`SepWriter.Row` to read computed values, use multiple columns, or dynamically
+select columns. Row conventions take precedence over column conventions and
+bypass generated column lookup.
+
+Column selection can be overridden independently from value conversion with
+`GetColumn{Member}` returning either an index or name:
+
+```csharp
+static int GetColumnId(SepReaderHeader? header) =>
+    header is null ? 0 : header.IndexOf("person_id");
+
+static string GetColumnName(SepReaderHeader? header) =>
+    header?.TryIndexOf("display_name", out _) == true ? "display_name" : "Name";
+```
+
+The argument is the current reader header, or `null` when the reader has no
+header. This permits a generated model to adapt its physical layout to the
+input schema while keeping conversion code direct and allocation-free. The
+convention controls reading only; generated writing continues to use the
+declarative column name and order. It is evaluated for each parsed row, so it
+should remain cheap. A `GetColumn` convention supersedes configured names and
+indexes and cannot be combined with `SepCol.Optional`; use a row parsing
+convention when missing-column behavior also needs customization.
+
+Type-wide column conventions named `Parse`, `TryParse`, and `Format` apply to
+every member with the exact declared type. Member-specific conventions take
+precedence, followed by type-wide conventions and built-in string, enum, and
+span conversions.
+
+`TryParseId` can be used without `ParseId`; generated `Parse` then throws
+`FormatException` when the method returns `false`. A `ParseId` method must have a
+matching `TryParseId` using the same row or column input. Convention signatures
+include nullability, allowing a nullable member convention to control
+empty-value semantics directly. Invalid, ambiguous, or conflicting convention
+methods produce generator diagnostics instead of silently falling back.
 
 ## Async Support
 Sep supports efficient `ValueTask` based asynchronous reading and writing.
@@ -2446,6 +2520,7 @@ namespace nietras.SeparatedValues
         public readonly ref struct Row
         {
             public int ColCount { get; }
+            public nietras.SeparatedValues.SepReaderHeader? Header { get; }
             public nietras.SeparatedValues.SepReader.Col this[int index] { get; }
             public nietras.SeparatedValues.SepReader.Col this[System.Index index] { get; }
             public nietras.SeparatedValues.SepReader.Col this[string colName] { get; }

@@ -11,8 +11,10 @@ namespace nietras.SeparatedValues.SourceGenerator.Test;
 [TestClass]
 public class SepSourceGenerationTest
 {
-    const string PersonCsv = "Id;Name;Score\r\n42;Ada;12.5\r\n7;Lin;9.25\r\n";
-    const string SinglePersonCsv = "Id;Name;Score\r\n42;Ada;12.5\r\n";
+    static readonly string s_personCsv =
+        "Id;Name;Score\r\n42;Ada;12.5\r\n7;Lin;9.25\r\n".ReplaceLineEndings();
+    static readonly string s_singlePersonCsv =
+        "Id;Name;Score\r\n42;Ada;12.5\r\n".ReplaceLineEndings();
     static readonly Person s_ada = new(42, "Ada", 12.5m);
     static readonly Person[] s_people = [s_ada, new(7, "Lin", 9.25m)];
 
@@ -22,13 +24,13 @@ public class SepSourceGenerationTest
         using var writer = Sep.Writer().ToText();
         Person.Write(writer, s_people);
 
-        Assert.AreEqual(PersonCsv, writer.ToString());
+        Assert.AreEqual(s_personCsv, writer.ToString());
     }
 
     [TestMethod]
     public void SepSourceGenerationTest_Enumerate_UsesGeneratedSpanConversions()
     {
-        using var reader = Sep.Reader().FromText(PersonCsv);
+        using var reader = Sep.Reader().FromText(s_personCsv);
 
         Assert.AreSequenceEqual(s_people, Person.Enumerate(reader).ToArray());
     }
@@ -36,7 +38,7 @@ public class SepSourceGenerationTest
     [TestMethod]
     public void SepSourceGenerationTest_Parse_ReturnsRecord()
     {
-        using var reader = Sep.Reader().FromText(SinglePersonCsv);
+        using var reader = Sep.Reader().FromText(s_singlePersonCsv);
         Assert.IsTrue(reader.MoveNext());
 
         Assert.AreEqual(s_ada, Person.Parse(reader.Current));
@@ -45,7 +47,7 @@ public class SepSourceGenerationTest
     [TestMethod]
     public void SepSourceGenerationTest_TryParse_ReturnsRecord()
     {
-        using var reader = Sep.Reader().FromText(SinglePersonCsv);
+        using var reader = Sep.Reader().FromText(s_singlePersonCsv);
         Assert.IsTrue(reader.MoveNext());
 
         Assert.IsTrue(Person.TryParse(reader.Current, out var actual));
@@ -71,7 +73,7 @@ public class SepSourceGenerationTest
             Person.Format(row, s_ada);
         }
 
-        Assert.AreEqual(SinglePersonCsv, writer.ToString());
+        Assert.AreEqual(s_singlePersonCsv, writer.ToString());
     }
 
     [TestMethod]
@@ -81,7 +83,7 @@ public class SepSourceGenerationTest
 
         await Person.WriteAsync(writer, (IEnumerable<Person>)s_people);
 
-        Assert.AreEqual(PersonCsv, writer.ToString());
+        Assert.AreEqual(s_personCsv, writer.ToString());
     }
 
     [TestMethod]
@@ -91,13 +93,13 @@ public class SepSourceGenerationTest
 
         await Person.WriteAsync(writer, AsAsyncEnumerable(s_people));
 
-        Assert.AreEqual(PersonCsv, writer.ToString());
+        Assert.AreEqual(s_personCsv, writer.ToString());
     }
 
     [TestMethod]
     public async Task SepSourceGenerationTest_EnumerateAsync_ReturnsRecords()
     {
-        using var reader = Sep.Reader().FromText(PersonCsv);
+        using var reader = Sep.Reader().FromText(s_personCsv);
         var actual = new List<Person>();
         await foreach (var person in Person.EnumerateAsync(reader))
         {
@@ -203,34 +205,110 @@ public class SepSourceGenerationTest
 
         EvolvingPerson.Write(writer, [expected]);
 
-        Assert.AreEqual("Id;Name;Version\r\n42;Ada;7\r\n", writer.ToString());
+        Assert.AreEqual($"Id;Name;Version{Environment.NewLine}42;Ada;7{Environment.NewLine}", writer.ToString());
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterParsesCustomType()
+    public void SepSourceGenerationTest_ConventionParsesCustomType()
     {
         using var reader = Sep.Reader().FromText("Id\r\n42\r\n");
 
-        Assert.AreEqual(new ConvertedPerson(new StrongId(42)), ConvertedPerson.Enumerate(reader).Single());
+        Assert.AreEqual(new ConventionPerson(new StrongId(42)), ConventionPerson.Enumerate(reader).Single());
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterFormatsCustomType()
+    public void SepSourceGenerationTest_ConventionFormatsCustomType()
     {
         using var writer = Sep.Writer().ToText();
 
-        ConvertedPerson.Write(writer, [new(new StrongId(42))]);
+        ConventionPerson.Write(writer, [new(new StrongId(42))]);
 
-        Assert.AreEqual("Id\r\n42\r\n", writer.ToString());
+        Assert.AreEqual($"Id{Environment.NewLine}42{Environment.NewLine}", writer.ToString());
     }
 
     [TestMethod]
-    public void SepSourceGenerationTest_SepCol_ConverterTryParseReturnsFalse()
+    public void SepSourceGenerationTest_ConventionTryParseReturnsFalse()
     {
         using var reader = Sep.Reader().FromText("Id\r\ninvalid\r\n");
         Assert.IsTrue(reader.MoveNext());
 
-        Assert.IsFalse(ConvertedPerson.TryParse(reader.Current, out _));
+        Assert.IsFalse(ConventionPerson.TryParse(reader.Current, out _));
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_TryParseOnlyConventionThrowsFromParse()
+    {
+        using var reader = Sep.Reader().FromText("Id\r\ninvalid\r\n");
+        Assert.IsTrue(reader.MoveNext());
+
+        var exception = Assert.ThrowsExactly<FormatException>(() => TryOnlyConventionPerson.Parse(reader.Current));
+        StringAssert.Contains(exception.Message, "member 'Id'");
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_RowConventionControlsColumnAccessAndMissingColumns()
+    {
+        using var reader = Sep.Reader().FromText("RawId\r\n41\r\n");
+
+        Assert.AreEqual(new RowConventionPerson(new StrongId(42)), RowConventionPerson.Enumerate(reader).Single());
+
+        using var writer = Sep.Writer().ToText();
+        RowConventionPerson.Write(writer, [new(new StrongId(42))]);
+        Assert.AreEqual($"RawId{Environment.NewLine}41{Environment.NewLine}", writer.ToString());
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_RowConventionTryParseReturnsFalse()
+    {
+        using var reader = Sep.Reader().FromText("RawId\r\ninvalid\r\n");
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.IsFalse(RowConventionPerson.TryParse(reader.Current, out _));
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionSelectsIndexAndNameFromHeader()
+    {
+        using var reader = Sep.Reader().FromText("Name;identifier;display_name\r\nIgnored;42;Ada\r\n");
+
+        Assert.AreEqual(
+            new ColumnConventionPerson(42, "Ada"),
+            ColumnConventionPerson.Enumerate(reader).Single());
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionTryParseSelectsNullableColumn()
+    {
+        using var reader = Sep.Reader().FromText("identifier;display_name\r\n42;\r\n");
+        Assert.IsTrue(reader.MoveNext());
+
+        Assert.IsTrue(ColumnConventionPerson.TryParse(reader.Current, out var actual));
+        Assert.AreEqual(new ColumnConventionPerson(42, null), actual);
+    }
+
+    [TestMethod]
+    public void SepSourceGenerationTest_ColumnConventionReceivesNullWithoutHeader()
+    {
+        using var reader = Sep.Reader(static options => options with { HasHeader = false })
+            .FromText("12.5;42\r\n");
+
+        Assert.AreEqual(
+            new ColumnConventionValue(42, 12.5),
+            ColumnConventionValue.Enumerate(reader).Single());
+    }
+
+    [TestMethod]
+    public async Task SepSourceGenerationTest_ColumnConventionIsUsedByEnumerateAsync()
+    {
+        using var reader = Sep.Reader().FromText("identifier;display_name\r\n42;Ada\r\n");
+        var values = new List<ColumnConventionPerson>();
+
+        await foreach (var value in ColumnConventionPerson.EnumerateAsync(reader))
+        {
+            values.Add(value);
+        }
+
+        Assert.AreSequenceEqual([new ColumnConventionPerson(42, "Ada")], values);
     }
 
     [TestMethod]
@@ -250,7 +328,9 @@ public class SepSourceGenerationTest
 
         NestedPerson.Write(writer, [new(42, new("Main", "Aarhus"))]);
 
-        Assert.AreEqual("Id;Address.Street;Address.City\r\n42;Main;Aarhus\r\n", writer.ToString());
+        Assert.AreEqual(
+            $"Id;Address.Street;Address.City{Environment.NewLine}42;Main;Aarhus{Environment.NewLine}",
+            writer.ToString());
     }
 
     [TestMethod]

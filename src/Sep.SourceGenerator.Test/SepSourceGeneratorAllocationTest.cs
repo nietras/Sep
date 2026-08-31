@@ -53,6 +53,25 @@ public class SepSourceGeneratorAllocationTest
     }
 
     [TestMethod]
+    public void SepSourceGeneratorAllocationTest_ColumnConventionDoesNotAllocate()
+    {
+        var allocated = MeasureParsing(
+            static reader =>
+            {
+                var total = 0;
+                foreach (var value in ColumnConventionValue.Enumerate(reader))
+                {
+                    total += value.Id;
+                }
+                return total;
+            },
+            "Value;Id\n0.5;0\n1.5;1\n",
+            static options => options);
+
+        Assert.AreEqual(0, allocated);
+    }
+
+    [TestMethod]
     public void SepSourceGeneratorAllocationTest_EnumerateDoesNotAllocate()
     {
         var allocated = MeasureParsing(static reader =>
@@ -161,7 +180,9 @@ public class SepSourceGeneratorAllocationTest
         ValuePerson.Write(writer, new ReadOnlySpan<ValuePerson>(expected));
 
         Assert.AreEqual(
-            "Id;Value;State;Flags;Optional\r\n1;0;42;First, Second;\r\n2;0;Ready;None;3\r\n",
+            $"Id;Value;State;Flags;Optional{Environment.NewLine}" +
+            $"1;0;42;First, Second;{Environment.NewLine}" +
+            $"2;0;Ready;None;3{Environment.NewLine}",
             writer.ToString());
 
         using var reader = Sep.Reader().FromText(writer.ToString());
@@ -271,16 +292,22 @@ public class SepSourceGeneratorAllocationTest
         Assert.AreEqual(0, tryFormatAllocated);
     }
 
-    static long MeasureParsing(Func<SepReader, int> action)
+    static long MeasureParsing(Func<SepReader, int> action) =>
+        MeasureParsing(action, s_csv, static options => options);
+
+    static long MeasureParsing(
+        Func<SepReader, int> action,
+        string csv,
+        Func<SepReaderOptions, SepReaderOptions> configure)
     {
         // Creating the reader allocates, so only the enumeration itself is measured. Warming up
         // first ensures jitting and array pool rents do not count as allocations either.
         for (var iteration = 0; iteration < 3; ++iteration)
         {
-            using var warmupReader = Sep.Reader().FromText(s_csv);
+            using var warmupReader = Sep.Reader(configure).FromText(csv);
             action(warmupReader);
         }
-        using var reader = Sep.Reader().FromText(s_csv);
+        using var reader = Sep.Reader(configure).FromText(csv);
         var before = GC.GetAllocatedBytesForCurrentThread();
         action(reader);
         return GC.GetAllocatedBytesForCurrentThread() - before;

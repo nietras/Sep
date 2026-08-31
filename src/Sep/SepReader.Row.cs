@@ -38,6 +38,8 @@ public partial class SepReader
 
         public int ColCount => _state._currentRowColCount;
 
+        public SepReaderHeader? Header => _state._hasHeader ? _state._header : null;
+
         public ReadOnlySpan<char> Span => _state.RowSpan();
 
         public override string ToString() => new(Span);

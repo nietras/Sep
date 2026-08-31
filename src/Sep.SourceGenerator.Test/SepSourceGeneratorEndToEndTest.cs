@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,8 +10,9 @@ namespace nietras.SeparatedValues.SourceGenerator.Test;
 [TestClass]
 public class SepSourceGeneratorEndToEndTest
 {
-    const string DefaultPersonCsv = "Id;Name;class\r\n42;Ada;7\r\n";
-    const string RuntimePersonCsv = "\"person\"\"id\";Name;State;Amount\r\n1;;Ready;12,50\r\n2;Bob;;\r\n";
+    static readonly string s_defaultPersonCsv = "Id;Name;class\r\n42;Ada;7\r\n".ReplaceLineEndings();
+    static readonly string s_runtimePersonCsv =
+        "\"person\"\"id\";Name;State;Amount\r\n1;;Ready;12,50\r\n2;Bob;;\r\n".ReplaceLineEndings();
     static readonly CultureInfo s_danishCulture = CultureInfo.GetCultureInfo("da-DK");
     static readonly DefaultPerson s_defaultPerson = new() { Id = 42, Name = "Ada", @class = 7 };
     static readonly RuntimePerson[] s_runtimePeople =
@@ -25,13 +27,13 @@ public class SepSourceGeneratorEndToEndTest
         using var writer = Sep.Writer().ToText();
         DefaultPerson.Write(writer, [s_defaultPerson]);
 
-        Assert.AreEqual(DefaultPersonCsv, writer.ToString());
+        Assert.AreEqual(s_defaultPersonCsv, writer.ToString());
     }
 
     [TestMethod]
     public void SepSourceGeneratorEndToEndTest_Enumerate_DefaultNamesAndEscapedIdentifier()
     {
-        using var reader = Sep.Reader().FromText(DefaultPersonCsv);
+        using var reader = Sep.Reader().FromText(s_defaultPersonCsv);
 
         Assert.AreEqual(s_defaultPerson, DefaultPerson.Enumerate(reader).Single());
     }
@@ -39,7 +41,7 @@ public class SepSourceGeneratorEndToEndTest
     [TestMethod]
     public void SepSourceGeneratorEndToEndTest_TryParse_DefaultNamesAndEscapedIdentifier()
     {
-        using var reader = Sep.Reader().FromText(DefaultPersonCsv);
+        using var reader = Sep.Reader().FromText(s_defaultPersonCsv);
         Assert.IsTrue(reader.MoveNext());
 
         Assert.IsTrue(DefaultPerson.TryParse(reader.Current, out var actual));
@@ -53,7 +55,7 @@ public class SepSourceGeneratorEndToEndTest
 
         RuntimePerson.Write(writer, s_runtimePeople);
 
-        Assert.AreEqual(RuntimePersonCsv, writer.ToString());
+        Assert.AreEqual(s_runtimePersonCsv, writer.ToString());
     }
 
     [TestMethod]
@@ -63,7 +65,7 @@ public class SepSourceGeneratorEndToEndTest
         {
             CultureInfo = s_danishCulture,
             Unescape = true,
-        }).FromText(RuntimePersonCsv);
+        }).FromText(s_runtimePersonCsv);
 
         Assert.AreSequenceEqual(s_runtimePeople, RuntimePerson.Enumerate(reader).ToArray());
     }
@@ -119,7 +121,7 @@ public class SepSourceGeneratorEndToEndTest
             new NullableReferencePerson { Value = new("Ada") },
         ]);
 
-        Assert.AreEqual("Value\r\n\r\nAda\r\n", writer.ToString());
+        Assert.AreEqual($"Value{Environment.NewLine}{Environment.NewLine}Ada{Environment.NewLine}", writer.ToString());
         using var reader = Sep.Reader().FromText(writer.ToString());
         var values = NullableReferencePerson.Enumerate(reader).ToArray();
         Assert.IsNull(values[0].Value);

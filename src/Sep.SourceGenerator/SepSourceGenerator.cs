@@ -589,7 +589,8 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             conventions = Conventions.Empty;
             return false;
         }
-        if (parse is not null && tryParse is null)
+        if (parse is not null &&
+            (tryParse is null || parse.Input != tryParse.Input))
         {
             conventions = Conventions.Empty;
             issue = Issue.Create(
@@ -627,12 +628,23 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
                 adapter,
                 member,
                 allowRow: true,
-                validateEveryMethod: true,
                 out convention,
                 out issue);
         }
 
-        var typeMethods = adapter.GetMembers(typeMethodName).OfType<IMethodSymbol>()
+        var allTypeMethods = adapter.GetMembers(typeMethodName).OfType<IMethodSymbol>().ToImmutableArray();
+        var genericTypeMethod = allTypeMethods.FirstOrDefault(static method => method.Arity != 0);
+        if (genericTypeMethod is not null)
+        {
+            convention = null;
+            issue = Issue.Create(
+                IssueId.InvalidConvention,
+                genericTypeMethod.Locations.FirstOrDefault(),
+                genericTypeMethod.Name,
+                ExpectedConvention(operation, member.Name, memberType, allowRow: false));
+            return false;
+        }
+        var typeMethods = allTypeMethods
             .Where(method => IsConventionForType(method, operation, memberType))
             .ToImmutableArray();
         return TrySelectConvention(
@@ -643,7 +655,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             adapter,
             member,
             allowRow: false,
-            validateEveryMethod: true,
             out convention,
             out issue);
     }
@@ -651,19 +662,15 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
     static bool IsConventionForType(
         IMethodSymbol method,
         ConventionOperation operation,
-        ITypeSymbol memberType) =>
-        operation switch
+        ITypeSymbol memberType)
+    {
+        if (operation == ConventionOperation.Parse)
         {
-            ConventionOperation.Parse =>
-                SymbolEqualityComparer.IncludeNullability.Equals(method.ReturnType, memberType),
-            ConventionOperation.TryParse =>
-                method.Parameters.Length == 2 &&
-                SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType),
-            ConventionOperation.Format =>
-                method.Parameters.Length == 2 &&
-                SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType),
-            _ => false,
-        };
+            return SymbolEqualityComparer.IncludeNullability.Equals(method.ReturnType, memberType);
+        }
+        return method.Parameters.Length == 2 &&
+            SymbolEqualityComparer.IncludeNullability.Equals(method.Parameters[1].Type, memberType);
+    }
 
     static bool TrySelectConvention(
         ImmutableArray<IMethodSymbol> methods,
@@ -673,7 +680,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         INamedTypeSymbol adapter,
         ISymbol member,
         bool allowRow,
-        bool validateEveryMethod,
         out Convention? convention,
         out Issue? issue)
     {
@@ -689,10 +695,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         {
             if (!TryMatchConvention(method, operation, memberType, compilation, adapter, allowRow, out var input))
             {
-                if (!validateEveryMethod)
-                {
-                    continue;
-                }
                 convention = null;
                 issue = Issue.Create(
                     IssueId.InvalidConvention,
@@ -703,13 +705,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             }
             matches.Add(new Convention(method.Name, input));
         }
-        if (matches.Count == 0)
-        {
-            convention = null;
-            issue = null;
-            return true;
-        }
-
         var preferredInput = allowRow && matches.Any(static match => match.Input == ConventionInput.Row)
             ? ConventionInput.Row
             : ConventionInput.Column;
@@ -797,13 +792,13 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
         var typeName = memberType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
         var input = operation == ConventionOperation.Format ? "SepWriter" : "SepReader";
         var inputs = allowRow ? input + ".Row or " + input + ".Col" : input + ".Col";
-        return operation switch
+        if (operation == ConventionOperation.Parse)
         {
-            ConventionOperation.Parse => $"{typeName} Parse{memberName}({inputs})",
-            ConventionOperation.TryParse => $"bool TryParse{memberName}({inputs}, out {typeName})",
-            ConventionOperation.Format => $"void Format{memberName}({inputs}, {typeName})",
-            _ => "",
-        };
+            return $"{typeName} Parse{memberName}({inputs})";
+        }
+        return operation == ConventionOperation.TryParse
+            ? $"bool TryParse{memberName}({inputs}, out {typeName})"
+            : $"void Format{memberName}({inputs}, {typeName})";
     }
 
     static bool IsValidConverter(
@@ -2576,27 +2571,6 @@ public sealed class SepSourceGenerator : IIncrementalGenerator
             int order)
             : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
                 enumMemberNames, null, Conventions.Empty, canWrite, isProperty, isRequired, order)
-        {
-        }
-
-        public Member(
-            string name,
-            string typeName,
-            string typeIdentityName,
-            string valueTypeName,
-            bool isString,
-            bool isEnum,
-            bool isNullable,
-            bool isNullableValue,
-            ImmutableArray<string> enumMemberNames,
-            string? converterName,
-            bool canWrite,
-            bool isProperty,
-            bool isRequired,
-            int order)
-            : this(name, typeName, typeIdentityName, valueTypeName, isString, isEnum, isNullable, isNullableValue,
-                enumMemberNames, converterName, Conventions.Empty, canWrite, isProperty, isRequired, string.Empty,
-                ImmutableArray<string>.Empty, null, null, false, null, order, null)
         {
         }
 

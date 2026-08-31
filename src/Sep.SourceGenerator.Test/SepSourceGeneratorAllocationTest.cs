@@ -161,7 +161,9 @@ public class SepSourceGeneratorAllocationTest
         ValuePerson.Write(writer, new ReadOnlySpan<ValuePerson>(expected));
 
         Assert.AreEqual(
-            "Id;Value;State;Flags;Optional\r\n1;0;42;First, Second;\r\n2;0;Ready;None;3\r\n",
+            $"Id;Value;State;Flags;Optional{Environment.NewLine}" +
+            $"1;0;42;First, Second;{Environment.NewLine}" +
+            $"2;0;Ready;None;3{Environment.NewLine}",
             writer.ToString());
 
         using var reader = Sep.Reader().FromText(writer.ToString());

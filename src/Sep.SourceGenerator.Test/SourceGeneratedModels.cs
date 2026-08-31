@@ -277,6 +277,25 @@ public static partial class RowConventionPersonSepExtensions
 public sealed record RowConventionPerson(
     [property: SepCol("Ignored", Optional = true)] StrongId Id);
 
+[SepSourceGeneration(typeof(TryOnlyConventionPerson))]
+public static partial class TryOnlyConventionPersonSepExtensions
+{
+    static bool TryParseId(SepReader.Col col, out StrongId value)
+    {
+        if (col.TryParse<int>(out var parsed))
+        {
+            value = new(parsed);
+            return true;
+        }
+        value = default;
+        return false;
+    }
+
+    static void FormatId(SepWriter.Col col, StrongId value) => col.Format(value.Value);
+}
+
+public sealed record TryOnlyConventionPerson(StrongId Id);
+
 [SepSourceGeneration(typeof(NestedPerson))]
 public static partial class NestedPersonSepExtensions
 {

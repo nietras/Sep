@@ -98,7 +98,7 @@ if (args.Length > 0)
             var filePath = Path.Combine(directory, $"{name}.md");
 
             using var logger = new StreamLogger(filePath);
-            exporter.ExportToLog(s, logger);
+            await exporter.ExportAsync(s, logger, default);
 
             var versions = GetVersions();
             File.WriteAllText(Path.Combine(directory, "Versions.txt"), versions);

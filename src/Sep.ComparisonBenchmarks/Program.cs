@@ -14,6 +14,7 @@ using System.Threading;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters;
+using BenchmarkDotNet.Helpers;
 using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Parameters;
 using BenchmarkDotNet.Reports;
@@ -97,8 +98,9 @@ if (args.Length > 0)
             if (!Directory.Exists(directory)) { Directory.CreateDirectory(directory); }
             var filePath = Path.Combine(directory, $"{name}.md");
 
-            using var logger = new StreamLogger(filePath);
-            await exporter.ExportAsync(s, logger, default);
+            using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+            using var writer = new CancelableStreamWriter(stream);
+            await exporter.ExportAsync(s, writer, default);
 
             var versions = GetVersions();
             File.WriteAllText(Path.Combine(directory, "Versions.txt"), versions);

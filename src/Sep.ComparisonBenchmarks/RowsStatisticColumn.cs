@@ -30,7 +30,9 @@ public class RowsStatisticColumn : IColumn
 
     internal static int RowsFromParameters(IReadOnlyList<ParameterInstance> parameters)
     {
+#pragma warning disable CS8605 // Unboxing a possibly null value.
         return parameters.Where(p => p.Name == nameof(PackageAssetsBench.Rows)).Select(p => (int)p.Value).Single()!;
+#pragma warning restore CS8605 // Unboxing a possibly null value.
     }
 
     internal static string FormatNSPerRow(int lines, BenchmarkCase benchmarkCase, Statistics statistics)

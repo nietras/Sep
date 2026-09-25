@@ -7,16 +7,17 @@
 
     <Company>nietras</Company>
     <Authors>nietras</Authors>
-    <Copyright>Copyright © nietras A/S 2025</Copyright>
+    <Copyright>Copyright © nietras A/S 2026</Copyright>
     <NeutralLanguage>en</NeutralLanguage>
 
-    <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+    <TargetFrameworks>net11.0;net10.0;net9.0;net8.0</TargetFrameworks>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
 
-    <LangVersion>14.0</LangVersion>
+    <LangVersion>15.0</LangVersion>
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
     <Nullable>enable</Nullable>
+    <Features Condition="'$(TargetFramework)' == 'net11.0'">runtime-async=on</Features>
 
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <ArtifactsPath>$(MSBuildThisFileDirectory)../artifacts</ArtifactsPath>

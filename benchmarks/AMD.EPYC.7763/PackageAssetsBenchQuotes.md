@@ -1,40 +1,41 @@
 ```
 
-BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
-AMD EPYC 7763 3.24GHz, 1 CPU, 4 logical and 2 physical cores
-.NET SDK 10.0.203
-  [Host]    : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
-  .NET 10.0 : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
+BenchmarkDotNet v0.16.0-preview.1, Windows 11 (10.0.26100.33438/24H2/2024Update/HudsonValley) (Hyper-V)
+AMD EPYC 7763 2.44GHz, 1 CPU, 4 logical and 2 physical cores
+Memory: 15.99 GB Total, 12.61 GB Available
+.NET SDK 11.0.100-rc.1.26425.128
+  [Host]    : .NET 11.0.0 (11.0.0-rc.1.26425.128, 11.0.26.42628), X64 RyuJIT x86-64-v3
+  .NET 11.0 : .NET 11.0.0 (11.0.0-rc.1.26425.128, 11.0.26.42628), X64 RyuJIT x86-64-v3
 
-Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
-Toolchain=net10.0  InvocationCount=Default  IterationTime=350ms  
+Job=.NET 11.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 11.0  
+Toolchain=net11.0  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
 
 ```
 | Method       | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated     | Alloc Ratio |
 |------------- |------ |-------- |------------:|------:|----:|-------:|-------:|--------------:|------------:|
-| Sep______    | Row   | 50000   |    11.42 ms |  1.00 |  33 | 2913.9 |  228.4 |       1.02 KB |        1.00 |
-| Sep_Async    | Row   | 50000   |    11.72 ms |  1.03 |  33 | 2840.1 |  234.4 |       1.02 KB |        1.00 |
-| Sep_Unescape | Row   | 50000   |    10.82 ms |  0.95 |  33 | 3076.9 |  216.3 |       1.02 KB |        1.00 |
-| Sylvan___    | Row   | 50000   |    24.56 ms |  2.15 |  33 | 1355.4 |  491.1 |       8.47 KB |        8.34 |
-| ReadLine_    | Row   | 50000   |    26.64 ms |  2.33 |  33 | 1249.5 |  532.7 |  108778.73 KB |  107,105.21 |
-| CsvHelper    | Row   | 50000   |    77.46 ms |  6.78 |  33 |  429.7 | 1549.2 |      19.95 KB |       19.64 |
+| Sep______    | Row   | 50000   |    11.96 ms |  1.00 |  33 | 2791.6 |  239.1 |       1.02 KB |        1.00 |
+| Sep_Async    | Row   | 50000   |    10.26 ms |  0.86 |  33 | 3253.5 |  205.2 |       1.02 KB |        1.00 |
+| Sep_Unescape | Row   | 50000   |    10.79 ms |  0.90 |  33 | 3093.6 |  215.8 |       1.02 KB |        1.00 |
+| Sylvan___    | Row   | 50000   |    26.96 ms |  2.26 |  33 | 1238.2 |  539.1 |       8.47 KB |        8.34 |
+| ReadLine_    | Row   | 50000   |    23.31 ms |  1.95 |  33 | 1431.7 |  466.3 |  108778.73 KB |  107,105.21 |
+| CsvHelper    | Row   | 50000   |    88.77 ms |  7.43 |  33 |  376.0 | 1775.4 |      19.95 KB |       19.64 |
 |              |       |         |             |       |     |        |        |               |             |
-| Sep______    | Cols  | 50000   |    12.66 ms |  1.00 |  33 | 2629.7 |  253.1 |       1.02 KB |        1.00 |
-| Sep_Unescape | Cols  | 50000   |    13.32 ms |  1.05 |  33 | 2498.0 |  266.5 |       1.02 KB |        1.00 |
-| Sylvan___    | Cols  | 50000   |    28.17 ms |  2.23 |  33 | 1181.4 |  563.4 |       8.47 KB |        8.34 |
-| ReadLine_    | Cols  | 50000   |    27.55 ms |  2.18 |  33 | 1208.2 |  550.9 |  108778.73 KB |  107,105.21 |
-| CsvHelper    | Cols  | 50000   |   106.05 ms |  8.38 |  33 |  313.8 | 2121.1 |     445.68 KB |      438.82 |
+| Sep______    | Cols  | 50000   |    14.52 ms |  1.00 |  33 | 2298.6 |  290.4 |       1.02 KB |        1.00 |
+| Sep_Unescape | Cols  | 50000   |    13.55 ms |  0.93 |  33 | 2463.9 |  270.9 |       1.02 KB |        1.00 |
+| Sylvan___    | Cols  | 50000   |    28.33 ms |  1.95 |  33 | 1178.3 |  566.6 |       8.47 KB |        8.34 |
+| ReadLine_    | Cols  | 50000   |    21.34 ms |  1.47 |  33 | 1564.1 |  426.8 |  108778.73 KB |  107,105.21 |
+| CsvHelper    | Cols  | 50000   |   121.58 ms |  8.38 |  33 |  274.5 | 2431.6 |      445.6 KB |      438.75 |
 |              |       |         |             |       |     |        |        |               |             |
-| Sep______    | Asset | 50000   |    45.66 ms |  1.00 |  33 |  728.9 |  913.2 |   13802.21 KB |        1.00 |
-| Sep_MT___    | Asset | 50000   |    31.85 ms |  0.70 |  33 | 1044.8 |  637.1 |   13865.49 KB |        1.00 |
-| Sylvan___    | Asset | 50000   |    68.62 ms |  1.50 |  33 |  485.0 | 1372.4 |   13961.94 KB |        1.01 |
-| ReadLine_    | Asset | 50000   |   153.43 ms |  3.36 |  33 |  216.9 | 3068.5 |  122305.14 KB |        8.86 |
-| CsvHelper    | Asset | 50000   |   127.77 ms |  2.80 |  33 |  260.5 | 2555.4 |   13971.34 KB |        1.01 |
+| Sep______    | Asset | 50000   |    67.71 ms |  1.00 |  33 |  492.9 | 1354.2 |   13802.17 KB |        1.00 |
+| Sep_MT___    | Asset | 50000   |    40.25 ms |  0.60 |  33 |  829.3 |  805.0 |   13920.19 KB |        1.01 |
+| Sylvan___    | Asset | 50000   |    70.00 ms |  1.04 |  33 |  476.8 | 1400.0 |   13962.42 KB |        1.01 |
+| ReadLine_    | Asset | 50000   |   179.40 ms |  2.66 |  33 |  186.1 | 3588.0 |  122304.81 KB |        8.86 |
+| CsvHelper    | Asset | 50000   |   126.43 ms |  1.88 |  33 |  264.0 | 2528.6 |   13969.95 KB |        1.01 |
 |              |       |         |             |       |     |        |        |               |             |
-| Sep______    | Asset | 1000000 |   968.61 ms |  1.00 | 665 |  687.4 |  968.6 |  266679.21 KB |        1.00 |
-| Sep_MT___    | Asset | 1000000 |   566.21 ms |  0.58 | 665 | 1175.9 |  566.2 |  271900.91 KB |        1.02 |
-| Sylvan___    | Asset | 1000000 | 1,412.90 ms |  1.46 | 665 |  471.2 | 1412.9 |  266824.41 KB |        1.00 |
-| ReadLine_    | Asset | 1000000 | 3,224.56 ms |  3.33 | 665 |  206.5 | 3224.6 | 2442318.43 KB |        9.16 |
-| CsvHelper    | Asset | 1000000 | 2,561.55 ms |  2.64 | 665 |  259.9 | 2561.6 |   266835.7 KB |        1.00 |
+| Sep______    | Asset | 1000000 | 1,082.89 ms |  1.00 | 667 |  616.6 | 1082.9 |  266667.95 KB |        1.00 |
+| Sep_MT___    | Asset | 1000000 |   712.56 ms |  0.66 | 667 |  937.1 |  712.6 |  279609.45 KB |        1.05 |
+| Sylvan___    | Asset | 1000000 | 1,542.74 ms |  1.42 | 667 |  432.8 | 1542.7 |  266825.01 KB |        1.00 |
+| ReadLine_    | Asset | 1000000 | 3,631.69 ms |  3.35 | 667 |  183.9 | 3631.7 | 2442320.22 KB |        9.16 |
+| CsvHelper    | Asset | 1000000 | 2,636.51 ms |  2.43 | 667 |  253.3 | 2636.5 |  266844.92 KB |        1.00 |

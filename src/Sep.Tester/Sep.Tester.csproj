@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>nietras.SeparatedValues.Tester</RootNamespace>
     <OutputType>Exe</OutputType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IsTrimmable>true</IsTrimmable>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableAOTAnalyzer>true</EnableAOTAnalyzer>

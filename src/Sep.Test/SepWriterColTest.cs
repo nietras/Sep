@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -85,6 +86,35 @@ public class SepWriterColTest
     public async ValueTask SepWriterColTest_Set_InterpolatedString()
     {
         await Run(col => col.Set($"{ColValue}"));
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_ThrowsAfterGrowth()
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        var longText = new string('a', impl._buffer.Length + 1);
+        Assert.ThrowsExactly<FormatException>(() =>
+            new SepWriter.Col(impl).Set($"{longText}{int.Parse("invalid", CultureInfo.InvariantCulture)}"));
+
+        var rented = ArrayPool<char>.Shared.Rent(impl._buffer.Length);
+        try
+        {
+            const char expected = '!';
+            rented[0] = expected;
+            col.Set(ColText.AsSpan());
+            Assert.AreEqual(expected, rented[0], "Column write corrupted another renter's buffer.");
+        }
+        finally
+        {
+            // If aliased, writer disposal returns this array; do not return it twice.
+            if (!ReferenceEquals(rented, impl._buffer))
+            {
+                ArrayPool<char>.Shared.Return(rented);
+            }
+        }
     }
 
     [TestMethod]

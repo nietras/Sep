@@ -34,6 +34,21 @@ public partial class SepReaderTest
     record Values(string C1, string C2, string C3);
 
     [TestMethod]
+    public void SepReaderTest_WorkerDispose_PreservesSharedToString()
+    {
+        using var reader = Sep.Reader(o => o with
+        {
+            CreateToString = SepToString.PoolPerColThreadSafe(),
+        }).FromText("A\nvalue\n");
+        using (var worker = new SepReaderState(reader))
+        {
+            Assert.AreSame(reader._toString, worker._toString);
+        }
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual("value", reader.Current[0].ToString());
+    }
+
+    [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
     public void SepReaderTest_QuoteHeavyContent(bool unescape)

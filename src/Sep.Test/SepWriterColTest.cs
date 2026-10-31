@@ -85,7 +85,20 @@ public class SepWriterColTest
     [TestMethod]
     public async ValueTask SepWriterColTest_Set_InterpolatedString()
     {
-        await Run(col => col.Set($"{ColValue}"));
+        await Run(col => col.Set($"{ColValue}"), expectedAllocatedBytes: 0);
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_NoGrowth_KeepsBuffer()
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        var buffer = impl._buffer;
+        col.Set($"{1}");
+        Assert.AreSame(buffer, impl._buffer);
+        Assert.AreEqual("1", impl.GetSpan().ToString());
     }
 
     [TestMethod]
@@ -95,16 +108,18 @@ public class SepWriterColTest
         using var row = writer.NewRow();
         var col = row[ColName];
         var impl = writer._cols[0];
-        var longText = new string('a', impl._buffer.Length + 1);
+        var initialBufferLength = impl._buffer.Length;
+        var longText = new string('a', initialBufferLength + 1);
         Assert.ThrowsExactly<FormatException>(() =>
             new SepWriter.Col(impl).Set($"{longText}{int.Parse("invalid", CultureInfo.InvariantCulture)}"));
 
-        var rented = ArrayPool<char>.Shared.Rent(impl._buffer.Length);
+        var rented = ArrayPool<char>.Shared.Rent(initialBufferLength);
         try
         {
             const char expected = '!';
             rented[0] = expected;
             col.Set(ColText.AsSpan());
+            Assert.AreEqual(ColText, impl.GetSpan().ToString());
             Assert.AreEqual(expected, rented[0], "Column write corrupted another renter's buffer.");
         }
         finally
@@ -114,6 +129,121 @@ public class SepWriterColTest
             {
                 ArrayPool<char>.Shared.Return(rented);
             }
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_Utf8_AfterInterpolationThrows_GrowsEmptyBuffer()
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        Assert.ThrowsExactly<FormatException>(() =>
+            new SepWriter.Col(impl).Set($"{int.Parse("invalid", CultureInfo.InvariantCulture)}"));
+        Assert.AreEqual(0, impl._buffer.Length);
+
+        col.Set("value"u8);
+
+        Assert.AreEqual("value", impl.GetSpan().ToString());
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SepWriterColTest_Set_InterpolatedString_Throws_Dispose(bool growth)
+    {
+        using var writer = Sep.Writer().ToText();
+        int initialBufferLength;
+        {
+            using var row = writer.NewRow();
+            var col = row[ColName];
+            var impl = writer._cols[0];
+            initialBufferLength = impl._buffer.Length;
+            var text = growth ? new string('a', initialBufferLength + 1) : "a";
+            Assert.ThrowsExactly<FormatException>(() =>
+                new SepWriter.Col(impl).Set($"{text}{int.Parse("invalid", CultureInfo.InvariantCulture)}"));
+            Assert.AreEqual(0, impl.GetSpan().Length);
+            Assert.AreEqual(0, impl.GetMemory().Length);
+        }
+
+        var rented = ArrayPool<char>.Shared.Rent(initialBufferLength);
+        try
+        {
+            writer.Dispose();
+            var other = ArrayPool<char>.Shared.Rent(initialBufferLength);
+            try
+            {
+                Assert.AreNotSame(rented, other, "Writer disposal returned an outstanding renter's buffer.");
+            }
+            finally
+            {
+                if (!ReferenceEquals(rented, other)) { ArrayPool<char>.Shared.Return(other); }
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(rented);
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false, false)]
+    [DataRow(false, true)]
+    [DataRow(true, false)]
+    [DataRow(true, true)]
+    public void SepWriterColTest_Set_InterpolatedString_ReentrantGrowth(bool outerGrowth, bool interpolated)
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        var longText = new string('N', impl._buffer.Length + 1);
+        var prefix = outerGrowth ? longText : "P";
+        col.Set($"{prefix}{Reenter()}");
+        Assert.AreEqual(prefix + "X", impl.GetSpan().ToString());
+
+        string Reenter()
+        {
+            if (interpolated) { new SepWriter.Col(impl).Set($"{longText}"); }
+            else { new SepWriter.Col(impl).Set(longText.AsSpan()); }
+            return "X";
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_ReentrantUtf8()
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        col.Set($"P{Reenter()}");
+        Assert.AreEqual("PX", impl.GetSpan().ToString());
+
+        string Reenter()
+        {
+            new SepWriter.Col(impl).Set("N"u8);
+            return "X";
+        }
+    }
+
+    [TestMethod]
+    public void SepWriterColTest_Set_InterpolatedString_ReentrantThrows()
+    {
+        using var writer = Sep.Writer().ToText();
+        using var row = writer.NewRow();
+        var col = row[ColName];
+        var impl = writer._cols[0];
+        var text = new string('N', impl._buffer.Length + 1);
+        col.Set($"P{Reenter()}");
+        Assert.AreEqual("PX", impl.GetSpan().ToString());
+
+        string Reenter()
+        {
+            Assert.ThrowsExactly<FormatException>(() =>
+                new SepWriter.Col(impl).Set($"{text}{int.Parse("invalid", CultureInfo.InvariantCulture)}"));
+            return "X";
         }
     }
 

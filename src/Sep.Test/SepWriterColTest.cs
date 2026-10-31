@@ -85,7 +85,14 @@ public class SepWriterColTest
     [TestMethod]
     public async ValueTask SepWriterColTest_Set_InterpolatedString()
     {
-        await Run(col => col.Set($"{ColValue}"), expectedAllocatedBytes: 0);
+        await Run(col => col.Set($"{ColValue}"));
+    }
+
+    [TestMethod]
+    public async ValueTask SepWriterColTest_Set_InterpolatedString_String_NoAllocations()
+    {
+        // Use the string overload so this measures handler reuse, not JIT-dependent value-type boxing.
+        await Run(col => col.Set($"{ColText}"), expectedAllocatedBytes: 0);
     }
 
     [TestMethod]

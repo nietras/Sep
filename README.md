@@ -408,20 +408,20 @@ throw exceptions and to use a principle that is both reasonably fast and simple.
 | `·""` | False | EXCEPTION | `·""` | `·""` | `·""` |
 | `·"a"` | False | EXCEPTION | `·"a"` | `·"a"` | `·"a"` |
 | `a"""a` | False | EXCEPTION | `a"""a` | `a"""a` | `a"""a` |
-| `"a"a"a"` | False | EXCEPTION | `aa"a"` | `a"a"a` | `aa"a` |
-| `""·` | False | EXCEPTION | `·` | `"` | `·` |
-| `"a"·` | False | EXCEPTION | `a·` | `a"` | `a·` |
-| `"a"""a` | False | EXCEPTION | `aa` | EXCEPTION | `a"a` |
-| `"a"""a"` | False | EXCEPTION | `aa"` | `a"a<NULL>` | `a"a"` |
-| `""a"` | False | EXCEPTION | `a"` | `"a` | `a"` |
-| `"a"a"` | False | EXCEPTION | `aa"` | `a"a` | `aa"` |
-| `""a"a""` | False | EXCEPTION | `a"a""` | `"a"a"` | `a"a"` |
-| `"""` | False | | | EXCEPTION | `"` |
-| `"""""` | False | `"` | `"` | EXCEPTION | `""` |
+| `"a"a"a"` | False | EXCEPTION | `aa"a"` | EXCEPTION | `aa"a` |
+| `""·` | False | EXCEPTION | `·` | EXCEPTION | `·` |
+| `"a"·` | False | EXCEPTION | `a·` | EXCEPTION | `a·` |
+| `"a"""a` | False | EXCEPTION | `a"a` | EXCEPTION | `a"a` |
+| `"a"""a"` | False | EXCEPTION | `a"a"` | EXCEPTION | `a"a"` |
+| `""a"` | False | EXCEPTION | `a"` | EXCEPTION | `a"` |
+| `"a"a"` | False | EXCEPTION | `aa"` | EXCEPTION | `aa"` |
+| `""a"a""` | False | EXCEPTION | `a"a""` | EXCEPTION | `a"a"` |
+| `"""` | False | EXCEPTION | `"` | EXCEPTION | `"` |
+| `"""""` | False | EXCEPTION | `""` | EXCEPTION | `""` |
 
 `·` (middle dot) is whitespace to make this visible
 
-¹ CsvHelper with `BadDataFound = null`
+¹ CsvHelper with `MalformedData = CsvMalformedDataHandling.Recover`
 
 ² Sep with `Unescape = true` in `SepReaderOptions`
 
@@ -455,7 +455,7 @@ there is a starting quote after spaces.
 
 `·` (middle dot) is whitespace to make this visible
 
-¹ CsvHelper with `TrimOptions.Trim | TrimOptions.InsideQuotes`
+¹ CsvHelper with `TrimWhitespace = true, TrimInsideQuotes = true`
 
 ² Sep with `SepTrim.All = SepTrim.Outer | SepTrim.AfterUnescape` in
 `SepReaderOptions`
@@ -909,13 +909,13 @@ public bool AsyncContinueOnCapturedContext { get; init; } = false;
 
 #### Escaping
 Escaping is not enabled by default in Sep, but when it is it gives the same
-results as other popular CSV libraries as shown below. Although, CsvHelper
-appears to be escaping spaces as well, which is not necessary.
+results as other popular CSV libraries as shown below. CsvHelper 34 quotes empty
+fields but does not quote spaces by default.
 
 | Input | CsvHelper | Sylvan | Sep¹ |
 |-|-|-|-|
-| `` | | | |
-| `·` | `"·"` | `·` | `·` |
+| `` | `""` | | |
+| `·` | `·` | `·` | `·` |
 | `a` | `a` | `a` | `a` |
 | `;` | `";"` | `";"` | `";"` |
 | `,` | `,` | `,` | `,` |

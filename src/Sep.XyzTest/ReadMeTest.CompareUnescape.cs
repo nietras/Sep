@@ -139,7 +139,7 @@ public partial class ReadMeTest
         };
         using var reader = new StringReader(colText);
         using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, options);
-        SepAssert.Assert(csvReader.Read());
+        Assert.IsTrue(csvReader.Read());
         return csvReader.GetString(0);
     }
 

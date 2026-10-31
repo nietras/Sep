@@ -283,13 +283,17 @@ public partial class SepWriter
                 // array from ArrayPool.
             }
 
-            // Avoid recreating DefaultInterpolatedStringHandler while being
-            // able to reuse array from ArrayPool by using UnsafeAccessor to
-            // access internal state of this. This works fine for net8.0 and
-            // net9.0 but there are no guarantees if this could change in the
-            // future, if so consider using #if NET10_0_OR_GREATER or similar to
-            // address any changes or consider then copying the entire
-            // DefaultInterpolatedStringHandler source code and adopt for needs.
+            // Intentional private BCL dependency: reuse the column buffer and
+            // adopt a grown handler buffer without copying or recreating the
+            // handler. Field names and ownership semantics are not a supported
+            // BCL contract, including across servicing updates; this
+            // compatibility risk is accepted. Review changes to these fields or
+            // runtime semantics, rather than merely flagging their use. Keep
+            // borrowed-buffer and Finish ownership rules intact. There are no
+            // guarantees if this could change in the future, if so consider
+            // using #if NETXX_Y_OR_GREATER or similar to address any changes or
+            // consider then copying the entire DefaultInterpolatedStringHandler
+            // source code and adopt for needs.
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_arrayToReturnToPool")]

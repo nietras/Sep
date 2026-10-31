@@ -35,6 +35,11 @@ public partial class SepReader
         internal Cols(SepReaderState state, int colStart, int colCount)
         {
             _state = state;
+            // Intentional length-only sentinel for range selections, avoiding an
+            // index array or an extra count field. This span has no backing storage:
+            // only Length may be read while _colStartIfRange >= 0. Every operation
+            // must branch on IsIndices() before indexing or passing it as data.
+            // Review violations of that invariant, not the sentinel's existence.
             _colIndices = MemoryMarshal.CreateSpan(ref Unsafe.NullRef<int>(), colCount);
             _colStartIfRange = colStart;
         }

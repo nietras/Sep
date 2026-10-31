@@ -10,6 +10,7 @@ static class SepArrayExtensions
 {
     internal static int CheckFreeMaybeDoubleLength<T>(ref T[] array, ref int start, ref int end,
         int minimumFreeLength, int paddingLengthToClear)
+        where T : unmanaged
     {
         A.Assert(end >= start);
         A.Assert(start == 0);
@@ -28,6 +29,7 @@ static class SepArrayExtensions
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static int MoveDataToStart<T>(this T[] array, ref int start, ref int end,
         int paddingLengthToClear)
+        where T : unmanaged
     {
         var offset = start;
         if (offset > 0)
@@ -47,6 +49,7 @@ static class SepArrayExtensions
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal static (T[] Array, int Offset) DoubleCapacityAndMove<T>(
         this T[] array, int start, int end, int paddingLengthToClear)
+        where T : unmanaged
     {
         var newArray = ArrayPool<T>.Shared.Rent(array.Length * 2);
         var dataLength = end - start;
@@ -56,7 +59,8 @@ static class SepArrayExtensions
         return (newArray, start);
     }
 
-    internal static void ClearPaddingAfterData<T>(this T[] array, int end, int paddingLength) =>
+    internal static void ClearPaddingAfterData<T>(this T[] array, int end, int paddingLength)
+        where T : unmanaged =>
         Unsafe.InitBlockUnaligned(ref Unsafe.As<T, byte>(ref array[end]), 0, (uint)(paddingLength * Unsafe.SizeOf<T>()));
 
     [Conditional("DEBUG")]

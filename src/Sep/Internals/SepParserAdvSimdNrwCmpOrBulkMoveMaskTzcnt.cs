@@ -150,9 +150,8 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
             {
                 var separatorsMask = MoveMask(spsEq0, spsEq1, spsEq2, spsEq3);
                 // Optimize for case of only separators i.e. no endings or quotes.
-                // Add quote count to mask as hack to skip if quoting.
-                var testMask = specialCharMask + quoteCount;
-                if (separatorsMask == testMask)
+                // Combine mask mismatch and quote state without overflowing a full-width mask.
+                if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
                 {
                     colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
                         separatorsMask, charsIndex, ref colInfosRefCurrent);
@@ -162,7 +161,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                     var separatorLineEndingsMask = MoveMask(
                         lineEndingsSeparators0, lineEndingsSeparators1,
                         lineEndingsSeparators2, lineEndingsSeparators3);
-                    if (separatorLineEndingsMask == testMask)
+                    if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,

@@ -977,8 +977,13 @@ public class SepReaderState : IDisposable
             Join(_chars.AsSpan(), state.ColRanges, state.Separator, join);
         });
 #else
-        // Before .NET 9 no `allows ref struct`, so create uninitialized string,
-        // and get mutable span for that and join into that.
+        // Intentional .NET 8 construction-only string mutation: string.Create
+        // cannot accept the ref-struct state (no `allows ref struct`) before
+        // .NET 9, so create uninitialized string, and get mutable span for that
+        // and join into that. The writable span must not escape, and Join must
+        // neither publish the string nor invoke user code. For zero length this
+        // performs no writes to string.Empty. Review violations of these
+        // invariants, not construction-only mutation itself.
         var s = new string('\0', totalLength);
         var join = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference<char>(s), s.Length);
         Join(_chars.AsSpan(), colRanges, separator, join);

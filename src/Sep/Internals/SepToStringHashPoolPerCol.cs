@@ -20,7 +20,7 @@ sealed class SepToStringHashPoolPerCol : SepToString
 
     public override string ToString(ReadOnlySpan<char> colSpan, int colIndex)
     {
-        if (colIndex < _pools.Length)
+        if ((uint)colIndex < (uint)_pools.Length)
         {
             var pool = Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_pools), colIndex);
             return pool.ToString(colSpan);

@@ -6,7 +6,6 @@ using System.Linq;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Sylvan.Data.Csv;
 using T = nietras.SeparatedValues.ComparisonBenchmarks.FloatsTestData;
 
@@ -107,14 +106,15 @@ public class RowFloatsReaderBench : FloatsReaderBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
+            HasHeader = false,
+            Separator = ',',
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
         }
@@ -197,20 +197,20 @@ public class ColsFloatsReaderBench : FloatsReaderBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
+            HasHeader = false,
+            Separator = ',',
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
-            // CsvHelper has no Span-based API
-            for (var i = 0; i < csvParser.Count; i++)
+            for (var i = 0; i < csvParser.FieldCount; i++)
             {
-                var s = csvParser[i].AsSpan();
+                var s = csvParser[i].Span;
             }
         }
     }
@@ -379,22 +379,22 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     public double CsvHelper()
     {
         using var reader = Reader.CreateReader();
-        var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var configuration = new CsvReaderOptions
         {
-            DetectDelimiter = true,
-            HasHeaderRecord = true,
+            HasHeader = true,
+            FormatProvider = CultureInfo.InvariantCulture,
         };
-        using var csvParser = new CsvParser(reader, configuration);
+        using var csvParser = CsvReader.Create(reader, configuration);
 
         // Read header
-        csvParser.Read();
+        csvParser.ReadHeader();
 
-        var colNameToIndex = Enumerable.Range(0, csvParser.Count).ToDictionary(i => csvParser[i], i => i);
+        var colNameToIndex = Enumerable.Range(0, csvParser.Headers.Count).ToDictionary(i => csvParser.Headers[i], i => i);
 
         var groundTruthColNames = new List<string>();
-        for (var i = 0; i < csvParser.Count; i++)
+        for (var i = 0; i < csvParser.Headers.Count; i++)
         {
-            var colName = csvParser[i];
+            var colName = csvParser.Headers[i];
             if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
             {
                 groundTruthColNames.Add(colName);
@@ -415,13 +415,13 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             for (var i = 0; i < groundTruthColNames.Count; i++)
             {
                 var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = float.Parse(csvParser[colIndex]);
+                var value = csvParser[colIndex].Parse<float>();
                 gts[i] = value;
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
                 var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = float.Parse(csvParser[colIndex]);
+                var value = csvParser[colIndex].Parse<float>();
                 res[i] = value;
             }
 

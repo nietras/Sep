@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Sylvan.Data.Csv;
 
@@ -52,8 +50,8 @@ public partial class ReadMeTest
         };
         var runners = new Dictionary<string, Func<UnescapeTest, string>>()
         {
-            { nameof(CsvHelper), t => UnescapeCsvHelper(ConfigurationFunctions.BadDataFound, t.ColText) },
-            { nameof(CsvHelper) + "¹", t => UnescapeCsvHelper(null, t.ColText) },
+            { nameof(CsvHelper), t => UnescapeCsvHelper(CsvMalformedDataHandling.Throw, t.ColText) },
+            { nameof(CsvHelper) + "¹", t => UnescapeCsvHelper(CsvMalformedDataHandling.Recover, t.ColText) },
             { nameof(Sylvan), t => UnescapeSylvan(t.ColText) },
             { nameof(Sep) + "²", t => UnescapeSep(t.ColText) },
         };
@@ -108,7 +106,7 @@ public partial class ReadMeTest
         sb.AppendLine();
         sb.AppendLine($"`·` (middle dot) is whitespace to make this visible");
         sb.AppendLine();
-        sb.AppendLine($"¹ CsvHelper with `BadDataFound = null`");
+        sb.AppendLine($"¹ CsvHelper with `MalformedData = CsvMalformedDataHandling.Recover`");
         sb.AppendLine();
         sb.AppendLine($"² Sep with `{nameof(SepReaderOptions.Unescape)} = true` in `{nameof(SepReaderOptions)}`");
 
@@ -120,17 +118,39 @@ public partial class ReadMeTest
 #endif
     }
 
-    static string UnescapeCsvHelper(BadDataFound? badDataFound, string colText)
+    [TestMethod]
+    [DataRow(CsvMalformedDataHandling.Throw, "\"\"", "")]
+    [DataRow(CsvMalformedDataHandling.Throw, "\"a\"\"a\"", "a\"a")]
+    [DataRow(CsvMalformedDataHandling.Recover, "\"a\"\"a\"", "a\"a")]
+    [DataRow(CsvMalformedDataHandling.Recover, "a\"a", "a\"a")]
+    [DataRow(CsvMalformedDataHandling.Recover, "\"a\"b", "ab")]
+    [DataRow(CsvMalformedDataHandling.Recover, "\"a", "a")]
+    public void ReadMeTest_CompareUnescape_CsvHelper(CsvMalformedDataHandling malformedData,
+        string colText, string expected)
     {
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        Assert.AreEqual(expected, UnescapeCsvHelper(malformedData, colText));
+    }
+
+    [TestMethod]
+    [DataRow("a\"a")]
+    [DataRow("\"a\"b")]
+    [DataRow("\"a")]
+    public void ReadMeTest_CompareUnescape_CsvHelper_Throws(string colText)
+    {
+        Assert.ThrowsExactly<CsvHelper.CsvFormatException>(() => UnescapeCsvHelper(CsvMalformedDataHandling.Throw, colText));
+    }
+
+    static string UnescapeCsvHelper(CsvMalformedDataHandling malformedData, string colText)
+    {
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
-            BadDataFound = badDataFound,
+            HasHeader = false,
+            Separator = ',',
+            MalformedData = malformedData,
         };
-        using var reader = new StringReader(colText);
-        using var csvParser = new CsvParser(reader, config);
-        SepAssert.Assert(csvParser.Read());
-        return csvParser[0];
+        using var csvParser = CsvReader.FromText(colText, config);
+        Assert.IsTrue(csvParser.Read());
+        return csvParser[0].ToString();
     }
 
     static string UnescapeSylvan(string colText)

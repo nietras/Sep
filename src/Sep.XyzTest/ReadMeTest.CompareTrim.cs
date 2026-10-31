@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Sylvan.Data.Csv;
 
@@ -40,9 +38,9 @@ public partial class ReadMeTest
         };
         var runners = new Dictionary<string, Func<TrimTest, string>>()
         {
-            { nameof(CsvHelper) + " Trim", t => TrimCsvHelper(TrimOptions.Trim, null, t.ColText) },
-            { nameof(CsvHelper) + " InsideQuotes", t => TrimCsvHelper(TrimOptions.InsideQuotes, null, t.ColText) },
-            { nameof(CsvHelper) + " All¹", t => TrimCsvHelper(TrimOptions.Trim | TrimOptions.InsideQuotes, null, t.ColText) },
+            { nameof(CsvHelper) + " Trim", t => TrimCsvHelper(true, false, t.ColText) },
+            { nameof(CsvHelper) + " InsideQuotes", t => TrimCsvHelper(false, true, t.ColText) },
+            { nameof(CsvHelper) + " All¹", t => TrimCsvHelper(true, true, t.ColText) },
             // Sylvan does not appear to have Trim support
             //{ nameof(Sylvan), t => TrimSylvan(t.ColText) },
             { nameof(Sep) + " Outer", t => TrimSep(SepTrim.Outer, unescape: true, t.ColText) },
@@ -92,7 +90,7 @@ public partial class ReadMeTest
         sb.AppendLine();
         sb.AppendLine($"`·` (middle dot) is whitespace to make this visible");
         sb.AppendLine();
-        sb.AppendLine($"¹ CsvHelper with `TrimOptions.Trim | TrimOptions.InsideQuotes`");
+        sb.AppendLine($"¹ CsvHelper with `TrimWhitespace = true, TrimInsideQuotes = true`");
         sb.AppendLine();
         sb.AppendLine($"² Sep with `SepTrim.Outer | SepTrim.AfterUnescape, unescape: true` in `{nameof(SepReaderOptions)}`");
 
@@ -104,18 +102,30 @@ public partial class ReadMeTest
 #endif
     }
 
-    static string TrimCsvHelper(TrimOptions trimOptions, BadDataFound? badDataFound, string colText)
+    [TestMethod]
+    [DataRow(false, false, " a ", " a ")]
+    [DataRow(true, false, " a ", "a")]
+    [DataRow(true, false, " \" a \" ", " a ")]
+    [DataRow(false, true, "\" a \"", "a")]
+    [DataRow(true, true, " \" a \" ", "a")]
+    public void ReadMeTest_CompareTrim_CsvHelper(bool trimWhitespace, bool trimInsideQuotes,
+        string colText, string expected)
     {
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        Assert.AreEqual(expected, TrimCsvHelper(trimWhitespace, trimInsideQuotes, colText));
+    }
+
+    static string TrimCsvHelper(bool trimWhitespace, bool trimInsideQuotes, string colText)
+    {
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
-            BadDataFound = badDataFound,
-            TrimOptions = trimOptions,
+            HasHeader = false,
+            Separator = ',',
+            TrimWhitespace = trimWhitespace,
+            TrimInsideQuotes = trimInsideQuotes,
         };
-        using var reader = new StringReader(colText);
-        using var csvParser = new CsvParser(reader, config);
-        SepAssert.Assert(csvParser.Read());
-        return csvParser[0];
+        using var csvParser = CsvReader.FromText(colText, config);
+        Assert.IsTrue(csvParser.Read());
+        return csvParser[0].ToString();
     }
 
     static string TrimSylvan(string colText)

@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Text;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
@@ -96,17 +94,28 @@ public partial class ReadMeTest
 #endif
     }
 
+    [TestMethod]
+    [DataRow("", "\"\"")]
+    [DataRow("a", "a")]
+    [DataRow(";", "\";\"")]
+    [DataRow("\"", "\"\"\"\"")]
+    [DataRow("\r\n", "\"\r\n\"")]
+    public void ReadMeTest_CompareEscape_CsvHelper(string colText, string expected)
+    {
+        Assert.AreEqual(expected, EscapeCsvHelper(colText));
+    }
+
     static string EscapeCsvHelper(string colText)
     {
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvWriterOptions
         {
-            HasHeaderRecord = false,
-            Delimiter = ";",
+            Separator = ';',
         };
         using var stringWriter = new StringWriter();
-        using var writer = new CsvWriter(stringWriter, config);
+        using var writer = CsvWriter.Create(stringWriter, config);
         writer.WriteField(colText);
-        writer.NextRecord();
+        writer.EndRecord();
+        writer.Flush();
         return GetCol(stringWriter.ToString());
     }
 

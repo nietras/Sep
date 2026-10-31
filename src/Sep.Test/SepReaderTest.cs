@@ -34,6 +34,29 @@ public partial class SepReaderTest
     record Values(string C1, string C2, string C3);
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SepReaderTest_QuoteHeavyContent(bool unescape)
+    {
+        const int quoteCount = 1024;
+        var prefix = new string('a', IntPtr.Size * 8 - 1);
+        var value = prefix + new string('"', quoteCount);
+        var quoted = "\"" + prefix + new string('"', quoteCount * 2 + 1);
+        var text = $"A;B\n{quoted};tail\n\"\"\"\";end\n";
+        using var reader = Sep.Default.Reader(o => o with { Unescape = unescape }).FromText(text);
+
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual(2, reader.Current.ColCount);
+        Assert.AreEqual(unescape ? value : quoted, reader.Current["A"].ToString());
+        Assert.AreEqual("tail", reader.Current["B"].ToString());
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual(2, reader.Current.ColCount);
+        Assert.AreEqual(unescape ? "\"" : "\"\"\"\"", reader.Current["A"].ToString());
+        Assert.AreEqual("end", reader.Current["B"].ToString());
+        Assert.IsFalse(reader.MoveNext());
+    }
+
+    [TestMethod]
     public void SepReaderTest_AssetsQuotes()
     {
         using var reader = Sep.Reader(o => o with { HasHeader = false }).FromText("38769756-9bb4-4ba9-a9a5-40362d1fd96f,2020-11-28T01:48:51.2932584+00:00,\"AspNetCore.Mvc.RangedStreamResult\",\"1.3.1\",2020-11-27T20:28:44.2430000+00:00,\"AvailableAssets\",\"RuntimeAssemblies\",\"\",\"\",\"netstandard2.1\",\"\",\"\",\"\",\"\",\"\",\"lib/netstandard2.1/AspNetCore.Mvc.RangedStreamResult.dll\",\"AspNetCore.Mvc.RangedStreamResult.dll\",\".dll\",\"lib\",\"netstandard2.1\",\".NETStandard\",\"2.1.0.0\",\"\",\"\",\"0.0.0.0\"");

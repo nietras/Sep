@@ -145,6 +145,19 @@ public class SepParserTest
 
     [TestMethod]
     [DynamicData(nameof(Parsers))]
+    public void SepParserTest_ParseColEnds_FullWidthQuoteMask(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        var parser = (ISepParser)parserObject;
+        var width = IntPtr.Size * 8;
+        // Enter the all-quotes block with quoteCount == 1 and no separators.
+        var charsEnd = FillChars("\"" + new string('a', width - 1) + new string('"', width + 1) + "\n");
+        AssertParserOutput(parser, charsStart: 0, charsEnd,
+            [new([charsEnd - 1], charsEnd, RowLineEndingOffset: 1, LineNumber: 4)]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
     public void SepParserTest_ParseColEnds_Long(object parserObject)
     {
         Contract.Assume(parserObject is not null);

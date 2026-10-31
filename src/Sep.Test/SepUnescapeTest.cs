@@ -47,4 +47,20 @@ public class SepUnescapeTest
         Assert.AreEqual(expected, actual, src);
         Assert.AreEqual(src, chars);
     }
+
+    [TestMethod]
+    public void SepUnescapeTest_UnescapeInPlaceRefs_Empty()
+    {
+        Assert.AreEqual(0, SepUnescape.UnescapeInPlaceRefs(
+            ref MemoryMarshal.GetReference(Span<char>.Empty), 0));
+    }
+
+    [TestMethod]
+    public void SepUnescapeTest_UnescapeInPlaceRefs_DoesNotOverwriteFollowingChars()
+    {
+        char[] chars = ['"', '"', 'X', 'Y'];
+        var length = SepUnescape.UnescapeInPlaceRefs(ref chars[0], 2);
+        Assert.AreEqual(0, length);
+        Assert.AreEqual("\"\"XY", new string(chars));
+    }
 }

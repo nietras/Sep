@@ -55,6 +55,7 @@ static class SepUnescape
     [ExcludeFromCodeCoverage] // Trial
     internal static int UnescapeInPlaceRefs(ref char charRef, int length)
     {
+        if (length == 0) { return 0; }
         nint quoteCount = 1; // We start just past first quote
         ref var charRefStart = ref charRef;
         ref var charRefEnd = ref Add(ref charRef, length);
@@ -73,7 +74,7 @@ static class SepUnescape
         var unescapedLength = ByteOffset(ref charRefStart, ref unescapedCharRef) / sizeof(char);
         for (var i = unescapedLength; i < length; i++)
         {
-            Add(ref charRef, i) = SepDefaults.Quote;
+            Add(ref charRefStart, i) = SepDefaults.Quote;
         }
         return (int)unescapedLength;
     }

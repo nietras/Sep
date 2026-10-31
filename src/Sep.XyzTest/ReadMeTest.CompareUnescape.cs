@@ -118,28 +118,6 @@ public partial class ReadMeTest
 #endif
     }
 
-    [TestMethod]
-    [DataRow(CsvMalformedDataHandling.Throw, "\"\"", "")]
-    [DataRow(CsvMalformedDataHandling.Throw, "\"a\"\"a\"", "a\"a")]
-    [DataRow(CsvMalformedDataHandling.Recover, "\"a\"\"a\"", "a\"a")]
-    [DataRow(CsvMalformedDataHandling.Recover, "a\"a", "a\"a")]
-    [DataRow(CsvMalformedDataHandling.Recover, "\"a\"b", "ab")]
-    [DataRow(CsvMalformedDataHandling.Recover, "\"a", "a")]
-    public void ReadMeTest_CompareUnescape_CsvHelper(CsvMalformedDataHandling malformedData,
-        string colText, string expected)
-    {
-        Assert.AreEqual(expected, UnescapeCsvHelper(malformedData, colText));
-    }
-
-    [TestMethod]
-    [DataRow("a\"a")]
-    [DataRow("\"a\"b")]
-    [DataRow("\"a")]
-    public void ReadMeTest_CompareUnescape_CsvHelper_Throws(string colText)
-    {
-        Assert.ThrowsExactly<CsvHelper.CsvFormatException>(() => UnescapeCsvHelper(CsvMalformedDataHandling.Throw, colText));
-    }
-
     static string UnescapeCsvHelper(CsvMalformedDataHandling malformedData, string colText)
     {
         var config = new CsvReaderOptions

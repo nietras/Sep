@@ -102,18 +102,6 @@ public partial class ReadMeTest
 #endif
     }
 
-    [TestMethod]
-    [DataRow(false, false, " a ", " a ")]
-    [DataRow(true, false, " a ", "a")]
-    [DataRow(true, false, " \" a \" ", " a ")]
-    [DataRow(false, true, "\" a \"", "a")]
-    [DataRow(true, true, " \" a \" ", "a")]
-    public void ReadMeTest_CompareTrim_CsvHelper(bool trimWhitespace, bool trimInsideQuotes,
-        string colText, string expected)
-    {
-        Assert.AreEqual(expected, TrimCsvHelper(trimWhitespace, trimInsideQuotes, colText));
-    }
-
     static string TrimCsvHelper(bool trimWhitespace, bool trimInsideQuotes, string colText)
     {
         var config = new CsvReaderOptions

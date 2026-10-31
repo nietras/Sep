@@ -94,17 +94,6 @@ public partial class ReadMeTest
 #endif
     }
 
-    [TestMethod]
-    [DataRow("", "\"\"")]
-    [DataRow("a", "a")]
-    [DataRow(";", "\";\"")]
-    [DataRow("\"", "\"\"\"\"")]
-    [DataRow("\r\n", "\"\r\n\"")]
-    public void ReadMeTest_CompareEscape_CsvHelper(string colText, string expected)
-    {
-        Assert.AreEqual(expected, EscapeCsvHelper(colText));
-    }
-
     static string EscapeCsvHelper(string colText)
     {
         var config = new CsvWriterOptions

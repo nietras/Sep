@@ -175,6 +175,13 @@ public partial class SepWriter
         public ref struct FormatInterpolatedStringHandler
         {
             readonly ColImpl _impl;
+            // Both constructors lend _impl._buffer to the handler as a span, without
+            // setting _arrayToReturnToPool. Otherwise growth would return that buffer
+            // while _impl still references it. If interpolation throws, Set/Finish is
+            // never called and the compiler does not dispose the handler, leaving
+            // subsequent column writes or disposal using an already-returned array.
+            // Finish transfers any grown buffer on success; on failure, rented handler
+            // buffers become GC-collectible rather than returned to the pool.
             DefaultInterpolatedStringHandler _handler;
 
             public FormatInterpolatedStringHandler(int literalLength, int formattedCount,
@@ -185,7 +192,6 @@ public partial class SepWriter
                 _handler = new(literalLength, formattedCount,
                     _impl._writer._cultureInfo, _impl._buffer);
                 Position(ref _handler) = _impl._position;
-                ArrayToReturnToPool(ref _handler) = _impl._buffer;
             }
 
 
@@ -197,7 +203,6 @@ public partial class SepWriter
                 _handler = new(literalLength, formattedCount,
                     provider ?? _impl._writer._cultureInfo, _impl._buffer);
                 Position(ref _handler) = _impl._position;
-                ArrayToReturnToPool(ref _handler) = _impl._buffer;
             }
 
             public void AppendLiteral(string value)
@@ -265,10 +270,15 @@ public partial class SepWriter
             internal void Finish()
             {
                 ref var handlerArrayRef = ref ArrayToReturnToPool(ref _handler);
-                A.Assert(handlerArrayRef is not null);
-                _impl._buffer = handlerArrayRef!;
+                // The initial buffer is borrowed; only growth creates a handler-owned array.
+                if (handlerArrayRef is not null)
+                {
+                    var original = _impl._buffer;
+                    _impl._buffer = handlerArrayRef;
+                    handlerArrayRef = null;
+                    ArrayPool<char>.Shared.Return(original);
+                }
                 _impl._position = Position(ref _handler);
-                handlerArrayRef = null;
                 // Do not call *Clear() on handler as Col takes ownership of
                 // array from ArrayPool.
             }

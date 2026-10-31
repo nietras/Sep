@@ -48,7 +48,8 @@ static class SepHash
     {
         ref var charsCurrent = ref Unsafe.As<char, ushort>(ref MemoryMarshal.GetReference(chars));
         ref var charsEnd = ref Unsafe.Add(ref charsCurrent, chars.Length);
-        ref var charsEndBlock = ref Unsafe.Subtract(ref charsEnd, 3);
+        // Round down to full four-character blocks so the sentinel never precedes the span.
+        ref var charsEndBlock = ref Unsafe.Add(ref charsCurrent, chars.Length & ~3);
         uint hash = 0;
         for (; Unsafe.IsAddressLessThan(ref charsCurrent, ref charsEndBlock);
              charsCurrent = ref Unsafe.Add(ref charsCurrent, 4))

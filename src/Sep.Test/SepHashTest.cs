@@ -11,6 +11,19 @@ public class SepHashTest
     delegate uint Hash(ReadOnlySpan<char> chars);
 
     [TestMethod]
+    [DataRow(null)]
+    [DataRow("")]
+    [DataRow("a")]
+    [DataRow("ab")]
+    [DataRow("abc")]
+    [DataRow("abcd")]
+    public void SepHashTest_UnrollSumMultiply31_Short(string? text)
+    {
+        var chars = text.AsSpan();
+        Assert.AreEqual(SepHash.SumMultiply31(chars), SepHash.UnrollSumMultiply31(chars));
+    }
+
+    [TestMethod]
     public void SepHashTest_SumMultiply31_AllSame()
     {
         var hashes = new List<Hash>()

@@ -75,7 +75,11 @@ public class SepReaderState : IDisposable
     internal int _parsedRowsCount = 0;
     internal int _parsedRowIndex = 0;
 
-    internal int _currentRowColCount = -1; // Must be minus one for start
+    // Intentional no-previous-row sentinel for _currentRowColCount: advancing
+    // adds count + 1, so the first offset stays zero and so must be minus one
+    // for start. Column access requires a current row; review bounds checks
+    // under that precondition.
+    internal int _currentRowColCount = -1;
     internal int _currentRowColEndsOrInfosOffset = 0;
     internal int _currentRowLineNumberFrom = 1;
     internal int _currentRowLineNumberTo = 1;
@@ -86,6 +90,7 @@ public class SepReaderState : IDisposable
     internal SepArrayPoolAccessIndexed _arrayPool = null!;
     internal SepToString _toString = null!;
 #pragma warning restore CA2213 // Disposable fields should be disposed
+    readonly bool _ownsToString = true;
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
 
@@ -118,8 +123,9 @@ public class SepReaderState : IDisposable
         _colCountExpected = other._colCountExpected;
         _arrayPool = new();
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
-        // Only duplicate toString if not thread safe
-        _toString = other._toString.IsThreadSafe ? other._toString : _createToString(_header, _colCountExpected);
+        // Thread-safe converters are borrowed from the reader, which owns their lifetime.
+        _ownsToString = !other._toString.IsThreadSafe;
+        _toString = _ownsToString ? _createToString(_header, _colCountExpected) : other._toString;
     }
 
     internal Func<int, string> UnsafeToStringDelegate { get; }
@@ -1070,7 +1076,7 @@ public class SepReaderState : IDisposable
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
         ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
         _arrayPool.Dispose();
-        _toString?.Dispose();
+        if (_ownsToString) { _toString?.Dispose(); }
     }
 
     #region Dispose

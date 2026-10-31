@@ -74,7 +74,7 @@ public partial class SepWriter
 
         void GrowBuffer(int additionalLength)
         {
-            var newSize = Math.Max(_buffer.Length * 2, _position + additionalLength);
+            var newSize = Math.Max(MinimumLength, Math.Max(_buffer.Length * 2, _position + additionalLength));
             var newBuffer = ArrayPool<char>.Shared.Rent(newSize);
             _buffer.AsSpan(0, _position).CopyTo(newBuffer);
             ArrayPool<char>.Shared.Return(_buffer);
@@ -175,13 +175,11 @@ public partial class SepWriter
         public ref struct FormatInterpolatedStringHandler
         {
             readonly ColImpl _impl;
-            // Both constructors lend _impl._buffer to the handler as a span, without
-            // setting _arrayToReturnToPool. Otherwise growth would return that buffer
-            // while _impl still references it. If interpolation throws, Set/Finish is
-            // never called and the compiler does not dispose the handler, leaving
-            // subsequent column writes or disposal using an already-returned array.
-            // Finish transfers any grown buffer on success; on failure, rented handler
-            // buffers become GC-collectible rather than returned to the pool.
+            // Detach the column buffer before giving the BCL handler pool ownership,
+            // so growth can return it without leaving a stale column reference and
+            // reentrant writes use separate storage. Finish transfers ownership back.
+            // If interpolation throws, Finish is skipped and handler-owned buffers
+            // become GC-collectible rather than returned to the pool.
             DefaultInterpolatedStringHandler _handler;
 
             public FormatInterpolatedStringHandler(int literalLength, int formattedCount,
@@ -189,9 +187,11 @@ public partial class SepWriter
             {
                 _impl = col._impl;
                 _impl.Clear();
+                var buffer = _impl._buffer;
+                _impl._buffer = Array.Empty<char>();
                 _handler = new(literalLength, formattedCount,
-                    _impl._writer._cultureInfo, _impl._buffer);
-                Position(ref _handler) = _impl._position;
+                    _impl._writer._cultureInfo, buffer);
+                ArrayToReturnToPool(ref _handler) = buffer;
             }
 
 
@@ -200,9 +200,11 @@ public partial class SepWriter
             {
                 _impl = col._impl;
                 _impl.Clear();
+                var buffer = _impl._buffer;
+                _impl._buffer = Array.Empty<char>();
                 _handler = new(literalLength, formattedCount,
-                    provider ?? _impl._writer._cultureInfo, _impl._buffer);
-                Position(ref _handler) = _impl._position;
+                    provider ?? _impl._writer._cultureInfo, buffer);
+                ArrayToReturnToPool(ref _handler) = buffer;
             }
 
             public void AppendLiteral(string value)
@@ -270,14 +272,10 @@ public partial class SepWriter
             internal void Finish()
             {
                 ref var handlerArrayRef = ref ArrayToReturnToPool(ref _handler);
-                // The initial buffer is borrowed; only growth creates a handler-owned array.
-                if (handlerArrayRef is not null)
-                {
-                    var original = _impl._buffer;
-                    _impl._buffer = handlerArrayRef;
-                    handlerArrayRef = null;
-                    ArrayPool<char>.Shared.Return(original);
-                }
+                // Discard any reentrant write; the outer Set supplies the final value.
+                if (_impl._buffer.Length != 0) { ArrayPool<char>.Shared.Return(_impl._buffer); }
+                _impl._buffer = handlerArrayRef!;
+                handlerArrayRef = null;
                 _impl._position = Position(ref _handler);
                 // Do not call *Clear() on handler as Col takes ownership of
                 // array from ArrayPool.
@@ -289,7 +287,7 @@ public partial class SepWriter
             // BCL contract, including across servicing updates; this
             // compatibility risk is accepted. Review changes to these fields or
             // runtime semantics, rather than merely flagging their use. Keep
-            // borrowed-buffer and Finish ownership rules intact. There are no
+            // detached-buffer and Finish ownership rules intact. There are no
             // guarantees if this could change in the future, if so consider
             // using #if NETXX_Y_OR_GREATER or similar to address any changes or
             // consider then copying the entire DefaultInterpolatedStringHandler

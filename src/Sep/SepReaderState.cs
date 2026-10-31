@@ -182,8 +182,11 @@ public class SepReaderState : IDisposable
     {
         if (minimumLength > array.Length)
         {
+            // Rent before returning, so a failed rent never leaves array
+            // referencing an array already returned to the pool.
+            var newArray = ArrayPool<T>.Shared.Rent(minimumLength);
             if (array.Length > 0) { ArrayPool<T>.Shared.Return(array); }
-            array = ArrayPool<T>.Shared.Rent(minimumLength);
+            array = newArray;
         }
 #if DEBUG
         Array.Clear(array);

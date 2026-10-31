@@ -11,6 +11,25 @@ public class SepHashTest
     delegate uint Hash(ReadOnlySpan<char> chars);
 
     [TestMethod]
+    public void SepHashTest_NativeReads_OffsetSlices()
+    {
+        const string text = "\u0123\u4567\u89AB\uCDEF\u1357\u2468\uACE0\uBDF1\uFFFF";
+        var nativeCharCount = IntPtr.Size / sizeof(char);
+        var buffer = new char[text.Length + nativeCharCount];
+        for (var offset = 0; offset < nativeCharCount; offset++)
+        {
+            text.AsSpan().CopyTo(buffer.AsSpan(offset));
+            for (var length = 0; length <= text.Length; length++)
+            {
+                var expected = text.AsSpan(0, length);
+                var actual = buffer.AsSpan(offset, length);
+                Assert.AreEqual(SepHash.SumMultiplyPrimesNUInt(expected), SepHash.SumMultiplyPrimesNUInt(actual));
+                Assert.AreEqual(SepHash.FNV1aNUInt(expected), SepHash.FNV1aNUInt(actual));
+            }
+        }
+    }
+
+    [TestMethod]
     [DataRow(null)]
     [DataRow("")]
     [DataRow("a")]

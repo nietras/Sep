@@ -104,4 +104,21 @@ public class SepToStringTest
         Assert.AreNotSame(str10, str00);
         Assert.AreSame(str11, str10);
     }
+
+    public static IEnumerable<TestDataRow<SepCreateToString>> PerColFactories =>
+    [
+        new(SepToString.PoolPerCol()) { DisplayName = nameof(SepToString.PoolPerCol) },
+        new(SepToString.PoolPerColThreadSafe()) { DisplayName = nameof(SepToString.PoolPerColThreadSafe) },
+        new(SepToString.PoolPerColThreadSafeFixedCapacity()) { DisplayName = nameof(SepToString.PoolPerColThreadSafeFixedCapacity) },
+    ];
+
+    [TestMethod]
+    [DynamicData(nameof(PerColFactories))]
+    public void SepToStringTest_PoolPerCol_NegativeColIndex(SepCreateToString create)
+    {
+        // An empty array makes the unchecked -1 load read zero, not a forged nonzero reference.
+        using var pool = create(null, colCount: 0);
+
+        Assert.AreEqual("a", pool.ToString("a", colIndex: -1));
+    }
 }

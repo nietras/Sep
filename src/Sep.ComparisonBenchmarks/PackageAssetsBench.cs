@@ -9,7 +9,6 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Order;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Sylvan.Data.Csv;
 
 namespace nietras.SeparatedValues.ComparisonBenchmarks;
@@ -135,14 +134,15 @@ public class RowPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
+            HasHeader = false,
+            Separator = ',',
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read()) { }
     }
 }
@@ -219,21 +219,21 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
-            TrimOptions = TrimOptions.Trim,
+            HasHeader = false,
+            Separator = ',',
+            TrimWhitespace = true,
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
-            // CsvHelper has no Span-based API
-            for (var i = 0; i < csvParser.Count; i++)
+            for (var i = 0; i < csvParser.FieldCount; i++)
             {
-                var s = csvParser[i];
+                var s = csvParser[i].Span;
             }
         }
     }
@@ -245,21 +245,22 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
-            TrimOptions = TrimOptions.Trim | TrimOptions.InsideQuotes,
+            HasHeader = false,
+            Separator = ',',
+            TrimWhitespace = true,
+            TrimInsideQuotes = true,
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
-            // CsvHelper has no Span-based API
-            for (var i = 0; i < csvParser.Count; i++)
+            for (var i = 0; i < csvParser.FieldCount; i++)
             {
-                var s = csvParser[i];
+                var s = csvParser[i].Span;
             }
         }
     }
@@ -358,21 +359,20 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
-            TrimOptions = TrimOptions.None,
+            HasHeader = false,
+            Separator = ',',
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
-            // CsvHelper has no Span-based API
-            for (var i = 0; i < csvParser.Count; i++)
+            for (var i = 0; i < csvParser.FieldCount; i++)
             {
-                var s = csvParser[i];
+                var s = csvParser[i].ToString();
             }
         }
     }
@@ -491,17 +491,18 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         var assets = new List<PackageAsset>();
         using var reader = Reader.CreateReader();
 
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        var config = new CsvReaderOptions
         {
-            HasHeaderRecord = false,
+            HasHeader = false,
+            Separator = ',',
 #if USE_STRING_POOLING
-            CacheFields = true,
+            PoolStrings = true,
 #endif
         };
-        using var csvParser = new CsvParser(reader, config);
+        using var csvParser = CsvReader.Create(reader, config);
         while (csvParser.Read())
         {
-            var asset = PackageAsset.Read(csvParser, static (p, i) => p[i]);
+            var asset = PackageAsset.Read(csvParser, static (p, i) => p[i].ToString());
             assets.Add(asset);
         }
     }

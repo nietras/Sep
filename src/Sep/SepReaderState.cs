@@ -16,6 +16,9 @@ internal readonly record struct SepRowInfo(int LineNumberTo, int ColCount);
 // Cannot be nested due to CS0146: Circular base type dependency
 public class SepReaderState : IDisposable
 {
+    // Bound temporary join storage to 8 KiB on the stack; larger selections use the reader's pool.
+    internal const int StackallocColRangesMaxLength = 1024;
+
     // To avoid `call     CORINFO_HELP_GETSHARED_NONGCSTATIC_BASE`,
     // promote cache to member here.
     readonly string[] _singleCharToString = SepStringCache.SingleCharToString;
@@ -741,8 +744,8 @@ public class SepReaderState : IDisposable
         var length = colIndices.Length;
         if (length == 0) { return []; }
         if (length == 1) { return GetColSpan(colIndices[0]); }
-        // Assume col count never so high stackalloc is not possible
-        Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
+        Span<SepRange> colRanges = length <= StackallocColRangesMaxLength ?
+            stackalloc SepRange[length] : _arrayPool.RentUniqueArrayAsSpan<SepRange>(length);
         GetColRanges(colIndices, colRanges);
         return Join(colRanges, separator);
     }
@@ -752,8 +755,8 @@ public class SepReaderState : IDisposable
         var length = colIndices.Length;
         if (length == 0) { return string.Empty; }
         if (length == 1) { return ToStringDefault(colIndices[0]); }
-        // Assume col count never so high stackalloc is not possible
-        Span<SepRange> colRanges = stackalloc SepRange[colIndices.Length];
+        Span<SepRange> colRanges = length <= StackallocColRangesMaxLength ?
+            stackalloc SepRange[length] : _arrayPool.RentUniqueArrayAsSpan<SepRange>(length);
         GetColRanges(colIndices, colRanges);
         return JoinToString(colRanges, separator);
     }
@@ -894,8 +897,8 @@ public class SepReaderState : IDisposable
     {
         if (colCount == 0) { return []; }
         if (colCount == 1) { return GetColSpan(colStart); }
-        // Assume col count never so high stackalloc is not possible
-        Span<SepRange> colRanges = stackalloc SepRange[colCount];
+        Span<SepRange> colRanges = colCount <= StackallocColRangesMaxLength ?
+            stackalloc SepRange[colCount] : _arrayPool.RentUniqueArrayAsSpan<SepRange>(colCount);
         GetColRanges(colStart, colRanges);
         return Join(colRanges, separator);
     }
@@ -904,8 +907,8 @@ public class SepReaderState : IDisposable
     {
         if (colCount == 0) { return string.Empty; }
         if (colCount == 1) { return ToStringDefault(colStart); }
-        // Assume col count never so high stackalloc is not possible
-        Span<SepRange> colRanges = stackalloc SepRange[colCount];
+        Span<SepRange> colRanges = colCount <= StackallocColRangesMaxLength ?
+            stackalloc SepRange[colCount] : _arrayPool.RentUniqueArrayAsSpan<SepRange>(colCount);
         GetColRanges(colStart, colRanges);
         return JoinToString(colRanges, separator);
     }

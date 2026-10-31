@@ -193,6 +193,35 @@ public class SepReaderColsTest
         Run((cols, range) => Assert.AreEqual(string.Join(separator, _colTexts[range]), cols.JoinToString(separator)));
     }
 
+    [TestMethod]
+    [DataRow(SepReaderState.StackallocColRangesMaxLength)]
+    [DataRow(SepReaderState.StackallocColRangesMaxLength + 1)]
+    public void SepReaderColsTest_Join_StackAllocationBoundary(int count)
+    {
+        using var reader = Sep.Reader(o => o with { HasHeader = false })
+            .FromText(string.Join(";", Enumerable.Repeat("x", count)));
+        Assert.IsTrue(reader.MoveNext());
+        var expected = new string('x', count);
+        var rangeCols = reader.Current[..];
+        Assert.AreEqual(expected, rangeCols.Join("").ToString());
+        Assert.AreEqual(expected, rangeCols.JoinToString(""));
+        var indexCols = reader.Current[new int[count]];
+        Assert.AreEqual(expected, indexCols.Join("").ToString());
+        Assert.AreEqual(expected, indexCols.JoinToString(""));
+    }
+
+    [TestMethod]
+    public void SepReaderColsTest_Join_LargeRepeatedSelection()
+    {
+        using var reader = Sep.Reader().FromText("A\nx\n");
+        Assert.IsTrue(reader.MoveNext());
+        const int count = 2_000_000;
+        var cols = reader.Current[new int[count]];
+        var expected = new string('x', count);
+        Assert.AreEqual(expected, cols.Join("").ToString());
+        Assert.AreEqual(expected, cols.JoinToString(""));
+    }
+
 #if NET9_0_OR_GREATER
     [TestMethod]
     public void SepReaderColsTest_JoinPathsToString()

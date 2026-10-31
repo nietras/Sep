@@ -32,7 +32,7 @@ static class SepHash
         nuint hash = 0;
         while (byteIndex <= (byteLength - nativeSize))
         {
-            hash = (hash * nativeSizeMultiplier) + Unsafe.As<byte, nuint>(ref Unsafe.Add(ref byteRef, byteIndex));
+            hash = (hash * nativeSizeMultiplier) + Unsafe.ReadUnaligned<nuint>(ref Unsafe.Add(ref byteRef, byteIndex));
             byteIndex += nativeSize;
         }
         while (byteIndex < byteLength)
@@ -130,7 +130,7 @@ static class SepHash
         nuint hash = fnvOffsetBasis;
         while (byteIndex <= (byteLength - nativeSize))
         {
-            hash = (Unsafe.As<byte, nuint>(ref Unsafe.Add(ref charsCurrent, byteIndex)) ^ hash) * fnvPrime;
+            hash = (Unsafe.ReadUnaligned<nuint>(ref Unsafe.Add(ref charsCurrent, byteIndex)) ^ hash) * fnvPrime;
             byteIndex += nativeSize;
         }
         while (byteIndex < byteLength)

@@ -230,18 +230,21 @@ sealed class SepStringHashPool : ISepStringHashPool
 
     Entry[] Resize()
     {
-        var newSize = GetSize(_count + 1);
+        var count = _count;
+        var newSize = GetSize(count + 1);
 
-        ArrayPool<int>.Shared.Return(_buckets);
+        // Rent each replacement before returning its original, so a failed rent
+        // never leaves fields referencing arrays already returned to the pool.
 
         var entries = ArrayPool<Entry>.Shared.Rent(newSize);
-        _buckets = ArrayPool<int>.Shared.Rent(newSize);
-
-        Array.Clear(_buckets);
-        var count = _count;
         Array.Copy(_entries, entries, count);
-
         ArrayPool<Entry>.Shared.Return(_entries);
+        _entries = entries;
+
+        var buckets = ArrayPool<int>.Shared.Rent(newSize);
+        Array.Clear(buckets);
+        ArrayPool<int>.Shared.Return(_buckets);
+        _buckets = buckets;
 
         ref var entriesRef = ref MemoryMarshal.GetArrayDataReference(entries);
         for (var i = 0; i < count; i++)
@@ -255,7 +258,6 @@ sealed class SepStringHashPool : ISepStringHashPool
             }
         }
 
-        _entries = entries;
         return entries;
     }
 

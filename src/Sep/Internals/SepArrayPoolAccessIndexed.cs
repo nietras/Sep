@@ -22,9 +22,12 @@ internal sealed class SepArrayPoolAccessIndexed : IDisposable
         var array = _pool.TryGetValue(key, out var value) ? Unsafe.As<T[]>(value.Array) : null;
         if (array is null || array.Length < length)
         {
+            // Rent before returning, so a failed rent never leaves the pool
+            // dictionary referencing an array already returned.
+            var newArray = ArrayPool<T>.Shared.Rent(length);
+            _pool[key] = new(newArray, ArrayPoolHelper<T>.Return);
             if (array is not null) { ArrayPool<T>.Shared.Return(array); }
-            array = ArrayPool<T>.Shared.Rent(length);
-            _pool[key] = new(array, ArrayPoolHelper<T>.Return);
+            array = newArray;
         }
         ++_poolIndex;
         return new Span<T>(array, 0, length);

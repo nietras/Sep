@@ -39,6 +39,8 @@
   <ItemGroup>
     <None Include="../../Icon.png" Pack="true" PackagePath="\" />
     <None Include="../../README.md" Pack="true" PackagePath="\" />
+    <Content Include="ThirdParty\CsvHelper-LICENSE.txt" Pack="true" PackagePath="licenses\CsvHelper-LICENSE.txt" />
+    <Content Include="ThirdParty\fast_float-LICENSE-MIT.txt" Pack="true" PackagePath="licenses\fast_float-LICENSE-MIT.txt" />
   </ItemGroup>
 
   <ItemGroup>

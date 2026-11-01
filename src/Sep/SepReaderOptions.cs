@@ -57,8 +57,8 @@ public readonly record struct SepReaderOptions
     /// </summary>
     public SepCreateToString CreateToString { get; init; } = SepToString.Direct;
     /// <summary>
-    /// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat)
-    /// for parsing `float` and `double`.
+    /// Disables the built-in fast parser for `float` and `double`.
+    /// Unsupported input or cultures are always parsed by .NET.
     /// </summary>
     public bool DisableFastFloat { get; init; } = false;
     /// <summary>

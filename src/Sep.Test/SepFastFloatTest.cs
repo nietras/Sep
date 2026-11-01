@@ -1,5 +1,6 @@
 // Derived from CsvHelper's FastFloat tests and fast_float.
-// Modified for Sep; original licenses are in src/Sep/ThirdParty.
+// Modified for Sep; CsvHelper-derived portions use Apache-2.0.
+// Original licenses are in src/Sep/ThirdParty.
 // CsvHelper source: https://github.com/JoshClose/CsvHelper/tree/dffe5e9a634e1894d334b6a69599d8b489c4fc78
 // fast_float: https://github.com/fastfloat/fast_float
 using System;
@@ -17,9 +18,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace nietras.SeparatedValues.Test;
 
 /// <summary>
-/// FastFloat must be bit-identical to double.Parse / float.Parse (invariant culture) whenever it returns true, must
-/// return true for every well-formed number with at most 19 significant digits, and must return false for anything
-/// outside its grammar <c>[+-]digits[.digits][(e|E)[+-]digits]</c> (plus Infinity/NaN).
+/// FastFloat must be correctly rounded, generally matching double.Parse / float.Parse (invariant culture), must return
+/// true for every well-formed number with at most 19 significant digits, and must return false for anything outside its
+/// grammar <c>[+-]digits[.digits][(e|E)[+-]digits]</c> (plus Infinity/NaN).
 /// </summary>
 [TestClass]
 public class FastFloatTests
@@ -122,6 +123,195 @@ public class FastFloatTests
 		var utf8 = Encoding.UTF8.GetBytes(s);
 		Assert.IsFalse(FastFloat.TryParseDouble(utf8, out _), $"TryParseDouble accepted \"{s}\"");
 		Assert.IsFalse(FastFloat.TryParseSingle(utf8, out _), $"TryParseSingle accepted \"{s}\"");
+		Assert.IsFalse(FastFloat.TryParseDouble(s.AsSpan(), out _), $"UTF-16 TryParseDouble accepted \"{s}\"");
+		Assert.IsFalse(FastFloat.TryParseSingle(s.AsSpan(), out _), $"UTF-16 TryParseSingle accepted \"{s}\"");
+	}
+
+	[TestMethod]
+	[DataRow("12,34567890")]
+	[DataRow("-123456789,01234567e-12")]
+	[DataRow(",000000001")]
+	[DataRow("1,")]
+	[DataRow("1,000000059604644776")]
+	public void DecimalSeparator_BothEncodings(string s)
+	{
+		var culture = CultureInfo.GetCultureInfo("de-DE");
+		var utf8 = Encoding.UTF8.GetBytes(s);
+		var expectedDouble = double.Parse(s, Styles, culture);
+		var expectedSingle = float.Parse(s, Styles, culture);
+		Assert.IsTrue(FastFloat.TryParseDouble(utf8, out var d8, ','));
+		Assert.IsTrue(FastFloat.TryParseDouble(s.AsSpan(), out var d16, ','));
+		Assert.IsTrue(FastFloat.TryParseSingle(utf8, out var f8, ','));
+		Assert.IsTrue(FastFloat.TryParseSingle(s.AsSpan(), out var f16, ','));
+		Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDouble), BitConverter.DoubleToInt64Bits(d8));
+		Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDouble), BitConverter.DoubleToInt64Bits(d16));
+		Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingle), BitConverter.SingleToInt32Bits(f8));
+		Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingle), BitConverter.SingleToInt32Bits(f16));
+	}
+
+	[TestMethod]
+	public void DecimalComma_RandomizedMatchesBcl()
+	{
+		var culture = CultureInfo.GetCultureInfo("de-DE");
+		var failures = new Failures();
+		RunParallel(267, 200_000, failures, (rng, f) =>
+		{
+			var source = BitConverter.Int64BitsToDouble(rng.NextInt64(long.MinValue, long.MaxValue));
+			if (!double.IsFinite(source)) return;
+			Span<byte> bytes = stackalloc byte[128];
+			Assert.IsTrue(source.TryFormat(bytes, out var length, rng.Next(2) == 0 ? "R" : "E16", Invariant));
+			var utf8 = bytes.Slice(0, length);
+			for (var i = 0; i < utf8.Length; i++)
+				if (utf8[i] == '.') utf8[i] = (byte)',';
+			Span<char> chars = stackalloc char[128];
+			var utf16 = chars.Slice(0, Encoding.UTF8.GetChars(utf8, chars));
+
+			var expectedDouble = double.Parse(utf16, Styles, culture);
+			var expectedSingle = float.Parse(utf16, Styles, culture);
+			var okDouble8 = FastFloat.TryParseDouble(utf8, out var double8, ',');
+			var okDouble16 = FastFloat.TryParseDouble(utf16, out var double16, ',');
+			var okSingle8 = FastFloat.TryParseSingle(utf8, out var single8, ',');
+			var okSingle16 = FastFloat.TryParseSingle(utf16, out var single16, ',');
+			if (!okDouble8 || !okDouble16 || !okSingle8 || !okSingle16 ||
+				BitConverter.DoubleToInt64Bits(expectedDouble) != BitConverter.DoubleToInt64Bits(double8) ||
+				BitConverter.DoubleToInt64Bits(expectedDouble) != BitConverter.DoubleToInt64Bits(double16) ||
+				BitConverter.SingleToInt32Bits(expectedSingle) != BitConverter.SingleToInt32Bits(single8) ||
+				BitConverter.SingleToInt32Bits(expectedSingle) != BitConverter.SingleToInt32Bits(single16))
+				f.Add($"comma decimal mismatch: \"{Show(utf8)}\"");
+			Interlocked.Increment(ref f.Checked);
+		});
+		failures.AssertNone(TestContext);
+	}
+
+	[TestMethod]
+	[DataRow("1234567\u013012345678")]
+	[DataRow("12345678\u013112345678")]
+	[DataRow("123456789012345\u0139")]
+	[DataRow("12345678\uFF1012345678")]
+	[DataRow("12345678\uD80012345678")]
+	[DataRow("0.1234567\u013012345678")]
+	[DataRow("0.12345678\u013112345678")]
+	[DataRow("0.123456789012345\u0139")]
+	[DataRow("0.12345678\uFF1012345678")]
+	[DataRow("0.12345678\uD80012345678")]
+	public void Utf16_NonAsciiDigitsAreRejected(string s)
+	{
+		Assert.IsFalse(FastFloat.TryParseDouble(s.AsSpan(), out _));
+		Assert.IsFalse(FastFloat.TryParseSingle(s.AsSpan(), out _));
+	}
+
+	[TestMethod]
+	public void Utf16_ShortDigitRuns()
+	{
+		string[] suffixes = ["", "9", "98", "987", "9876", "e-2"];
+		for (var i = 0; i < 10_000; i++)
+		{
+			var digits = i.ToString("D4", Invariant);
+			foreach (var suffix in suffixes)
+			{
+				var s = "0." + digits + suffix;
+				Assert.IsTrue(FastFloat.TryParseDouble(s.AsSpan(), out var d), s);
+				Assert.IsTrue(FastFloat.TryParseSingle(s.AsSpan(), out var f), s);
+				Assert.AreEqual(BitConverter.DoubleToInt64Bits(double.Parse(s, Styles, Invariant)), BitConverter.DoubleToInt64Bits(d), s);
+				Assert.AreEqual(BitConverter.SingleToInt32Bits(float.Parse(s, Styles, Invariant)), BitConverter.SingleToInt32Bits(f), s);
+			}
+		}
+
+		foreach (var invalid in new[] { '/', ':', '\u0130', '\uFF10', '\u8000', '\uFFFF', '\uD800', '\0' })
+		{
+			for (var position = 0; position < 4; position++)
+			{
+				var chars = "0.1234e-2".ToCharArray();
+				chars[2 + position] = invalid;
+				Assert.IsFalse(FastFloat.TryParseDouble(chars, out _), new string(chars));
+				Assert.IsFalse(FastFloat.TryParseSingle(chars, out _), new string(chars));
+			}
+		}
+	}
+
+	[TestMethod]
+	[DataRow("NaN")]
+	[DataRow("-Infinity")]
+	public void SpecialValues_CanBeDeferredToTheCaller(string s)
+	{
+		Assert.IsFalse(FastFloat.TryParseDouble(s.AsSpan(), out _, allowSpecial: false));
+		Assert.IsFalse(FastFloat.TryParseSingle(s.AsSpan(), out _, allowSpecial: false));
+		Assert.IsFalse(FastFloat.TryParseDouble(Encoding.UTF8.GetBytes(s), out _, allowSpecial: false));
+		Assert.IsFalse(FastFloat.TryParseSingle(Encoding.UTF8.GetBytes(s), out _, allowSpecial: false));
+	}
+
+	[TestMethod]
+	[DataRow("  1.5")]
+	[DataRow("\t-0")]
+	[DataRow("\v\f+1.25e-2")]
+	[DataRow("\r\n1.000000059604644776")]
+	[DataRow(" \tNaN")]
+	[DataRow("\t-Infinity")]
+	public void LeadingWhitespace_BothEncodings(string s)
+	{
+		var bytes = Encoding.UTF8.GetBytes(s);
+		var expectedDouble = BitConverter.DoubleToInt64Bits(double.Parse(s, Styles, Invariant));
+		var expectedSingle = BitConverter.SingleToInt32Bits(float.Parse(s, Styles, Invariant));
+		Assert.IsTrue(FastFloat.TryParseDouble(bytes, out var d8, allowLeadingWhitespace: true));
+		Assert.IsTrue(FastFloat.TryParseDouble(s.AsSpan(), out var d16, allowLeadingWhitespace: true));
+		Assert.IsTrue(FastFloat.TryParseSingle(bytes, out var f8, allowLeadingWhitespace: true));
+		Assert.IsTrue(FastFloat.TryParseSingle(s.AsSpan(), out var f16, allowLeadingWhitespace: true));
+		Assert.AreEqual(expectedDouble, BitConverter.DoubleToInt64Bits(d8));
+		Assert.AreEqual(expectedDouble, BitConverter.DoubleToInt64Bits(d16));
+		Assert.AreEqual(expectedSingle, BitConverter.SingleToInt32Bits(f8));
+		Assert.AreEqual(expectedSingle, BitConverter.SingleToInt32Bits(f16));
+	}
+
+	[TestMethod]
+	[DataRow(" ")]
+	[DataRow("\t\r\n")]
+	[DataRow(" 1.5 ")]
+	[DataRow("\u00A01.5")]
+	[DataRow("\u20031.5")]
+	[DataRow(" \0")]
+	public void LeadingWhitespace_RejectsUnsupportedInput(string s)
+	{
+		var bytes = Encoding.UTF8.GetBytes(s);
+		Assert.IsFalse(FastFloat.TryParseDouble(bytes, out _, allowLeadingWhitespace: true));
+		Assert.IsFalse(FastFloat.TryParseDouble(s.AsSpan(), out _, allowLeadingWhitespace: true));
+		Assert.IsFalse(FastFloat.TryParseSingle(bytes, out _, allowLeadingWhitespace: true));
+		Assert.IsFalse(FastFloat.TryParseSingle(s.AsSpan(), out _, allowLeadingWhitespace: true));
+	}
+
+	[TestMethod]
+	[DataRow("9007199254740993.00000000000000000000", true)]
+	[DataRow("9007199254740993.00000000000000000001", false)]
+	[DataRow("0000009007199254740993.00000000000000000001e+0", false)]
+	[DataRow("900719925474099300000000000000000000e-20", true)]
+	[DataRow("900719925474099300000000000000000001e-20", false)]
+	public void Double_LongHalfwaySuffixes(string s, bool expectedFast)
+	{
+		var bytes = Encoding.UTF8.GetBytes(s);
+		var expected = BitConverter.DoubleToInt64Bits(double.Parse(s, Styles, Invariant));
+		Assert.AreEqual(expectedFast, FastFloat.TryParseDouble(bytes, out var utf8));
+		Assert.AreEqual(expectedFast, FastFloat.TryParseDouble(s.AsSpan(), out var utf16));
+		if (expectedFast)
+		{
+			Assert.AreEqual(expected, BitConverter.DoubleToInt64Bits(utf8));
+			Assert.AreEqual(expected, BitConverter.DoubleToInt64Bits(utf16));
+		}
+	}
+
+	[TestMethod]
+	[DataRow("16777217.00000000000000000000", true)]
+	[DataRow("16777217.00000000000000000001", false)]
+	[DataRow("0000016777217.00000000000000000001e+0", false)]
+	public void Single_LongHalfwaySuffixes(string s, bool expectedFast)
+	{
+		var bytes = Encoding.UTF8.GetBytes(s);
+		var expected = BitConverter.SingleToInt32Bits(float.Parse(s, Styles, Invariant));
+		Assert.AreEqual(expectedFast, FastFloat.TryParseSingle(bytes, out var utf8));
+		Assert.AreEqual(expectedFast, FastFloat.TryParseSingle(s.AsSpan(), out var utf16));
+		if (expectedFast)
+		{
+			Assert.AreEqual(expected, BitConverter.SingleToInt32Bits(utf8));
+			Assert.AreEqual(expected, BitConverter.SingleToInt32Bits(utf16));
+		}
 	}
 
 	[TestMethod]
@@ -153,6 +343,8 @@ public class FastFloatTests
 #endif
 		if (FastFloat.TryParseDouble(utf8, out var d)) Assert.AreEqual(expectedBits, BitConverter.DoubleToInt64Bits(d));
 		else Assert.IsTrue(s.Length > 20, $"\"{s}\" should take the fast path");
+		if (FastFloat.TryParseDouble(s.AsSpan(), out var d16)) Assert.AreEqual(expectedBits, BitConverter.DoubleToInt64Bits(d16));
+		else Assert.IsTrue(s.Length > 20, $"UTF-16 \"{s}\" should take the fast path");
 	}
 
 	[TestMethod]
@@ -178,6 +370,8 @@ public class FastFloatTests
 #endif
 		if (FastFloat.TryParseSingle(utf8, out var f)) Assert.AreEqual(expectedBits, SingleBits(f));
 		else Assert.IsTrue(s.Length > 20, $"\"{s}\" should take the fast path");
+		if (FastFloat.TryParseSingle(s.AsSpan(), out var f16)) Assert.AreEqual(expectedBits, SingleBits(f16));
+		else Assert.IsTrue(s.Length > 20, $"UTF-16 \"{s}\" should take the fast path");
 	}
 
 	private static int SingleBits(float f) => BitConverter.ToInt32(BitConverter.GetBytes(f), 0);
@@ -273,6 +467,20 @@ public class FastFloatTests
 	}
 
 	[TestMethod]
+	[DataRow(800)]
+	[DataRow(1200)]
+	public void LongMantissas_RoundCorrectlyBeyondDotNet8DigitLimit(int zeroCount)
+	{
+		// .NET 8's double.Parse returns zero for these values; csFastFloat and later runtimes return 1e-300.
+		var s = "1" + new string('0', zeroCount) + "e-" + (zeroCount + 300);
+		var expected = BitConverter.DoubleToInt64Bits(1e-300);
+		Assert.IsTrue(FastFloat.TryParseDouble(Encoding.UTF8.GetBytes(s), out var utf8));
+		Assert.IsTrue(FastFloat.TryParseDouble(s.AsSpan(), out var utf16));
+		Assert.AreEqual(expected, BitConverter.DoubleToInt64Bits(utf8));
+		Assert.AreEqual(expected, BitConverter.DoubleToInt64Bits(utf16));
+	}
+
+	[TestMethod]
 	public void NeverReadsOutsideTheSpan()
 	{
 		// Inputs placed flush against inaccessible pages: reading a single byte past either end would crash.
@@ -303,6 +511,8 @@ public class FastFloatTests
 			{
 				var okDouble = FastFloat.TryParseDouble(input, out var expectedDouble);
 				var okSingle = FastFloat.TryParseSingle(input, out var expectedSingle);
+				var okDoubleWhite = FastFloat.TryParseDouble(input, out var expectedDoubleWhite, allowLeadingWhitespace: true);
+				var okSingleWhite = FastFloat.TryParseSingle(input, out var expectedSingleWhite, allowLeadingWhitespace: true);
 				foreach (var address in new[] { usable + Page - input.Length, usable })
 				{
 					var span = NativeSpan(address, input.Length);
@@ -311,6 +521,30 @@ public class FastFloatTests
 					Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDouble), BitConverter.DoubleToInt64Bits(d));
 					Assert.AreEqual(okSingle, FastFloat.TryParseSingle(span, out var f));
 					Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingle), BitConverter.SingleToInt32Bits(f));
+					Assert.AreEqual(okDoubleWhite, FastFloat.TryParseDouble(span, out var dw, allowLeadingWhitespace: true));
+					Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDoubleWhite), BitConverter.DoubleToInt64Bits(dw));
+					Assert.AreEqual(okSingleWhite, FastFloat.TryParseSingle(span, out var fw, allowLeadingWhitespace: true));
+					Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingleWhite), BitConverter.SingleToInt32Bits(fw));
+				}
+
+				var chars = Encoding.UTF8.GetChars(input);
+				okDouble = FastFloat.TryParseDouble(chars, out expectedDouble);
+				okSingle = FastFloat.TryParseSingle(chars, out expectedSingle);
+				okDoubleWhite = FastFloat.TryParseDouble(chars, out expectedDoubleWhite, allowLeadingWhitespace: true);
+				okSingleWhite = FastFloat.TryParseSingle(chars, out expectedSingleWhite, allowLeadingWhitespace: true);
+				var byteLength = chars.Length * sizeof(char);
+				foreach (var address in new[] { usable + Page - byteLength, usable })
+				{
+					var span = MemoryMarshal.Cast<byte, char>(NativeSpan(address, byteLength));
+					chars.CopyTo(span);
+					Assert.AreEqual(okDouble, FastFloat.TryParseDouble(span, out var d));
+					Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDouble), BitConverter.DoubleToInt64Bits(d));
+					Assert.AreEqual(okSingle, FastFloat.TryParseSingle(span, out var f));
+					Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingle), BitConverter.SingleToInt32Bits(f));
+					Assert.AreEqual(okDoubleWhite, FastFloat.TryParseDouble(span, out var dw, allowLeadingWhitespace: true));
+					Assert.AreEqual(BitConverter.DoubleToInt64Bits(expectedDoubleWhite), BitConverter.DoubleToInt64Bits(dw));
+					Assert.AreEqual(okSingleWhite, FastFloat.TryParseSingle(span, out var fw, allowLeadingWhitespace: true));
+					Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingleWhite), BitConverter.SingleToInt32Bits(fw));
 				}
 			}
 		}
@@ -778,6 +1012,15 @@ public class FastFloatTests
 		var significant = SignificantDigits(s);
 		var special = IsSpecial(s);
 		var ok = FastFloat.TryParseDouble(s, out var actual);
+		Span<char> buffer = s.Length <= 1024 ? stackalloc char[s.Length] : new char[s.Length];
+		var utf16 = buffer.Slice(0, Encoding.UTF8.GetChars(s, buffer));
+		var ok16 = FastFloat.TryParseDouble(utf16, out var actual16);
+		if (ok16 != ok || BitConverter.DoubleToInt64Bits(actual16) != BitConverter.DoubleToInt64Bits(actual))
+			failures.Add($"double \"{Show(s)}\": UTF-8 and UTF-16 results differ");
+		if (FastFloat.TryParseDouble(Padded(utf16), out var padded16) != ok16 || BitConverter.DoubleToInt64Bits(padded16) != BitConverter.DoubleToInt64Bits(actual16))
+			failures.Add($"double \"{Show(s)}\": UTF-16 result differs when surrounded by digits");
+		if (ok16 && (!double.TryParse(utf16, Styles, Invariant, out var bcl16) || BitConverter.DoubleToInt64Bits(actual16) != BitConverter.DoubleToInt64Bits(bcl16)))
+			failures.Add($"double \"{Show(s)}\": UTF-16 result differs from double.Parse");
 		// The same input surrounded by digits must give the same answer: nothing outside the span may be used.
 		if (FastFloat.TryParseDouble(Padded(s), out var padded) != ok || BitConverter.DoubleToInt64Bits(padded) != BitConverter.DoubleToInt64Bits(actual))
 			failures.Add($"double \"{Show(s)}\": different result when the input is surrounded by digits");
@@ -808,6 +1051,15 @@ public class FastFloatTests
 		var significant = SignificantDigits(s);
 		var special = IsSpecial(s);
 		var ok = FastFloat.TryParseSingle(s, out var actual);
+		Span<char> buffer = s.Length <= 1024 ? stackalloc char[s.Length] : new char[s.Length];
+		var utf16 = buffer.Slice(0, Encoding.UTF8.GetChars(s, buffer));
+		var ok16 = FastFloat.TryParseSingle(utf16, out var actual16);
+		if (ok16 != ok || BitConverter.SingleToInt32Bits(actual16) != BitConverter.SingleToInt32Bits(actual))
+			failures.Add($"float \"{Show(s)}\": UTF-8 and UTF-16 results differ");
+		if (FastFloat.TryParseSingle(Padded(utf16), out var padded16) != ok16 || BitConverter.SingleToInt32Bits(padded16) != BitConverter.SingleToInt32Bits(actual16))
+			failures.Add($"float \"{Show(s)}\": UTF-16 result differs when surrounded by digits");
+		if (ok16 && (!float.TryParse(utf16, Styles, Invariant, out var bcl16) || BitConverter.SingleToInt32Bits(actual16) != BitConverter.SingleToInt32Bits(bcl16)))
+			failures.Add($"float \"{Show(s)}\": UTF-16 result differs from float.Parse");
 		if (FastFloat.TryParseSingle(Padded(s), out var padded) != ok || BitConverter.SingleToInt32Bits(padded) != BitConverter.SingleToInt32Bits(actual))
 			failures.Add($"float \"{Show(s)}\": different result when the input is surrounded by digits");
 		Interlocked.Increment(ref failures.Checked);
@@ -833,6 +1085,8 @@ public class FastFloatTests
 
 	[ThreadStatic]
 	private static byte[]? padded;
+	[ThreadStatic]
+	private static char[]? paddedChars;
 
 	/// <summary>A copy of <paramref name="s"/> with sixteen '9' bytes on either side.</summary>
 	private static ReadOnlySpan<byte> Padded(ReadOnlySpan<byte> s)
@@ -842,6 +1096,15 @@ public class FastFloatTests
 		buffer.AsSpan(0, s.Length + 32).Fill((byte)'9');
 		s.CopyTo(buffer.AsSpan(16));
 
+		return buffer.AsSpan(16, s.Length);
+	}
+
+	private static ReadOnlySpan<char> Padded(ReadOnlySpan<char> s)
+	{
+		var buffer = paddedChars ??= new char[1024];
+		if (buffer.Length < s.Length + 32) paddedChars = buffer = new char[s.Length + 32];
+		buffer.AsSpan(0, s.Length + 32).Fill('9');
+		s.CopyTo(buffer.AsSpan(16));
 		return buffer.AsSpan(16, s.Length);
 	}
 

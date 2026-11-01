@@ -26,7 +26,7 @@ foreach (var readRow in reader)           // Read one row at a time
     var a = readRow["A"].Span;            // Column as ReadOnlySpan<char>
     var b = readRow[idx].ToString();      // Column to string (allocates new string per call)
     var c = readRow["C"].Parse<int>();    // Parse any T : ISpanParsable<T>
-    var d = readRow["D"].Parse<float>();  // Parse float/double fast via csFastFloat
+    var d = readRow["D"].Parse<float>();  // Parse float/double fast
     var s = readRow[nms].Parse<double>(); // Parse multiple columns as Span<T>
                                           // - Sep handles array allocation and reuse
     foreach (ref var v in s) { v *= 10; }

@@ -22,7 +22,7 @@
     <PackageIconUrl>https://raw.github.com/nietras/Sep/main/Icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/nietras/Sep/</PackageProjectUrl>
     <PackageReleaseNotes>https://github.com/nietras/Sep/releases</PackageReleaseNotes>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -56,10 +56,6 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>$(MSBuildProjectName).ComparisonBenchmarks</_Parameter1>
     </AssemblyAttribute>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="csFastFloat" Version="4.1.6" />
   </ItemGroup>
 
 </Project>

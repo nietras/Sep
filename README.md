@@ -44,8 +44,9 @@ enable this see [SepReaderOptions](#sepreaderoptions) and
 
 **🚀 Fast** - blazing fast with both architecture specific and cross-platform
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
-8.0+), NEON. Uses [csFastFloat](https://github.com/CarlVerret/csFastFloat) for
-fast parsing of floating points. See [detailed
+8.0+), NEON. Uses a built-in floating point parser derived from
+[fast_float](https://github.com/fastfloat/fast_float) and
+[CsvHelper](https://github.com/JoshClose/CsvHelper), with .NET fallbacks. See [detailed
 benchmarks](#comparison-benchmarks) for cross-platform results.
 
 **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
@@ -102,7 +103,7 @@ foreach (var readRow in reader)           // Read one row at a time
     var a = readRow["A"].Span;            // Column as ReadOnlySpan<char>
     var b = readRow[idx].ToString();      // Column to string (might be pooled)
     var c = readRow["C"].Parse<int>();    // Parse any T : ISpanParsable<T>
-    var d = readRow["D"].Parse<float>();  // Parse float/double fast via csFastFloat
+    var d = readRow["D"].Parse<float>();  // Parse float/double fast
     var s = readRow[nms].Parse<double>(); // Parse multiple columns as Span<T>
                                           // - Sep handles array allocation and reuse
     foreach (ref var v in s) { v *= 10; }
@@ -329,8 +330,8 @@ public IEqualityComparer<string> ColNameComparer { get; init; } = SepDefaults.Co
 /// </summary>
 public SepCreateToString CreateToString { get; init; } = SepToString.Direct;
 /// <summary>
-/// Disables using [csFastFloat](https://github.com/CarlVerret/csFastFloat)
-/// for parsing `float` and `double`.
+/// Disables the built-in fast parser for `float` and `double`.
+/// Unsupported input or cultures are always parsed by .NET.
 /// </summary>
 public bool DisableFastFloat { get; init; } = false;
 /// <summary>
@@ -381,6 +382,16 @@ public SepTrim Trim { get; init; } = SepTrim.None;
 /// </summary>
 public bool AsyncContinueOnCapturedContext { get; init; } = false;
 ```
+
+For `float` and `double`, Sep uses its fast parser for compatible read-only
+cultures and complete ungrouped numbers, including leading ASCII whitespace.
+Other cases, including mutable or current cultures, trailing whitespace,
+grouping, and special values, fall back to .NET. For example, invariant `inf`
+is no longer accepted.
+Invalid values passed to `Parse<T>` throw .NET's `FormatException`; `TryParse<T>`
+returns `false` or `null`. The CsvHelper-derived parser is distributed under
+Apache-2.0 and includes fast_float code under MIT; the license texts are
+included in the NuGet package.
 
 #### Unescaping
 While great care has been taken to ensure Sep unescaping of quotes is both
@@ -2038,10 +2049,11 @@ approaches.
 
 As can be seen below, the actual low level parsing of the separated values is a
 tiny part of the total runtime for Sep for which the runtime is dominated by
-parsing the floating points. Since Sep uses
-[csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
-floating point parser, it is **>2x faster than Sylvan** for example. If using
-Sylvan one may consider using csFastFloat if that is an option. With the
+parsing the floating points. When these results were measured, Sep used
+[csFastFloat](https://github.com/CarlVerret/csFastFloat) and was **>2x faster
+than Sylvan** for example. The results do not measure Sep's current built-in
+floating point parser. If using Sylvan one may consider using csFastFloat if
+that is an option. With the
 multi-threaded (MT) `ParallelEnumerate` implementation Sep is **up to 23x faster
 than Sylvan**.
 

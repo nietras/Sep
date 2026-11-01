@@ -1,5 +1,6 @@
 // Derived from CsvHelper's FastFloat implementation and fast_float.
-// Modified for Sep; original licenses are in src/Sep/ThirdParty.
+// Modified for Sep; CsvHelper-derived portions use Apache-2.0.
+// Original licenses are in src/Sep/ThirdParty.
 // CsvHelper source: https://github.com/JoshClose/CsvHelper/tree/dffe5e9a634e1894d334b6a69599d8b489c4fc78
 // fast_float: https://github.com/fastfloat/fast_float
 using System;
@@ -7,20 +8,19 @@ using System.Buffers.Binary;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-#if NET
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-#endif
-using System.Text;
 
 namespace nietras.SeparatedValues;
 
 /// <summary>
-/// Fast, exactly rounded parsing of decimal floating point numbers from UTF-8: a port of Daniel Lemire's fast_float
+/// Fast, exactly rounded parsing of decimal floating point numbers from UTF-8 or UTF-16: a port of Daniel Lemire's fast_float
 /// (Clinger's fast path followed by the Eisel-Lemire algorithm, see "Number Parsing at a Gigabyte per Second" and
-/// "Fast Number Parsing Without Fallback"). Whenever it returns true the result is bit-identical to double.Parse /
-/// float.Parse with the invariant culture (round half to even, -0, subnormals, overflow to infinity, underflow to zero).
+/// "Fast Number Parsing Without Fallback"). Results are rounded to nearest, ties to even, including -0, subnormals,
+/// overflow to infinity, and underflow to zero.
 /// It returns false, leaving the input to the BCL, for anything outside <c>[+-]digits[.digits][(e|E)[+-]digits]</c>
-/// (whitespace, thousands separators, hex, "inf", ...) other than Infinity/NaN, and for the rare inputs with more than
+/// (whitespace, thousands separators, hex, "inf", ...) other than Infinity/NaN and optional leading ASCII whitespace,
+/// and for the rare inputs with more than
 /// 19 significant digits whose truncation to 19 digits sits right on a rounding boundary.
 /// </summary>
 internal static partial class FastFloat
@@ -47,58 +47,66 @@ internal static partial class FastFloat
 	private const ulong Undecided = ulong.MaxValue;
 
 	/// <summary>Exactly representable powers of ten for Clinger's fast path: 10^0..10^22.</summary>
-#if NET
 	private static ReadOnlySpan<double> DoublePowersOfTen =>
-#else
-	// Without RuntimeHelpers.CreateSpan the property would allocate the array on every access.
-	private static ReadOnlySpan<double> DoublePowersOfTen => doublePowersOfTen;
-	private static readonly double[] doublePowersOfTen =
-#endif
 	[
 		1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
 		1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22,
 	];
 
-#if NET
 	private static ReadOnlySpan<ulong> UInt64PowersOfTen => [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
-#else
-	private static ReadOnlySpan<ulong> UInt64PowersOfTen => uint64PowersOfTen;
-	private static readonly ulong[] uint64PowersOfTen = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000];
-#endif
 
-	/// <summary>Parses all of <paramref name="s"/> as a double, or returns false to defer to double.Parse.</summary>
-	/// <param name="s">The UTF-8 text of the number, such as <c>-1.5e3</c>.</param>
-	/// <param name="value">
-	/// The exactly rounded value, bit-identical to <c>double.Parse</c> with the invariant culture; meaningless when the
-	/// method returns false.
-	/// </param>
-	/// <returns>Whether <paramref name="s"/> was parsed; false leaves it to <c>double.Parse</c>.</returns>
-	public static bool TryParseDouble(ReadOnlySpan<byte> s, out double value) => TryParse(s, out value);
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryParseDouble(ReadOnlySpan<byte> s, out double value, char decimalSeparator = '.',
+		bool allowSpecial = true, bool allowLeadingWhitespace = false) =>
+		TryParse<byte, double>(s, out value, decimalSeparator, allowSpecial, allowLeadingWhitespace);
 
-	/// <summary>Parses all of <paramref name="s"/> as a float (rounded once, directly), or returns false to defer to float.Parse.</summary>
-	/// <param name="s">The UTF-8 text of the number, such as <c>-1.5e3</c>.</param>
-	/// <param name="value">
-	/// The exactly rounded value, bit-identical to <c>float.Parse</c> with the invariant culture; meaningless when the
-	/// method returns false.
-	/// </param>
-	/// <returns>Whether <paramref name="s"/> was parsed; false leaves it to <c>float.Parse</c>.</returns>
-	public static bool TryParseSingle(ReadOnlySpan<byte> s, out float value) => TryParse(s, out value);
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryParseDouble(ReadOnlySpan<char> s, out double value, char decimalSeparator = '.',
+		bool allowSpecial = true, bool allowLeadingWhitespace = false) =>
+		TryParse<char, double>(s, out value, decimalSeparator, allowSpecial, allowLeadingWhitespace);
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryParseSingle(ReadOnlySpan<byte> s, out float value, char decimalSeparator = '.',
+		bool allowSpecial = true, bool allowLeadingWhitespace = false) =>
+		TryParse<byte, float>(s, out value, decimalSeparator, allowSpecial, allowLeadingWhitespace);
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	public static bool TryParseSingle(ReadOnlySpan<char> s, out float value, char decimalSeparator = '.',
+		bool allowSpecial = true, bool allowLeadingWhitespace = false) =>
+		TryParse<char, float>(s, out value, decimalSeparator, allowSpecial, allowLeadingWhitespace);
 
 	/// <summary>
-	/// The hot path, specialized for T = double and T = float. Parses
+	/// The hot path, specialized for byte/char input and double/float output. Parses
 	/// <c>[+-]digits[.digits][(e|E)[+-]digits]</c> with at most 19 mantissa digits; everything else (invalid input,
-	/// Infinity/NaN, longer mantissas) goes to <see cref="TryParseSlow"/>.
+	/// Infinity/NaN, longer mantissas) is handled separately.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-	private static bool TryParse<T>(ReadOnlySpan<byte> s, out T value) where T : struct
+	private static bool TryParse<TChar, T>(ReadOnlySpan<TChar> s, out T value, char decimalSeparator,
+		bool allowSpecial, bool allowLeadingWhitespace)
+		where TChar : unmanaged
+		where T : struct
 	{
 		ref var p = ref MemoryMarshal.GetReference(s);
 		nint len = s.Length;
-		if (len == 0) goto Slow;
+		if (len == 0) goto Invalid;
 
 		nint i = 0;
 		var negative = false;
-		uint c = p;
+		uint c = CodeUnit(ref p, i);
+		if (allowLeadingWhitespace && IsAsciiWhitespace(c))
+		{
+			do
+			{
+				if (++i == len) goto Invalid;
+				c = CodeUnit(ref p, i);
+			}
+			while (IsAsciiWhitespace(c));
+			s = s.Slice((int)i);
+			p = ref MemoryMarshal.GetReference(s);
+			len = s.Length;
+			i = 0;
+		}
+
 		if (c == '-')
 		{
 			negative = true;
@@ -114,7 +122,7 @@ internal static partial class FastFloat
 		var w = 0UL;
 		while (i < len)
 		{
-			var d = Unsafe.Add(ref p, i) - (ulong)'0';
+			var d = CodeUnit(ref p, i) - (ulong)'0';
 			if (d > 9) break;
 			w = w * 10 + d; // may wrap with more than 19 digits, which go to the slow path
 			i++;
@@ -122,9 +130,9 @@ internal static partial class FastFloat
 
 		var digits = i - start;
 
-		// Fraction: eight digits at a time and the tail without a branch per digit.
+		// Fraction: process digit runs in blocks where possible.
 		var q = 0L;
-		if (i < len && Unsafe.Add(ref p, i) == '.')
+		if (i < len && CodeUnit(ref p, i) == decimalSeparator)
 		{
 			i++;
 			var fractionStart = i;
@@ -136,7 +144,7 @@ internal static partial class FastFloat
 			{
 				while (i < len)
 				{
-					var d = Unsafe.Add(ref p, i) - (ulong)'0';
+					var d = CodeUnit(ref p, i) - (ulong)'0';
 					if (d > 9) break;
 					w = w * 10 + d;
 					i++;
@@ -147,16 +155,20 @@ internal static partial class FastFloat
 			q = fractionStart - i;
 		}
 
-		if (digits == 0) goto Slow; // no digits: maybe Infinity or NaN
+		if (digits == 0)
+		{
+			if (allowSpecial) return TryParseSpecial(s, out value);
+			goto Invalid;
+		}
 
 		if (i < len)
 		{
-			if ((Unsafe.Add(ref p, i) | 0x20) != 'e') goto Slow;
+			if ((CodeUnit(ref p, i) | 0x20) != 'e') goto Invalid;
 			i++;
 			var negativeExponent = false;
 			if (i < len)
 			{
-				c = Unsafe.Add(ref p, i);
+				c = CodeUnit(ref p, i);
 				if (c == '-')
 				{
 					negativeExponent = true;
@@ -168,12 +180,12 @@ internal static partial class FastFloat
 				}
 			}
 
-			if (i >= len) goto Slow;
+			if (i >= len) goto Invalid;
 			var e = 0L;
 			do
 			{
-				var d = Unsafe.Add(ref p, i) - (ulong)'0';
-				if (d > 9) goto Slow;
+				var d = CodeUnit(ref p, i) - (ulong)'0';
+				if (d > 9) goto Invalid;
 				if (e < 0x10000000) e = e * 10 + (long)d; // saturate: anything this large is zero or infinity anyway
 				i++;
 			}
@@ -181,7 +193,7 @@ internal static partial class FastFloat
 			q += negativeExponent ? -e : e;
 		}
 
-		if (digits > 19) goto Slow;
+		if (digits > 19) return TryParseLong(s, start, digits, q, decimalSeparator, negative, out value);
 
 		// Clinger's fast path: w and 10^|q| are exact doubles, so a single correctly rounded operation gives the
 		// correctly rounded double.
@@ -201,11 +213,7 @@ internal static partial class FastFloat
 			// For float, rounding the double again gives the correctly rounded float unless the double landed
 			// exactly on a midpoint between two floats (the exact value may lie on either side): leave those to
 			// Eisel-Lemire. The result is always within the normal float range here.
-#if NET
 			if ((BitConverter.DoubleToUInt64Bits(d) & 0x1FFFFFFF) != 0x10000000)
-#else
-			if (((ulong)BitConverter.DoubleToInt64Bits(d) & 0x1FFFFFFF) != 0x10000000)
-#endif
 			{
 				var f = (float)d;
 				value = Unsafe.BitCast<float, T>(negative ? -f : f);
@@ -216,9 +224,26 @@ internal static partial class FastFloat
 
 		return Finish(typeof(T) == typeof(double) ? ComputeDouble(q, w) : ComputeSingle(q, w), negative, out value);
 
-	Slow:
-		return TryParseSlow(s, out value);
+	Invalid:
+		value = default;
+		return false;
 	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static uint CodeUnit<TChar>(ref TChar p, nint i) where TChar : unmanaged
+	{
+		ref var c = ref Unsafe.Add(ref p, i);
+		return typeof(TChar) == typeof(byte) ? Unsafe.As<TChar, byte>(ref c) : Unsafe.As<TChar, char>(ref c);
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static bool IsAsciiWhitespace(uint c) => c == ' ' || c - '\t' <= '\r' - '\t';
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static nint ParseDigitRun<TChar>(ref TChar p, nint i, nint len, ref ulong m) where TChar : unmanaged =>
+		typeof(TChar) == typeof(byte)
+			? ParseDigitRun(ref Unsafe.As<TChar, byte>(ref p), i, len, ref m)
+			: ParseDigitRun(ref Unsafe.As<TChar, char>(ref p), i, len, ref m);
 
 	/// <summary>
 	/// Accumulates the run of ASCII digits starting at <paramref name="i"/> into <paramref name="m"/> eight bytes at a
@@ -257,6 +282,33 @@ internal static partial class FastFloat
 
 			return i;
 		}
+	}
+
+	[MethodImpl(MethodImplOptions.AggressiveInlining)]
+	private static nint ParseDigitRun(ref char p, nint i, nint len, ref ulong m)
+	{
+		if (Vector128.IsHardwareAccelerated && BitConverter.IsLittleEndian)
+		{
+			while (len - i >= 8)
+			{
+				ref var first = ref Unsafe.As<char, ushort>(ref Unsafe.Add(ref p, i));
+				var digits = Vector128.LoadUnsafe(ref first) - Vector128.Create((ushort)'0');
+				if (Vector128.GreaterThanAny(digits, Vector128.Create((ushort)9))) break;
+				var packed = Vector128.Narrow(digits, Vector128<ushort>.Zero).AsUInt64().GetElement(0);
+				m = m * 100000000 + ConvertEightDigits(packed);
+				i += 8;
+			}
+		}
+
+		while (i < len)
+		{
+			var d = Unsafe.Add(ref p, i) - (ulong)'0';
+			if (d > 9) break;
+			m = m * 10 + d;
+			i++;
+		}
+
+		return i;
 	}
 
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -304,112 +356,76 @@ internal static partial class FastFloat
 	}
 
 	/// <summary>
-	/// Everything the hot path does not handle: validates the input, accepts Infinity/NaN as double.Parse does, and
-	/// handles mantissas with more than 19 digits by truncating them to 19 significant digits w: the value then lies
-	/// in [w, w + 1) * 10^q and is only accepted when both ends round to the same result.
+	/// The validated mantissa is truncated to 19 significant digits w; the result lies in [w, w + 1) * 10^q.
+	/// When the bounds round differently, only an all-zero discarded suffix can be decided without the BCL.
 	/// </summary>
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	private static bool TryParseSlow<T>(ReadOnlySpan<byte> s, out T value) where T : struct
+	private static bool TryParseLong<TChar, T>(ReadOnlySpan<TChar> s, nint start, nint digits, long q,
+		char decimalSeparator, bool negative, out T value)
+		where TChar : unmanaged
+		where T : struct
 	{
-		if (!TryParseDecimalSlow(s, out var w, out var q, out var negative, out var truncated))
-			return TryParseSpecial(s, out value);
+		ref var p = ref MemoryMarshal.GetReference(s);
+		var i = start;
+		nint leading = 0;
+		while (leading < digits)
+		{
+			var c = CodeUnit(ref p, i++);
+			if (c == decimalSeparator) continue;
+			if (c != '0') { i--; break; }
+			leading++;
+		}
+
+		if (leading == digits) return Finish(0, negative, out value);
+
+		var significant = digits - leading;
+		var wanted = significant < 19 ? significant : 19;
+		nint taken = 0;
+		var w = 0UL;
+		while (taken < wanted)
+		{
+			var end = i + wanted - taken;
+			var next = ParseDigitRun(ref p, i, end, ref w);
+			taken += next - i;
+			i = next;
+			if (taken < wanted) i++; // skip the already validated decimal separator
+		}
+
+		q += significant - taken;
 		var bits = typeof(T) == typeof(double) ? ComputeDouble(q, w) : ComputeSingle(q, w);
-		if (truncated && bits != (typeof(T) == typeof(double) ? ComputeDouble(q, w + 1) : ComputeSingle(q, w + 1)))
-			bits = Undecided;
-
-		return Finish(bits, negative, out value);
-	}
-
-	/// <summary>
-	/// Validates <c>[+-]digits[.digits][(e|E)[+-]digits]</c> and returns the first 19 significant digits w and the
-	/// exponent q such that the value is w * 10^q, flagging whether non-zero digits were dropped.
-	/// </summary>
-	private static bool TryParseDecimalSlow(ReadOnlySpan<byte> s, out ulong w, out long q, out bool negative, out bool truncated)
-	{
-		w = 0;
-		q = 0;
-		negative = false;
-		truncated = false;
-		var i = 0;
-		if (s.Length != 0 && (s[0] == '-' || s[0] == '+'))
+		if (significant > taken &&
+			bits != (typeof(T) == typeof(double) ? ComputeDouble(q, w + 1) : ComputeSingle(q, w + 1)))
 		{
-			negative = s[0] == '-';
-			i = 1;
-		}
-
-		int digits = 0, taken = 0;
-		var scale = 0L;
-		var fraction = false;
-		for (; i < s.Length; i++)
-		{
-			uint c = s[i];
-			if (c == '.' && !fraction)
-			{
-				fraction = true;
-				continue;
-			}
-
-			var d = c - '0';
-			if (d > 9) break;
-			digits++;
-			if (taken < 19)
-			{
-				if (fraction) scale--;
-				if (w == 0 && d == 0) continue; // leading zeros are not significant
-				w = w * 10 + d;
-				taken++;
-			}
-			else
-			{
-				if (!fraction) scale++;
-				if (d != 0) truncated = true;
-			}
-		}
-
-		if (digits == 0) return false;
-
-		var e = 0L;
-		if (i < s.Length)
-		{
-			if ((s[i] | 0x20) != 'e') return false;
-			i++;
-			var negativeExponent = false;
-			if (i < s.Length && (s[i] == '-' || s[i] == '+'))
-			{
-				negativeExponent = s[i] == '-';
-				i++;
-			}
-
-			if (i == s.Length) return false;
 			for (; i < s.Length; i++)
 			{
-				var d = (uint)(s[i] - '0');
-				if (d > 9) return false;
-				if (e < 0x10000000) e = e * 10 + d;
+				var c = CodeUnit(ref p, i);
+				if (c == decimalSeparator || c == '0') continue;
+				if (c - '0' > 9) break; // exponent
+				bits = Undecided;
+				break;
 			}
-
-			if (negativeExponent) e = -e;
 		}
 
-		q = scale + e;
-
-		return true;
+		return Finish(bits, negative, out value);
 	}
 
 	/// <summary>
 	/// The non-numeric values double.Parse and float.Parse accept with the invariant culture, case-insensitively and
 	/// with an optional sign: Infinity and NaN (but not "inf").
 	/// </summary>
-	private static bool TryParseSpecial<T>(ReadOnlySpan<byte> s, out T value) where T : struct
+	private static bool TryParseSpecial<TChar, T>(ReadOnlySpan<TChar> s, out T value)
+		where TChar : unmanaged
+		where T : struct
 	{
 		var negative = false;
-		if (s.Length != 0 && (s[0] == '-' || s[0] == '+'))
+		ref var p = ref MemoryMarshal.GetReference(s);
+		if (s.Length != 0 && (CodeUnit(ref p, 0) == '-' || CodeUnit(ref p, 0) == '+'))
 		{
-			negative = s[0] == '-';
+			negative = CodeUnit(ref p, 0) == '-';
 			s = s.Slice(1);
 		}
 
-		if (Ascii.EqualsIgnoreCase(s, "Infinity"u8))
+		if (EqualsAsciiIgnoreCase(s, "Infinity"u8))
 		{
 			value = typeof(T) == typeof(double)
 				? Unsafe.BitCast<double, T>(negative ? double.NegativeInfinity : double.PositiveInfinity)
@@ -418,7 +434,7 @@ internal static partial class FastFloat
 			return true;
 		}
 
-		if (Ascii.EqualsIgnoreCase(s, "NaN"u8))
+		if (EqualsAsciiIgnoreCase(s, "NaN"u8))
 		{
 			value = typeof(T) == typeof(double) ? Unsafe.BitCast<double, T>(double.NaN) : Unsafe.BitCast<float, T>(float.NaN);
 
@@ -428,6 +444,16 @@ internal static partial class FastFloat
 		value = default;
 
 		return false;
+	}
+
+	private static bool EqualsAsciiIgnoreCase<TChar>(ReadOnlySpan<TChar> s, ReadOnlySpan<byte> ascii)
+		where TChar : unmanaged
+	{
+		if (s.Length != ascii.Length) return false;
+		ref var p = ref MemoryMarshal.GetReference(s);
+		for (var i = 0; i < ascii.Length; i++)
+			if ((CodeUnit(ref p, i) | 0x20) != (ascii[i] | 0x20)) return false;
+		return true;
 	}
 
 	/// <summary>
@@ -538,7 +564,6 @@ internal static partial class FastFloat
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static ulong MultiplyHigh(ulong a, ulong b, out ulong low)
 	{
-#if NET
 		if (Bmi2.X64.IsSupported)
 		{
 			low = a * b;
@@ -547,65 +572,14 @@ internal static partial class FastFloat
 		}
 
 		return Math.BigMul(a, b, out low);
-#else
-		return Portable.BigMul(a, b, out low);
-#endif
 	}
 
 	/// <summary>The high 64 bits of the 128-bit product of two 64-bit values.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#if NET
 	private static ulong MultiplyHigh(ulong a, ulong b) => Bmi2.X64.IsSupported ? Bmi2.X64.MultiplyNoFlags(a, b) : Math.BigMul(a, b, out _);
-#else
-	private static ulong MultiplyHigh(ulong a, ulong b) => Portable.BigMul(a, b, out _);
-#endif
 
 	/// <summary>floor(log2(5^q)) + q + 63 for q in (-400, 350), i.e. the binary exponent of 10^q plus 63.</summary>
 	[MethodImpl(MethodImplOptions.AggressiveInlining)]
 	private static int Power(int q) => (((152170 + 65536) * q) >> 16) + 63;
 
-#if !NET
-	/// <summary>
-	/// Stands in for <c>System.Runtime.CompilerServices.Unsafe</c> in this class, adding <c>BitCast</c>, which the
-	/// .NET Standard package lacks, so the code is the same on every target.
-	/// </summary>
-	private static class Unsafe
-	{
-		/// <summary>The reference <paramref name="elementOffset"/> elements after <paramref name="source"/>.</summary>
-		/// <typeparam name="T">The type of the elements.</typeparam>
-		/// <param name="source">The reference to start from.</param>
-		/// <param name="elementOffset">The number of elements to move by.</param>
-		/// <returns>The reference to the element.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ref T Add<T>(ref T source, int elementOffset) => ref System.Runtime.CompilerServices.Unsafe.Add(ref source, elementOffset);
-
-		/// <summary>The reference <paramref name="elementOffset"/> elements after <paramref name="source"/>.</summary>
-		/// <typeparam name="T">The type of the elements.</typeparam>
-		/// <param name="source">The reference to start from.</param>
-		/// <param name="elementOffset">The number of elements to move by, as a native integer.</param>
-		/// <returns>The reference to the element.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ref T Add<T>(ref T source, nint elementOffset) => ref System.Runtime.CompilerServices.Unsafe.Add(ref source, elementOffset);
-
-		/// <summary>Reads a <typeparamref name="T"/> from <paramref name="source"/>, whatever its alignment.</summary>
-		/// <typeparam name="T">The type to read.</typeparam>
-		/// <param name="source">The first byte of the value.</param>
-		/// <returns>The value.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T ReadUnaligned<T>(ref byte source) => System.Runtime.CompilerServices.Unsafe.ReadUnaligned<T>(ref source);
-
-		/// <summary>
-		/// Reinterprets the bits of <paramref name="value"/> as a <typeparamref name="TTo"/>, like .NET's
-		/// <c>Unsafe.BitCast</c>. Unlike it, nothing checks that the two types have the same size: the callers only cast
-		/// a <see cref="double"/> or <see cref="ulong"/> to <c>T = double</c>, and a <see cref="float"/> or
-		/// <see cref="uint"/> to <c>T = float</c>.
-		/// </summary>
-		/// <typeparam name="TFrom">The type of <paramref name="value"/>.</typeparam>
-		/// <typeparam name="TTo">The type to reinterpret it as, of the same size.</typeparam>
-		/// <param name="value">The value to reinterpret.</param>
-		/// <returns>The bits of <paramref name="value"/> as a <typeparamref name="TTo"/>.</returns>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TTo BitCast<TFrom, TTo>(TFrom value) => System.Runtime.CompilerServices.Unsafe.As<TFrom, TTo>(ref value);
-	}
-#endif
 }

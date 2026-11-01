@@ -5,6 +5,7 @@ using System.Collections.Generic;
 #endif
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -53,16 +54,9 @@ public sealed partial class SepReader : SepReaderState
         _continueOnCapturedContext = options.AsyncContinueOnCapturedContext;
         _arrayPool = new();
 
-        var decimalSeparator = _cultureInfo?.NumberFormat.NumberDecimalSeparator ??
-            System.Globalization.CultureInfo.InvariantCulture.NumberFormat.NumberDecimalSeparator;
-        _fastFloatDecimalSeparatorOrZero =
-            decimalSeparator.Length == 1 && !options.DisableFastFloat
-            ? decimalSeparator[0]
-            : '\0';
-        var groupSeparator = _cultureInfo?.NumberFormat.NumberGroupSeparator ??
-            System.Globalization.CultureInfo.InvariantCulture.NumberFormat.NumberGroupSeparator;
-        _fastFloatGroupSeparatorOrZero =
-            groupSeparator.Length == 1 ? groupSeparator[0] : '\0';
+        _fastFloatDecimalSeparatorOrZero = options.DisableFastFloat
+            ? '\0'
+            : GetFastFloatDecimalSeparator(_cultureInfo);
 
         int? maybeReaderLengthEstimate = TryGetTextReaderLength(_reader, out var longReaderLength)
             // TextReader length can be greater than int.MaxValue so have to
@@ -91,6 +85,35 @@ public sealed partial class SepReader : SepReaderState
         _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, _charsPaddingLength * 2));
     }
+
+    static char GetFastFloatDecimalSeparator(CultureInfo? culture)
+    {
+        // A null or mutable provider can change after the reader is created.
+        if (culture is null || culture.GetType() != typeof(CultureInfo) || !culture.IsReadOnly)
+        {
+            return '\0';
+        }
+
+        var format = culture.NumberFormat;
+        var decimalSeparator = format.NumberDecimalSeparator;
+        var groupSeparator = format.NumberGroupSeparator;
+        if (!format.IsReadOnly || format.PositiveSign != "+" || format.NegativeSign != "-" ||
+            decimalSeparator.Length != 1 || groupSeparator.Length > 1)
+        {
+            return '\0';
+        }
+
+        var separator = decimalSeparator[0];
+        if (separator == '\0' || char.IsWhiteSpace(separator) || IsFastFloatSyntax(separator) ||
+            (groupSeparator.Length == 1 && (groupSeparator[0] == separator || IsFastFloatSyntax(groupSeparator[0]))))
+        {
+            return '\0';
+        }
+
+        return separator;
+    }
+
+    static bool IsFastFloatSyntax(char c) => (uint)(c - '0') <= 9 || c is '+' or '-' or 'e' or 'E';
 
     public bool IsEmpty { get; private set; }
     public SepSpec Spec => new(new(_separator), _cultureInfo, _continueOnCapturedContext);

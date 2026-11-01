@@ -47,17 +47,14 @@ static class SepParserFactory
     static void AddFactories<TCollection>(TCollection parsers, bool createUnaccelerated)
         where TCollection : ICollection<KeyValuePair<string, Func<SepParserOptions, ISepParser>>>
     {
-#if NET8_0_OR_GREATER
         // AVX-512 to 256 avoids mask register code gen issues
         if (Avx512BW.IsSupported)
         { Add(parsers, nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt), static sep => new SepParserAvx512To256CmpOrMoveMaskTzcnt(sep)); }
-#endif
         // Avx2 and Vector256 are faster than most AVX-512 due to mask register code gen issues
         if (Avx2.IsSupported)
         { Add(parsers, nameof(SepParserAvx2PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx2PackCmpOrMoveMaskTzcnt(sep)); }
         if (createUnaccelerated || Vector256.IsHardwareAccelerated)
         { Add(parsers, nameof(SepParserVector256NrwCmpExtMsbTzcnt), static sep => new SepParserVector256NrwCmpExtMsbTzcnt(sep)); }
-#if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
         { Add(parsers, nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt), static sep => new SepParserAvx512PackCmpOrMoveMaskTzcnt(sep)); }
         if (Avx512BW.VL.IsSupported)
@@ -66,7 +63,6 @@ static class SepParserFactory
         { Add(parsers, nameof(SepParserVector512NrwCmpExtMsbTzcnt), static sep => new SepParserVector512NrwCmpExtMsbTzcnt(sep)); }
         if (Environment.Is64BitProcess && AdvSimd.Arm64.IsSupported)
         { Add(parsers, nameof(SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt), static sep => new SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt(sep)); }
-#endif
 #if NET9_0_OR_GREATER
         if (Environment.Is64BitProcess && AdvSimd.Arm64.IsSupported)
         { Add(parsers, nameof(SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt), static sep => new SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt(sep)); }

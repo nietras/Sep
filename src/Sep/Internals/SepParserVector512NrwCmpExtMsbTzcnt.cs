@@ -1,5 +1,4 @@
-﻿#if NET8_0_OR_GREATER
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.Unsafe;
@@ -190,4 +189,3 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static nuint MoveMask(VecUI8 v) => (nuint)Vec.ExtractMostSignificantBits(v);
 }
-#endif

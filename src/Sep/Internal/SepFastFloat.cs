@@ -1,6 +1,5 @@
 // Derived from CsvHelper's FastFloat implementation and fast_float.
 // Modified for Sep; CsvHelper-derived portions use Apache-2.0.
-// Original licenses are in src/Sep/ThirdParty.
 // CsvHelper source: https://github.com/JoshClose/CsvHelper/tree/dffe5e9a634e1894d334b6a69599d8b489c4fc78
 // fast_float: https://github.com/fastfloat/fast_float
 using System;

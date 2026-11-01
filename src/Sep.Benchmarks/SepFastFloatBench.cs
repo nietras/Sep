@@ -17,7 +17,7 @@ public class SepFastFloatBench
     byte[][] _bytes = [];
     string _rows = "";
 
-    [Params("SepFloats", "Fixed", "Scientific", "Long", "Whitespace", "Grouped")]
+    [Params("SepFloats", "Fixed", "Scientific", "Long", "Whitespace", "Grouped", "Integers", "Fraction7", "Fraction8")]
     public string Data { get; set; } = "";
 
     [GlobalSetup]
@@ -36,6 +36,9 @@ public class SepFastFloatBench
                 "Long" => string.Create(Invariant, $"{random.Next(1, 10)}.{random.NextInt64(0, 1_000_000_000_000_000_000):D18}{random.NextInt64(0, 1_000_000_000_000_000_000):D18}E{random.Next(-20, 21)}"),
                 "Whitespace" => "  " + random.NextSingle().ToString("R", Invariant),
                 "Grouped" => (random.Next(100_000, 10_000_000) / 100d).ToString("N2", Invariant),
+                "Integers" => random.NextInt64(1, long.MaxValue).ToString(Invariant),
+                "Fraction7" => "0." + random.Next(10_000_000).ToString("D7", Invariant),
+                "Fraction8" => "0." + random.Next(100_000_000).ToString("D8", Invariant),
                 _ => throw new InvalidOperationException(Data),
             };
             _chars[i] = value;

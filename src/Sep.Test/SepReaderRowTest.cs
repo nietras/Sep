@@ -290,8 +290,6 @@ public class SepReaderRowTest
             Assert.AreEqual(expected[i], cols[i].ToString(), i.ToString());
         }
         CollectionAssert.AreEqual(expected.ToArray(), cols.ToStringsArray());
-#if NET8_0_OR_GREATER
         CollectionAssert.AreEqual(expected.ToArray(), cols.ParseToArray<string>());
-#endif
     }
 }

@@ -10,7 +10,6 @@ namespace nietras.SeparatedValues.Test.Internals;
 [TestClass]
 public class InterpolatedStringHandlerTest
 {
-#if NET8_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_pos")]
     static extern ref int Position(ref DefaultInterpolatedStringHandler handler);
@@ -29,7 +28,6 @@ public class InterpolatedStringHandlerTest
         var text = handler.ToStringAndClear();
         Assert.IsNotNull(text);
     }
-#endif
 
     [TestMethod]
     public void InterpolatedStringHandlerTest_Log()

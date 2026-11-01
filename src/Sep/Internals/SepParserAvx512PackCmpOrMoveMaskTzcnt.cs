@@ -1,5 +1,4 @@
-﻿#if NET8_0_OR_GREATER
-using System;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -195,4 +194,3 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static nuint MoveMask(VecUI8 v) => (nuint)Vec.ExtractMostSignificantBits(v);
 }
-#endif

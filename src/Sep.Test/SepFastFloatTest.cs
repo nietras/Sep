@@ -95,7 +95,6 @@ public class FastFloatTests
 		"(1)", "$1", "1%", "1.0f", "e1", "E1", "1e1.", "1.e", ".e", "+.e1", "0x", "1.5E+", "1.5E-", "1..", "..1",
 	};
 
-#if NET
 	[TestMethod]
 	[DynamicData(nameof(EdgeCases))]
 	public void Double_EdgeCases_MatchDoubleParse(string s)
@@ -114,7 +113,6 @@ public class FastFloatTests
 		CheckSingle(Encoding.UTF8.GetBytes(s), failures);
 		failures.AssertNone(TestContext);
 	}
-#endif
 
 	[TestMethod]
 	[DynamicData(nameof(InvalidInputs))]
@@ -178,7 +176,7 @@ public class FastFloatTests
 				BitConverter.SingleToInt32Bits(expectedSingle) != BitConverter.SingleToInt32Bits(single8) ||
 				BitConverter.SingleToInt32Bits(expectedSingle) != BitConverter.SingleToInt32Bits(single16))
 				f.Add($"comma decimal mismatch: \"{Show(utf8)}\"");
-			Interlocked.Increment(ref f.Checked);
+			f.Checked++;
 		});
 		failures.AssertNone(TestContext);
 	}
@@ -204,16 +202,26 @@ public class FastFloatTests
 	public void Utf16_ShortDigitRuns()
 	{
 		string[] suffixes = ["", "9", "98", "987", "9876", "e-2"];
+		Span<char> buffer = stackalloc char[16];
+		buffer[0] = '0';
+		buffer[1] = '.';
 		for (var i = 0; i < 10_000; i++)
 		{
-			var digits = i.ToString("D4", Invariant);
+			Assert.IsTrue(i.TryFormat(buffer.Slice(2), out var written, "D4", Invariant));
+			Assert.AreEqual(4, written);
 			foreach (var suffix in suffixes)
 			{
-				var s = "0." + digits + suffix;
-				Assert.IsTrue(FastFloat.TryParseDouble(s.AsSpan(), out var d), s);
-				Assert.IsTrue(FastFloat.TryParseSingle(s.AsSpan(), out var f), s);
-				Assert.AreEqual(BitConverter.DoubleToInt64Bits(double.Parse(s, Styles, Invariant)), BitConverter.DoubleToInt64Bits(d), s);
-				Assert.AreEqual(BitConverter.SingleToInt32Bits(float.Parse(s, Styles, Invariant)), BitConverter.SingleToInt32Bits(f), s);
+				suffix.AsSpan().CopyTo(buffer.Slice(6));
+				var s = buffer.Slice(0, 6 + suffix.Length);
+				var okDouble = FastFloat.TryParseDouble(s, out var d);
+				var okSingle = FastFloat.TryParseSingle(s, out var f);
+				var expectedDouble = BitConverter.DoubleToInt64Bits(double.Parse(s, Styles, Invariant));
+				var expectedSingle = BitConverter.SingleToInt32Bits(float.Parse(s, Styles, Invariant));
+				if (!okDouble || !okSingle ||
+					expectedDouble != BitConverter.DoubleToInt64Bits(d) ||
+					expectedSingle != BitConverter.SingleToInt32Bits(f))
+					Assert.Fail($"Short digit run \"{s}\": double accepted={okDouble}, expected=0x{expectedDouble:X16}, actual=0x{BitConverter.DoubleToInt64Bits(d):X16}; " +
+						$"float accepted={okSingle}, expected=0x{expectedSingle:X8}, actual=0x{BitConverter.SingleToInt32Bits(f):X8}");
 			}
 		}
 
@@ -221,10 +229,11 @@ public class FastFloatTests
 		{
 			for (var position = 0; position < 4; position++)
 			{
-				var chars = "0.1234e-2".ToCharArray();
+				var chars = buffer.Slice(0, 9);
+				"0.1234e-2".AsSpan().CopyTo(chars);
 				chars[2 + position] = invalid;
-				Assert.IsFalse(FastFloat.TryParseDouble(chars, out _), new string(chars));
-				Assert.IsFalse(FastFloat.TryParseSingle(chars, out _), new string(chars));
+				if (FastFloat.TryParseDouble(chars, out _) || FastFloat.TryParseSingle(chars, out _))
+					Assert.Fail($"Accepted invalid digit run: \"{chars}\"");
 			}
 		}
 	}
@@ -338,9 +347,7 @@ public class FastFloatTests
 	public void Double_KnownBitPatterns(string s, long expectedBits)
 	{
 		var utf8 = Encoding.UTF8.GetBytes(s);
-#if NET
 		Assert.AreEqual(expectedBits, BitConverter.DoubleToInt64Bits(double.Parse(utf8, Styles, Invariant)));
-#endif
 		if (FastFloat.TryParseDouble(utf8, out var d)) Assert.AreEqual(expectedBits, BitConverter.DoubleToInt64Bits(d));
 		else Assert.IsTrue(s.Length > 20, $"\"{s}\" should take the fast path");
 		if (FastFloat.TryParseDouble(s.AsSpan(), out var d16)) Assert.AreEqual(expectedBits, BitConverter.DoubleToInt64Bits(d16));
@@ -365,20 +372,12 @@ public class FastFloatTests
 	public void Single_KnownBitPatterns(string s, int expectedBits)
 	{
 		var utf8 = Encoding.UTF8.GetBytes(s);
-#if NET
 		Assert.AreEqual(expectedBits, BitConverter.SingleToInt32Bits(float.Parse(utf8, Styles, Invariant)));
-#endif
-		if (FastFloat.TryParseSingle(utf8, out var f)) Assert.AreEqual(expectedBits, SingleBits(f));
+		if (FastFloat.TryParseSingle(utf8, out var f)) Assert.AreEqual(expectedBits, BitConverter.SingleToInt32Bits(f));
 		else Assert.IsTrue(s.Length > 20, $"\"{s}\" should take the fast path");
-		if (FastFloat.TryParseSingle(s.AsSpan(), out var f16)) Assert.AreEqual(expectedBits, SingleBits(f16));
+		if (FastFloat.TryParseSingle(s.AsSpan(), out var f16)) Assert.AreEqual(expectedBits, BitConverter.SingleToInt32Bits(f16));
 		else Assert.IsTrue(s.Length > 20, $"UTF-16 \"{s}\" should take the fast path");
 	}
-
-	private static int SingleBits(float f) => BitConverter.ToInt32(BitConverter.GetBytes(f), 0);
-
-	// The tests below use double.Parse and float.Parse as the reference, which are exactly rounded only on .NET Core 3.0
-	// and later. On .NET Framework, PortableTests checks the formatter and the parser against each other instead.
-#if NET
 
 	[TestMethod]
 	[DataRow("0")]
@@ -424,8 +423,8 @@ public class FastFloatTests
 	{
 		var failures = new Failures();
 		var rng = new Random(800);
-		var inputs = new List<string>
-		{
+		string[] inputs =
+		[
 			"1" + new string('0', 800),
 			"1" + new string('0', 800) + "e-800",
 #if !NET8_0
@@ -440,22 +439,34 @@ public class FastFloatTests
 			"1." + new string('0', 16) + "1" + new string('0', 783),
 			new string('0', 800) + "1.5",
 			"0." + new string('0', 800),
-		};
-		for (var n = 0; n < 200; n++)
-		{
-			var sb = new StringBuilder();
-			var len = rng.Next(20, 801);
-			for (var k = 0; k < len; k++) sb.Append((char)('0' + rng.Next(10)));
-			if (rng.Next(2) == 0) sb.Insert(rng.Next(len + 1), '.');
-			if (rng.Next(2) == 0) sb.Append('e').Append(rng.Next(-1200, 400));
-			inputs.Add(sb.ToString());
-		}
-
+		];
 		foreach (var s in inputs)
 		{
 			var utf8 = Encoding.UTF8.GetBytes(s);
 			CheckDouble(utf8, failures);
 			CheckSingle(utf8, failures);
+		}
+
+		Span<byte> buffer = stackalloc byte[832];
+		for (var n = 0; n < 200; n++)
+		{
+			var len = rng.Next(20, 801);
+			for (var k = 0; k < len; k++) buffer[k] = (byte)('0' + rng.Next(10));
+			if (rng.Next(2) == 0)
+			{
+				var point = rng.Next(len + 1);
+				buffer.Slice(point, len - point).CopyTo(buffer.Slice(point + 1));
+				buffer[point] = (byte)'.';
+				len++;
+			}
+			if (rng.Next(2) == 0)
+			{
+				buffer[len++] = (byte)'e';
+				Assert.IsTrue(rng.Next(-1200, 400).TryFormat(buffer.Slice(len), out var written, default, Invariant));
+				len += written;
+			}
+			CheckDouble(buffer.Slice(0, len), failures);
+			CheckSingle(buffer.Slice(0, len), failures);
 		}
 
 		// Long but easily decided mantissas must not need the fallback.
@@ -499,12 +510,15 @@ public class FastFloatTests
 			foreach (var item in InvalidInputs) inputs.Add(Encoding.UTF8.GetBytes((string)item[0]));
 			var rng = new Random(77);
 			Span<byte> buffer = stackalloc byte[128];
+			Span<char> charBuffer = stackalloc char[1024];
 			for (var n = 0; n < 5000; n++) inputs.Add(buffer.Slice(0, RandomNumberString(rng, buffer, maxDigits: 30, maxExponent: 330)).ToArray());
 			for (var n = 0; n < 2000; n++)
 			{
 				var d = BitConverter.Int64BitsToDouble(rng.NextInt64(long.MinValue, long.MaxValue));
-				inputs.Add(Encoding.UTF8.GetBytes(d.ToString(n % 2 == 0 ? "R" : "E16", Invariant)));
-				inputs.Add(Encoding.UTF8.GetBytes(TypicalDouble(rng).ToString(TypicalFormats[rng.Next(TypicalFormats.Length)], Invariant)));
+				Assert.IsTrue(d.TryFormat(buffer, out var written, n % 2 == 0 ? "R" : "E16", Invariant));
+				inputs.Add(buffer.Slice(0, written).ToArray());
+				Assert.IsTrue(TypicalDouble(rng).TryFormat(buffer, out written, TypicalFormats[rng.Next(TypicalFormats.Length)], Invariant));
+				inputs.Add(buffer.Slice(0, written).ToArray());
 			}
 
 			foreach (var input in inputs)
@@ -513,8 +527,9 @@ public class FastFloatTests
 				var okSingle = FastFloat.TryParseSingle(input, out var expectedSingle);
 				var okDoubleWhite = FastFloat.TryParseDouble(input, out var expectedDoubleWhite, allowLeadingWhitespace: true);
 				var okSingleWhite = FastFloat.TryParseSingle(input, out var expectedSingleWhite, allowLeadingWhitespace: true);
-				foreach (var address in new[] { usable + Page - input.Length, usable })
+				for (var side = 0; side < 2; side++)
 				{
+					var address = side == 0 ? usable + Page - input.Length : usable;
 					var span = NativeSpan(address, input.Length);
 					input.CopyTo(span);
 					Assert.AreEqual(okDouble, FastFloat.TryParseDouble(span, out var d));
@@ -527,14 +542,15 @@ public class FastFloatTests
 					Assert.AreEqual(BitConverter.SingleToInt32Bits(expectedSingleWhite), BitConverter.SingleToInt32Bits(fw));
 				}
 
-				var chars = Encoding.UTF8.GetChars(input);
+				var chars = charBuffer.Slice(0, Encoding.UTF8.GetChars(input, charBuffer));
 				okDouble = FastFloat.TryParseDouble(chars, out expectedDouble);
 				okSingle = FastFloat.TryParseSingle(chars, out expectedSingle);
 				okDoubleWhite = FastFloat.TryParseDouble(chars, out expectedDoubleWhite, allowLeadingWhitespace: true);
 				okSingleWhite = FastFloat.TryParseSingle(chars, out expectedSingleWhite, allowLeadingWhitespace: true);
 				var byteLength = chars.Length * sizeof(char);
-				foreach (var address in new[] { usable + Page - byteLength, usable })
+				for (var side = 0; side < 2; side++)
 				{
+					var address = side == 0 ? usable + Page - byteLength : usable;
 					var span = MemoryMarshal.Cast<byte, char>(NativeSpan(address, byteLength));
 					chars.CopyTo(span);
 					Assert.AreEqual(okDouble, FastFloat.TryParseDouble(span, out var d));
@@ -554,9 +570,8 @@ public class FastFloatTests
 		}
 	}
 
-	// Qualified: on net8.0 the name MemoryMarshal finds the polyfill of the library's netstandard2.1 build first.
 	private static Span<byte> NativeSpan(IntPtr address, int length) =>
-		System.Runtime.InteropServices.MemoryMarshal.CreateSpan(ref Unsafe.AddByteOffset(ref Unsafe.NullRef<byte>(), address), length);
+		MemoryMarshal.CreateSpan(ref Unsafe.AddByteOffset(ref Unsafe.NullRef<byte>(), address), length);
 
 	private const uint MemCommit = 0x1000, MemReserve = 0x2000, MemRelease = 0x8000, PageNoAccess = 0x01, PageReadWrite = 0x04;
 
@@ -686,27 +701,30 @@ public class FastFloatTests
 	public void Double_NearPowersOfTwo()
 	{
 		var failures = new Failures();
-		Parallel.For(-1074, 1024, k =>
+		Parallel.For(-1074, 1024, static () => new Failures(), (k, _, local) =>
 		{
 			Span<byte> buffer = stackalloc byte[512];
 			var p = Math.ScaleB(1.0, k);
-			foreach (var d in new[] { Math.BitDecrement(p), p, Math.BitIncrement(p) })
+			ReadOnlySpan<double> nearby = [Math.BitDecrement(p), p, Math.BitIncrement(p)];
+			foreach (var d in nearby)
 			{
 				if (!double.IsFinite(d) || d <= 0) continue;
 				foreach (var format in RoundTripDoubleFormats)
 				{
-					foreach (var v in new[] { d, -d })
+					for (var sign = 0; sign < 2; sign++)
 					{
+						var v = sign == 0 ? d : -d;
 						Assert.IsTrue(v.TryFormat(buffer, out var n, format, Invariant));
-						CheckDouble(buffer.Slice(0, n), failures, expected: RoundTrips(format) ? v : null);
+						CheckDouble(buffer.Slice(0, n), local, expected: RoundTrips(format) ? v : null);
 					}
 				}
 			}
 
 			var rng = new Random(k + 5000);
-			if (p > double.Epsilon) CheckDoubleHalfway(Math.BitDecrement(p), rng, failures);
-			CheckDoubleHalfway(p, rng, failures);
-		});
+			if (p > double.Epsilon) CheckDoubleHalfway(Math.BitDecrement(p), rng, local);
+			CheckDoubleHalfway(p, rng, local);
+			return local;
+		}, failures.Merge);
 		CheckDoubleHalfway(double.MaxValue, new Random(1), failures);
 		CheckDoubleHalfway(0.0, new Random(3), failures);
 		failures.AssertNone(TestContext);
@@ -735,6 +753,7 @@ public class FastFloatTests
 		var failures = new Failures();
 		var rng = new Random(51);
 		var found = 0;
+		Span<byte> buffer = stackalloc byte[256];
 		for (var n = 0; n < 200_000; n++)
 		{
 			var m = (1UL << 52) | ((ulong)rng.NextInt64() & 0x000FFFFFFFFFFFFF);
@@ -759,8 +778,9 @@ public class FastFloatTests
 			var hi = Math.ScaleB((double)(m + 1), e);
 			if (!double.IsFinite(hi) || lo < 2.2250738585072014E-308) continue;
 			var even = (m & 1) == 0 ? lo : hi;
-			var utf8 = Encoding.UTF8.GetBytes(FormatDecimal(digits, exp10, rng.Next(3)));
-			Assert.IsTrue(CheckDouble(utf8, failures), $"tie \"{Encoding.UTF8.GetString(utf8)}\" not accepted");
+			var written = Encoding.UTF8.GetBytes(FormatDecimal(digits, exp10, rng.Next(3)), buffer);
+			var utf8 = buffer.Slice(0, written);
+			if (!CheckDouble(utf8, failures)) Assert.Fail($"tie \"{Encoding.UTF8.GetString(utf8)}\" not accepted");
 			Assert.IsTrue(FastFloat.TryParseDouble(utf8, out var actual));
 			Assert.AreEqual(BitConverter.DoubleToInt64Bits(even), BitConverter.DoubleToInt64Bits(actual));
 		}
@@ -810,7 +830,7 @@ public class FastFloatTests
 		const long Stride = 997;
 		const int Chunks = 64;
 		var total = (1L << 32) / Stride + 1;
-		Parallel.For(0, Chunks, chunk =>
+		Parallel.For(0, Chunks, static () => new Failures(), (chunk, _, local) =>
 		{
 			Span<byte> buffer = stackalloc byte[128];
 			for (long index = chunk; index < total; index += Chunks)
@@ -818,11 +838,12 @@ public class FastFloatTests
 				var x = BitConverter.UInt32BitsToSingle((uint)(index * Stride));
 				if (!float.IsFinite(x)) continue;
 				Assert.IsTrue(x.TryFormat(buffer, out var n, "R", Invariant));
-				CheckSingle(buffer.Slice(0, n), failures);
+				CheckSingle(buffer.Slice(0, n), local);
 				Assert.IsTrue(x.TryFormat(buffer, out n, "E8", Invariant));
-				CheckSingle(buffer.Slice(0, n), failures, expected: x);
+				CheckSingle(buffer.Slice(0, n), local, expected: x);
 			}
-		});
+			return local;
+		}, failures.Merge);
 		failures.AssertNone(TestContext);
 	}
 
@@ -866,27 +887,30 @@ public class FastFloatTests
 	public void Single_NearPowersOfTwo()
 	{
 		var failures = new Failures();
-		Parallel.For(-149, 128, k =>
+		Parallel.For(-149, 128, static () => new Failures(), (k, _, local) =>
 		{
 			Span<byte> buffer = stackalloc byte[512];
 			var p = MathF.ScaleB(1.0f, k);
-			foreach (var x in new[] { MathF.BitDecrement(p), p, MathF.BitIncrement(p) })
+			ReadOnlySpan<float> nearby = [MathF.BitDecrement(p), p, MathF.BitIncrement(p)];
+			foreach (var x in nearby)
 			{
 				if (!float.IsFinite(x) || x <= 0) continue;
 				foreach (var format in RoundTripSingleFormats)
 				{
-					foreach (var v in new[] { x, -x })
+					for (var sign = 0; sign < 2; sign++)
 					{
+						var v = sign == 0 ? x : -x;
 						Assert.IsTrue(v.TryFormat(buffer, out var n, format, Invariant));
-						CheckSingle(buffer.Slice(0, n), failures, expected: RoundTrips(format) ? v : null);
+						CheckSingle(buffer.Slice(0, n), local, expected: RoundTrips(format) ? v : null);
 					}
 				}
 			}
 
 			var rng = new Random(k + 7000);
-			if (p > float.Epsilon) CheckSingleHalfway(MathF.BitDecrement(p), rng, failures);
-			CheckSingleHalfway(p, rng, failures);
-		});
+			if (p > float.Epsilon) CheckSingleHalfway(MathF.BitDecrement(p), rng, local);
+			CheckSingleHalfway(p, rng, local);
+			return local;
+		}, failures.Merge);
 		CheckSingleHalfway(float.MaxValue, new Random(2), failures);
 		CheckSingleHalfway(0.0f, new Random(4), failures);
 		failures.AssertNone(TestContext);
@@ -911,6 +935,7 @@ public class FastFloatTests
 		var failures = new Failures();
 		var rng = new Random(151);
 		var found = 0;
+		Span<byte> buffer = stackalloc byte[256];
 		for (var n = 0; n < 200_000; n++)
 		{
 			var m = (1U << 23) | ((uint)rng.Next() & 0x7FFFFF);
@@ -934,8 +959,9 @@ public class FastFloatTests
 			if (!float.IsFinite(hi) || lo < 1.17549435E-38f) continue;
 			found++;
 			var even = (m & 1) == 0 ? lo : hi;
-			var utf8 = Encoding.UTF8.GetBytes(FormatDecimal(digits, exp10, rng.Next(3)));
-			Assert.IsTrue(CheckSingle(utf8, failures), $"tie \"{Encoding.UTF8.GetString(utf8)}\" not accepted");
+			var written = Encoding.UTF8.GetBytes(FormatDecimal(digits, exp10, rng.Next(3)), buffer);
+			var utf8 = buffer.Slice(0, written);
+			if (!CheckSingle(utf8, failures)) Assert.Fail($"tie \"{Encoding.UTF8.GetString(utf8)}\" not accepted");
 			Assert.IsTrue(FastFloat.TryParseSingle(utf8, out var actual));
 			Assert.AreEqual(BitConverter.SingleToInt32Bits(even), BitConverter.SingleToInt32Bits(actual));
 		}
@@ -947,6 +973,23 @@ public class FastFloatTests
 	// ------------------------------------------------------------------------------------------------------------
 	// Helpers
 	// ------------------------------------------------------------------------------------------------------------
+
+	[TestMethod]
+	public void FailureStatistics_MergeCountsAndBoundMessages()
+	{
+		var aggregate = new Failures();
+		Parallel.For(0, 32, chunk =>
+		{
+			var local = new Failures { Checked = 10, Accepted = 8 };
+			for (var i = 0; i < 3; i++) local.Add($"failure-{chunk}-{i}");
+			aggregate.Merge(local);
+		});
+		Assert.AreEqual(320L, aggregate.Checked);
+		Assert.AreEqual(256L, aggregate.Accepted);
+		var error = Assert.ThrowsExactly<AssertFailedException>(() => aggregate.AssertNone());
+		StringAssert.Contains(error.Message, "96 failure(s)");
+		Assert.AreEqual(20, error.Message.Split("failure-", StringSplitOptions.None).Length - 1);
+	}
 
 	private static readonly string[] RoundTripDoubleFormats = ["R", "G17", "E16"];
 	private static readonly string[] RoundTripSingleFormats = ["R", "G9", "E8"];
@@ -964,7 +1007,7 @@ public class FastFloatTests
 		"F9", "E", "E3", "E6", "E10", "E16", "0.###", "0.000000", "0.##########e+00", "#.#####",
 	];
 
-	/// <summary>Collects the first few failures (and some statistics) from (possibly parallel) checks.</summary>
+	/// <summary>Worker-local statistics and bounded failures, merged after parallel checks.</summary>
 	private sealed class Failures
 	{
 		private readonly ConcurrentQueue<string> messages = new();
@@ -975,6 +1018,18 @@ public class FastFloatTests
 		public void Add(string message)
 		{
 			if (Interlocked.Increment(ref count) <= 20) messages.Enqueue(message);
+		}
+
+		public void Merge(Failures other)
+		{
+			Interlocked.Add(ref Checked, other.Checked);
+			Interlocked.Add(ref Accepted, other.Accepted);
+			var previous = Interlocked.Add(ref count, other.count) - other.count;
+			foreach (var message in other.messages)
+			{
+				if (previous++ >= 20) break;
+				messages.Enqueue(message);
+			}
 		}
 
 		public void AssertNone(TestContext? output = null)
@@ -990,12 +1045,13 @@ public class FastFloatTests
 	private static void RunParallel(int seed, int iterations, Failures failures, Action<Random, Failures> body)
 	{
 		const int Chunks = 32;
-		Parallel.For(0, Chunks, chunk =>
+		Parallel.For(0, Chunks, static () => new Failures(), (chunk, _, local) =>
 		{
 			var rng = new Random(seed * 1000 + chunk);
 			var count = iterations / Chunks + (chunk < iterations % Chunks ? 1 : 0);
-			for (var i = 0; i < count; i++) body(rng, failures);
-		});
+			for (var i = 0; i < count; i++) body(rng, local);
+			return local;
+		}, failures.Merge);
 	}
 
 	private static string Show(ReadOnlySpan<byte> s) =>
@@ -1010,7 +1066,7 @@ public class FastFloatTests
 	private static bool CheckDouble(ReadOnlySpan<byte> s, Failures failures, double? expected = null)
 	{
 		var significant = SignificantDigits(s);
-		var special = IsSpecial(s);
+		var special = significant < 0 && IsSpecial(s);
 		var ok = FastFloat.TryParseDouble(s, out var actual);
 		Span<char> buffer = s.Length <= 1024 ? stackalloc char[s.Length] : new char[s.Length];
 		var utf16 = buffer.Slice(0, Encoding.UTF8.GetChars(s, buffer));
@@ -1024,10 +1080,10 @@ public class FastFloatTests
 		// The same input surrounded by digits must give the same answer: nothing outside the span may be used.
 		if (FastFloat.TryParseDouble(Padded(s), out var padded) != ok || BitConverter.DoubleToInt64Bits(padded) != BitConverter.DoubleToInt64Bits(actual))
 			failures.Add($"double \"{Show(s)}\": different result when the input is surrounded by digits");
-		Interlocked.Increment(ref failures.Checked);
+		failures.Checked++;
 		if (ok)
 		{
-			Interlocked.Increment(ref failures.Accepted);
+			failures.Accepted++;
 			if (significant < 0 && !special)
 				failures.Add($"double \"{Show(s)}\": accepted input outside the supported grammar");
 			if (!double.TryParse(s, Styles, Invariant, out var bcl))
@@ -1049,7 +1105,7 @@ public class FastFloatTests
 	private static bool CheckSingle(ReadOnlySpan<byte> s, Failures failures, float? expected = null)
 	{
 		var significant = SignificantDigits(s);
-		var special = IsSpecial(s);
+		var special = significant < 0 && IsSpecial(s);
 		var ok = FastFloat.TryParseSingle(s, out var actual);
 		Span<char> buffer = s.Length <= 1024 ? stackalloc char[s.Length] : new char[s.Length];
 		var utf16 = buffer.Slice(0, Encoding.UTF8.GetChars(s, buffer));
@@ -1062,10 +1118,10 @@ public class FastFloatTests
 			failures.Add($"float \"{Show(s)}\": UTF-16 result differs from float.Parse");
 		if (FastFloat.TryParseSingle(Padded(s), out var padded) != ok || BitConverter.SingleToInt32Bits(padded) != BitConverter.SingleToInt32Bits(actual))
 			failures.Add($"float \"{Show(s)}\": different result when the input is surrounded by digits");
-		Interlocked.Increment(ref failures.Checked);
+		failures.Checked++;
 		if (ok)
 		{
-			Interlocked.Increment(ref failures.Accepted);
+			failures.Accepted++;
 			if (significant < 0 && !special)
 				failures.Add($"float \"{Show(s)}\": accepted input outside the supported grammar");
 			if (!float.TryParse(s, Styles, Invariant, out var bcl))
@@ -1161,10 +1217,7 @@ public class FastFloatTests
 	{
 		if (s.Length != 0 && (s[0] == '+' || s[0] == '-')) s = s.Slice(1);
 
-		// Not Ascii.EqualsIgnoreCase: on net8.0 the library's netstandard2.1 build has an Ascii polyfill of the same name.
-		var text = Encoding.ASCII.GetString(s);
-
-		return text.Equals("infinity", StringComparison.OrdinalIgnoreCase) || text.Equals("nan", StringComparison.OrdinalIgnoreCase);
+		return System.Text.Ascii.EqualsIgnoreCase(s, "infinity"u8) || System.Text.Ascii.EqualsIgnoreCase(s, "nan"u8);
 	}
 
 	/// <summary>
@@ -1299,6 +1352,9 @@ public class FastFloatTests
 	/// </summary>
 	private static void CheckDoubleHalfway(double lo, Random rng, Failures failures)
 	{
+		// The longest exact binary64 midpoint needs fewer than 1,100 ASCII characters.
+		Span<byte> buffer = stackalloc byte[2048];
+		buffer[0] = (byte)'-';
 		var bits = BitConverter.DoubleToUInt64Bits(lo);
 		var biased = (int)(bits >> 52) & 0x7FF;
 		var fraction = bits & 0x000FFFFFFFFFFFFF;
@@ -1306,15 +1362,17 @@ public class FastFloatTests
 		var e = biased == 0 ? -1074 : biased - 1075;
 		foreach (var s in MidpointStrings(2 * m + 1, e - 1, rng))
 		{
-			var utf8 = Encoding.UTF8.GetBytes(s);
+			var written = Encoding.UTF8.GetBytes(s, buffer.Slice(1));
+			var utf8 = buffer.Slice(1, written);
 			CheckDouble(utf8, failures);
-			utf8 = Encoding.UTF8.GetBytes("-" + s);
-			CheckDouble(utf8, failures);
+			CheckDouble(buffer.Slice(0, written + 1), failures);
 		}
 	}
 
 	private static void CheckSingleHalfway(float lo, Random rng, Failures failures)
 	{
+		Span<byte> buffer = stackalloc byte[512];
+		buffer[0] = (byte)'-';
 		var bits = BitConverter.SingleToUInt32Bits(lo);
 		var biased = (int)(bits >> 23) & 0xFF;
 		var fraction = bits & 0x7FFFFF;
@@ -1322,10 +1380,10 @@ public class FastFloatTests
 		var e = biased == 0 ? -149 : biased - 150;
 		foreach (var s in MidpointStrings(2 * m + 1, e - 1, rng))
 		{
-			var utf8 = Encoding.UTF8.GetBytes(s);
+			var written = Encoding.UTF8.GetBytes(s, buffer.Slice(1));
+			var utf8 = buffer.Slice(1, written);
 			CheckSingle(utf8, failures);
-			utf8 = Encoding.UTF8.GetBytes("-" + s);
-			CheckSingle(utf8, failures);
+			CheckSingle(buffer.Slice(0, written + 1), failures);
 		}
 	}
 
@@ -1338,7 +1396,7 @@ public class FastFloatTests
 		yield return FormatDecimal(digits + "00001", exp10 - 5, rng.Next(3)); // just above
 		var below = BigInteger.Parse(digits, CultureInfo.InvariantCulture) * 100000 - 1; // just below
 		yield return FormatDecimal(below.ToString(CultureInfo.InvariantCulture), exp10 - 5, rng.Next(3));
-		foreach (var n in new[] { 15, 16, 17, 18, 19, 20, 21, 25, 30 })
+		foreach (var n in MidpointDigitLengths)
 		{
 			if (n >= len) break;
 			var prefix = digits.Substring(0, n);
@@ -1347,7 +1405,7 @@ public class FastFloatTests
 			yield return FormatDecimal(up, exp10 + len - n, rng.Next(3));
 		}
 	}
-#endif
+	private static readonly int[] MidpointDigitLengths = [15, 16, 17, 18, 19, 20, 21, 25, 30];
 }
 
 public sealed class FastFloatTheoryData<T> : List<object[]>

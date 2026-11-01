@@ -22,7 +22,7 @@
     <PackageIconUrl>https://raw.github.com/nietras/Sep/main/Icon.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/nietras/Sep/</PackageProjectUrl>
     <PackageReleaseNotes>https://github.com/nietras/Sep/releases</PackageReleaseNotes>
-    <PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
 
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -39,8 +39,6 @@
   <ItemGroup>
     <None Include="../../Icon.png" Pack="true" PackagePath="\" />
     <None Include="../../README.md" Pack="true" PackagePath="\" />
-    <Content Include="ThirdParty\CsvHelper-LICENSE.txt" Pack="true" PackagePath="licenses\CsvHelper-LICENSE.txt" />
-    <Content Include="ThirdParty\fast_float-LICENSE-MIT.txt" Pack="true" PackagePath="licenses\fast_float-LICENSE-MIT.txt" />
   </ItemGroup>
 
   <ItemGroup>

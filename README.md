@@ -46,8 +46,9 @@ enable this see [SepReaderOptions](#sepreaderoptions) and
 SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 8.0+), NEON. Uses a built-in floating point parser derived from
 [fast_float](https://github.com/fastfloat/fast_float) and
-[CsvHelper](https://github.com/JoshClose/CsvHelper), with .NET fallbacks. See [detailed
-benchmarks](#comparison-benchmarks) for cross-platform results.
+[CsvHelper](https://github.com/JoshClose/CsvHelper), replacing
+[csFastFloat](https://github.com/CarlVerret/csFastFloat), with .NET fallbacks.
+See [detailed benchmarks](#comparison-benchmarks) for cross-platform results.
 
 **🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
 parsing that is [up to 35x faster than
@@ -385,13 +386,15 @@ public bool AsyncContinueOnCapturedContext { get; init; } = false;
 
 For `float` and `double`, Sep uses its fast parser for compatible read-only
 cultures and complete ungrouped numbers, including leading ASCII whitespace.
-Other cases, including mutable or current cultures, trailing whitespace,
-grouping, and special values, fall back to .NET. For example, invariant `inf`
-is no longer accepted.
+Group separators remain supported according to the selected culture; grouped
+numbers are parsed by .NET. Values using mutable or current cultures, trailing
+whitespace, or special symbols also fall back to .NET. If a group separator is
+also the CSV separator, quote the field and enable [Unescape](#unescaping) to
+parse the complete value. For example, invariant `inf` is no longer accepted.
 Invalid values passed to `Parse<T>` throw .NET's `FormatException`; `TryParse<T>`
-returns `false` or `null`. The CsvHelper-derived parser is distributed under
-Apache-2.0 and includes fast_float code under MIT; the license texts are
-included in the NuGet package.
+returns `false` or `null`.
+csFastFloat is linked above as the previous parser dependency, not as a source
+of code in Sep.
 
 #### Unescaping
 While great care has been taken to ensure Sep unescaping of quotes is both

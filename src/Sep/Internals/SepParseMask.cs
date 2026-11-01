@@ -1,5 +1,7 @@
 ﻿using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 
@@ -45,6 +47,73 @@ static partial class SepParseMask
             colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
         }
         while (mask != 0);
+        return ref colInfosRef;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static nuint PrefixXor(nuint mask)
+    {
+        if (Pclmulqdq.IsSupported)
+        {
+            return (nuint)Pclmulqdq.CarrylessMultiply(
+                Vector128.CreateScalar((ulong)mask), Vector128.CreateScalar(ulong.MaxValue), 0).ToScalar();
+        }
+        mask ^= mask << 1;
+        mask ^= mask << 2;
+        mask ^= mask << 4;
+        mask ^= mask << 8;
+        mask ^= mask << 16;
+        if (SizeOf<nuint>() == sizeof(ulong)) { mask ^= mask << 32; }
+        return mask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static ref TColInfo ParseQuotedMask<TColInfo, TColInfoMethods>(
+        nuint separatorsMask, nuint separatorLineEndingsMask, nuint specialCharMask,
+        char separator, scoped ref char charsRef, int charsIndex,
+        scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
+        ref TColInfo colInfosRef, scoped ref int lineNumber)
+        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    {
+        var quotesMask = specialCharMask ^ separatorLineEndingsMask;
+        // Inclusive quote parity masks separators inside quotes, including a carried opening quote.
+        var quotedMask = PrefixXor(quotesMask) ^ (0 - (quoteCount & 1));
+        var lineEndingsMask = separatorLineEndingsMask ^ separatorsMask;
+        if ((lineEndingsMask & quotedMask) != 0)
+        {
+            // Keep the scalar line counting for embedded CR, LF and CRLF, including block boundaries.
+            return ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
+                separator, ref charsRef, charsIndex,
+                ref rowLineEndingOffset, ref quoteCount,
+                ref colInfosRef, ref lineNumber);
+        }
+
+        var mask = separatorLineEndingsMask & ~quotedMask;
+        while (mask != 0)
+        {
+            var relativeIndex = BitOperations.TrailingZeroCount(mask);
+            var bit = (nuint)1 << relativeIndex;
+            var before = bit - 1;
+            quoteCount += (nuint)BitOperations.PopCount(quotesMask & before);
+            quotesMask &= ~before;
+            colInfosRef = ref Add(ref colInfosRef, 1);
+            colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
+            quoteCount = 0;
+
+            if ((lineEndingsMask & bit) != 0)
+            {
+                rowLineEndingOffset = 1;
+                if (Add(ref charsRef, relativeIndex) == CarriageReturn &&
+                    Add(ref charsRef, relativeIndex + 1) == LineFeed)
+                {
+                    ++rowLineEndingOffset;
+                }
+                ++lineNumber;
+                return ref colInfosRef;
+            }
+            mask &= mask - 1;
+        }
+        quoteCount += (nuint)BitOperations.PopCount(quotesMask);
         return ref colInfosRef;
     }
 

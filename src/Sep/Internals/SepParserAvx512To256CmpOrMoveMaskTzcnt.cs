@@ -141,7 +141,8 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                     else
                     {
                         var rowLineEndingOffset = 0;
-                        colInfosRefCurrent = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
+                        colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
+                            separatorsMask, separatorLineEndingsMask, specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
                             ref colInfosRefCurrent, ref lineNumber);

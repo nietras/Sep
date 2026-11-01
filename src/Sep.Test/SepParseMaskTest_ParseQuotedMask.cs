@@ -25,11 +25,14 @@ public partial class SepParseMaskTest
     [TestMethod]
     public void SepParseMaskTest_ParseQuotedMask_MatchesScalar()
     {
-        AssertQuotedMaskMatchesScalar<int, SepColEndMethods>();
-        AssertQuotedMaskMatchesScalar<SepColInfo, SepColInfoMethods>();
+        for (var width = 8; width <= s_nativeBitSize; width *= 2)
+        {
+            AssertQuotedMaskMatchesScalar<int, SepColEndMethods>(width);
+            AssertQuotedMaskMatchesScalar<SepColInfo, SepColInfoMethods>(width);
+        }
     }
 
-    static void AssertQuotedMaskMatchesScalar<TColInfo, TColInfoMethods>()
+    static void AssertQuotedMaskMatchesScalar<TColInfo, TColInfoMethods>(int width)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
@@ -46,10 +49,29 @@ public partial class SepParseMaskTest
                 chars[i] = alphabet[random.Next(sample % 2 == 0 ? 3 : alphabet.Length)];
             }
             if (sample == 0) { chars.Fill('"'); }
-            var specialCharMask = MaskFor(chars);
+            if (sample == 1) { chars.Fill('\r'); }
+            if (sample == 2)
+            {
+                chars.Fill('a');
+                "a\n\"b\nc\"".AsSpan().CopyTo(chars);
+            }
+            if (sample == 3) { chars.Fill('\n'); }
+            if (sample == 4)
+            {
+                chars.Fill('a');
+                "\"a\r\nb\";".AsSpan().CopyTo(chars);
+            }
+            if (sample is 5 or 6)
+            {
+                chars.Fill('a');
+                chars[0] = '"';
+                chars[width - 1] = '\r';
+                chars[width] = '\n';
+            }
+            var specialCharMask = MaskFor(chars[..width]);
             nuint separatorsMask = 0;
             nuint lineEndingsMask = 0;
-            for (var i = 0; i < s_nativeBitSize; i++)
+            for (var i = 0; i < width; i++)
             {
                 var bit = (nuint)1 << i;
                 if (chars[i] == Separator) { separatorsMask |= bit; }
@@ -62,9 +84,13 @@ public partial class SepParseMaskTest
             var expectedEndingOffset = 0;
             var actualEndingOffset = 0;
 
-            ref var expectedEnd = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(
-                specialCharMask, Separator, ref chars[0], CharsIndexOffset,
-                ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine);
+            ref var expectedEnd = ref expected[0];
+            if (specialCharMask != 0)
+            {
+                expectedEnd = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(
+                    specialCharMask, Separator, ref chars[0], CharsIndexOffset,
+                    ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine);
+            }
             ref var actualEnd = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
                 separatorsMask, separatorsMask | lineEndingsMask, specialCharMask,
                 Separator, ref chars[0], CharsIndexOffset,

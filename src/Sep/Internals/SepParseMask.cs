@@ -79,13 +79,23 @@ static partial class SepParseMask
         // Inclusive quote parity masks separators inside quotes, including a carried opening quote.
         var quotedMask = PrefixXor(quotesMask) ^ (0 - (quoteCount & 1));
         var lineEndingsMask = separatorLineEndingsMask ^ separatorsMask;
-        if ((lineEndingsMask & quotedMask) != 0)
+        var embeddedLineEndingsMask = lineEndingsMask & quotedMask;
+        if (embeddedLineEndingsMask != 0)
         {
-            // Keep the scalar line counting for embedded CR, LF and CRLF, including block boundaries.
-            return ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
-                separator, ref charsRef, charsIndex,
-                ref rowLineEndingOffset, ref quoteCount,
-                ref colInfosRef, ref lineNumber);
+            var rowEndingsMask = lineEndingsMask & ~quotedMask;
+            var firstRowEndingBit = rowEndingsMask & (0 - rowEndingsMask);
+            // A zero row-ending bit wraps to all ones, retaining the whole block.
+            embeddedLineEndingsMask &= firstRowEndingBit - 1;
+            while (embeddedLineEndingsMask != 0)
+            {
+                var relativeIndex = BitOperations.TrailingZeroCount(embeddedLineEndingsMask);
+                if (Add(ref charsRef, relativeIndex) != CarriageReturn ||
+                    Add(ref charsRef, relativeIndex + 1) != LineFeed)
+                {
+                    ++lineNumber;
+                }
+                embeddedLineEndingsMask &= embeddedLineEndingsMask - 1;
+            }
         }
 
         var mask = separatorLineEndingsMask & ~quotedMask;

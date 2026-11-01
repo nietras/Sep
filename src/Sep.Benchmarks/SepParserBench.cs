@@ -49,6 +49,8 @@ public class SepParserBench
         _fillers =
         [
             new("0_Assets___", ',', PackageAssetsText),
+            new("1_Quotes___", ';', "\"line1;quoted line2;quoted\";\"escaped\"\"quote\";value\r\n"),
+            new("2_Multiline", ';', "\"line1;quoted\r\nline2;quoted\";\"escaped\"\"quote\";value\r\n"),
             //new("1_Floats___", ';', FloatsText),
             //new("1_ManyChars", ';', FillFor(";\n\r\"____;___\n___" + "\r___\"___####ˉˉˉˉ")),
             //new("2_FewSep___", ';', FillFor("ˉˉ;ˉˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉˉˉˉˉ;ˉˉˉˉˉ")),

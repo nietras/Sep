@@ -12,7 +12,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace nietras.SeparatedValues.Test;
 
 [TestClass]
-public class SepParserTest
+public partial class SepParserTest
 {
     readonly SepReaderState _state = new();
     readonly SepReaderState _stateUnescape = new(colUnquoteUnescape: true);

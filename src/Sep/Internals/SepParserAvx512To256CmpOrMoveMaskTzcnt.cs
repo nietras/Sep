@@ -42,18 +42,22 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColEnds(SepReaderState s)
     {
-        Parse<int, SepColEndMethods>(s);
+        _quoteCount = Parse<int, SepColEndMethods>(s);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColInfos(SepReaderState s)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s);
+        _quoteCount = ParseColInfosCore(s);
     }
 
+    // Let the parser instance die after loading its fields, rather than keeping it live for the final store.
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    nuint ParseColInfosCore(SepReaderState s) => Parse<SepColInfo, SepColInfoMethods>(s);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    nuint Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
@@ -178,11 +182,11 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
             }
         }
         // Update instance state from enregistered
-        _quoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
+        return quoteCount;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

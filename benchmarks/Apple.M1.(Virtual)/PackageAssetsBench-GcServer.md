@@ -1,27 +1,41 @@
 ```
 
-BenchmarkDotNet v0.15.8, macOS Sequoia 15.7.4 (24G517) [Darwin 24.6.0]
+BenchmarkDotNet v0.16.0-preview.2, macOS Tahoe 26.6.2 (25G83) [Darwin 25.6.0]
 Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
-.NET SDK 10.0.203
-  [Host]    : .NET 10.0.7 (10.0.7, 10.0.726.21808), Arm64 RyuJIT armv8.0-a
-  .NET 10.0 : .NET 10.0.7 (10.0.7, 10.0.726.21808), Arm64 RyuJIT armv8.0-a
+Memory: 7 GB Total, 0.56 GB Available
+.NET SDK 11.0.100-rc.3.26522.148
+  [Host]    : .NET 11.0.0 (11.0.0-rc.3.26522.148, 11.0.26.52348), Arm64 RyuJIT armv8.0-a
+  .NET 11.0 : .NET 11.0.0 (11.0.0-rc.3.26522.148, 11.0.26.52348), Arm64 RyuJIT armv8.0-a
 
-Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
-Server=True  Toolchain=net10.0  InvocationCount=Default  
+Job=.NET 11.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Server=True  
+Runtime=.NET 11.0  Toolchain=CsProjCore  InvocationCount=Default  
 IterationTime=350ms  MaxIterationCount=15  MinIterationCount=5  
 WarmupCount=6  Quotes=False  Reader=String  
+Error=NA  RatioSD=?  
 
 ```
-| Method    | Scope | Rows    | Mean         | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
-|---------- |------ |-------- |-------------:|------:|----:|-------:|-------:|-----------:|------------:|
-| Sep______ | Asset | 50000   |    21.545 ms |  1.00 |  29 | 1350.0 |  430.9 |   13.48 MB |        1.00 |
-| Sep_MT___ | Asset | 50000   |     9.889 ms |  0.46 |  29 | 2941.4 |  197.8 |   13.59 MB |        1.01 |
-| Sylvan___ | Asset | 50000   |    43.137 ms |  2.00 |  29 |  674.3 |  862.7 |   13.63 MB |        1.01 |
-| ReadLine_ | Asset | 50000   |    28.729 ms |  1.33 |  29 | 1012.4 |  574.6 |   99.74 MB |        7.40 |
-| CsvHelper | Asset | 50000   |    75.601 ms |  3.51 |  29 |  384.7 | 1512.0 |   13.64 MB |        1.01 |
-|           |       |         |              |       |     |        |        |            |             |
-| Sep______ | Asset | 1000000 |   457.098 ms |  1.00 | 581 | 1273.0 |  457.1 |  260.41 MB |        1.00 |
-| Sep_MT___ | Asset | 1000000 |   224.967 ms |  0.49 | 581 | 2586.5 |  225.0 |  268.14 MB |        1.03 |
-| Sylvan___ | Asset | 1000000 |   894.656 ms |  1.96 | 581 |  650.4 |  894.7 |  260.57 MB |        1.00 |
-| ReadLine_ | Asset | 1000000 |   792.175 ms |  1.73 | 581 |  734.5 |  792.2 | 1991.04 MB |        7.65 |
-| CsvHelper | Asset | 1000000 | 1,462.667 ms |  3.20 | 581 |  397.8 | 1462.7 |  260.58 MB |        1.00 |
+| Method    | Scope | Rows    | Mean | Ratio | MB  | MB/s | ns/row | Alloc Ratio |
+|---------- |------ |-------- |-----:|------:|----:|-----:|-------:|------------:|
+| Sep______ | Asset | 50000   |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| Sep_MT___ | Asset | 50000   |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| Sylvan___ | Asset | 50000   |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| ReadLine_ | Asset | 50000   |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| CsvHelper | Asset | 50000   |   NA |     ? | n/a |  n/a |    n/a |           ? |
+|           |       |         |      |       |     |      |        |             |
+| Sep______ | Asset | 1000000 |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| Sep_MT___ | Asset | 1000000 |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| Sylvan___ | Asset | 1000000 |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| ReadLine_ | Asset | 1000000 |   NA |     ? | n/a |  n/a |    n/a |           ? |
+| CsvHelper | Asset | 1000000 |   NA |     ? | n/a |  n/a |    n/a |           ? |
+
+Benchmarks with issues:
+  GcServerAssetPackageAssetsBench.Sep______: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=50000]
+  GcServerAssetPackageAssetsBench.Sep_MT___: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=50000]
+  GcServerAssetPackageAssetsBench.Sylvan___: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=50000]
+  GcServerAssetPackageAssetsBench.ReadLine_: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=50000]
+  GcServerAssetPackageAssetsBench.CsvHelper: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=50000]
+  GcServerLongAssetPackageAssetsBench.Sep______: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=1000000]
+  GcServerLongAssetPackageAssetsBench.Sep_MT___: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=1000000]
+  GcServerLongAssetPackageAssetsBench.Sylvan___: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=1000000]
+  GcServerLongAssetPackageAssetsBench.ReadLine_: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=1000000]
+  GcServerLongAssetPackageAssetsBench.CsvHelper: .NET 11.0(EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0, Server=True, Runtime=.NET 11.0, Toolchain=CsProjCore, IterationTime=350ms, MaxIterationCount=15, MinIterationCount=5, WarmupCount=6) [Scope=Asset, Quotes=False, Reader=String, Rows=1000000]

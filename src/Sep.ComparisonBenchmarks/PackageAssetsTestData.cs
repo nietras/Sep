@@ -42,22 +42,33 @@ static class PackageAssetsTestData
 
     internal static string GetPackageAssetsFilePath()
     {
-        Console.WriteLine(typeof(PackageAssetsBench).Assembly.Location);
+        Console.WriteLine(typeof(PackageAssetsTestData).Assembly.Location);
         var directory = FindParentDirectory();
         var packageAssetsFilePath = Path.Combine(directory, PackageAssetsFileName);
         Console.WriteLine(packageAssetsFilePath);
         return packageAssetsFilePath;
     }
 
-    internal static string FindParentDirectory() => FindParentDirectory(typeof(PackageAssetsBench).Assembly.Location, DirectoryNameToFind);
+    internal static string FindParentDirectory() => FindParentDirectory(Path.GetDirectoryName(typeof(PackageAssetsTestData).Assembly.Location)!, DirectoryNameToFind);
     internal static string FindParentDirectory(string currentDirectory, string directoryNameToFind)
     {
-        var directory = currentDirectory;
-        while (!directory.EndsWith(directoryNameToFind, StringComparison.OrdinalIgnoreCase))
+        var directory = new DirectoryInfo(currentDirectory);
+        while (directory is not null)
         {
-            directory = Directory.GetParent(directory)!.FullName;
+            if (directory.Name.Equals(directoryNameToFind, StringComparison.OrdinalIgnoreCase))
+            {
+                return directory.FullName;
+            }
+
+            // BDN's generated binaries can be under src rather than artifacts.
+            var candidate = Path.Combine(directory.FullName, directoryNameToFind);
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+            directory = directory.Parent;
         }
-        return directory;
+        throw new DirectoryNotFoundException($"Could not find directory '{directoryNameToFind}' from '{currentDirectory}' or its ancestors.");
     }
 
 

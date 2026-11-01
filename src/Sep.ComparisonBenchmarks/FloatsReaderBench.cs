@@ -362,7 +362,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
+                var colIndex = colNameToIndex[resultColNames[i]];
                 var value = float.Parse(cols[colIndex]);
                 res[i] = value;
             }
@@ -414,14 +414,12 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         {
             for (var i = 0; i < groundTruthColNames.Count; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = csvParser[colIndex].Parse<float>();
+                var value = csvParser[groundTruthColNames[i]].Parse<float>();
                 gts[i] = value;
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = csvParser[colIndex].Parse<float>();
+                var value = csvParser[resultColNames[i]].Parse<float>();
                 res[i] = value;
             }
 

@@ -34,8 +34,8 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
     }
 
-    // Parses 2 x char vectors e.g. 1 byte vector
-    public int PaddingLength => VecUI8.Count;
+    // Quoted blocks combine two byte-vector masks on 64-bit processes.
+    public int PaddingLength => SizeOf<nuint>() == sizeof(ulong) ? VecUI8.Count * 2 : VecUI8.Count;
     public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
@@ -49,14 +49,12 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColInfos(SepReaderState s)
     {
-        _quoteCount = ParseColInfosCore(s);
+        _quoteCount = Parse<SepColInfo, SepColInfoMethods>(s);
     }
 
-    // Let the parser instance die after loading its fields, rather than keeping it live for the final store.
+    // Return quote state so the parser reference need not stay live throughout either parsing loop.
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    nuint ParseColInfosCore(SepReaderState s) => Parse<SepColInfo, SepColInfoMethods>(s);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     nuint Parse<TColInfo, TColInfoMethods>(SepReaderState s)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
@@ -93,7 +91,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
-        var colInfosStopLength = colInfosLength - VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount;
+        var colInfosStopLength = colInfosLength - PaddingLength - SepReaderState.ColEndsOrInfosExtraEndCount;
         ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
         charsIndex -= VecUI8.Count;
@@ -102,7 +100,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     LOOPNOSTEP:
         if (charsIndex < charsEnd &&
             // If current is greater than or equal than "stop", then there is no
-            // longer guaranteed space enough for next VecUI8.Count + next row start.
+            // longer guaranteed space enough for a full quoted block + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
@@ -144,6 +142,17 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                     }
                     else
                     {
+                        if (SizeOf<nuint>() == sizeof(ulong))
+                        {
+                            var next = ReadUnaligned<VecUI16>(ref Add(ref byteRef, VecUI8.Count * sizeof(char)));
+                            var nextBytes = ISA.ConvertToVector256ByteWithSaturation(next);
+                            var nextSpsEq = Vec.Equals(nextBytes, sps);
+                            var nextLineEndings = Vec.Equals(nextBytes, nls) | Vec.Equals(nextBytes, crs);
+                            var nextSeparatorLineEndings = nextSpsEq | nextLineEndings;
+                            separatorsMask |= MoveMask(nextSpsEq) << VecUI8.Count;
+                            separatorLineEndingsMask |= MoveMask(nextSeparatorLineEndings) << VecUI8.Count;
+                            specialCharMask |= MoveMask(nextSeparatorLineEndings | Vec.Equals(nextBytes, qts)) << VecUI8.Count;
+                        }
                         var rowLineEndingOffset = 0;
                         colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask, specialCharMask,
@@ -157,6 +166,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                             charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
                             goto NEWROW;
                         }
+                        if (SizeOf<nuint>() == sizeof(ulong)) { charsIndex += VecUI8.Count; }
                     }
                 }
             }
@@ -184,7 +194,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         // Update instance state from enregistered
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
-        // Step is VecUI8.Count so may go past end, ensure limited
+        // One or two vector steps may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);
         return quoteCount;
     }

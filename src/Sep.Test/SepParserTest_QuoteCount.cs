@@ -39,6 +39,53 @@ public partial class SepParserTest
         AssertQuoteCountAcrossCalls((ISepParser)parserObject, colInfos: true, multiline: true);
     }
 
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
+    public void SepParserTest_ParseColEnds_QuotedBlockBoundaries(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        AssertQuotedBlockBoundaries((ISepParser)parserObject, colInfos: false);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
+    public void SepParserTest_ParseColInfos_QuotedBlockBoundaries(object parserObject)
+    {
+        Contract.Assume(parserObject is not null);
+        AssertQuotedBlockBoundaries((ISepParser)parserObject, colInfos: true);
+    }
+
+    void AssertQuotedBlockBoundaries(ISepParser parser, bool colInfos)
+    {
+        var s = colInfos ? _stateUnescape : _state;
+        for (var offset = 0; offset < 64; offset++)
+        {
+            var text = new string('a', offset) + "\"a;b\";\"c\";\r\n";
+            s._charsDataEnd = FillChars(text);
+            s._charsParseStart = 0;
+            s._parsingLineNumber = 17;
+            s._parsingRowCharsStartIndex = 0;
+            s._parsingRowColEndsOrInfosStartIndex = 0;
+            s._parsingRowColCount = 0;
+            s._parsedRowsCount = 0;
+            if (colInfos) { parser.ParseColInfos(s); }
+            else { parser.ParseColEnds(s); }
+
+            Assert.AreEqual(0, parser.QuoteCount);
+            Assert.AreEqual(text.Length, s._charsParseStart);
+            Assert.AreEqual(1, s._parsedRowsCount);
+            Assert.AreEqual(new SepRowInfo(18, 3), s._parsedRows[0]);
+            if (colInfos)
+            {
+                var infos = MemoryMarshal.Cast<int, SepColInfo>(_colEndsOrColInfos);
+                Assert.AreEqual(new SepColInfo(offset + 5, 2), infos[1]);
+                Assert.AreEqual(new SepColInfo(offset + 9, 2), infos[2]);
+                Assert.AreEqual(new SepColInfo(offset + 10, 0), infos[3]);
+            }
+            else { AreEqual([offset + 5, offset + 9, offset + 10], _colEndsOrColInfos, 0, 3); }
+        }
+    }
+
     void AssertQuoteCountAcrossCalls(ISepParser parser, bool colInfos, bool multiline = false)
     {
         var s = colInfos ? _stateUnescape : _state;

@@ -1,31 +1,32 @@
 ```
 
-BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
-AMD EPYC 7763 3.24GHz, 1 CPU, 4 logical and 2 physical cores
-.NET SDK 10.0.203
-  [Host]    : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
-  .NET 10.0 : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
+BenchmarkDotNet v0.16.0-preview.2, Linux Ubuntu 26.04.1 LTS (Resolute Raccoon)
+AMD EPYC 7763 3.21GHz, 1 CPU, 4 logical and 2 physical cores
+Memory: 15.61 GB Total, 11.77 GB Available
+.NET SDK 11.0.100-rc.3.26522.148
+  [Host]    : .NET 11.0.0 (11.0.0-rc.3.26522.148, 11.0.26.52348), X64 RyuJIT x86-64-v3
+  .NET 11.0 : .NET 11.0.0 (11.0.0-rc.3.26522.148, 11.0.26.52348), X64 RyuJIT x86-64-v3
 
-Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
-Toolchain=net10.0  InvocationCount=Default  IterationTime=350ms  
+Job=.NET 11.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 11.0  
+Toolchain=CsProjCore  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Reader=String  
 
 ```
-| Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated   | Alloc Ratio |
-|---------- |------- |------ |-----------:|------:|---:|-------:|-------:|------------:|------------:|
-| Sep______ | Row    | 25000 |   3.029 ms |  1.00 | 20 | 6693.5 |  121.1 |     1.25 KB |        1.00 |
-| Sylvan___ | Row    | 25000 |   3.453 ms |  1.14 | 20 | 5871.1 |  138.1 |     12.5 KB |       10.00 |
-| ReadLine_ | Row    | 25000 |  18.866 ms |  6.23 | 20 | 1074.5 |  754.7 | 73489.62 KB |   58,791.69 |
-| CsvHelper | Row    | 25000 |  37.742 ms | 12.46 | 20 |  537.1 | 1509.7 |    19.95 KB |       15.96 |
-|           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Cols   | 25000 |   4.128 ms |  1.00 | 20 | 4910.3 |  165.1 |     1.25 KB |        1.00 |
-| Sylvan___ | Cols   | 25000 |   5.953 ms |  1.44 | 20 | 3405.5 |  238.1 |     12.5 KB |       10.00 |
-| ReadLine_ | Cols   | 25000 |  18.656 ms |  4.52 | 20 | 1086.6 |  746.3 | 73489.62 KB |   58,791.69 |
-| CsvHelper | Cols   | 25000 |  40.471 ms |  9.80 | 20 |  500.9 | 1618.9 | 21340.16 KB |   17,072.13 |
-|           |        |       |            |       |    |        |        |             |             |
-| Sep______ | Floats | 25000 |  33.781 ms |  1.00 | 20 |  600.1 | 1351.3 |      7.9 KB |        1.00 |
-| Sep_MT___ | Floats | 25000 |  15.381 ms |  0.46 | 20 | 1318.0 |  615.2 |    70.64 KB |        8.94 |
-| Sylvan___ | Floats | 25000 |  80.037 ms |  2.37 | 20 |  253.3 | 3201.5 |    21.64 KB |        2.74 |
-| ReadLine_ | Floats | 25000 | 117.401 ms |  3.48 | 20 |  172.7 | 4696.0 | 73492.94 KB |    9,304.74 |
-| CsvHelper | Floats | 25000 | 156.597 ms |  4.64 | 20 |  129.5 | 6263.9 | 22061.51 KB |    2,793.15 |
+| Method    | Scope  | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated  | Alloc Ratio |
+|---------- |------- |------ |-----------:|------:|---:|-------:|-------:|-----------:|------------:|
+| Sep______ | Row    | 25000 |   3.126 ms |  1.00 | 20 | 6484.8 |  125.0 |     1280 B |        1.00 |
+| Sylvan___ | Row    | 25000 |   3.642 ms |  1.17 | 20 | 5565.7 |  145.7 |    12802 B |       10.00 |
+| ReadLine_ | Row    | 25000 |  17.772 ms |  5.69 | 20 | 1140.7 |  710.9 | 75253368 B |   58,791.69 |
+| CsvHelper | Row    | 25000 |   2.227 ms |  0.71 | 20 | 9102.5 |   89.1 |      776 B |        0.61 |
+|           |        |       |            |       |    |        |        |            |             |
+| Sep______ | Cols   | 25000 |   4.290 ms |  1.00 | 20 | 4725.2 |  171.6 |     1280 B |        1.00 |
+| Sylvan___ | Cols   | 25000 |   6.178 ms |  1.44 | 20 | 3281.6 |  247.1 |    12803 B |       10.00 |
+| ReadLine_ | Cols   | 25000 |  19.426 ms |  4.53 | 20 | 1043.5 |  777.1 | 75253368 B |   58,791.69 |
+| CsvHelper | Cols   | 25000 |   2.434 ms |  0.57 | 20 | 8327.9 |   97.4 |      776 B |        0.61 |
+|           |        |       |            |       |    |        |        |            |             |
+| Sep______ | Floats | 25000 |  34.036 ms |  1.00 | 20 |  595.6 | 1361.4 |     8088 B |        1.00 |
+| Sep_MT___ | Floats | 25000 |  15.313 ms |  0.45 | 20 | 1323.9 |  612.5 |    74085 B |        9.16 |
+| Sylvan___ | Floats | 25000 |  86.491 ms |  2.54 | 20 |  234.4 | 3459.6 |    19076 B |        2.36 |
+| ReadLine_ | Floats | 25000 | 118.887 ms |  3.49 | 20 |  170.5 | 4755.5 | 75256680 B |    9,304.73 |
+| CsvHelper | Floats | 25000 |  33.816 ms |  0.99 | 20 |  599.5 | 1352.6 |     7800 B |        0.96 |

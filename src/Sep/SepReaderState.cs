@@ -45,6 +45,7 @@ public class SepReaderState : IDisposable
     internal int _parsingRowCharsStartIndex = 0;
     internal int _parsingRowColEndsOrInfosStartIndex = 0;
     internal int _parsingRowColCount = 0;
+    internal nuint _parsingRowQuoteCount = 0;
 
     //readonly internal uint _colUnquoteUnescape = 0;
     internal uint _colUnquoteUnescape => _colSpanFlags & UnescapeFlag;
@@ -152,6 +153,7 @@ public class SepReaderState : IDisposable
         other._parsingRowCharsStartIndex = _parsingRowCharsStartIndex;
         other._parsingRowColEndsOrInfosStartIndex = _parsingRowColEndsOrInfosStartIndex;
         other._parsingRowColCount = _parsingRowColCount;
+        other._parsingRowQuoteCount = _parsingRowQuoteCount;
 
         // Swap buffers
         (other._chars, _chars) = (_chars, other._chars);

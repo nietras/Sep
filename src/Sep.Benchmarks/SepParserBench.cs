@@ -97,7 +97,8 @@ public class SepParserBench
         _state._parsingRowCharsStartIndex = 0;
         _state._parsingRowColCount = 0;
         _state._parsingRowColEndsOrInfosStartIndex = 0;
-        _parser!.ParseColEnds(_state!);
+        _state._parsingRowQuoteCount = 0;
+        _parser!.ParseColEnds(_state);
     }
 
     //[Benchmark]

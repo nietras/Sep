@@ -25,7 +25,6 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
     readonly VecUI8 _qts;
     readonly VecUI8 _sps;
-    nuint _quoteCount = 0;
 
     public SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
@@ -36,7 +35,6 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 
     // Parses 2 x char vectors e.g. 1 byte vector
     public int PaddingLength => VecUI8.Count;
-    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -62,7 +60,6 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 
         // Unpack instance fields
         var separator = _separator;
-        var quoteCount = _quoteCount;
         // Use instance fields to force values into registers
         var nls = _nls; //Vec.Create(LineFeedByte);
         var crs = _crs; //Vec.Create(CarriageReturnByte);
@@ -70,6 +67,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         var sps = _sps; //Vec.Create(_separator);
 
         // Unpack state fields
+        var quoteCount = s._parsingRowQuoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -177,8 +175,8 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                 goto LOOPNOSTEP;
             }
         }
-        // Update instance state from enregistered
-        _quoteCount = quoteCount;
+        // Update reader state from enregistered
+        s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited

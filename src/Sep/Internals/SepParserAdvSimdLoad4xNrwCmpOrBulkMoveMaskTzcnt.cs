@@ -30,8 +30,6 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
     readonly VecUI8 _qts;
     readonly VecUI8 _sps;
 
-    nuint _quoteCount = 0;
-
     public unsafe SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
     {
         _separator = options.Separator;
@@ -41,7 +39,6 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 
     // Parses 8 x char vectors e.g. 4 byte vector
     public int PaddingLength => LoopCount;
-    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -67,7 +64,6 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 
         // Unpack instance fields
         var separator = _separator;
-        var quoteCount = _quoteCount;
         // Use instance fields to force values into registers
         var nls = _nls; //Vec.Create(LineFeedByte);
         var crs = _crs; //Vec.Create(CarriageReturnByte);
@@ -75,6 +71,7 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         var sps = _sps; //Vec.Create(_separator);
 
         // Unpack state fields
+        var quoteCount = s._parsingRowQuoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -218,8 +215,8 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                 }
             }
         }
-        // Update instance state from enregistered
-        _quoteCount = quoteCount;
+        // Update reader state from enregistered
+        s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited

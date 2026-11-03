@@ -10,7 +10,6 @@ sealed class SepParserIndexOfAny : ISepParser
 {
     readonly char _separator;
     readonly char[] _specialChars;
-    nuint _quoteCount = 0;
 
     public SepParserIndexOfAny(SepParserOptions options)
     {
@@ -21,7 +20,6 @@ sealed class SepParserIndexOfAny : ISepParser
     }
 
     public int PaddingLength => 4;
-    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -47,9 +45,9 @@ sealed class SepParserIndexOfAny : ISepParser
 
         // Unpack instance fields
         var separator = _separator;
-        var quoteCount = _quoteCount;
 
         // Unpack state fields
+        var quoteCount = s._parsingRowQuoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -119,8 +117,8 @@ sealed class SepParserIndexOfAny : ISepParser
                 charsIndex = charsEnd;
             }
         }
-        // Update instance state from enregistered
-        _quoteCount = quoteCount;
+        // Update reader state from enregistered
+        s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited

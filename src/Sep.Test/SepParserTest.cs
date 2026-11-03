@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -33,6 +35,106 @@ public class SepParserTest
 
     public static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
         .Select(f => new object[] { f.Value(new(Sep.Default)) });
+
+    public static IEnumerable<object[]> ParsersAndColInfos => Parsers
+        .SelectMany(p => new[] { new object[] { p[0], false }, new object[] { p[0], true } });
+
+    [TestMethod]
+    [DynamicData(nameof(Parsers))]
+    public void SepParserTest_Stateless(object parserObject)
+    {
+        var fields = parserObject.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        Assert.IsTrue(fields.All(f => f.IsInitOnly), "Parser instance fields must be readonly configuration.");
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_QuoteCount_NoProgress(object parserObject, bool colInfos)
+    {
+        var parser = (ISepParser)parserObject;
+        using var state = CreateState("");
+        state._parsingRowQuoteCount = nuint.MaxValue;
+        Parse(parser, state, colInfos);
+        Assert.AreEqual(nuint.MaxValue, state._parsingRowQuoteCount);
+        Assert.AreEqual(0, state._charsParseStart);
+
+        ";".AsSpan().CopyTo(state._chars);
+        state._charsDataEnd = 1;
+        state._parsingRowColCount = state._colEndsOrColInfos.Length / (colInfos ? 2 : 1) - parser.PaddingLength;
+        state._parsingRowQuoteCount = 3;
+        Parse(parser, state, colInfos);
+        Assert.AreEqual((nuint)3, state._parsingRowQuoteCount);
+        Assert.AreEqual(0, state._charsParseStart);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_QuoteCount_ContinuationAndIndependentStates(object parserObject, bool colInfos)
+    {
+        var parser = (ISepParser)parserObject;
+        var text = "\"" + new string('x', 80) + ";\"\"q\r\nmore\";end\r\nplain;\"last\"\"open";
+        using var expected = CreateState(text);
+        Parse(parser, expected, colInfos);
+        Assert.AreEqual((nuint)3, expected._parsingRowQuoteCount);
+        Assert.AreEqual(1, expected._parsedRowsCount);
+        Assert.AreEqual(new SepRowInfo(3, 2), expected._parsedRows[0]);
+        Assert.AreEqual(1, expected._parsingRowColCount);
+
+        for (var split = 0; split <= text.Length; split++)
+        {
+            // Like the reader, always provide lookahead after a carriage return.
+            if (split > 0 && text[split - 1] == '\r') { continue; }
+            using var actual = CreateState(text[..split]);
+            Parse(parser, actual, colInfos);
+
+            using var independent = CreateState("a;b\n");
+            Parse(parser, independent, colInfos);
+            Assert.AreEqual((nuint)0, independent._parsingRowQuoteCount);
+            Assert.AreEqual(1, independent._parsedRowsCount);
+            Assert.AreEqual(new SepRowInfo(2, 2), independent._parsedRows[0]);
+
+            text.AsSpan().CopyTo(actual._chars);
+            actual._charsDataEnd = text.Length;
+            Parse(parser, actual, colInfos);
+
+            Assert.AreEqual(expected._parsingRowQuoteCount, actual._parsingRowQuoteCount, $"Split {split}");
+            Assert.AreEqual(expected._charsParseStart, actual._charsParseStart);
+            Assert.AreEqual(expected._parsingLineNumber, actual._parsingLineNumber);
+            Assert.AreEqual(expected._parsingRowCharsStartIndex, actual._parsingRowCharsStartIndex);
+            Assert.AreEqual(expected._parsingRowColEndsOrInfosStartIndex, actual._parsingRowColEndsOrInfosStartIndex);
+            Assert.AreEqual(expected._parsingRowColCount, actual._parsingRowColCount);
+            Assert.AreEqual(expected._parsedRowsCount, actual._parsedRowsCount);
+            Assert.AreEqual(expected._parsedRows[0], actual._parsedRows[0]);
+            var length = (expected._parsingRowColEndsOrInfosStartIndex + expected._parsingRowColCount + 1) * (colInfos ? 2 : 1);
+            AreEqual(expected._colEndsOrColInfos.AsSpan(0, length), actual._colEndsOrColInfos.AsSpan(0, length));
+            if (colInfos)
+            {
+                Assert.AreEqual(4, actual._colEndsOrColInfos[3]);
+            }
+        }
+    }
+
+    static void Parse(ISepParser parser, SepReaderState state, bool colInfos)
+    {
+        if (colInfos) { parser.ParseColInfos(state); }
+        else { parser.ParseColEnds(state); }
+    }
+
+    static SepReaderState CreateState(string text)
+    {
+        var state = new SepReaderState
+        {
+            _chars = ArrayPool<char>.Shared.Rent(2048),
+            _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(2048),
+            _charsDataEnd = text.Length,
+            _arrayPool = new(),
+        };
+        Array.Clear(state._chars);
+        Array.Clear(state._colEndsOrColInfos);
+        state._colEndsOrColInfos[0] = -1;
+        text.AsSpan().CopyTo(state._chars);
+        return state;
+    }
 
     [TestMethod]
     public void SepParserTest_CreateBest()
@@ -89,7 +191,6 @@ public class SepParserTest
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
         Assert.IsGreaterThanOrEqualTo(0, parser.PaddingLength);
-        Assert.AreEqual(0, parser.QuoteCount);
     }
 
     [TestMethod]

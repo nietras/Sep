@@ -59,9 +59,9 @@ public class RowFloatsReaderBench : FloatsReaderBench
     [Benchmark(Baseline = true)]
     public void Sep______()
     {
-        using var sepReader = Sep.Reader(o => o with { HasHeader = true })
-                                 .From(Reader.CreateReader());
-        foreach (var row in sepReader)
+        using var reader = Sep.Reader(o => o with { HasHeader = true })
+                              .From(Reader.CreateReader());
+        foreach (var row in reader)
         { }
     }
 

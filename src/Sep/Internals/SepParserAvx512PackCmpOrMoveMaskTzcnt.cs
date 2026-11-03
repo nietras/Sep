@@ -3,7 +3,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
@@ -23,14 +22,10 @@ sealed class
 #endif
 SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
-    readonly byte _separator;
-    readonly byte _quotesOrSeparatorIfDisabled;
 
-    public SepParserAvx512PackCmpOrMoveMaskTzcnt(SepParserOptions options)
+    public SepParserAvx512PackCmpOrMoveMaskTzcnt()
     {
         A.Assert(Environment.Is64BitProcess);
-        _separator = (byte)options.Separator;
-        _quotesOrSeparatorIfDisabled = (byte)options.QuotesOrSeparatorIfDisabled;
     }
 
     // Parses 2 x char vectors e.g. 1 byte vector
@@ -38,48 +33,46 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColEnds(SepReaderState s)
+    void ISepParser.ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        ParseColEnds(s, _separator, _quotesOrSeparatorIfDisabled);
+        ParseColEnds(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
-    internal static void ParseColEnds(SepReaderState s, byte separator, byte quotesOrSeparatorIfDisabled)
+    internal static void ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColEndMethods>(s, separator, quotesOrSeparatorIfDisabled);
+        Parse<int, SepColEndMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColInfos(SepReaderState s)
+    void ISepParser.ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        ParseColInfos(s, _separator, _quotesOrSeparatorIfDisabled);
+        ParseColInfos(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
-    internal static void ParseColInfos(SepReaderState s, byte separator, byte quotesOrSeparatorIfDisabled)
+    internal static void ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s, separator, quotesOrSeparatorIfDisabled);
+        Parse<SepColInfo, SepColInfoMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, byte separatorByte, byte quotesOrSeparatorIfDisabled)
+    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, SepParserOptions options)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        var separator = (char)separatorByte;
-        // Volatile reads prevent constant vectors becoming memory operands inside the loop.
-        var lineEndingBytes = (LineFeed: LineFeedByte, CarriageReturn: CarriageReturnByte);
-        var nls = Vec.Create(Volatile.Read(ref lineEndingBytes.LineFeed));
-        var crs = Vec.Create(Volatile.Read(ref lineEndingBytes.CarriageReturn));
-        var qts = Vec.Create(quotesOrSeparatorIfDisabled);
-        var sps = Vec.Create(separatorByte);
+        var separator = (char)options.Separator;
+        var nls = Vec.Create(options.LineFeed);
+        var crs = Vec.Create(options.CarriageReturn);
+        var qts = Vec.Create(options.QuotesOrSeparatorIfDisabled);
+        var sps = Vec.Create(options.Separator);
 
         // Unpack state fields
         var quoteCount = s._parsingRowQuoteCount;

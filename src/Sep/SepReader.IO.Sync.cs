@@ -207,8 +207,8 @@ public sealed partial class SepReader
 
         if (_parser is not null)
         {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
-            else { _parser.ParseColInfos(this); }
+            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this, new(_parserOptionsBytes)); }
+            else { _parser.ParseColInfos(this, new(_parserOptionsBytes)); }
         }
 
         CheckPoint($"{nameof(_parser)} AFTER");

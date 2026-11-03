@@ -556,7 +556,7 @@ public class ParsersRowPackageAssetsBench : PackageAssetsBench
 
     [ParamsSource(nameof(ParserParams))] // Attributes for params is challenging 👇
     public string Parser { get; set; } = SepParserFactory.GetForceParserName();
-    public IEnumerable<string> ParserParams() => SepParserFactory.AvailableFactories.Keys;
+    public IEnumerable<string> ParserParams() => SepParserFactory.AvailableParsers.Keys;
 
     [GlobalSetup]
     public void GlobalSetup()

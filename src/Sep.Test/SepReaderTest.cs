@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -32,6 +33,34 @@ public partial class SepReaderTest
     ];
 
     record Values(string C1, string C2, string C3);
+
+    [TestMethod]
+    public async ValueTask SepReaderTest_SharedParser_IndependentOptions()
+    {
+        var parserField = typeof(SepReader).GetField("_parser", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.IsNotNull(parserField);
+        using var quoted = Sep.Default.Reader(o => o with { Unescape = true })
+            .FromText("A;B\n\"first;part\";tail\n\"next\nline\";end\n");
+        using var disabled = await Sep.New(',').Reader(o => o with { DisableQuotesParsing = true })
+            .FromTextAsync("A,B\n\"plain,tail\nnext,end\n");
+        using var detected = Sep.Reader().FromText("A|B\nvalue|tail\n");
+        Assert.AreSame(SepParserFactory.Best, parserField.GetValue(quoted));
+        Assert.AreSame(parserField.GetValue(quoted), parserField.GetValue(disabled));
+        Assert.AreSame(parserField.GetValue(quoted), parserField.GetValue(detected));
+        Assert.IsTrue(quoted.MoveNext());
+        Assert.AreEqual("first;part", quoted.Current[0].ToString());
+        Assert.IsTrue(await disabled.MoveNextAsync());
+        Assert.AreEqual("\"plain", disabled.Current[0].ToString());
+        Assert.IsTrue(detected.MoveNext());
+        Assert.AreEqual("value", detected.Current[0].ToString());
+        Assert.IsTrue(quoted.MoveNext());
+        Assert.AreEqual("next\nline", quoted.Current[0].ToString());
+        Assert.IsTrue(await disabled.MoveNextAsync());
+        Assert.AreEqual("next", disabled.Current[0].ToString());
+        Assert.IsFalse(quoted.MoveNext());
+        Assert.IsFalse(await disabled.MoveNextAsync());
+        Assert.IsFalse(detected.MoveNext());
+    }
 
     [TestMethod]
     [DataRow(false)]

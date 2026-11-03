@@ -16,7 +16,7 @@ public class SepParserBench
         public override string ToString() => $"{Name} {TotalLength:D8}";
     }
 
-    public record ParserSpec(string Name, Func<Sep, object> CreateParser)
+    public record ParserSpec(string Name, object Instance)
     {
         public override string ToString() => Name;
     }
@@ -29,17 +29,18 @@ public class SepParserBench
     readonly ParserSpec[] _parsers;
     readonly FillerSpec[] _fillers;
     ISepParser? _parser;
+    SepParserOptions _parserOptions;
     readonly int _parserPaddingLengthMax = 32;
     SepReaderState? _state;
 
     public SepParserBench()
     {
 #pragma warning disable CA1307 // Specify StringComparison for clarity
-        _parsers = SepParserFactory.AcceleratedFactories.Select(p =>
-            new ParserSpec(p.Key.Replace("SepParser", "").Replace("SepParserVector", ""), sep => p.Value(new(sep)))).ToArray();
+        _parsers = SepParserFactory.AcceleratedParsers.Select(p =>
+            new ParserSpec(p.Key.Replace("SepParser", "").Replace("SepParserVector", ""), p.Value)).ToArray();
 #pragma warning restore CA1307 // Specify StringComparison for clarity
         _parserPaddingLengthMax = Math.Max(_parserPaddingLengthMax,
-            _parsers.Select(p => ((ISepParser)p.CreateParser(Sep.Default)).PaddingLength).Max());
+            _parsers.Select(p => ((ISepParser)p.Instance).PaddingLength).Max());
 #if false //DEBUG
         _fillers = new FillerSpec[]
         {
@@ -74,7 +75,8 @@ public class SepParserBench
     [GlobalSetup]
     public void GlobalSetup()
     {
-        _parser = (ISepParser)Parser.CreateParser(new(Filler.Separator));
+        _parser = (ISepParser)Parser.Instance;
+        _parserOptions = new SepParserOptions(new Sep(Filler.Separator));
         var text = Filler.Text;
         var copies = Filler.Copies;
         _state = new();
@@ -98,7 +100,7 @@ public class SepParserBench
         _state._parsingRowColCount = 0;
         _state._parsingRowColEndsOrInfosStartIndex = 0;
         _state._parsingRowQuoteCount = 0;
-        _parser!.ParseColEnds(_state);
+        _parser!.ParseColEnds(_state, _parserOptions);
     }
 
     //[Benchmark]

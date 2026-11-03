@@ -36,6 +36,8 @@ public sealed partial class SepReader : SepReaderState
     readonly TextReader _reader;
     readonly ISepTextReaderDisposer _textReaderDisposer;
     ISepParser? _parser;
+    // Scalar storage lets the CLR use existing object padding.
+    uint _parserOptionsBytes;
 
     readonly int _charsMinimumFreeLength;
     int _charsPaddingLength;
@@ -72,7 +74,8 @@ public sealed partial class SepReader : SepReaderState
         var sep = options.Sep;
         if (sep.HasValue)
         {
-            _parser = SepParserFactory.CreateBest(new(sep.Value, _disableQuotesParsing));
+            _parser = SepParserFactory.Best;
+            _parserOptionsBytes = new SepParserOptions(sep.Value, _disableQuotesParsing).Bytes;
             _charsPaddingLength = _parser.PaddingLength;
             _separator = sep.Value.Separator;
         }
@@ -209,7 +212,8 @@ public sealed partial class SepReader : SepReaderState
         {
             var sep = maybeSep.Value;
             _separator = sep.Separator;
-            _parser = SepParserFactory.CreateBest(new(sep, _disableQuotesParsing));
+            _parser = SepParserFactory.Best;
+            _parserOptionsBytes = new SepParserOptions(sep, _disableQuotesParsing).Bytes;
             _charsPaddingLength = _parser.PaddingLength;
         }
     }

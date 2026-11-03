@@ -126,7 +126,7 @@ public class RowPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -211,7 +211,7 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper_TrimUnescape()
@@ -237,7 +237,7 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper_TrimUnescapeTrim()
@@ -351,7 +351,7 @@ public class ColsPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -482,7 +482,7 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()

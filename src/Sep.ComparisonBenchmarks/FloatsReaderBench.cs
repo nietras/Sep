@@ -99,7 +99,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -190,7 +190,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         }
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public void CsvHelper()
@@ -373,7 +373,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         return sum / count;
     }
 
-#if SEPBENCHSLOWONES && !SEPBENCHSEPONLY
+#if !SEPBENCHSEPONLY
     [Benchmark]
 #endif
     public double CsvHelper()

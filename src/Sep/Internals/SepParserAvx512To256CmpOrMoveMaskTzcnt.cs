@@ -20,17 +20,22 @@ sealed class
 #endif
 SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 {
-    readonly char _separator;
-    readonly VecUI8 _nls = Vec.Create(LineFeedByte);
-    readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
-    readonly VecUI8 _qts;
-    readonly VecUI8 _sps;
+    // Non-readonly prevents the JIT folding these into memory operands inside the loop.
+    static VecUI8 _nls;
+    static VecUI8 _crs;
+    readonly byte _separator;
+    readonly byte _quotesOrSeparatorIfDisabled;
+
+    static SepParserAvx512To256CmpOrMoveMaskTzcnt()
+    {
+        _nls = Vec.Create(LineFeedByte);
+        _crs = Vec.Create(CarriageReturnByte);
+    }
 
     public SepParserAvx512To256CmpOrMoveMaskTzcnt(SepParserOptions options)
     {
-        _separator = options.Separator;
-        _sps = Vec.Create((byte)_separator);
-        _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
+        _separator = (byte)options.Separator;
+        _quotesOrSeparatorIfDisabled = (byte)options.QuotesOrSeparatorIfDisabled;
     }
 
     // Parses 2 x char vectors e.g. 1 byte vector
@@ -40,31 +45,43 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColEnds(SepReaderState s)
     {
-        Parse<int, SepColEndMethods>(s);
+        ParseColEnds(s, _separator, _quotesOrSeparatorIfDisabled);
+    }
+
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    internal static void ParseColEnds(SepReaderState s, byte separator, byte quotesOrSeparatorIfDisabled)
+    {
+        Parse<int, SepColEndMethods>(s, separator, quotesOrSeparatorIfDisabled);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColInfos(SepReaderState s)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s);
+        ParseColInfos(s, _separator, _quotesOrSeparatorIfDisabled);
+    }
+
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    internal static void ParseColInfos(SepReaderState s, byte separator, byte quotesOrSeparatorIfDisabled)
+    {
+        Parse<SepColInfo, SepColInfoMethods>(s, separator, quotesOrSeparatorIfDisabled);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, byte separatorByte, byte quotesOrSeparatorIfDisabled)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        // Unpack instance fields
-        var separator = _separator;
-        // Use instance fields to force values into registers
-        var nls = _nls; //Vec.Create(LineFeedByte);
-        var crs = _crs; //Vec.Create(CarriageReturnByte);
-        var qts = _qts; //Vec.Create(QuoteByte);
-        var sps = _sps; //Vec.Create(_separator);
+        var separator = (char)separatorByte;
+        var nls = _nls;
+        var crs = _crs;
+        var qts = Vec.Create(quotesOrSeparatorIfDisabled);
+        var sps = Vec.Create(separatorByte);
 
         // Unpack state fields
         var quoteCount = s._parsingRowQuoteCount;
@@ -76,10 +93,10 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
 
         var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
 
-        chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
+        chars.CheckPaddingAndIsZero(charsEnd, VecUI8.Count);
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, VecUI8.Count);
         A.Assert(charsIndex <= charsEnd);
-        A.Assert(charsEnd <= (chars.Length - PaddingLength));
+        A.Assert(charsEnd <= (chars.Length - VecUI8.Count));
 
         ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 

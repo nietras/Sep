@@ -22,7 +22,7 @@ namespace nietras.SeparatedValues;
 // https://developer.arm.com/architectures/instruction-sets/intrinsics
 sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 {
-    static readonly int LoopCount = VecUI8.Count * 4;
+    static int LoopCount => VecUI8.Count * 4;
 
     // Parses 8 x char vectors e.g. 4 byte vector
     public int PaddingLength => LoopCount;

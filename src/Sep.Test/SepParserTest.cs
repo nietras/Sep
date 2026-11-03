@@ -104,15 +104,19 @@ public class SepParserTest
     }
 
     [TestMethod]
-    [DynamicData(nameof(Parsers))]
-    public void SepParserTest_Stateless(object parserObject)
+    public void SepParserTest_Stateless()
     {
-        var type = parserObject.GetType();
-        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
-        Assert.AreEqual(0, fields.Length, "Parser instances must not contain reader-specific state or configuration.");
-        Assert.IsNull(type.TypeInitializer, "Parsers must not require static initialization.");
+        var types = typeof(ISepParser).Assembly.GetTypes()
+            .Where(type => !type.IsAbstract && typeof(ISepParser).IsAssignableFrom(type));
+        Assert.IsNotEmpty(types);
+        foreach (var type in types)
+        {
+            var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.AreEqual(0, fields.Length, $"{type.Name} must not contain fields.");
+            Assert.IsNull(type.TypeInitializer, $"{type.Name} must not require static initialization.");
+        }
+
         var available = SepParserFactory.CreateAvailableParsers();
-        Assert.AreEqual(parserObject.GetType(), available[parserObject.GetType().Name].GetType());
         foreach (var parser in SepParserFactory.CreateAcceleratedParsers())
         {
             Assert.AreEqual(available[parser.Key].GetType(), parser.Value.GetType());

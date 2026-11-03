@@ -106,8 +106,10 @@ public class SepParserTest
     [DynamicData(nameof(Parsers))]
     public void SepParserTest_Stateless(object parserObject)
     {
-        var fields = parserObject.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        var type = parserObject.GetType();
+        var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
         Assert.AreEqual(0, fields.Length, "Parser instances must not contain reader-specific state or configuration.");
+        Assert.IsNull(type.TypeInitializer, "Parsers must not require static initialization.");
         Assert.AreSame(parserObject, SepParserFactory.AvailableParsers[parserObject.GetType().Name]);
         foreach (var parser in SepParserFactory.AcceleratedParsers)
         {

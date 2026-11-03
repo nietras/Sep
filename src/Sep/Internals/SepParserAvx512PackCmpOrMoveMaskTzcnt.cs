@@ -22,12 +22,6 @@ sealed class
 #endif
 SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
 {
-
-    public SepParserAvx512PackCmpOrMoveMaskTzcnt()
-    {
-        A.Assert(Environment.Is64BitProcess);
-    }
-
     // Parses 2 x char vectors e.g. 1 byte vector
     public int PaddingLength => VecUI8.Count;
 

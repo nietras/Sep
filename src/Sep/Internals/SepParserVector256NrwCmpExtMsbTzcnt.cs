@@ -12,14 +12,6 @@ namespace nietras.SeparatedValues;
 
 sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
 {
-    // Non-readonly prevents the JIT folding these into memory operands inside the loop.
-    static VecUI16 _max;
-
-    static SepParserVector256NrwCmpExtMsbTzcnt()
-    {
-        _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
-    }
-
     // Parses 2 x char vectors e.g. 1 byte vector
     public int PaddingLength => VecUI8.Count;
 
@@ -61,7 +53,9 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
         // impacts code-generation severely.
 
         var separator = (char)options.Separator;
-        var max = _max;
+#if !NET10_0_OR_GREATER
+        var max = Vec.Create((ushort)(Sep.Max.Separator + 1));
+#endif
         var nls = Vec.Create(options.LineFeed);
         var crs = Vec.Create(options.CarriageReturn);
         var qts = Vec.Create(options.QuotesOrSeparatorIfDisabled);

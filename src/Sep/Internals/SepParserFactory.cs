@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -14,77 +13,102 @@ static class SepParserFactory
     internal const int MaxPaddingLength = 128;
     internal const string SepForceParserEnvName = "SEPFORCEPARSER";
 
-    static readonly Lazy<ISepParser> _best = new(GetBest);
+    internal static ISepParser Best { get; } = GetBest();
 
     [ExcludeFromCodeCoverage]
-    internal static ISepParser Best => _best.Value;
+    internal static ISepParser GetBest() => GetBest(GetForceParserName());
 
     [ExcludeFromCodeCoverage]
-    internal static ISepParser GetBest()
+    internal static ISepParser GetBest(string forceParserName)
     {
-        var forceParserName = GetForceParserName();
-        if (AvailableParsers.TryGetValue(forceParserName, out var parser))
+        var selection = new SelectParser(forceParserName);
+        if (forceParserName.Length != 0)
         {
-            Trace.WriteLine($"Forcing use of parser '{forceParserName}'");
-            return parser;
+            AddParsers(ref selection, createUnaccelerated: true);
+            if (selection.Parser is { } forced)
+            {
+                Trace.WriteLine($"Forcing use of parser '{forceParserName}'");
+                return forced;
+            }
         }
-        return AcceleratedParsers.Values.First();
+        selection = new SelectParser(string.Empty);
+        AddParsers(ref selection, createUnaccelerated: false);
+        return selection.Parser!;
     }
 
     internal static string GetForceParserName() => Environment.GetEnvironmentVariable(SepForceParserEnvName) ?? string.Empty;
 
-    internal static IReadOnlyDictionary<string, ISepParser> AvailableParsers { get; } =
-        CreateFactories(createUnaccelerated: true).ToDictionary(p => p.Key, p => p.Value());
-    internal static IReadOnlyDictionary<string, ISepParser> AcceleratedParsers { get; } =
-        CreateFactories(createUnaccelerated: false).Keys.ToDictionary(name => name, name => AvailableParsers[name]);
+    internal static IReadOnlyDictionary<string, ISepParser> CreateAvailableParsers() => CreateParsers(true);
+    internal static IReadOnlyDictionary<string, ISepParser> CreateAcceleratedParsers() => CreateParsers(false);
 
-    static IReadOnlyDictionary<string, Func<ISepParser>> CreateFactories(bool createUnaccelerated)
+    static Dictionary<string, ISepParser> CreateParsers(bool createUnaccelerated)
     {
-        var parsers = new Dictionary<string, Func<ISepParser>>();
-        AddFactories(parsers, createUnaccelerated);
-        return parsers;
+        var collection = new CollectParsers();
+        AddParsers(ref collection, createUnaccelerated);
+        return collection.Parsers;
     }
 
-    static void AddFactories<TCollection>(TCollection parsers, bool createUnaccelerated)
-        where TCollection : ICollection<KeyValuePair<string, Func<ISepParser>>>
+    static void AddParsers<TCollector>(ref TCollector parsers, bool createUnaccelerated)
+        where TCollector : struct, IParserCollector
     {
 #if NET8_0_OR_GREATER
         // AVX-512 to 256 avoids mask register code gen issues
         if (Avx512BW.IsSupported)
-        { Add(parsers, nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt), static () => new SepParserAvx512To256CmpOrMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt))) { return; } }
 #endif
         // Avx2 and Vector256 are faster than most AVX-512 due to mask register code gen issues
         if (Avx2.IsSupported)
-        { Add(parsers, nameof(SepParserAvx2PackCmpOrMoveMaskTzcnt), static () => new SepParserAvx2PackCmpOrMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAvx2PackCmpOrMoveMaskTzcnt>(nameof(SepParserAvx2PackCmpOrMoveMaskTzcnt))) { return; } }
         if (createUnaccelerated || Vector256.IsHardwareAccelerated)
-        { Add(parsers, nameof(SepParserVector256NrwCmpExtMsbTzcnt), static () => new SepParserVector256NrwCmpExtMsbTzcnt()); }
+        { if (!parsers.TryAdd<SepParserVector256NrwCmpExtMsbTzcnt>(nameof(SepParserVector256NrwCmpExtMsbTzcnt))) { return; } }
 #if NET8_0_OR_GREATER
         if (Environment.Is64BitProcess && Avx512BW.IsSupported)
-        { Add(parsers, nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt), static () => new SepParserAvx512PackCmpOrMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAvx512PackCmpOrMoveMaskTzcnt>(nameof(SepParserAvx512PackCmpOrMoveMaskTzcnt))) { return; } }
         if (Avx512BW.VL.IsSupported)
-        { Add(parsers, nameof(SepParserAvx256To128CmpOrMoveMaskTzcnt), static () => new SepParserAvx256To128CmpOrMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAvx256To128CmpOrMoveMaskTzcnt>(nameof(SepParserAvx256To128CmpOrMoveMaskTzcnt))) { return; } }
         if (Environment.Is64BitProcess && (createUnaccelerated || Vector512.IsHardwareAccelerated))
-        { Add(parsers, nameof(SepParserVector512NrwCmpExtMsbTzcnt), static () => new SepParserVector512NrwCmpExtMsbTzcnt()); }
+        { if (!parsers.TryAdd<SepParserVector512NrwCmpExtMsbTzcnt>(nameof(SepParserVector512NrwCmpExtMsbTzcnt))) { return; } }
         if (Environment.Is64BitProcess && AdvSimd.Arm64.IsSupported)
-        { Add(parsers, nameof(SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt), static () => new SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt>(nameof(SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt))) { return; } }
 #endif
 #if NET9_0_OR_GREATER
         if (Environment.Is64BitProcess && AdvSimd.Arm64.IsSupported)
-        { Add(parsers, nameof(SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt), static () => new SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt>(nameof(SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt))) { return; } }
 #endif
         if (Sse2.IsSupported)
-        { Add(parsers, nameof(SepParserSse2PackCmpOrMoveMaskTzcnt), static () => new SepParserSse2PackCmpOrMoveMaskTzcnt()); }
+        { if (!parsers.TryAdd<SepParserSse2PackCmpOrMoveMaskTzcnt>(nameof(SepParserSse2PackCmpOrMoveMaskTzcnt))) { return; } }
         if (createUnaccelerated || Vector128.IsHardwareAccelerated)
-        { Add(parsers, nameof(SepParserVector128NrwCmpExtMsbTzcnt), static () => new SepParserVector128NrwCmpExtMsbTzcnt()); }
+        { if (!parsers.TryAdd<SepParserVector128NrwCmpExtMsbTzcnt>(nameof(SepParserVector128NrwCmpExtMsbTzcnt))) { return; } }
         if (createUnaccelerated || Vector64.IsHardwareAccelerated)
-        { Add(parsers, nameof(SepParserVector64NrwCmpExtMsbTzcnt), static () => new SepParserVector64NrwCmpExtMsbTzcnt()); }
-        Add(parsers, nameof(SepParserIndexOfAny), static () => new SepParserIndexOfAny());
+        { if (!parsers.TryAdd<SepParserVector64NrwCmpExtMsbTzcnt>(nameof(SepParserVector64NrwCmpExtMsbTzcnt))) { return; } }
+        parsers.TryAdd<SepParserIndexOfAny>(nameof(SepParserIndexOfAny));
     }
 
-    static void Add<TCollection, TParser>(TCollection parsers, string name, Func<TParser> create)
-        where TParser : ISepParser
-        where TCollection : ICollection<KeyValuePair<string, Func<ISepParser>>>
+    interface IParserCollector
     {
-        parsers.Add(new(name, () => create()));
+        bool TryAdd<TParser>(string name) where TParser : ISepParser, new();
+    }
+
+    struct SelectParser(string name) : IParserCollector
+    {
+        internal ISepParser? Parser;
+
+        public bool TryAdd<TParser>(string parserName) where TParser : ISepParser, new()
+        {
+            if (name.Length != 0 && name != parserName) { return true; }
+            Parser = new TParser();
+            return false;
+        }
+    }
+
+    readonly struct CollectParsers() : IParserCollector
+    {
+        internal Dictionary<string, ISepParser> Parsers { get; } = [];
+
+        public bool TryAdd<TParser>(string name) where TParser : ISepParser, new()
+        {
+            Parsers.Add(name, new TParser());
+            return true;
+        }
     }
 }

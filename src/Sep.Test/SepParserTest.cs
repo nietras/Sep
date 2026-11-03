@@ -34,7 +34,7 @@ public class SepParserTest
         _stateUnescape._colEndsOrColInfos = _colEndsOrColInfos;
     }
 
-    public static IEnumerable<object[]> Parsers => SepParserFactory.AvailableParsers
+    public static IEnumerable<object[]> Parsers => SepParserFactory.CreateAvailableParsers()
         .Select(f => new object[] { f.Value });
 
     public static IEnumerable<object[]> ParsersAndColInfos => Parsers
@@ -54,6 +54,7 @@ public class SepParserTest
             BindingFlags.Static | BindingFlags.NonPublic, [typeof(SepReaderState), typeof(SepParserOptions)]);
         Assert.IsNotNull(method);
         var parse = method.CreateDelegate<Action<SepReaderState, SepParserOptions>>();
+        var reference = SepParserFactory.CreateAvailableParsers()[nameof(SepParserIndexOfAny)];
         foreach (var separator in new[] { '\t', Sep.Min.Separator, ';', ',', Sep.Max.Separator })
         {
             foreach (var disableQuotes in new[] { false, true })
@@ -62,7 +63,7 @@ public class SepParserTest
                 var text = "\"" + new string('x', 80) + separator + "\"\"q\r\nmore\"" + separator + "\u013B\u017E\u0122\u010A\u010Dend\r\nplain" + separator + "\"last\"\"open";
                 using var expected = CreateState(text);
                 using var actual = CreateState(text);
-                Parse(SepParserFactory.AvailableParsers[nameof(SepParserIndexOfAny)], expected, colInfos, options);
+                Parse(reference, expected, colInfos, options);
                 parse(actual, options);
                 Assert.AreEqual(expected._parsingRowQuoteCount, actual._parsingRowQuoteCount);
                 Assert.AreEqual(expected._charsParseStart, actual._charsParseStart);
@@ -110,10 +111,11 @@ public class SepParserTest
         var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
         Assert.AreEqual(0, fields.Length, "Parser instances must not contain reader-specific state or configuration.");
         Assert.IsNull(type.TypeInitializer, "Parsers must not require static initialization.");
-        Assert.AreSame(parserObject, SepParserFactory.AvailableParsers[parserObject.GetType().Name]);
-        foreach (var parser in SepParserFactory.AcceleratedParsers)
+        var available = SepParserFactory.CreateAvailableParsers();
+        Assert.AreEqual(parserObject.GetType(), available[parserObject.GetType().Name].GetType());
+        foreach (var parser in SepParserFactory.CreateAcceleratedParsers())
         {
-            Assert.AreSame(SepParserFactory.AvailableParsers[parser.Key], parser.Value);
+            Assert.AreEqual(available[parser.Key].GetType(), parser.Value.GetType());
         }
     }
 
@@ -122,7 +124,7 @@ public class SepParserTest
     public void SepParserTest_SharedInstance_ConcurrentOptions(object parserObject, bool colInfos)
     {
         var parser = (ISepParser)parserObject;
-        var reference = SepParserFactory.AvailableParsers[nameof(SepParserIndexOfAny)];
+        var reference = SepParserFactory.CreateAvailableParsers()[nameof(SepParserIndexOfAny)];
         Parallel.For(0, 100, i =>
         {
             var separator = i % 2 == 0 ? ';' : ',';
@@ -249,7 +251,7 @@ public class SepParserTest
             Assert.IsInstanceOfType(best, GetBestExpectedType());
 
         }
-        else if (!SepParserFactory.AvailableParsers.ContainsKey(forceParserName))
+        else if (!SepParserFactory.CreateAvailableParsers().ContainsKey(forceParserName))
         {
             Assert.Inconclusive($"Unknown or unavailable forced parser name '{forceParserName}'");
         }
@@ -271,17 +273,38 @@ public class SepParserTest
     }
 
     [TestMethod]
+    public void SepParserTest_Selection()
+    {
+        var accelerated = SepParserFactory.CreateAcceleratedParsers().First().Value;
+        Assert.AreEqual(accelerated.GetType(), SepParserFactory.GetBest(string.Empty).GetType());
+        Assert.AreEqual(accelerated.GetType(), SepParserFactory.GetBest("UnavailableParser").GetType());
+        foreach (var (name, parser) in SepParserFactory.CreateAvailableParsers())
+        {
+            Assert.AreEqual(parser.GetType(), SepParserFactory.GetBest(name).GetType());
+        }
+        Assert.AreEqual(SepParserFactory.CreateAvailableParsers()[SepParserFactory.Best.GetType().Name].GetType(),
+            SepParserFactory.Best.GetType());
+    }
+
+    [TestMethod]
     public void SepParserTest_AcceleratedParsers()
     {
-        var factories = SepParserFactory.AcceleratedParsers;
+        var factories = SepParserFactory.CreateAcceleratedParsers();
         Assert.IsNotEmpty(factories);
     }
 
     [TestMethod]
     public void SepParserTest_AvailableParsers()
     {
-        var factories = SepParserFactory.AvailableParsers;
+        var factories = SepParserFactory.CreateAvailableParsers();
         Assert.IsNotEmpty(factories);
+        var another = SepParserFactory.CreateAvailableParsers();
+        Assert.AreNotSame(factories, another);
+        foreach (var (name, parser) in factories)
+        {
+            Assert.AreEqual(parser.GetType(), another[name].GetType());
+            Assert.AreNotSame(parser, another[name]);
+        }
     }
 
 

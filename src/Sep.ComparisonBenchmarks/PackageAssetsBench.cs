@@ -2,7 +2,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -134,16 +133,16 @@ public class RowPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = false,
-            Separator = ',',
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read()) { }
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read()) { }
     }
 }
 
@@ -219,21 +218,21 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = false,
-            Separator = ',',
             TrimWhitespace = true,
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
         {
-            for (var i = 0; i < csvParser.FieldCount; i++)
+            for (var i = 0; i < csvReader.FieldCount; i++)
             {
-                var s = csvParser[i].Span;
+                var s = csvReader[i].Span;
             }
         }
     }
@@ -245,22 +244,22 @@ public class SpacesQuotesColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = false,
-            Separator = ',',
+            TrackLineNumbers = true,
             TrimWhitespace = true,
             TrimInsideQuotes = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
         {
-            for (var i = 0; i < csvParser.FieldCount; i++)
+            for (var i = 0; i < csvReader.FieldCount; i++)
             {
-                var s = csvParser[i].Span;
+                var s = csvReader[i].Span;
             }
         }
     }
@@ -359,20 +358,20 @@ public class ColsPackageAssetsBench : PackageAssetsBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = false,
-            Separator = ',',
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
         {
-            for (var i = 0; i < csvParser.FieldCount; i++)
+            for (var i = 0; i < csvReader.FieldCount; i++)
             {
-                var s = csvParser[i].ToString();
+                var s = csvReader[i].ToString();
             }
         }
     }
@@ -491,18 +490,18 @@ public class AssetPackageAssetsBench : PackageAssetsBench
         var assets = new List<PackageAsset>();
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = false,
-            Separator = ',',
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
         {
-            var asset = PackageAsset.Read(csvParser, static (p, i) => p[i].ToString());
+            var asset = PackageAsset.Read(csvReader, static (p, i) => p[i].ToString());
             assets.Add(asset);
         }
     }

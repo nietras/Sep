@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using static System.Runtime.CompilerServices.Unsafe;
@@ -23,17 +24,8 @@ namespace nietras.SeparatedValues;
 sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 {
     static readonly int LoopCount = VecUI8.Count * 4;
-    // Non-readonly prevents the JIT folding these into memory operands inside the loop.
-    static VecUI8 _nls;
-    static VecUI8 _crs;
     readonly byte _separator;
     readonly byte _quotesOrSeparatorIfDisabled;
-
-    static SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt()
-    {
-        _nls = Vec.Create(LineFeedByte);
-        _crs = Vec.Create(CarriageReturnByte);
-    }
 
     public SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
     {
@@ -72,6 +64,7 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         Parse<SepColInfo, SepColInfoMethods>(s, separator, quotesOrSeparatorIfDisabled);
     }
 
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, byte separatorByte, byte quotesOrSeparatorIfDisabled)
         where TColInfo : unmanaged
@@ -81,8 +74,10 @@ sealed class SepParserAdvSimdNrwCmpOrBulkMoveMaskTzcnt : ISepParser
         // impacts code-generation severely.
 
         var separator = (char)separatorByte;
-        var nls = _nls;
-        var crs = _crs;
+        // Volatile reads prevent constant vectors becoming memory operands inside the loop.
+        var lineEndingBytes = (LineFeed: LineFeedByte, CarriageReturn: CarriageReturnByte);
+        var nls = Vec.Create(Volatile.Read(ref lineEndingBytes.LineFeed));
+        var crs = Vec.Create(Volatile.Read(ref lineEndingBytes.CarriageReturn));
         var qts = Vec.Create(quotesOrSeparatorIfDisabled);
         var sps = Vec.Create(separatorByte);
 

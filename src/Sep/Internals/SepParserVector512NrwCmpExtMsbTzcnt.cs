@@ -2,6 +2,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
@@ -15,16 +16,12 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
 {
     // Non-readonly prevents the JIT folding these into memory operands inside the loop.
     static VecUI16 _max;
-    static VecUI8 _nls;
-    static VecUI8 _crs;
     readonly byte _separator;
     readonly byte _quotesOrSeparatorIfDisabled;
 
     static SepParserVector512NrwCmpExtMsbTzcnt()
     {
         _max = Vec.Create((ushort)(Sep.Max.Separator + 1));
-        _nls = Vec.Create(LineFeedByte);
-        _crs = Vec.Create(CarriageReturnByte);
     }
 
     public SepParserVector512NrwCmpExtMsbTzcnt(SepParserOptions options)
@@ -65,7 +62,8 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
         Parse<SepColInfo, SepColInfoMethods>(s, separator, quotesOrSeparatorIfDisabled);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, byte separatorByte, byte quotesOrSeparatorIfDisabled)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
@@ -75,8 +73,10 @@ sealed class SepParserVector512NrwCmpExtMsbTzcnt : ISepParser
 
         var separator = (char)separatorByte;
         var max = _max;
-        var nls = _nls;
-        var crs = _crs;
+        // Volatile reads prevent constant vectors becoming memory operands inside the loop.
+        var lineEndingBytes = (LineFeed: LineFeedByte, CarriageReturn: CarriageReturnByte);
+        var nls = Vec.Create(Volatile.Read(ref lineEndingBytes.LineFeed));
+        var crs = Vec.Create(Volatile.Read(ref lineEndingBytes.CarriageReturn));
         var qts = Vec.Create(quotesOrSeparatorIfDisabled);
         var sps = Vec.Create(separatorByte);
 

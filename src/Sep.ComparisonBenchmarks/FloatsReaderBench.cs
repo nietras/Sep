@@ -59,7 +59,7 @@ public class RowFloatsReaderBench : FloatsReaderBench
     [Benchmark(Baseline = true)]
     public void Sep______()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false })
+        using var reader = Sep.Reader(o => o with { HasHeader = true })
                               .From(Reader.CreateReader());
         foreach (var row in reader)
         { }
@@ -73,15 +73,14 @@ public class RowFloatsReaderBench : FloatsReaderBench
         using var reader = Reader.CreateReader();
         var options = new CsvDataReaderOptions
         {
-            HasHeaders = false,
+            HasHeaders = true,
         };
         var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
         try
         {
             using var csvReader = Sylvan.Data.Csv.CsvDataReader.Create(reader, buffer, options);
             while (csvReader.Read())
-            {
-            }
+            { }
         }
         finally { ArrayPool<char>.Shared.Return(buffer); }
     }
@@ -92,7 +91,8 @@ public class RowFloatsReaderBench : FloatsReaderBench
     public void ReadLine_()
     {
         using var reader = Reader.CreateReader();
-        string? line = null;
+        _ = reader.ReadLine();
+        string? line;
         while ((line = reader.ReadLine()) != null)
         {
             var cols = line.Split(';');
@@ -106,18 +106,17 @@ public class RowFloatsReaderBench : FloatsReaderBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
-            HasHeader = false,
-            Separator = ',',
+            HasHeader = true,
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
-        {
-        }
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
+        { }
     }
 }
 
@@ -137,7 +136,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
     [Benchmark(Baseline = true)]
     public void Sep______()
     {
-        using var reader = Sep.Reader(o => o with { HasHeader = false })
+        using var reader = Sep.Reader()
                               .From(Reader.CreateReader());
         foreach (var row in reader)
         {
@@ -156,7 +155,7 @@ public class ColsFloatsReaderBench : FloatsReaderBench
         using var reader = Reader.CreateReader();
         var options = new CsvDataReaderOptions
         {
-            HasHeaders = false,
+            HasHeaders = true,
         };
         var buffer = ArrayPool<char>.Shared.Rent(32 * 1024);
         try
@@ -179,7 +178,8 @@ public class ColsFloatsReaderBench : FloatsReaderBench
     public void ReadLine_()
     {
         using var reader = Reader.CreateReader();
-        string? line = null;
+        _ = reader.ReadLine();
+        string? line;
         while ((line = reader.ReadLine()) != null)
         {
             var cols = line.Split(';');
@@ -197,20 +197,20 @@ public class ColsFloatsReaderBench : FloatsReaderBench
     {
         using var reader = Reader.CreateReader();
 
-        var config = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
-            HasHeader = false,
-            Separator = ',',
+            HasHeader = true,
+            TrackLineNumbers = true,
 #if USE_STRING_POOLING
             PoolStrings = true,
 #endif
         };
-        using var csvParser = CsvReader.Create(reader, config);
-        while (csvParser.Read())
+        using var csvReader = CsvReader.Create(reader, options);
+        while (csvReader.Read())
         {
-            for (var i = 0; i < csvParser.FieldCount; i++)
+            for (var i = 0; i < csvReader.FieldCount; i++)
             {
-                var s = csvParser[i].Span;
+                var s = csvReader[i].Span;
             }
         }
     }
@@ -362,7 +362,7 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
+                var colIndex = colNameToIndex[resultColNames[i]];
                 var value = float.Parse(cols[colIndex]);
                 res[i] = value;
             }
@@ -379,22 +379,18 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
     public double CsvHelper()
     {
         using var reader = Reader.CreateReader();
-        var configuration = new CsvReaderOptions
+        var options = new CsvReaderOptions
         {
             HasHeader = true,
             FormatProvider = CultureInfo.InvariantCulture,
+            TrackLineNumbers = true,
         };
-        using var csvParser = CsvReader.Create(reader, configuration);
-
-        // Read header
-        csvParser.ReadHeader();
-
-        var colNameToIndex = Enumerable.Range(0, csvParser.Headers.Count).ToDictionary(i => csvParser.Headers[i], i => i);
+        using var csvReader = CsvReader.Create(reader, options);
 
         var groundTruthColNames = new List<string>();
-        for (var i = 0; i < csvParser.Headers.Count; i++)
+        for (var i = 0; i < csvReader.Headers.Count; i++)
         {
-            var colName = csvParser.Headers[i];
+            var colName = csvReader.Headers[i];
             if (colName.StartsWith(T.GroundTruthColNamePrefix, StringComparison.Ordinal))
             {
                 groundTruthColNames.Add(colName);
@@ -410,18 +406,16 @@ public class FloatsFloatsReaderBench : FloatsReaderBench
         Span<float> gts = stackalloc float[groundTruthColNames.Count];
         Span<float> res = stackalloc float[resultColNames.Length];
 
-        while (csvParser.Read())
+        while (csvReader.Read())
         {
             for (var i = 0; i < groundTruthColNames.Count; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = csvParser[colIndex].Parse<float>();
+                var value = csvReader[groundTruthColNames[i]].Parse<float>();
                 gts[i] = value;
             }
             for (var i = 0; i < resultColNames.Length; i++)
             {
-                var colIndex = colNameToIndex[groundTruthColNames[i]];
-                var value = csvParser[colIndex].Parse<float>();
+                var value = csvReader[resultColNames[i]].Parse<float>();
                 res[i] = value;
             }
 

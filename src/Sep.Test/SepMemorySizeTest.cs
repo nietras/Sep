@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -21,7 +22,38 @@ public class SepMemorySizeTest
         TestContext.WriteLine($"SepWriterOptions: {writerOptionsSize} bytes");
         TestContext.WriteLine($"SepReader shallow object: {readerSize} bytes");
         TestContext.WriteLine($"SepWriter shallow object: {writerSize} bytes");
+        TestContext.WriteLine("Shallow size includes the CLR object header, instance fields, and alignment padding; referenced objects are excluded.");
+        TestContext.WriteLine("Field widths are managed storage sizes. CLR auto-layout does not expose physical field offsets or guarantee field order.");
+        TestContext.WriteLine("SepReader also contains the inherited SepReaderState parsing, buffer, row, and cache fields.");
+        TestContext.WriteLine("SepWriter contains writer state and references to column caches and its array pool; their backing storage is separate.");
+        WriteFieldLayout<SepReader>(TestContext, readerSize);
+        WriteFieldLayout<SepWriter>(TestContext, writerSize);
     }
+
+    static readonly MethodInfo s_sizeOfMethod = typeof(SepMemorySizeTest).GetMethod(
+        nameof(SizeOf), BindingFlags.Static | BindingFlags.NonPublic)!;
+
+    static void WriteFieldLayout<T>(TestContext testContext, long instanceSize) where T : class
+    {
+        testContext.WriteLine($"{typeof(T).Name} instance fields, including base classes:");
+        long totalFieldSize = 0;
+        for (Type? type = typeof(T); type is not null && type != typeof(object); type = type.BaseType)
+        {
+            long declaredFieldSize = 0;
+            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public |
+                BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+            {
+                var fieldSize = (int)s_sizeOfMethod.MakeGenericMethod(field.FieldType).Invoke(null, null)!;
+                testContext.WriteLine($"  {type.Name}.{field.Name}: {field.FieldType.Name}, {fieldSize} bytes");
+                declaredFieldSize += fieldSize;
+            }
+            totalFieldSize += declaredFieldSize;
+            testContext.WriteLine($"  {type.Name} field storage total: {declaredFieldSize} bytes");
+        }
+        testContext.WriteLine($"  All field storage: {totalFieldSize} bytes; object header and layout padding: {instanceSize - totalFieldSize} bytes");
+    }
+
+    static int SizeOf<T>() => Unsafe.SizeOf<T>();
 
     static long GetShallowObjectSize<T>() where T : class
     {

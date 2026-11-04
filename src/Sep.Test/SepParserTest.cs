@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
@@ -31,14 +33,142 @@ public class SepParserTest
         _stateUnescape._colEndsOrColInfos = _colEndsOrColInfos;
     }
 
-    public static IEnumerable<object[]> Parsers => SepParserFactory.AvailableFactories
-        .Select(f => new object[] { f.Value(new(Sep.Default)) });
+    public static IEnumerable<object[]> Parsers => SepParserFactory.CreateAvailableParsers()
+        .Select(f => new object[] { f.Value });
+
+    public static IEnumerable<object[]> ParsersAndColInfos => Parsers
+        .SelectMany(p => new[] { new object[] { p[0], false }, new object[] { p[0], true } });
 
     [TestMethod]
-    public void SepParserTest_CreateBest()
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_Options(object parserObject, bool colInfos)
     {
-        var best = SepParserFactory.CreateBest(new(Sep.Default));
+        var parser = (ISepParser)parserObject;
+        foreach (var separator in new[] { '\t', Sep.Min.Separator, ';', ',', Sep.Max.Separator })
+        {
+            foreach (var disableQuotes in new[] { false, true })
+            {
+                var options = new SepParserOptions(new Sep(separator), disableQuotes);
+                using var state = CreateState($"\"a{separator}b\"{separator}\u013B\u017E\u0122\u010A\u010D\r\n");
+                Parse(parser, state, colInfos, options);
+                Assert.AreEqual(1, state._parsedRowsCount);
+                Assert.AreEqual(new SepRowInfo(2, disableQuotes ? 3 : 2), state._parsedRows[0]);
+                Assert.AreEqual((nuint)0, state._parsingRowQuoteCount);
+            }
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_LineEndingOptions(object parserObject, bool colInfos)
+    {
+        var parser = (ISepParser)parserObject;
+        var options = new SepParserOptions(Sep.Default);
+        foreach (var lineEnding in new[] { '\n', '\r' })
+        {
+            foreach (var useLineFeed in new[] { false, true })
+            {
+                var custom = useLineFeed
+                    ? options with { LineFeed = (byte)lineEnding, CarriageReturn = byte.MaxValue }
+                    : options with { LineFeed = byte.MaxValue, CarriageReturn = (byte)lineEnding };
+                using var state = CreateState("a;b" + lineEnding);
+                Parse(parser, state, colInfos, custom);
+                Assert.AreEqual(1, state._parsedRowsCount);
+                Assert.AreEqual(new SepRowInfo(2, 2), state._parsedRows[0]);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void SepParserTest_Stateless()
+    {
+        var types = typeof(ISepParser).Assembly.GetTypes()
+            .Where(type => !type.IsAbstract && typeof(ISepParser).IsAssignableFrom(type));
+        Assert.IsNotEmpty(types);
+        foreach (var type in types)
+        {
+            var fields = type.GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            Assert.AreEqual(0, fields.Length, $"{type.Name} must not contain fields.");
+            Assert.IsNull(type.TypeInitializer, $"{type.Name} must not require static initialization.");
+        }
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_QuoteCount_NoProgress(object parserObject, bool colInfos)
+    {
+        var parser = (ISepParser)parserObject;
+        using var state = CreateState("");
+        state._parsingRowQuoteCount = nuint.MaxValue;
+        Parse(parser, state, colInfos);
+        Assert.AreEqual(nuint.MaxValue, state._parsingRowQuoteCount);
+        Assert.AreEqual(0, state._charsParseStart);
+
+        ";".AsSpan().CopyTo(state._chars);
+        state._charsDataEnd = 1;
+        state._parsingRowColCount = state._colEndsOrColInfos.Length / (colInfos ? 2 : 1) - parser.PaddingLength;
+        state._parsingRowQuoteCount = 3;
+        Parse(parser, state, colInfos);
+        Assert.AreEqual((nuint)3, state._parsingRowQuoteCount);
+        Assert.AreEqual(0, state._charsParseStart);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ParsersAndColInfos))]
+    public void SepParserTest_QuoteCount_ContinuationAndIndependentStates(object parserObject, bool colInfos)
+    {
+        var parser = (ISepParser)parserObject;
+        var text = "\"" + new string('x', 80) + ";\"\"q\r\nmore\";end\r\nplain;\"last\"\"open";
+        using var state = CreateState(text[..81]);
+        Parse(parser, state, colInfos);
+        Assert.AreEqual((nuint)1, state._parsingRowQuoteCount);
+        Assert.AreEqual(0, state._parsedRowsCount);
+
+        using var independent = CreateState("a;b\n");
+        Parse(parser, independent, colInfos);
+        Assert.AreEqual((nuint)0, independent._parsingRowQuoteCount);
+        Assert.AreEqual(new SepRowInfo(2, 2), independent._parsedRows[0]);
+
+        text.AsSpan().CopyTo(state._chars);
+        state._charsDataEnd = text.Length;
+        Parse(parser, state, colInfos);
+        Assert.AreEqual((nuint)3, state._parsingRowQuoteCount);
+        Assert.AreEqual(text.Length, state._charsParseStart);
+        Assert.AreEqual(1, state._parsedRowsCount);
+        Assert.AreEqual(new SepRowInfo(3, 2), state._parsedRows[0]);
+        Assert.AreEqual(1, state._parsingRowColCount);
+        if (colInfos) { Assert.AreEqual(4, state._colEndsOrColInfos[3]); }
+    }
+
+    static void Parse(ISepParser parser, SepReaderState state, bool colInfos, SepParserOptions? options = null)
+    {
+        var parserOptions = options ?? new(Sep.Default);
+        if (colInfos) { parser.ParseColInfos(state, parserOptions); }
+        else { parser.ParseColEnds(state, parserOptions); }
+    }
+
+    static SepReaderState CreateState(string text)
+    {
+        var state = new SepReaderState
+        {
+            _chars = ArrayPool<char>.Shared.Rent(2048),
+            _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(2048),
+            _charsDataEnd = text.Length,
+            _arrayPool = new(),
+        };
+        Array.Clear(state._chars);
+        Array.Clear(state._colEndsOrColInfos);
+        state._colEndsOrColInfos[0] = -1;
+        text.AsSpan().CopyTo(state._chars);
+        return state;
+    }
+
+    [TestMethod]
+    public void SepParserTest_Best()
+    {
+        var best = SepParserFactory.Best;
         Assert.IsNotNull(best);
+        Assert.AreSame(best, SepParserFactory.Best);
 
         var forceParserName = SepParserFactory.GetForceParserName();
         if (string.IsNullOrEmpty(forceParserName))
@@ -46,7 +176,7 @@ public class SepParserTest
             Assert.IsInstanceOfType(best, GetBestExpectedType());
 
         }
-        else if (!SepParserFactory.AvailableFactories.ContainsKey(forceParserName))
+        else if (!SepParserFactory.CreateAvailableParsers().ContainsKey(forceParserName))
         {
             Assert.Inconclusive($"Unknown or unavailable forced parser name '{forceParserName}'");
         }
@@ -68,16 +198,28 @@ public class SepParserTest
     }
 
     [TestMethod]
-    public void SepParserTest_AcceleratedFactories()
+    public void SepParserTest_Selection()
     {
-        var factories = SepParserFactory.AcceleratedFactories;
+        var accelerated = SepParserFactory.CreateAcceleratedParsers().First().Value;
+        Assert.AreEqual(accelerated.GetType(), SepParserFactory.GetBest(string.Empty).GetType());
+        Assert.AreEqual(accelerated.GetType(), SepParserFactory.GetBest("UnavailableParser").GetType());
+        foreach (var (name, parser) in SepParserFactory.CreateAvailableParsers())
+        {
+            Assert.AreEqual(parser.GetType(), SepParserFactory.GetBest(name).GetType());
+        }
+    }
+
+    [TestMethod]
+    public void SepParserTest_AcceleratedParsers()
+    {
+        var factories = SepParserFactory.CreateAcceleratedParsers();
         Assert.IsNotEmpty(factories);
     }
 
     [TestMethod]
-    public void SepParserTest_AvailableFactories()
+    public void SepParserTest_AvailableParsers()
     {
-        var factories = SepParserFactory.AvailableFactories;
+        var factories = SepParserFactory.CreateAvailableParsers();
         Assert.IsNotEmpty(factories);
     }
 
@@ -89,7 +231,6 @@ public class SepParserTest
         Contract.Assume(parserObject is not null);
         var parser = (ISepParser)parserObject;
         Assert.IsGreaterThanOrEqualTo(0, parser.PaddingLength);
-        Assert.AreEqual(0, parser.QuoteCount);
     }
 
     [TestMethod]
@@ -102,7 +243,7 @@ public class SepParserTest
         _state._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         _state._parsingLineNumber = 3;
 
-        parser.ParseColEnds(_state);
+        parser.ParseColEnds(_state, new SepParserOptions(Sep.Default));
 
         // No assert, test is mainly for debugging SIMD code easily
     }
@@ -117,7 +258,7 @@ public class SepParserTest
         _stateUnescape._charsDataEnd = FillChars(new(Enumerable.Range(0, 256).Select(i => (char)i).ToArray()));
         _stateUnescape._parsingLineNumber = 3;
 
-        parser.ParseColInfos(_stateUnescape);
+        parser.ParseColInfos(_stateUnescape, new SepParserOptions(Sep.Default));
 
         // No assert, test is mainly for debugging SIMD code easily
     }
@@ -133,7 +274,7 @@ public class SepParserTest
         _state._charsDataEnd = charsEnd;
         _state._parsingLineNumber = 3;
 
-        parser.ParseColEnds(_state);
+        parser.ParseColEnds(_state, new SepParserOptions(Sep.Default));
 
         var expected = new int[] { 2, 6, 9 };
         Assert.AreEqual(1, _state._parsedRowsCount);
@@ -278,7 +419,7 @@ public class SepParserTest
         s._charsDataEnd = charsEnd;
         s._parsingLineNumber = 3;
 
-        parser.ParseColEnds(s);
+        parser.ParseColEnds(s, new SepParserOptions(Sep.Default));
 
         TraceParseState(s);
 
@@ -317,7 +458,7 @@ public class SepParserTest
         s._charsDataEnd = charsEnd;
         s._parsingLineNumber = 3;
 
-        parser.ParseColEnds(s);
+        parser.ParseColEnds(s, new SepParserOptions(Sep.Default));
 
         TraceParseState(s);
 

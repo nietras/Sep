@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -21,6 +22,26 @@ public class SepReaderExtensionsEnumerationTest
         .Select(i => new Seq(i, TotalRowCount - i)).ToList();
 
     record struct Seq(int Inc, int Dec);
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SepReaderExtensionsEnumerationTest_ParallelEnumerate_QuoteContinuation(bool unescape)
+    {
+        var expected = new List<string>();
+        var csv = new StringBuilder("A;B\n");
+        for (var i = 0; i < TotalRowCount; i++)
+        {
+            var value = new string('x', i % 257) + ";\"\r\nlast";
+            var quoted = "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+            csv.Append(i).Append(';').Append(quoted).Append('\n');
+            expected.Add(unescape ? value : quoted);
+        }
+        using var reader = Sep.Reader(o => o with { InitialBufferLength = 128, Unescape = unescape })
+            .FromText(csv.ToString());
+        var actual = reader.ParallelEnumerate(row => row["B"].ToString()).ToList();
+        CollectionAssert.AreEqual(expected, actual);
+    }
 
     [TestMethod]
     public void SepReaderExtensionsEnumerationTest_Enumerate_RowFunc()

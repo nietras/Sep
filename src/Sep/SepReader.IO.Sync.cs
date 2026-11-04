@@ -207,8 +207,8 @@ public sealed partial class SepReader
 
         if (_parser is not null)
         {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this); }
-            else { _parser.ParseColInfos(this); }
+            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this, new(_parserOptionsBytes)); }
+            else { _parser.ParseColInfos(this, new(_parserOptionsBytes)); }
         }
 
         CheckPoint($"{nameof(_parser)} AFTER");
@@ -239,7 +239,7 @@ public sealed partial class SepReader
             else
             {
                 Debug.Assert(_parser is not null);
-                var quoteCount = _parser.QuoteCount;
+                var quoteCount = (int)_parsingRowQuoteCount;
                 Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
                     new(_charsDataEnd, quoteCount);
             }

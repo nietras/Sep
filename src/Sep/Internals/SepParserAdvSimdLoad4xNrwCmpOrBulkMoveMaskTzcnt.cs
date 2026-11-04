@@ -23,58 +23,56 @@ namespace nietras.SeparatedValues;
 // https://developer.arm.com/architectures/instruction-sets/intrinsics
 sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 {
-    static readonly int LoopCount = VecUI8.Count * 4;
-    readonly char _separator;
-    readonly VecUI8 _nls = Vec.Create(LineFeedByte);
-    readonly VecUI8 _crs = Vec.Create(CarriageReturnByte);
-    readonly VecUI8 _qts;
-    readonly VecUI8 _sps;
-
-    nuint _quoteCount = 0;
-
-    public unsafe SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt(SepParserOptions options)
-    {
-        _separator = options.Separator;
-        _sps = Vec.Create((byte)_separator);
-        _qts = Vec.Create((byte)options.QuotesOrSeparatorIfDisabled);
-    }
+    static int LoopCount => VecUI8.Count * 4;
 
     // Parses 8 x char vectors e.g. 4 byte vector
     public int PaddingLength => LoopCount;
-    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColEnds(SepReaderState s)
+    void ISepParser.ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColEndMethods>(s);
+        ParseColEnds(s, options);
+    }
+
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    internal static void ParseColEnds(SepReaderState s, SepParserOptions options)
+    {
+        Parse<int, SepColEndMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColInfos(SepReaderState s)
+    void ISepParser.ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s);
+        ParseColInfos(s, options);
     }
 
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
+    internal static void ParseColInfos(SepReaderState s, SepParserOptions options)
+    {
+        Parse<SepColInfo, SepColInfoMethods>(s, options);
+    }
+
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    unsafe void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    static unsafe void Parse<TColInfo, TColInfoMethods>(SepReaderState s, SepParserOptions options)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        // Unpack instance fields
-        var separator = _separator;
-        var quoteCount = _quoteCount;
-        // Use instance fields to force values into registers
-        var nls = _nls; //Vec.Create(LineFeedByte);
-        var crs = _crs; //Vec.Create(CarriageReturnByte);
-        var qts = _qts; //Vec.Create(QuoteByte);
-        var sps = _sps; //Vec.Create(_separator);
+        var separator = (char)options.Separator;
+        var nls = Vec.Create(options.LineFeed);
+        var crs = Vec.Create(options.CarriageReturn);
+        var qts = Vec.Create(options.QuotesOrSeparatorIfDisabled);
+        var sps = Vec.Create(options.Separator);
 
         // Unpack state fields
+        var quoteCount = s._parsingRowQuoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -83,10 +81,10 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
 
         var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
 
-        chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
+        chars.CheckPaddingAndIsZero(charsEnd, LoopCount);
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, LoopCount);
         A.Assert(charsIndex <= charsEnd);
-        A.Assert(charsEnd <= (chars.Length - PaddingLength));
+        A.Assert(charsEnd <= (chars.Length - LoopCount));
 
         ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
@@ -218,8 +216,8 @@ sealed class SepParserAdvSimdLoad4xNrwCmpOrBulkMoveMaskTzcnt : ISepParser
                 }
             }
         }
-        // Update instance state from enregistered
-        _quoteCount = quoteCount;
+        // Update reader state from enregistered
+        s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited

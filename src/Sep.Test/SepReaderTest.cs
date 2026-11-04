@@ -34,6 +34,33 @@ public partial class SepReaderTest
     record Values(string C1, string C2, string C3);
 
     [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async ValueTask SepReaderTest_QuoteCount_AtEndOfFile(bool unescape)
+    {
+        var value = new string('x', 4096) + "\"tail";
+        var quoted = "\"" + new string('x', 4096) + "\"\"tail\"";
+        var text = "A;B\nfirst;row\nlast;" + quoted;
+        var options = Sep.Default.Reader(o => o with { Unescape = unescape, InitialBufferLength = 128 });
+        using (var reader = options.FromText(text))
+        {
+            Assert.IsTrue(reader.MoveNext());
+            Assert.AreEqual("row", reader.Current["B"].ToString());
+            Assert.IsTrue(reader.MoveNext());
+            Assert.AreEqual(unescape ? value : quoted, reader.Current["B"].ToString());
+            Assert.IsFalse(reader.MoveNext());
+        }
+        using (var reader = await options.FromTextAsync(text))
+        {
+            Assert.IsTrue(await reader.MoveNextAsync());
+            Assert.AreEqual("row", reader.Current["B"].ToString());
+            Assert.IsTrue(await reader.MoveNextAsync());
+            Assert.AreEqual(unescape ? value : quoted, reader.Current["B"].ToString());
+            Assert.IsFalse(await reader.MoveNextAsync());
+        }
+    }
+
+    [TestMethod]
     public void SepReaderTest_WorkerDispose_PreservesSharedToString()
     {
         using var reader = Sep.Reader(o => o with

@@ -8,48 +8,36 @@ namespace nietras.SeparatedValues;
 
 sealed class SepParserIndexOfAny : ISepParser
 {
-    readonly char _separator;
-    readonly char[] _specialChars;
-    nuint _quoteCount = 0;
-
-    public SepParserIndexOfAny(SepParserOptions options)
-    {
-        _separator = options.Separator;
-        _specialChars = options.Separator != options.QuotesOrSeparatorIfDisabled
-            ? [options.Separator, CarriageReturn, LineFeed, options.QuotesOrSeparatorIfDisabled]
-            : [options.Separator, CarriageReturn, LineFeed];
-    }
-
     public int PaddingLength => 4;
-    public int QuoteCount => (int)_quoteCount;
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColEnds(SepReaderState s)
+    public void ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColEndMethods>(s);
+        Parse<int, SepColEndMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void ParseColInfos(SepReaderState s)
+    public void ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s);
+        Parse<SepColInfo, SepColInfoMethods>(s, options);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void Parse<TColInfo, TColInfoMethods>(SepReaderState s)
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, SepParserOptions options)
         where TColInfo : unmanaged
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
 
-        // Unpack instance fields
-        var separator = _separator;
-        var quoteCount = _quoteCount;
+        var separator = (char)options.Separator;
+        var quotesOrSeparatorIfDisabled = (char)options.QuotesOrSeparatorIfDisabled;
 
         // Unpack state fields
+        var quoteCount = s._parsingRowQuoteCount;
         var chars = s._chars;
         var charsIndex = s._charsParseStart;
         var charsEnd = s._charsDataEnd;
@@ -58,10 +46,10 @@ sealed class SepParserIndexOfAny : ISepParser
 
         var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
 
-        chars.CheckPaddingAndIsZero(charsEnd, PaddingLength);
-        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, PaddingLength);
+        chars.CheckPaddingAndIsZero(charsEnd, 4);
+        SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, 4);
         A.Assert(charsIndex <= charsEnd);
-        A.Assert(charsEnd <= (chars.Length - PaddingLength));
+        A.Assert(charsEnd <= (chars.Length - 4));
         ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
@@ -72,7 +60,12 @@ sealed class SepParserIndexOfAny : ISepParser
         ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
 
         var span = chars.AsSpan(0, charsEnd);
-        var specialCharsSpan = _specialChars.AsSpan();
+        ReadOnlySpan<char> specialCharsSpan = stackalloc char[]
+            { separator, (char)options.CarriageReturn, (char)options.LineFeed, quotesOrSeparatorIfDisabled };
+        if (separator == quotesOrSeparatorIfDisabled)
+        {
+            specialCharsSpan = specialCharsSpan[..3];
+        }
         while ((uint)charsIndex < (uint)charsEnd &&
                !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
@@ -119,8 +112,8 @@ sealed class SepParserIndexOfAny : ISepParser
                 charsIndex = charsEnd;
             }
         }
-        // Update instance state from enregistered
-        _quoteCount = quoteCount;
+        // Update reader state from enregistered
+        s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited

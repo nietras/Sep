@@ -108,12 +108,28 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_CreateFromStreamReader()
+    [DataRow("A;B")]
+    [DataRow("A;B\n")]
+    [DataRow("A;B\r")]
+    [DataRow("A;B\r\n")]
+    public async ValueTask SepReaderTest_CreateFromStreamReader(string text)
     {
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("A;B"));
-        using var reader = Sep.Reader().From(stream);
-        // 3 + 128 => Pow2
-        Assert.AreEqual(512, reader.CharsLength);
+        var bytes = Encoding.UTF8.GetBytes(text);
+        var expected = Math.Max(16u, BitOperations.RoundUpToPowerOf2(
+            (uint)(bytes.Length + SepParserFactory.Best.PaddingLength)));
+        foreach (var sep in new Sep?[] { null, Sep.Default })
+        {
+            await FromSyncAsync(new(sep) { InitialBufferLength = 1024 },
+                o => o.From(new MemoryStream(bytes)),
+                o => o.FromAsync(new MemoryStream(bytes)), reader =>
+            {
+                Assert.AreEqual(expected, (uint)reader.CharsLength);
+                Assert.AreSequenceEqual(["A", "B"], reader.Header.ColNames);
+                Assert.IsFalse(reader.HasRows);
+                Assert.IsFalse(reader.MoveNext());
+                Assert.AreEqual(expected, (uint)reader.CharsLength);
+            });
+        }
     }
 
     [DataRow(true)]

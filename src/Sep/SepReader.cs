@@ -35,12 +35,12 @@ public sealed partial class SepReader : SepReaderState
     internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
     readonly ISepTextReaderDisposer _textReaderDisposer;
-    ISepParser? _parser;
     // Scalar storage lets the CLR use existing object padding.
+    // Zero means separator detection is pending; configured line endings are non-zero.
     uint _parserOptionsBytes;
 
-    readonly int _charsMinimumFreeLength;
-    int _charsPaddingLength;
+    readonly int _charsPaddingLength = SepParserFactory.Best.PaddingLength;
+    readonly int _charsMinimumFreeLengthBesidesPadding;
 
     internal SepReader(Info info, in SepReaderOptions options,
         TextReader reader, ISepTextReaderDisposer textReaderDisposer)
@@ -71,17 +71,11 @@ public sealed partial class SepReader : SepReaderState
             // constrain it to avoid overflow.
             ? (int)Math.Min(longReaderLength, int.MaxValue) : null;
 
-        var sep = options.Sep;
-        if (sep.HasValue)
+        if (options.Sep.HasValue)
         {
-            _parser = SepParserFactory.Best;
-            _parserOptionsBytes = new SepParserOptions(sep.Value, _disableQuotesParsing).Bytes;
-            _charsPaddingLength = _parser.PaddingLength;
-            _separator = sep.Value.Separator;
-        }
-        else
-        {
-            _charsPaddingLength = SepParserFactory.MaxPaddingLength;
+            var sep = options.Sep.Value;
+            _parserOptionsBytes = new SepParserOptions(sep, _disableQuotesParsing).Bytes;
+            _separator = sep.Separator;
         }
 
         var initialBufferLength = Math.Max(options.InitialBufferLength, _charsPaddingLength);
@@ -91,7 +85,8 @@ public sealed partial class SepReader : SepReaderState
             : initialBufferLength;
 
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);
-        _charsMinimumFreeLength = Math.Max(_chars.Length / 2, _charsPaddingLength);
+        // Free space excludes padding and needs two chars for reading with CR/LF lookahead.
+        _charsMinimumFreeLengthBesidesPadding = Math.Max(_chars.Length / 2 - _charsPaddingLength, 2);
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, _charsPaddingLength * 2));
     }
 
@@ -212,9 +207,7 @@ public sealed partial class SepReader : SepReaderState
         {
             var sep = maybeSep.Value;
             _separator = sep.Separator;
-            _parser = SepParserFactory.Best;
             _parserOptionsBytes = new SepParserOptions(sep, _disableQuotesParsing).Bytes;
-            _charsPaddingLength = _parser.PaddingLength;
         }
     }
 

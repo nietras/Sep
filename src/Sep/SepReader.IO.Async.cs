@@ -146,8 +146,9 @@ public sealed partial class SepReader
         // Move data to start
         if (_parsingRowCharsStartIndex > 0)
         {
-            A.Assert(_parser != null);
-            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, _parser.PaddingLength);
+            A.Assert(_parserOptionsBytes != 0);
+            var parser = SepParserFactory.Best;
+            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, parser.PaddingLength);
 
             // Adjust parse start
             A.Assert(_charsParseStart >= offset);
@@ -203,22 +204,23 @@ public sealed partial class SepReader
 
         var endOfFile = false;
     LOOP:
-        CheckPoint($"{nameof(_parser)} BEFORE");
+        CheckPoint("PARSER BEFORE");
 
-        if (_parser is not null)
+        if (_parserOptionsBytes != 0)
         {
-            if (_colUnquoteUnescape == 0) { _parser.ParseColEnds(this, new(_parserOptionsBytes)); }
-            else { _parser.ParseColInfos(this, new(_parserOptionsBytes)); }
+            var parser = SepParserFactory.Best;
+            if (_colUnquoteUnescape == 0) { parser.ParseColEnds(this, new(_parserOptionsBytes)); }
+            else { parser.ParseColInfos(this, new(_parserOptionsBytes)); }
         }
 
-        CheckPoint($"{nameof(_parser)} AFTER");
+        CheckPoint("PARSER AFTER");
         if (endOfFile)
         {
-            CheckPoint($"{nameof(_parser)} AFTER - ENDOFFILE");
+            CheckPoint("PARSER AFTER - ENDOFFILE");
             goto RETURN;
         }
 
-        CheckPoint($"{nameof(_parser)} AFTER");
+        CheckPoint("PARSER AFTER");
 
         if (_parsedRowsCount > 0) { return true; }
 
@@ -238,7 +240,7 @@ public sealed partial class SepReader
             }
             else
             {
-                Debug.Assert(_parser is not null);
+                Debug.Assert(_parserOptionsBytes != 0);
                 var quoteCount = (int)_parsingRowQuoteCount;
                 Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
                     new(_charsDataEnd, quoteCount);
@@ -257,7 +259,6 @@ public sealed partial class SepReader
         return _parsedRowsCount > 0;
     }
 
-    [MemberNotNullWhen(false, nameof(_parser))]
 #if SYNC
     bool EnsureInitializeAndReadData(bool endOfFile)
 #else
@@ -272,14 +273,14 @@ public sealed partial class SepReader
             .ConfigureAwait(_continueOnCapturedContext);
         CheckPoint($"{nameof(FillAndMaybeDoubleCharsBufferAsync)} AFTER");
 #endif
-        if (_parser == null)
+        if (_parserOptionsBytes == 0)
         {
             TryDetectSeparatorInitializeParser(nothingLeftToRead);
 
             CheckPoint($"{nameof(TryDetectSeparatorInitializeParser)} AFTER");
         }
 
-        if (_parser == null || _charsParseStart >= _charsDataEnd)
+        if (_parserOptionsBytes == 0 || _charsParseStart >= _charsDataEnd)
         {
             if (nothingLeftToRead)
             {
@@ -291,7 +292,8 @@ public sealed partial class SepReader
         }
         else
         {
-            CheckColInfosCapacityMaybeDouble(_parser.PaddingLength);
+            var parser = SepParserFactory.Best;
+            CheckColInfosCapacityMaybeDouble(parser.PaddingLength);
         }
         return endOfFile;
     }
@@ -307,7 +309,7 @@ public sealed partial class SepReader
 
         var offset = SepArrayExtensions.CheckFreeMaybeDoubleLength(
             ref _chars, ref _charsDataStart, ref _charsDataEnd,
-            _charsMinimumFreeLength, paddingLength);
+            _charsMinimumFreeLengthBesidesPadding, paddingLength);
         if (_chars.Length > RowLengthMax)
         { SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax); }
         A.Assert(offset == 0);

@@ -15,6 +15,7 @@ public class SepParserOptionsTest
             var sut = new SepParserOptions(bytes);
             Assert.AreEqual(bytes, sut.Bytes);
             Assert.AreEqual((byte)bytes, sut.Separator);
+            Assert.AreEqual((char)(byte)bytes, SepParserOptions.GetSeparator(bytes));
             Assert.AreEqual((byte)(bytes >> 8), sut.QuotesOrSeparatorIfDisabled);
             Assert.AreEqual((byte)(bytes >> 16), sut.LineFeed);
             Assert.AreEqual((byte)(bytes >> 24), sut.CarriageReturn);

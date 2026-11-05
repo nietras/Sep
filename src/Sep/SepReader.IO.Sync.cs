@@ -54,9 +54,9 @@ public sealed partial class SepReader
                 if (!HasRows)
                 {
 #if SYNC
-                    HasRows = !FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
+                    HasRows = !FillAndMaybeDoubleCharsBuffer(SepParserFactory.BestPaddingLength);
 #else
-                    HasRows = !await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken)
+                    HasRows = !await FillAndMaybeDoubleCharsBufferAsync(SepParserFactory.BestPaddingLength, cancellationToken)
                         .ConfigureAwait(_continueOnCapturedContext);
 #endif
                 }
@@ -73,7 +73,7 @@ public sealed partial class SepReader
                 HasHeader = false;
                 HasRows = true;
             }
-            A.Assert(_separator != 0);
+            A.Assert(SepParserOptions.GetSeparator(_parserOptionsBytes) != 0);
         }
         else
         {
@@ -82,7 +82,7 @@ public sealed partial class SepReader
             HasHeader = false;
             HasRows = false;
             _colCountExpected = 0;
-            _separator = Sep.Default.Separator;
+            _parserOptionsBytes = new SepParserOptions(Sep.Default, _disableQuotesParsing).Bytes;
         }
 
         _colNameCache = new (string colName, int colIndex)[_colCountExpected];
@@ -147,8 +147,7 @@ public sealed partial class SepReader
         if (_parsingRowCharsStartIndex > 0)
         {
             A.Assert(_parserOptionsBytes != 0);
-            var parser = SepParserFactory.Best;
-            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, parser.PaddingLength);
+            var offset = _chars.MoveDataToStart(ref _parsingRowCharsStartIndex, ref _charsDataEnd, SepParserFactory.BestPaddingLength);
 
             // Adjust parse start
             A.Assert(_charsParseStart >= offset);
@@ -266,10 +265,10 @@ public sealed partial class SepReader
 #endif
     {
 #if SYNC
-        var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(_charsPaddingLength);
+        var nothingLeftToRead = FillAndMaybeDoubleCharsBuffer(SepParserFactory.BestPaddingLength);
         CheckPoint($"{nameof(FillAndMaybeDoubleCharsBuffer)} AFTER");
 #else
-        var nothingLeftToRead = await FillAndMaybeDoubleCharsBufferAsync(_charsPaddingLength, cancellationToken)
+        var nothingLeftToRead = await FillAndMaybeDoubleCharsBufferAsync(SepParserFactory.BestPaddingLength, cancellationToken)
             .ConfigureAwait(_continueOnCapturedContext);
         CheckPoint($"{nameof(FillAndMaybeDoubleCharsBufferAsync)} AFTER");
 #endif
@@ -292,8 +291,7 @@ public sealed partial class SepReader
         }
         else
         {
-            var parser = SepParserFactory.Best;
-            CheckColInfosCapacityMaybeDouble(parser.PaddingLength);
+            CheckColInfosCapacityMaybeDouble(SepParserFactory.BestPaddingLength);
         }
         return endOfFile;
     }

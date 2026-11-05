@@ -30,7 +30,6 @@ public sealed partial class SepReader : SepReaderState
     const string AssertCondition = "SEPREADERASSERT";
 
     readonly Info _info;
-    char _separator;
     readonly bool _disableQuotesParsing;
     internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
@@ -39,7 +38,6 @@ public sealed partial class SepReader : SepReaderState
     // Zero means separator detection is pending; configured line endings are non-zero.
     uint _parserOptionsBytes;
 
-    readonly int _charsPaddingLength = SepParserFactory.Best.PaddingLength;
     readonly int _charsMinimumFreeLengthBesidesPadding;
 
     internal SepReader(Info info, in SepReaderOptions options,
@@ -75,23 +73,23 @@ public sealed partial class SepReader : SepReaderState
         {
             var sep = options.Sep.Value;
             _parserOptionsBytes = new SepParserOptions(sep, _disableQuotesParsing).Bytes;
-            _separator = sep.Separator;
         }
 
-        var initialBufferLength = Math.Max(options.InitialBufferLength, _charsPaddingLength);
+        var paddingLength = SepParserFactory.BestPaddingLength;
+        var initialBufferLength = Math.Max(options.InitialBufferLength, paddingLength);
         var bufferLength = maybeReaderLengthEstimate.HasValue
             ? ((maybeReaderLengthEstimate.Value < initialBufferLength)
-               ? (maybeReaderLengthEstimate.Value + _charsPaddingLength) : initialBufferLength)
+               ? (maybeReaderLengthEstimate.Value + paddingLength) : initialBufferLength)
             : initialBufferLength;
 
         _chars = ArrayPool<char>.Shared.Rent(bufferLength);
         // Free space excludes padding and needs two chars for reading with CR/LF lookahead.
-        _charsMinimumFreeLengthBesidesPadding = Math.Max(_chars.Length / 2 - _charsPaddingLength, 2);
-        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, _charsPaddingLength * 2));
+        _charsMinimumFreeLengthBesidesPadding = Math.Max(_chars.Length / 2 - paddingLength, 2);
+        _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(Math.Max(ColEndsInitialLength, paddingLength * 2));
     }
 
     public bool IsEmpty { get; private set; }
-    public SepSpec Spec => new(new(_separator), _cultureInfo, _continueOnCapturedContext);
+    public SepSpec Spec => new(new(SepParserOptions.GetSeparator(_parserOptionsBytes)), _cultureInfo, _continueOnCapturedContext);
     public bool HasHeader { get => _hasHeader; private set => _hasHeader = value; }
     public bool HasRows { get; private set; }
     public SepReaderHeader Header => _header;
@@ -200,13 +198,12 @@ public sealed partial class SepReader : SepReaderState
     [MethodImpl(MethodImplOptions.NoInlining)]
     void TryDetectSeparatorInitializeParser(bool nothingLeftToRead)
     {
-        // Detect separator if no parser defined
+        // Detect separator if parser options are not initialized.
         var validChars = _chars.AsSpan(_charsDataStart.._charsDataEnd);
         var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead, _disableQuotesParsing);
         if (maybeSep.HasValue)
         {
             var sep = maybeSep.Value;
-            _separator = sep.Separator;
             _parserOptionsBytes = new SepParserOptions(sep, _disableQuotesParsing).Bytes;
         }
     }

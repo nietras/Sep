@@ -230,14 +230,21 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public async ValueTask SepReaderTest_From_Empty()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async ValueTask SepReaderTest_From_Empty(bool disableQuotesParsing)
     {
-        await FromAnySyncAsync(string.Empty, options: new(), reader =>
+        foreach (var sep in new Sep?[] { null, Sep.New('|') })
         {
-            AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
-            Assert.IsEmpty(reader.Header.ColNames);
-            Assert.IsFalse(reader.MoveNext());
-        });
+            await FromAnySyncAsync(string.Empty, new(sep) { DisableQuotesParsing = disableQuotesParsing }, reader =>
+            {
+                AssertState(reader, isEmpty: true, hasHeader: false, hasRows: false);
+                Assert.IsEmpty(reader.Header.ColNames);
+                Assert.AreEqual(Sep.Default, reader.Spec.Sep);
+                Assert.IsFalse(reader.MoveNext());
+                Assert.AreEqual(Sep.Default, reader.Spec.Sep);
+            });
+        }
     }
 
     [TestMethod]

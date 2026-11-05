@@ -15,17 +15,20 @@ public class SepMemorySizeTest
     {
         var readerOptionsSize = Unsafe.SizeOf<SepReaderOptions>();
         var writerOptionsSize = Unsafe.SizeOf<SepWriterOptions>();
+        var readerStateSize = GetShallowObjectSize<SepReaderState>();
         var readerSize = GetShallowObjectSize<SepReader>();
         var writerSize = GetShallowObjectSize<SepWriter>();
 
         TestContext.WriteLine($"SepReaderOptions: {readerOptionsSize} bytes");
         TestContext.WriteLine($"SepWriterOptions: {writerOptionsSize} bytes");
+        TestContext.WriteLine($"SepReaderState shallow object: {readerStateSize} bytes");
         TestContext.WriteLine($"SepReader shallow object: {readerSize} bytes");
         TestContext.WriteLine($"SepWriter shallow object: {writerSize} bytes");
         TestContext.WriteLine("Shallow size includes the CLR object header, instance fields, and alignment padding; referenced objects are excluded.");
         TestContext.WriteLine("Field widths are managed storage sizes. CLR auto-layout does not expose physical field offsets or guarantee field order.");
         TestContext.WriteLine("SepReader also contains the inherited SepReaderState parsing, buffer, row, and cache fields.");
         TestContext.WriteLine("SepWriter contains writer state and references to column caches and its array pool; their backing storage is separate.");
+        WriteFieldLayout<SepReaderState>(TestContext, readerStateSize);
         WriteFieldLayout<SepReader>(TestContext, readerSize);
         WriteFieldLayout<SepWriter>(TestContext, writerSize);
     }

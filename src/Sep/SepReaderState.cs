@@ -28,10 +28,8 @@ public class SepReaderState : IDisposable
     internal char _fastFloatDecimalSeparatorOrZero;
     internal char _fastFloatGroupSeparatorOrZero;
     internal CultureInfo? _cultureInfo;
-    internal SepCreateToString _createToString = default!;
 
     internal char[] _chars = Array.Empty<char>();
-    internal int _charsDataStart = 0;
     internal int _charsDataEnd = 0;
     // To handle '\r\n' reader depends on a pattern of always reading one char
     // past any '\r' and then add this char to buffer if NOT another '\r'. If
@@ -118,7 +116,6 @@ public class SepReaderState : IDisposable
         _fastFloatGroupSeparatorOrZero = other._fastFloatGroupSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatGroupSeparatorOrZero != '\0');
         _cultureInfo = other._cultureInfo;
-        _createToString = other._createToString;
 
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
         _colCountExpected = other._colCountExpected;
@@ -126,7 +123,7 @@ public class SepReaderState : IDisposable
         _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
         // Thread-safe converters are borrowed from the reader, which owns their lifetime.
         _ownsToString = !other._toString.IsThreadSafe;
-        _toString = _ownsToString ? _createToString(_header, _colCountExpected) : other._toString;
+        _toString = _ownsToString ? other._createToString(_header, _colCountExpected) : other._toString;
     }
 
     internal Func<int, string> UnsafeToStringDelegate { get; }
@@ -146,7 +143,6 @@ public class SepReaderState : IDisposable
 
         other._parsingLineNumber = _parsingLineNumber;
 
-        other._charsDataStart = _charsDataStart;
         other._charsDataEnd = _charsDataEnd;
         other._charsParseStart = _charsParseStart;
 
@@ -233,7 +229,7 @@ public class SepReaderState : IDisposable
         [ExcludeFromCodeCoverage]
         void AssertState(int rowStart, int rowEnd)
         {
-            A.Assert(_charsDataStart <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range {_charsDataStart} <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
+            A.Assert(0 <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range 0 <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
             A.Assert(rowEnd >= rowStart, $"Row end before row start {rowEnd} >= {rowStart}");
         }
     }

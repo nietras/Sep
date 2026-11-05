@@ -8,22 +8,17 @@ namespace nietras.SeparatedValues;
 
 static class SepArrayExtensions
 {
-    internal static int CheckFreeMaybeDoubleLength<T>(ref T[] array, ref int start, ref int end,
+    internal static void CheckFreeMaybeDoubleLength<T>(ref T[] array, int end,
         int minimumFreeLengthBesidesPadding, int paddingLengthToClear)
         where T : unmanaged
     {
-        A.Assert(end >= start);
-        A.Assert(start == 0);
+        A.Assert(end >= 0);
 
         var tailFreeLength = array.Length - end - paddingLengthToClear;
         if (tailFreeLength < minimumFreeLengthBesidesPadding)
         {
-            (array, var offset) = array.DoubleCapacityAndMove(start, end, paddingLengthToClear);
-            start -= offset;
-            end -= offset;
-            return offset;
+            array = array.DoubleCapacityAndMove(0, end, paddingLengthToClear);
         }
-        return 0;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -47,7 +42,7 @@ static class SepArrayExtensions
 
     // Should be called rarely after things settle, so never inline
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static (T[] Array, int Offset) DoubleCapacityAndMove<T>(
+    internal static T[] DoubleCapacityAndMove<T>(
         this T[] array, int start, int end, int paddingLengthToClear)
         where T : unmanaged
     {
@@ -56,7 +51,7 @@ static class SepArrayExtensions
         Array.Copy(array, start, newArray, 0, dataLength);
         ArrayPool<T>.Shared.Return(array);
         if (paddingLengthToClear > 0) { ClearPaddingAfterData(newArray, dataLength, paddingLengthToClear); }
-        return (newArray, start);
+        return newArray;
     }
 
     internal static void ClearPaddingAfterData<T>(this T[] array, int end, int paddingLength)

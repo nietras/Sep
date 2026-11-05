@@ -194,8 +194,6 @@ public sealed partial class SepReader
             _colEndsOrColInfos[1] = 0;
         }
 
-        _charsDataStart = 0;
-
         // Reset
 #if DEBUG
         _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
@@ -303,14 +301,11 @@ public sealed partial class SepReader
     async ValueTask<bool> FillAndMaybeDoubleCharsBufferAsync(int paddingLength, CancellationToken cancellationToken)
 #endif
     {
-        A.Assert(_charsDataStart == 0);
-
-        var offset = SepArrayExtensions.CheckFreeMaybeDoubleLength(
-            ref _chars, ref _charsDataStart, ref _charsDataEnd,
+        SepArrayExtensions.CheckFreeMaybeDoubleLength(
+            ref _chars, _charsDataEnd,
             _charsMinimumFreeLengthBesidesPadding, paddingLength);
         if (_chars.Length > RowLengthMax)
         { SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(RowLengthMax); }
-        A.Assert(offset == 0);
 
         // Read to free buffer area
         var freeLength = _chars.Length - _charsDataEnd - paddingLength;

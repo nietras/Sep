@@ -34,6 +34,7 @@ public sealed partial class SepReader : SepReaderState
     internal readonly bool _continueOnCapturedContext;
     readonly TextReader _reader;
     readonly ISepTextReaderDisposer _textReaderDisposer;
+    internal readonly SepCreateToString _createToString;
     // Scalar storage lets the CLR use existing object padding.
     // Zero means separator detection is pending; configured line endings are non-zero.
     uint _parserOptionsBytes;
@@ -199,7 +200,7 @@ public sealed partial class SepReader : SepReaderState
     void TryDetectSeparatorInitializeParser(bool nothingLeftToRead)
     {
         // Detect separator if parser options are not initialized.
-        var validChars = _chars.AsSpan(_charsDataStart.._charsDataEnd);
+        var validChars = _chars.AsSpan(0, _charsDataEnd);
         var maybeSep = SepReaderExtensions.DetectSep(validChars, nothingLeftToRead, _disableQuotesParsing);
         if (maybeSep.HasValue)
         {
@@ -221,7 +222,7 @@ public sealed partial class SepReader : SepReaderState
     void TraceState(string name, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
     {
         T.WriteLine($"{filePath}({lineNumber}): {name}");
-        T.WriteLine($"{nameof(_chars),-10}:{_chars.Length,5} [{_charsDataStart,4},{_charsDataEnd,4}] ({_charsParseStart,2}) '{FormatValidChars()}'");
+        T.WriteLine($"{nameof(_chars),-10}:{_chars.Length,5} [{0,4},{_charsDataEnd,4}] ({_charsParseStart,2}) '{FormatValidChars()}'");
         if (_colUnquoteUnescape == 0)
         {
             var colEnds = GetColsEntireSpanAs<int>();
@@ -236,10 +237,8 @@ public sealed partial class SepReader : SepReaderState
         [ExcludeFromCodeCoverage]
         Span<char> FormatValidChars()
         {
-            return _charsDataStart < _charsDataEnd
-                && _charsDataStart >= 0 && _charsDataStart < _chars.Length
-                && _charsDataEnd >= 0 && _charsDataEnd < _chars.Length
-                ? _chars.AsSpan().Slice(_charsDataStart, _charsDataEnd - _charsDataStart)
+            return _charsDataEnd > 0 && _charsDataEnd < _chars.Length
+                ? _chars.AsSpan(0, _charsDataEnd)
                 : default;
         }
     }
@@ -249,10 +248,8 @@ public sealed partial class SepReader : SepReaderState
     void AssertState(string name, [CallerFilePath] string filePath = "", [CallerLineNumber] int lineNumber = 0)
     {
         A.Assert(_chars.Length > 0, $"{name}", filePath, lineNumber);
-        A.Assert(0 <= _charsDataStart && _charsDataStart <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _charsDataEnd && _charsDataEnd <= _chars.Length, $"{name}", filePath, lineNumber);
-        A.Assert(_charsDataStart <= _charsDataEnd, $"{name}", filePath, lineNumber);
-        A.Assert(_charsDataStart <= _parsingRowCharsStartIndex && _parsingRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
+        A.Assert(0 <= _parsingRowCharsStartIndex && _parsingRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
         A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
 
         if (_colUnquoteUnescape == 0)

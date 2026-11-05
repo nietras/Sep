@@ -30,11 +30,11 @@ public sealed partial class SepReader : SepReaderState
     const string AssertCondition = "SEPREADERASSERT";
 
     readonly Info _info;
+    readonly TextReader _reader;
+    internal readonly SepCreateToString _createToString;
+    readonly bool _leaveOpen;
     readonly bool _disableQuotesParsing;
     internal readonly bool _continueOnCapturedContext;
-    readonly TextReader _reader;
-    readonly ISepTextReaderDisposer _textReaderDisposer;
-    internal readonly SepCreateToString _createToString;
     // Scalar storage lets the CLR use existing object padding.
     // Zero means separator detection is pending; configured line endings are non-zero.
     uint _parserOptionsBytes;
@@ -42,12 +42,12 @@ public sealed partial class SepReader : SepReaderState
     readonly int _charsMinimumFreeLengthBesidesPadding;
 
     internal SepReader(Info info, in SepReaderOptions options,
-        TextReader reader, ISepTextReaderDisposer textReaderDisposer)
+        TextReader reader, bool leaveOpen)
         : base(colUnquoteUnescape: options.Unescape, trim: options.Trim)
     {
         _info = info;
         _reader = reader;
-        _textReaderDisposer = textReaderDisposer;
+        _leaveOpen = leaveOpen;
         _cultureInfo = options.CultureInfo;
         _createToString = options.CreateToString;
         _disableQuotesParsing = options.DisableQuotesParsing;
@@ -293,7 +293,7 @@ public sealed partial class SepReader : SepReaderState
 
     internal override void DisposeManaged()
     {
-        _textReaderDisposer.Dispose(_reader);
+        if (!_leaveOpen) { _reader.Dispose(); }
         base.DisposeManaged();
     }
 }

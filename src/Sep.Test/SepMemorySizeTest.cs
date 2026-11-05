@@ -33,8 +33,27 @@ public class SepMemorySizeTest
         WriteFieldLayout<SepWriter>(TestContext, writerSize);
     }
 
+    [TestMethod]
+    public void SepMemorySizeTest_ConstructorAllocatedWithStringReader()
+    {
+        const int colCount = 25;
+        var text = new string(',', colCount - 1) + "\n";
+        Run();
+        var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+        Run();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
+        TestContext.WriteLine($"{allocatedBytes} bytes");
+
+        void Run()
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = false })
+                                  .From(new System.IO.StringReader(text));
+            foreach (var row in reader) { }
+        }
+    }
+
     static readonly MethodInfo s_sizeOfMethod = typeof(SepMemorySizeTest).GetMethod(
-        nameof(SizeOf), BindingFlags.Static | BindingFlags.NonPublic)!;
+    nameof(SizeOf), BindingFlags.Static | BindingFlags.NonPublic)!;
 
     static void WriteFieldLayout<T>(TestContext testContext, long instanceSize) where T : class
     {

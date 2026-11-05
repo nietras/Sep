@@ -34,7 +34,7 @@ public class SepMemorySizeTest
     }
 
     [TestMethod]
-    public void SepMemorySizeTest_ConstructorAllocatedWithStringReader()
+    public void SepMemorySizeTest_ConstructorAllocatedWithStringReader_PackageAssets()
     {
         const int colCount = 25;
         var text = new string(',', colCount - 1) + "\n";
@@ -47,6 +47,33 @@ public class SepMemorySizeTest
         void Run()
         {
             using var reader = Sep.Reader(o => o with { HasHeader = false })
+                                  .From(new System.IO.StringReader(text));
+            foreach (var row in reader) { }
+        }
+    }
+
+    [TestMethod]
+    public void SepMemorySizeTest_ConstructorAllocatedWithStringReader_Floats()
+    {
+        const int featuresCount = 20;
+        var colNames = new string[featuresCount * 2];
+        for (var i = 0; i < featuresCount; i++)
+        {
+            colNames[i] = $"GT_Feature{i}";
+            colNames[featuresCount + i] = $"RE_Feature{i}";
+        }
+        var separator = Sep.Default.Separator;
+        var text = string.Join(separator, colNames) + "\n" +
+                   new string(separator, colNames.Length - 1) + "\n";
+        Run();
+        var allocatedBytesBefore = GC.GetAllocatedBytesForCurrentThread();
+        Run();
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBytesBefore;
+        TestContext.WriteLine($"{allocatedBytes} bytes");
+
+        void Run()
+        {
+            using var reader = Sep.Reader(o => o with { HasHeader = true })
                                   .From(new System.IO.StringReader(text));
             foreach (var row in reader) { }
         }

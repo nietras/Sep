@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace nietras.SeparatedValues;
 
@@ -14,12 +13,19 @@ public sealed class SepReaderHeader
     {
         _row = row;
         _colNameToIndex = colNameToIndex;
-        _colNames = _colNameToIndex.Keys.ToArray();
+        _colNames = colNameToIndex.Count > 0 ? new string[colNameToIndex.Count] : [];
+        var index = 0;
+        foreach (var (colName, _) in colNameToIndex)
+        {
+            _colNames[index++] = colName;
+        }
     }
 
     public static SepReaderHeader Empty { get; } = new(string.Empty, []);
 
     public bool IsEmpty => _colNameToIndex.Count == 0;
+
+    internal int ColCount => _colNames.Length;
 
     public IReadOnlyList<string> ColNames => _colNames;
 

@@ -115,10 +115,6 @@ public class SepReaderState : IDisposable
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
         _colCountExpected = other._colCountExpected;
         _arrayPool = new();
-        if (other._colNameCache.Length > 0)
-        {
-            _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
-        }
         // Thread-safe converters are borrowed from the reader, which owns their lifetime.
         _ownsToString = !other._toString.IsThreadSafe;
         _toString = _ownsToString ? other._createToString(_header, _colCountExpected) : other._toString;
@@ -274,34 +270,42 @@ public class SepReaderState : IDisposable
         return colIndex;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryGetCachedColIndex(string colName, out int colIndex)
     {
         var colNameCache = _colNameCache;
         var currentCacheIndex = _cacheIndex;
-        var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
-        ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
-        if (cacheable)
+        if ((uint)currentCacheIndex < (uint)colNameCache.Length)
         {
-            colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
-            var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
-            if (ReferenceEquals(colName, cacheColumnName))
+            ref var cached = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(colNameCache), currentCacheIndex);
+            if (ReferenceEquals(colName, cached.colName))
             {
                 ++_cacheIndex;
-                colIndex = cacheColumnIndex;
-                return cacheColumnIndex >= 0;
+                colIndex = cached.colIndex;
+                return colIndex >= 0;
             }
         }
+        return TryGetCachedColIndexSlow(colName, out colIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    bool TryGetCachedColIndexSlow(string colName, out int colIndex)
+    {
+        var found = _header.TryIndexOf(colName, out var cacheColumnIndex);
+        cacheColumnIndex = found ? cacheColumnIndex : -1;
+        var colNameCache = _colNameCache;
+        if (colNameCache.Length == 0 && _header.ColCount > 0)
         {
-            var found = _header.TryIndexOf(colName, out var cacheColumnIndex);
-            cacheColumnIndex = found ? cacheColumnIndex : -1;
-            if (cacheable)
-            {
-                colNameCacheRef = (colName, cacheColumnIndex);
-                ++_cacheIndex;
-            }
-            colIndex = cacheColumnIndex;
-            return found;
+            colNameCache = _colNameCache = new (string colName, int colIndex)[_header.ColCount];
         }
+        var currentCacheIndex = _cacheIndex;
+        if ((uint)currentCacheIndex < (uint)colNameCache.Length)
+        {
+            Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(colNameCache), currentCacheIndex) = (colName, cacheColumnIndex);
+            ++_cacheIndex;
+        }
+        colIndex = cacheColumnIndex;
+        return found;
     }
     #endregion
 

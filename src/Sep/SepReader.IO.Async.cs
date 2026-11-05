@@ -85,8 +85,6 @@ public sealed partial class SepReader
             _parserOptionsBytes = new SepParserOptions(Sep.Default, _disableQuotesParsing).Bytes;
         }
 
-        _colNameCache = HasHeader ? new (string colName, int colIndex)[_colCountExpected] : [];
-
         // Header may be null here
         _toString = options.CreateToString(_header, _colCountExpected);
 

@@ -491,7 +491,9 @@ public partial class SepReaderTest
     }
 
     [TestMethod]
-    public void SepReaderTest_Rows_Indexer_TryGet_ColNameCache()
+    [DataRow(false)]
+    [DataRow(true)]
+    public void SepReaderTest_Rows_Indexer_TryGet_ColNameCache(bool disableColCountCheck)
     {
         var text = """
                    C1,C2,C3
@@ -506,7 +508,8 @@ public partial class SepReaderTest
             new("12", "C", "Z"),
         };
         var actual = new Values[expected.Length];
-        using var reader = Sep.Reader().FromText(text);
+        using var reader = Sep.Reader(o => o with { DisableColCountCheck = disableColCountCheck }).FromText(text);
+        Assert.IsEmpty(reader._colNameCache);
         foreach (var row in reader)
         {
             var c1 = row["C1"].ToString();
@@ -520,6 +523,14 @@ public partial class SepReaderTest
             actual[row.RowIndex - 1] = new(c1, c2, c3);
         }
         CollectionAssert.AreEqual(expected, actual);
+        Assert.HasCount(3, reader._colNameCache);
+
+        using var worker = new SepReaderState(reader);
+        Assert.IsEmpty(worker._colNameCache);
+        Assert.IsTrue(worker.TryGetCachedColIndex("C1", out var colIndex));
+        Assert.AreEqual(0, colIndex);
+        Assert.HasCount(3, worker._colNameCache);
+        Assert.AreNotSame(reader._colNameCache, worker._colNameCache);
     }
 
     [TestMethod]

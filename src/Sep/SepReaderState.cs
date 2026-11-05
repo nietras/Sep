@@ -90,7 +90,7 @@ public class SepReaderState : IDisposable
     internal SepToString _toString = null!;
 #pragma warning restore CA2213 // Disposable fields should be disposed
     readonly bool _ownsToString = true;
-    internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
+    internal (string colName, int colIndex)[] _colNameCache = [];
     internal int _cacheIndex = 0;
     Func<int, string>? _unsafeToStringDelegate;
 
@@ -115,7 +115,10 @@ public class SepReaderState : IDisposable
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
         _colCountExpected = other._colCountExpected;
         _arrayPool = new();
-        _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        if (other._colNameCache.Length > 0)
+        {
+            _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
+        }
         // Thread-safe converters are borrowed from the reader, which owns their lifetime.
         _ownsToString = !other._toString.IsThreadSafe;
         _toString = _ownsToString ? other._createToString(_header, _colCountExpected) : other._toString;

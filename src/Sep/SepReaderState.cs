@@ -92,12 +92,10 @@ public class SepReaderState : IDisposable
     readonly bool _ownsToString = true;
     internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
     internal int _cacheIndex = 0;
+    Func<int, string>? _unsafeToStringDelegate;
 
     internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.None)
     {
-        // Delegate must point to this instance's method
-        UnsafeToStringDelegate = ToStringDefault;
-
         _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u;
         _colSpanFlags |= ((trim & SepTrim.Outer) != 0u ? TrimOuterFlag : 0u);
         _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.AfterUnescape) != 0u))
@@ -106,9 +104,6 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(SepReader other)
     {
-        // Delegate must point to this instance's method
-        UnsafeToStringDelegate = ToStringDefault;
-
         _colSpanFlags = other._colSpanFlags;
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
@@ -126,7 +121,7 @@ public class SepReaderState : IDisposable
         _toString = _ownsToString ? other._createToString(_header, _colCountExpected) : other._toString;
     }
 
-    internal Func<int, string> UnsafeToStringDelegate { get; }
+    internal Func<int, string> UnsafeToStringDelegate => _unsafeToStringDelegate ??= ToStringDefault;
 
     internal void SwapParsedRowsTo(SepReaderState other)
     {

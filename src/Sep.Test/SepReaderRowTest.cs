@@ -33,6 +33,41 @@ public class SepReaderRowTest
         _enumerator = enumerator;
     }
 
+    [TestMethod]
+    public void SepReaderRowTest_UnsafeToStringDelegate_Lazy()
+    {
+        _ = _reader.Current.UnsafeToStringDelegate;
+
+        using var reader = Sep.Reader().FromText("A\nfirst\nsecond");
+        Assert.IsTrue(reader.MoveNext());
+        AssertCreatedLazily(reader);
+        var toString = reader.Current.UnsafeToStringDelegate;
+        Assert.AreEqual("first", toString(0));
+
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreSame(toString, reader.Current.UnsafeToStringDelegate);
+        Assert.AreEqual("second", toString(0));
+
+        using var worker = new SepReaderState(reader);
+        AssertCreatedLazily(worker);
+        Assert.AreNotSame(toString, worker.UnsafeToStringDelegate);
+
+        static void AssertCreatedLazily(SepReaderState state)
+        {
+            var row = new SepReader.Row(state);
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var first = row.UnsafeToStringDelegate;
+            var afterFirst = GC.GetAllocatedBytesForCurrentThread();
+            var second = row.UnsafeToStringDelegate;
+            var afterSecond = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.IsTrue(afterFirst > before);
+            Assert.AreEqual(0L, afterSecond - afterFirst);
+            Assert.AreSame(first, second);
+            Assert.AreSame(state, first.Target);
+        }
+    }
+
     [DataRow(false)]
     [DataRow(true)]
     [TestMethod]

@@ -50,7 +50,8 @@ public partial class SepReader
         /// used outside the scope of <see cref="SepReader.Row"/>. This is,
         /// however, needed to integrate with external benchmarks like NCsvPerf
         /// that require such a delegate. Hence, in order to avoid an allocation
-        /// per row this property is provided.
+        /// per row this property is provided. The delegate is created on first
+        /// access and reused for the lifetime of the reader state.
         /// </remarks>
         public Func<int, string> UnsafeToStringDelegate => _state.UnsafeToStringDelegate;
 

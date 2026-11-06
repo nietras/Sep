@@ -46,12 +46,17 @@ public partial class SepParseMaskTest
     public void ParseSeparatorsMask_DifferentDensitiesAndBounds()
     {
         var random = new Random(12345);
-        for (var iteration = 0; iteration < 1024 + 2 * s_nativeBitSize; ++iteration)
+        for (var iteration = 0; iteration < 1024 + 3 * s_nativeBitSize; ++iteration)
         {
             var mask = iteration < s_nativeBitSize ? (nuint)1 << iteration :
                 iteration < 2 * s_nativeBitSize ? nuint.MaxValue >> (2 * s_nativeBitSize - iteration - 1) :
-                (nuint)(ulong)random.NextInt64();
-            if (iteration >= 2 * s_nativeBitSize && (iteration & 1) != 0)
+                iteration < 3 * s_nativeBitSize ? 0 : (nuint)(ulong)random.NextInt64();
+            if (iteration >= 2 * s_nativeBitSize && iteration < 3 * s_nativeBitSize)
+            {
+                for (var i = 0; i <= iteration - 2 * s_nativeBitSize; ++i)
+                { mask |= (nuint)1 << ((i * 13 + 19) % s_nativeBitSize); }
+            }
+            if (iteration >= 3 * s_nativeBitSize && (iteration & 1) != 0)
             { mask |= (nuint)1 << (s_nativeBitSize - 1); }
             if (mask == 0) { mask = 1; }
             var expected = Enumerable.Range(0, s_nativeBitSize)

@@ -28,10 +28,8 @@ public class SepReaderState : IDisposable
     internal char _fastFloatDecimalSeparatorOrZero;
     internal char _fastFloatGroupSeparatorOrZero;
     internal CultureInfo? _cultureInfo;
-    internal SepCreateToString _createToString = default!;
 
     internal char[] _chars = Array.Empty<char>();
-    internal int _charsDataStart = 0;
     internal int _charsDataEnd = 0;
     // To handle '\r\n' reader depends on a pattern of always reading one char
     // past any '\r' and then add this char to buffer if NOT another '\r'. If
@@ -92,14 +90,12 @@ public class SepReaderState : IDisposable
     internal SepToString _toString = null!;
 #pragma warning restore CA2213 // Disposable fields should be disposed
     readonly bool _ownsToString = true;
-    internal (string colName, int colIndex)[] _colNameCache = Array.Empty<(string colName, int colIndex)>();
+    internal (string colName, int colIndex)[] _colNameCache = [];
     internal int _cacheIndex = 0;
+    Func<int, string>? _unsafeToStringDelegate;
 
     internal SepReaderState(bool colUnquoteUnescape = false, SepTrim trim = SepTrim.None)
     {
-        // Delegate must point to this instance's method
-        UnsafeToStringDelegate = ToStringDefault;
-
         _colSpanFlags = colUnquoteUnescape ? UnescapeFlag : 0u;
         _colSpanFlags |= ((trim & SepTrim.Outer) != 0u ? TrimOuterFlag : 0u);
         _colSpanFlags |= (colUnquoteUnescape && ((trim & SepTrim.AfterUnescape) != 0u))
@@ -108,9 +104,6 @@ public class SepReaderState : IDisposable
 
     internal SepReaderState(SepReader other)
     {
-        // Delegate must point to this instance's method
-        UnsafeToStringDelegate = ToStringDefault;
-
         _colSpanFlags = other._colSpanFlags;
         _header = other._header;
         _fastFloatDecimalSeparatorOrZero = other._fastFloatDecimalSeparatorOrZero;
@@ -118,18 +111,16 @@ public class SepReaderState : IDisposable
         _fastFloatGroupSeparatorOrZero = other._fastFloatGroupSeparatorOrZero;
         System.Diagnostics.Debug.Assert(_fastFloatGroupSeparatorOrZero != '\0');
         _cultureInfo = other._cultureInfo;
-        _createToString = other._createToString;
 
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(other._colEndsOrColInfos.Length);
         _colCountExpected = other._colCountExpected;
         _arrayPool = new();
-        _colNameCache = new (string colName, int colIndex)[other._colNameCache.Length];
         // Thread-safe converters are borrowed from the reader, which owns their lifetime.
         _ownsToString = !other._toString.IsThreadSafe;
-        _toString = _ownsToString ? _createToString(_header, _colCountExpected) : other._toString;
+        _toString = _ownsToString ? other._createToString(_header, _colCountExpected) : other._toString;
     }
 
-    internal Func<int, string> UnsafeToStringDelegate { get; }
+    internal Func<int, string> UnsafeToStringDelegate => _unsafeToStringDelegate ??= ToStringDefault;
 
     internal void SwapParsedRowsTo(SepReaderState other)
     {
@@ -146,7 +137,6 @@ public class SepReaderState : IDisposable
 
         other._parsingLineNumber = _parsingLineNumber;
 
-        other._charsDataStart = _charsDataStart;
         other._charsDataEnd = _charsDataEnd;
         other._charsParseStart = _charsParseStart;
 
@@ -233,7 +223,7 @@ public class SepReaderState : IDisposable
         [ExcludeFromCodeCoverage]
         void AssertState(int rowStart, int rowEnd)
         {
-            A.Assert(_charsDataStart <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range {_charsDataStart} <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
+            A.Assert(0 <= rowStart && rowEnd <= _charsDataEnd, $"Row not within data range 0 <= {rowStart} && {rowEnd} <= {_charsDataEnd}");
             A.Assert(rowEnd >= rowStart, $"Row end before row start {rowEnd} >= {rowStart}");
         }
     }
@@ -280,34 +270,44 @@ public class SepReaderState : IDisposable
         return colIndex;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryGetCachedColIndex(string colName, out int colIndex)
     {
         var colNameCache = _colNameCache;
         var currentCacheIndex = _cacheIndex;
-        var cacheable = (uint)currentCacheIndex < (uint)colNameCache.Length;
-        ref (string colName, int colIndex) colNameCacheRef = ref MemoryMarshal.GetArrayDataReference(colNameCache);
-        if (cacheable)
+        if ((uint)currentCacheIndex < (uint)colNameCache.Length)
         {
-            colNameCacheRef = ref Unsafe.Add(ref colNameCacheRef, currentCacheIndex);
-            var (cacheColumnName, cacheColumnIndex) = colNameCacheRef;
-            if (ReferenceEquals(colName, cacheColumnName))
+            ref var cached = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(colNameCache), currentCacheIndex);
+            if (ReferenceEquals(colName, cached.colName))
             {
                 ++_cacheIndex;
-                colIndex = cacheColumnIndex;
-                return cacheColumnIndex >= 0;
+                colIndex = cached.colIndex;
+                return colIndex >= 0;
             }
         }
+        return TryGetCachedColIndexSlow(colName, out colIndex);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    bool TryGetCachedColIndexSlow(string colName, out int colIndex)
+    {
+        var found = _header.TryIndexOf(colName, out var cacheColumnIndex);
+        cacheColumnIndex = found ? cacheColumnIndex : -1;
+        var colNameCache = _colNameCache;
+        if (colNameCache.Length == 0 && _header.ColCount > 0)
         {
-            var found = _header.TryIndexOf(colName, out var cacheColumnIndex);
-            cacheColumnIndex = found ? cacheColumnIndex : -1;
-            if (cacheable)
-            {
-                colNameCacheRef = (colName, cacheColumnIndex);
-                ++_cacheIndex;
-            }
-            colIndex = cacheColumnIndex;
-            return found;
+            colNameCache = ArrayPool<(string colName, int colIndex)>.Shared.Rent(_header.ColCount);
+            Array.Clear(colNameCache);
+            _colNameCache = colNameCache;
         }
+        var currentCacheIndex = _cacheIndex;
+        if ((uint)currentCacheIndex < (uint)colNameCache.Length)
+        {
+            Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(colNameCache), currentCacheIndex) = (colName, cacheColumnIndex);
+            ++_cacheIndex;
+        }
+        colIndex = cacheColumnIndex;
+        return found;
     }
     #endregion
 
@@ -1080,6 +1080,13 @@ public class SepReaderState : IDisposable
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
         ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
+        if (_colNameCache.Length > 0)
+        {
+            var colNameCache = _colNameCache;
+            _colNameCache = [];
+            _cacheIndex = 0;
+            ArrayPool<(string colName, int colIndex)>.Shared.Return(colNameCache, clearArray: true);
+        }
         _arrayPool.Dispose();
         if (_ownsToString) { _toString?.Dispose(); }
     }

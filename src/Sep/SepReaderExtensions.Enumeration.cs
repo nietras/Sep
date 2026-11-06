@@ -146,7 +146,7 @@ public static partial class SepReaderExtensions
                 ++index;
             }
 #if SEPTRACEPARALLEL
-            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {0,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
 #endif
             statesStack.Push(s);
             return (array, index);
@@ -189,7 +189,7 @@ public static partial class SepReaderExtensions
                 }
             }
 #if SEPTRACEPARALLEL
-            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {s._charsDataStart,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
+            Log($"T:{Environment.CurrentManagedThreadId,2} ParsedRows: {s._parsedRowsCount,5} ColInfos {s._currentRowColEndsOrInfosStartIndex,5} S: {0,6} P: {s._charsParseStart,6} E: {s._charsDataEnd,6}");
 #endif
             statesStack.Push(s);
             return (array, index);

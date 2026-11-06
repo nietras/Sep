@@ -173,13 +173,10 @@ public static partial class SepReaderExtensions
 #endif
     {
         ArgumentNullException.ThrowIfNull(reader);
-        ISepTextReaderDisposer textReaderDisposer = leaveOpen
-            ? NoopSepTextReaderDisposer.Instance
-            : SepTextReaderDisposer.Instance;
         SepReader? sepReader = null;
         try
         {
-            sepReader = new SepReader(info, options, reader, textReaderDisposer);
+            sepReader = new SepReader(info, options, reader, leaveOpen);
 #if SYNC
             sepReader.Initialize(options);
             return sepReader;
@@ -191,7 +188,7 @@ public static partial class SepReaderExtensions
         catch (Exception)
         {
             sepReader?.Dispose();
-            textReaderDisposer.Dispose(reader);
+            if (!leaveOpen) { reader.Dispose(); }
             throw;
         }
     }

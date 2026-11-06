@@ -13,19 +13,20 @@ internal sealed class SepArrayPoolAccessIndexed : IDisposable
     [ExcludeFromCodeCoverage]
     readonly record struct Value(object Array, Action<object> Return);
 
-    readonly Dictionary<Key, Value> _pool = new();
+    Dictionary<Key, Value>? _pool;
     int _poolIndex = 0;
 
     internal Span<T> RentUniqueArrayAsSpan<T>(int length)
     {
+        var pool = _pool ??= new();
         Key key = new(_poolIndex, typeof(T));
-        var array = _pool.TryGetValue(key, out var value) ? Unsafe.As<T[]>(value.Array) : null;
+        var array = pool.TryGetValue(key, out var value) ? Unsafe.As<T[]>(value.Array) : null;
         if (array is null || array.Length < length)
         {
             // Rent before returning, so a failed rent never leaves the pool
             // dictionary referencing an array already returned.
             var newArray = ArrayPool<T>.Shared.Rent(length);
-            _pool[key] = new(newArray, ArrayPoolHelper<T>.Return);
+            pool[key] = new(newArray, ArrayPoolHelper<T>.Return);
             if (array is not null) { ArrayPool<T>.Shared.Return(array); }
             array = newArray;
         }
@@ -43,6 +44,7 @@ internal sealed class SepArrayPoolAccessIndexed : IDisposable
 
     void DisposeManaged()
     {
+        if (_pool is null) { return; }
         foreach (var (_, value) in _pool)
         {
             value.Return(value.Array);

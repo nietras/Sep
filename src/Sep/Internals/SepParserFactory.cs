@@ -10,10 +10,10 @@ namespace nietras.SeparatedValues;
 
 static class SepParserFactory
 {
-    internal const int MaxPaddingLength = 128;
     internal const string SepForceParserEnvName = "SEPFORCEPARSER";
 
-    internal static ISepParser Best { get; } = GetBest();
+    internal static readonly ISepParser Best = GetBest();
+    internal static readonly int BestPaddingLength = Best.PaddingLength;
 
     [ExcludeFromCodeCoverage]
     internal static ISepParser GetBest() => GetBest(GetForceParserName());

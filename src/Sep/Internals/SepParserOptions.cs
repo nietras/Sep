@@ -7,6 +7,8 @@ readonly struct SepParserOptions
 
     internal uint Bytes => _bytes;
 
+    internal static char GetSeparator(uint bytes) => (char)(byte)bytes;
+
     internal byte Separator
     {
         get => (byte)_bytes;

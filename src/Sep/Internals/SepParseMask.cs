@@ -38,6 +38,17 @@ static partial class SepParseMask
         nuint mask, int charsIndex, ref TColInfo colInfosRef)
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
+#if NET10_0_OR_GREATER
+        // Avoid 512-bit setup for a single separator or a mask confined to 16 positions.
+        if (typeof(TColInfoMethods) == typeof(SepColEndMethods) &&
+            typeof(TColInfo) == typeof(int) && Avx512Vbmi2.IsSupported && Avx512Vbmi.IsSupported &&
+            mask > ushort.MaxValue && (mask & (mask - 1)) != 0)
+        {
+            ref var end = ref ParseSeparatorsMaskVbmi2(mask, BitOperations.PopCount(mask),
+                charsIndex, ref As<TColInfo, int>(ref colInfosRef));
+            return ref As<int, TColInfo>(ref end);
+        }
+#endif
         do
         {
             var relativeIndex = BitOperations.TrailingZeroCount(mask);
@@ -49,6 +60,46 @@ static partial class SepParseMask
         while (mask != 0);
         return ref colInfosRef;
     }
+
+#if NET10_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static unsafe ref int ParseSeparatorsMaskVbmi2(nuint mask, int count, int charsIndex, ref int colEndsRef)
+    {
+        // Broadcast each mask byte to its eight position lanes, then test each lane's bit.
+        var byteIndices = Vector512.Create(0x0000000000000000UL, 0x0101010101010101UL,
+            0x0202020202020202UL, 0x0303030303030303UL, 0x0404040404040404UL,
+            0x0505050505050505UL, 0x0606060606060606UL, 0x0707070707070707UL).AsByte();
+        var bits = Vector512.Shuffle(Vector512.Create((ulong)mask).AsByte(), byteIndices);
+        var selected = ~Vector512.Equals(bits & Vector512.Create(0x8040201008040201UL).AsByte(), Vector512<byte>.Zero);
+        var packed = Avx512Vbmi2.Compress(Vector512<byte>.Zero, selected, Vector512<byte>.Indices);
+        var origin = Vector512.Create(charsIndex);
+        fixed (int* destination = &Add(ref colEndsRef, 1))
+        {
+            StoreSeparatorPositions(destination, packed.GetLower().GetLower(), origin, count);
+            if (count > 16)
+            {
+                StoreSeparatorPositions(destination + 16, Avx512F.ExtractVector128(packed, 1), origin, count - 16);
+                if (count > 32)
+                {
+                    StoreSeparatorPositions(destination + 32, Avx512F.ExtractVector128(packed, 2), origin, count - 32);
+                    if (count > 48)
+                    {
+                        StoreSeparatorPositions(destination + 48, Avx512F.ExtractVector128(packed, 3), origin, count - 48);
+                    }
+                }
+            }
+        }
+        return ref Add(ref colEndsRef, count);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static unsafe void StoreSeparatorPositions(int* destination, Vector128<byte> positions, Vector512<int> origin, int count)
+    {
+        var entries = Avx512F.ConvertToVector512Int32(positions) + origin;
+        var valid = Vector512.LessThan(Vector512<int>.Indices, Vector512.Create(count));
+        Avx512F.MaskStore(destination, valid, entries);
+    }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static nuint PrefixXor(nuint mask)

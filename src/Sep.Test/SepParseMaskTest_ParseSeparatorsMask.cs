@@ -42,6 +42,40 @@ public partial class SepParseMaskTest
         }
     }
 
+    [TestMethod]
+    public void ParseSeparatorsMask_DifferentDensitiesAndBounds()
+    {
+        var random = new Random(12345);
+        for (var iteration = 0; iteration < 1024 + 3 * s_nativeBitSize; ++iteration)
+        {
+            var mask = iteration < s_nativeBitSize ? (nuint)1 << iteration :
+                iteration < 2 * s_nativeBitSize ? nuint.MaxValue >> (2 * s_nativeBitSize - iteration - 1) :
+                iteration < 3 * s_nativeBitSize ? 0 : (nuint)(ulong)random.NextInt64();
+            if (iteration >= 2 * s_nativeBitSize && iteration < 3 * s_nativeBitSize)
+            {
+                for (var i = 0; i <= iteration - 2 * s_nativeBitSize; ++i)
+                { mask |= (nuint)1 << ((i * 13 + 19) % s_nativeBitSize); }
+            }
+            if (iteration >= 3 * s_nativeBitSize && (iteration & 1) != 0)
+            { mask |= (nuint)1 << (s_nativeBitSize - 1); }
+            if (mask == 0) { mask = 1; }
+            var expected = Enumerable.Range(0, s_nativeBitSize)
+                .Where(i => (mask & ((nuint)1 << i)) != 0).ToArray();
+            var ends = Enumerable.Repeat(-1, expected.Length + 2).ToArray();
+            ref var end = ref SepParseMask.ParseSeparatorsMask(mask, CharsIndexOffset, ref ends[0]);
+            Assert.AreEqual(expected.Length, (int)Unsafe.ByteOffset(ref ends[0], ref end) / sizeof(int));
+            Assert.AreEqual(-1, ends[0]);
+            Assert.AreEqual(-1, ends[^1]);
+            CollectionAssert.AreEqual(expected.Select(i => i + CharsIndexOffset).ToArray(), ends[1..^1]);
+
+            var infos = new SepColInfo[expected.Length + 1];
+            ref var infoEnd = ref SepParseMask.ParseSeparatorsMask<SepColInfo, SepColInfoMethods>(
+                mask, CharsIndexOffset, ref infos[0]);
+            Assert.AreEqual(expected.Length, SepColInfoMethods.CountOffset(ref infos[0], ref infoEnd));
+            CollectionAssert.AreEqual(expected.Select(i => new SepColInfo(i + CharsIndexOffset, 0)).ToArray(), infos[1..]);
+        }
+    }
+
     static void AssertParseSeparatorsMask(
         nuint mask, ParseSeparatorsMaskMethod parse, int[] expected)
     {

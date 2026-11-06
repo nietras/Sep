@@ -296,7 +296,9 @@ public class SepReaderState : IDisposable
         var colNameCache = _colNameCache;
         if (colNameCache.Length == 0 && _header.ColCount > 0)
         {
-            colNameCache = _colNameCache = new (string colName, int colIndex)[_header.ColCount];
+            colNameCache = ArrayPool<(string colName, int colIndex)>.Shared.Rent(_header.ColCount);
+            Array.Clear(colNameCache);
+            _colNameCache = colNameCache;
         }
         var currentCacheIndex = _cacheIndex;
         if ((uint)currentCacheIndex < (uint)colNameCache.Length)
@@ -1078,6 +1080,13 @@ public class SepReaderState : IDisposable
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
         ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
+        if (_colNameCache.Length > 0)
+        {
+            var colNameCache = _colNameCache;
+            _colNameCache = [];
+            _cacheIndex = 0;
+            ArrayPool<(string colName, int colIndex)>.Shared.Return(colNameCache, clearArray: true);
+        }
         _arrayPool.Dispose();
         if (_ownsToString) { _toString?.Dispose(); }
     }

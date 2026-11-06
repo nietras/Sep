@@ -75,7 +75,10 @@ public class SepMemorySizeTest
         {
             using var reader = Sep.Reader(o => o with { HasHeader = true })
                                   .From(new System.IO.StringReader(text));
-            foreach (var row in reader) { }
+            foreach (var row in reader)
+            {
+                foreach (var colName in colNames) { _ = row[colName].Span; }
+            }
         }
     }
 

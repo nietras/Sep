@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
@@ -508,29 +509,48 @@ public partial class SepReaderTest
             new("12", "C", "Z"),
         };
         var actual = new Values[expected.Length];
+        var pool = ArrayPool<(string colName, int colIndex)>.Shared;
+        var staleCache = pool.Rent(3);
+        Array.Fill(staleCache, ("C1", 2));
+        pool.Return(staleCache);
+
         using var reader = Sep.Reader(o => o with { DisableColCountCheck = disableColCountCheck }).FromText(text);
         Assert.IsEmpty(reader._colNameCache);
-        foreach (var row in reader)
+        while (reader.MoveNext())
         {
+            var row = reader.Current;
             var c1 = row["C1"].ToString();
             var c2 = row.TryGet("C2", out var col2) ? col2.ToString() : "";
 
-            // Must be within normal col count in order for col name cache to be
-            // properly tested, as col name cache has same length as col count.
             Assert.IsFalse(row.TryGet("CX", out var colNot));
 
+            // Exhaust the rented cache to also exercise dictionary-only lookups.
+            for (var i = reader._cacheIndex; i < reader._colNameCache.Length; i++)
+            {
+                Assert.IsFalse(row.TryGet("CX", out _));
+            }
             var c3 = row.TryGet("C3", out var col3) ? col3.ToString() : "";
             actual[row.RowIndex - 1] = new(c1, c2, c3);
         }
         CollectionAssert.AreEqual(expected, actual);
-        Assert.HasCount(3, reader._colNameCache);
+        Assert.IsTrue(reader._colNameCache.Length >= 3);
 
         using var worker = new SepReaderState(reader);
         Assert.IsEmpty(worker._colNameCache);
         Assert.IsTrue(worker.TryGetCachedColIndex("C1", out var colIndex));
         Assert.AreEqual(0, colIndex);
-        Assert.HasCount(3, worker._colNameCache);
+        Assert.IsTrue(worker._colNameCache.Length >= 3);
         Assert.AreNotSame(reader._colNameCache, worker._colNameCache);
+
+        var workerCache = worker._colNameCache;
+        worker.Dispose();
+        Assert.IsEmpty(worker._colNameCache);
+        Assert.IsTrue(Array.TrueForAll(workerCache, entry => entry.colName is null && entry.colIndex == 0));
+
+        var readerCache = reader._colNameCache;
+        reader.Dispose();
+        Assert.IsEmpty(reader._colNameCache);
+        Assert.IsTrue(Array.TrueForAll(readerCache, entry => entry.colName is null && entry.colIndex == 0));
     }
 
     [TestMethod]

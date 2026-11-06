@@ -23,11 +23,9 @@ public static class SepReaderWriterExtensions
 
     public static void CopyTo(this SepReader.Row readerRow, SepWriter.Row writerRow)
     {
-        var colNames = readerRow._state._header.ColNames;
-        for (var i = 0; i < colNames.Count; i++)
+        foreach (var (colName, colIndex) in readerRow._state._header._colNameToIndex)
         {
-            var colName = colNames[i];
-            writerRow[colName].Set(readerRow[colName].Span);
+            writerRow[colName].Set(readerRow[colIndex].Span);
         }
     }
 }

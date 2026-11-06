@@ -1,33 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace nietras.SeparatedValues;
 
 public sealed class SepReaderHeader
 {
     readonly string _row;
-    readonly Dictionary<string, int> _colNameToIndex;
-    readonly string[] _colNames;
+    internal readonly Dictionary<string, int> _colNameToIndex;
+    string[]? _colNames;
 
     internal SepReaderHeader(string row, Dictionary<string, int> colNameToIndex)
     {
         _row = row;
         _colNameToIndex = colNameToIndex;
-        _colNames = colNameToIndex.Count > 0 ? new string[colNameToIndex.Count] : [];
-        var index = 0;
-        foreach (var (colName, _) in colNameToIndex)
-        {
-            _colNames[index++] = colName;
-        }
     }
 
     public static SepReaderHeader Empty { get; } = new(string.Empty, []);
 
     public bool IsEmpty => _colNameToIndex.Count == 0;
 
-    internal int ColCount => _colNames.Length;
+    internal int ColCount => _colNameToIndex.Count;
 
-    public IReadOnlyList<string> ColNames => _colNames;
+    public IReadOnlyList<string> ColNames => Volatile.Read(ref _colNames) ?? CreateColNames();
 
     public int IndexOf(string colName) => _colNameToIndex[colName];
 
@@ -44,7 +39,7 @@ public sealed class SepReaderHeader
     public IReadOnlyList<string> NamesStartingWith(string prefix, StringComparison comparison = StringComparison.Ordinal)
     {
         var colNames = new List<string>();
-        foreach (var colName in _colNames)
+        foreach (var (colName, _) in _colNameToIndex)
         {
             if (colName.StartsWith(prefix, comparison))
             {
@@ -87,4 +82,16 @@ public sealed class SepReaderHeader
     }
 
     public override string ToString() => _row;
+
+    string[] CreateColNames()
+    {
+        var colNames = ColCount > 0 ? new string[ColCount] : [];
+        var index = 0;
+        foreach (var (colName, _) in _colNameToIndex)
+        {
+            colNames[index++] = colName;
+        }
+        // Headers are shared by parallel reader states.
+        return Interlocked.CompareExchange(ref _colNames, colNames, null) ?? colNames;
+    }
 }

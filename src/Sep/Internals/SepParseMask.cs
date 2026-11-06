@@ -38,6 +38,14 @@ static partial class SepParseMask
         nuint mask, int charsIndex, ref TColInfo colInfosRef)
         where TColInfoMethods : ISepColInfoMethods<TColInfo>
     {
+#if NET10_0_OR_GREATER
+        if (typeof(TColInfoMethods) == typeof(SepColEndMethods) &&
+            typeof(TColInfo) == typeof(int) && Avx512Vbmi2.IsSupported && Avx512Vbmi.IsSupported)
+        {
+            ref var end = ref ParseSeparatorsMaskVbmi2(mask, charsIndex, ref As<TColInfo, int>(ref colInfosRef));
+            return ref As<int, TColInfo>(ref end);
+        }
+#endif
         do
         {
             var relativeIndex = BitOperations.TrailingZeroCount(mask);
@@ -49,6 +57,39 @@ static partial class SepParseMask
         while (mask != 0);
         return ref colInfosRef;
     }
+
+#if NET10_0_OR_GREATER
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static unsafe ref int ParseSeparatorsMaskVbmi2(nuint mask, int charsIndex, ref int colEndsRef)
+    {
+        // Broadcast each mask byte to its eight position lanes, then test each lane's bit.
+        var byteIndices = Vector512.Create(0x0000000000000000UL, 0x0101010101010101UL,
+            0x0202020202020202UL, 0x0303030303030303UL, 0x0404040404040404UL,
+            0x0505050505050505UL, 0x0606060606060606UL, 0x0707070707070707UL).AsByte();
+        var bits = Vector512.Shuffle(Vector512.Create((ulong)mask).AsByte(), byteIndices);
+        var selected = ~Vector512.Equals(bits & Vector512.Create(0x8040201008040201UL).AsByte(), Vector512<byte>.Zero);
+        var packed = Avx512Vbmi2.Compress(Vector512<byte>.Zero, selected, Vector512<byte>.Indices);
+        var count = BitOperations.PopCount(mask);
+        var origin = Vector512.Create(charsIndex);
+        fixed (int* destination = &Add(ref colEndsRef, 1))
+        {
+            for (var offset = 0; offset < count; offset += 16)
+            {
+                var part = offset switch
+                {
+                    0 => packed.GetLower().GetLower(),
+                    16 => Avx512F.ExtractVector128(packed, 1),
+                    32 => Avx512F.ExtractVector128(packed, 2),
+                    _ => Avx512F.ExtractVector128(packed, 3),
+                };
+                var entries = Avx512F.ConvertToVector512Int32(part) + origin;
+                var valid = Vector512.LessThan(Vector512<int>.Indices, Vector512.Create(count - offset));
+                Avx512F.MaskStore(destination + offset, valid, entries);
+            }
+        }
+        return ref Add(ref colEndsRef, count);
+    }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static nuint PrefixXor(nuint mask)

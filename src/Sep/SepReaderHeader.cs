@@ -65,16 +65,18 @@ public sealed class SepReaderHeader
         if (_slots.Length == 0) { return false; }
 
         var mask = _slots.Length - 1;
-        var slot = _comparer.GetHashCode(colName) & mask;
-        while (_slots[slot] != 0)
+        var slotIndex = _comparer.GetHashCode(colName) & mask;
+        int colNameCandidateSlot;
+        while ((colNameCandidateSlot = _slots[slotIndex]) != 0)
         {
-            var candidate = _slots[slot] - 1;
-            if (_comparer.Equals(_colNames[candidate], colName))
+            var candidate = colNameCandidateSlot - 1;
+            var colNameCandidate = _colNames[candidate];
+            if (_comparer.Equals(colNameCandidate, colName))
             {
                 colIndex = candidate;
                 return true;
             }
-            slot = (slot + 1) & mask;
+            slotIndex = (slotIndex + 1) & mask;
         }
         return false;
     }
@@ -95,16 +97,18 @@ public sealed class SepReaderHeader
         if (_slots.Length == 0) { return false; }
 
         var mask = _slots.Length - 1;
-        var slot = comparer.GetHashCode(colName) & mask;
-        while (_slots[slot] != 0)
+        var slotIndex = comparer.GetHashCode(colName) & mask;
+        int colNameCandidateSlot;
+        while ((colNameCandidateSlot = _slots[slotIndex]) != 0)
         {
-            var candidate = _slots[slot] - 1;
-            if (comparer.Equals(colName, _colNames[candidate]))
+            var candidate = colNameCandidateSlot - 1;
+            var colNameCandidate = _colNames[candidate];
+            if (comparer.Equals(colName, colNameCandidate))
             {
                 colIndex = candidate;
                 return true;
             }
-            slot = (slot + 1) & mask;
+            slotIndex = (slotIndex + 1) & mask;
         }
         return false;
     }

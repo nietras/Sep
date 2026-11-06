@@ -25,10 +25,6 @@ public sealed class SepReaderHeader
         // Leave empty slots so unsuccessful probes always terminate.
         var capacity = ((long)colNames.Length * 3 + 1) / 2;
         var slotsLength = BitOperations.RoundUpToPowerOf2((uint)capacity);
-        if (slotsLength == 0 || slotsLength > Array.MaxLength)
-        {
-            SepThrow.NotSupportedException_BufferOrRowLengthExceedsMaximumSupported(Array.MaxLength);
-        }
         _slots = new int[(int)slotsLength];
         var mask = _slots.Length - 1;
         for (var colIndex = 0; colIndex < colNames.Length; ++colIndex)
@@ -38,9 +34,7 @@ public sealed class SepReaderHeader
             while (_slots[slot] != 0)
             {
                 if (_comparer.Equals(colNames[_slots[slot] - 1], colName))
-                {
-                    SepThrow.ArgumentException_DuplicateColNamesFound(colNames, colName, _comparer, row);
-                }
+                { SepThrow.ArgumentException_DuplicateColNamesFound(colNames, colName, _comparer, row); }
                 slot = (slot + 1) & mask;
             }
             // Zero marks an empty slot; stored indices are offset by one.
@@ -60,9 +54,7 @@ public sealed class SepReaderHeader
     public int IndexOf(string colName)
     {
         if (!TryIndexOf(colName, out var colIndex))
-        {
-            SepThrow.KeyNotFoundException_HeaderColNameNotFound(colName);
-        }
+        { SepThrow.KeyNotFoundException_HeaderColNameNotFound(colName); }
         return colIndex;
     }
 
@@ -91,9 +83,7 @@ public sealed class SepReaderHeader
     public int IndexOf(ReadOnlySpan<char> colName)
     {
         if (!TryIndexOf(colName, out var colIndex))
-        {
-            SepThrow.KeyNotFoundException_HeaderColNameNotFound(colName.ToString());
-        }
+        { SepThrow.KeyNotFoundException_HeaderColNameNotFound(colName.ToString()); }
         return colIndex;
     }
 
@@ -156,9 +146,7 @@ public sealed class SepReaderHeader
     public void IndicesOf(ReadOnlySpan<string> colNames, Span<int> colIndices)
     {
         if (colNames.Length != colIndices.Length)
-        {
-            SepThrow.ArgumentException_LengthsMustBeSame(nameof(colNames), colNames.Length, nameof(colIndices), colIndices.Length);
-        }
+        { SepThrow.ArgumentException_LengthsMustBeSame(nameof(colNames), colNames.Length, nameof(colIndices), colIndices.Length); }
         for (var i = 0; i < colNames.Length; i++)
         {
             colIndices[i] = IndexOf(colNames[i]);

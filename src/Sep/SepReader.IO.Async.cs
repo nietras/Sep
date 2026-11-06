@@ -1,6 +1,5 @@
 ﻿//#define SYNC
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -37,14 +36,12 @@ public sealed partial class SepReader
             {
                 var headerRow = new string(RowSpan());
                 var colNameComparer = options.ColNameComparer;
-                var colNameToIndex = new Dictionary<string, int>(firstRowColCount, colNameComparer);
+                var colNames = new string[firstRowColCount];
                 for (var colIndex = 0; colIndex < firstRowColCount; colIndex++)
                 {
-                    var colName = ToStringDirect(colIndex);
-                    if (!colNameToIndex.TryAdd(colName, colIndex))
-                    { SepThrow.ArgumentException_DuplicateColNamesFound(this, colNameToIndex, colName, firstRowColCount, colNameComparer, headerRow); }
+                    colNames[colIndex] = ToStringDirect(colIndex);
                 }
-                _header = new(headerRow, colNameToIndex);
+                _header = new(headerRow, colNames, colNameComparer);
 
                 HasHeader = true;
 

@@ -44,6 +44,20 @@ static class SepThrow
     }
 
     [DoesNotReturn]
+    internal static void KeyNotFoundException_HeaderColNameNotFound(string colName)
+    {
+        throw new KeyNotFoundException($"The given key '{colName}' was not present in the dictionary.");
+    }
+
+#if NET9_0_OR_GREATER
+    [DoesNotReturn]
+    internal static void InvalidOperationException_AlternateKeyComparerNotSupported()
+    {
+        throw new InvalidOperationException("The collection's comparer does not support the requested operation.");
+    }
+#endif
+
+    [DoesNotReturn]
     internal static void ArgumentException_CountOrLengthSameAsCols(string name, int count, int expectedCount)
     {
         throw new ArgumentException($"'{name}':{count} must have length/count {expectedCount} matching columns selected");
@@ -121,28 +135,14 @@ static class SepThrow
     // C# compiler does not support DoesNotReturn in face of try/finally currently
     //[DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static void ArgumentException_DuplicateColNamesFound(SepReaderState reader,
-        Dictionary<string, int> colNameToIndexUntilDuplicate,
-        string duplicateColName, int headerColCount,
-        IEqualityComparer<string> colNameComparer,
-        string headerRow)
+    internal static void ArgumentException_DuplicateColNamesFound(string[] colNames,
+        string duplicateColName, IEqualityComparer<string> colNameComparer, string headerRow)
     {
-        var colNames = new string[headerColCount];
-        var colIndex = 0;
-        foreach (var colName in colNameToIndexUntilDuplicate.Keys)
-        {
-            colNames[colIndex] = colName;
-            ++colIndex;
-        }
-        for (; colIndex < headerColCount; ++colIndex)
-        {
-            colNames[colIndex] = reader.ToStringDirect(colIndex);
-        }
         var sb = SepStringBuilderPool.Take();
         try
         {
             var duplicates = new List<(int colIndex, string colName)>();
-            for (colIndex = 0; colIndex < headerColCount; ++colIndex)
+            for (var colIndex = 0; colIndex < colNames.Length; ++colIndex)
             {
                 var colName = colNames[colIndex];
                 if (colNameComparer.Equals(colName, duplicateColName))

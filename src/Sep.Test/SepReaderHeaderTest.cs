@@ -95,6 +95,100 @@ public class SepReaderHeaderTest
         Assert.AreEqual("'colIndices':1 must have same length as 'colNames':2", e.Message);
     }
 
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(1)]
+    [DataRow(3)]
+    [DataRow(40)]
+    [DataRow(129)]
+    public void SepReaderHeaderTest_LookupsMatchDictionary(int colCount)
+    {
+        IEqualityComparer<string>[] comparers =
+        [
+            StringComparer.Ordinal,
+            StringComparer.OrdinalIgnoreCase,
+            StringComparer.InvariantCultureIgnoreCase,
+            EqualityComparer<string>.Default,
+            new CollisionComparer(),
+#if NET9_0_OR_GREATER
+            new AlternateCollisionComparer(),
+#endif
+        ];
+        foreach (var comparer in comparers)
+        {
+            var colNames = new string[colCount];
+            var dictionary = new Dictionary<string, int>(colCount, comparer);
+            for (var i = 0; i < colCount; ++i)
+            {
+                colNames[i] = $"Feature_{i}_\u00C6\u03A3";
+                dictionary.Add(colNames[i], i);
+            }
+            var header = new SepReaderHeader(string.Join(';', colNames), colNames, comparer);
+            Assert.AreEqual(colCount, header.ColCount);
+            for (var i = 0; i <= colCount; ++i)
+            {
+                var colName = i < colCount ? colNames[i] : "Missing";
+                foreach (var query in new[] { colName, colName.ToLowerInvariant() })
+                {
+                    var expected = dictionary.TryGetValue(query, out var expectedIndex);
+                    Assert.AreEqual(expected, header.TryIndexOf(query, out var actualIndex));
+                    Assert.AreEqual(expectedIndex, actualIndex);
+#if NET9_0_OR_GREATER
+                    if (dictionary.TryGetAlternateLookup<ReadOnlySpan<char>>(out var lookup))
+                    {
+                        Assert.AreEqual(lookup.TryGetValue(query.AsSpan(), out expectedIndex),
+                            header.TryIndexOf(query.AsSpan(), out actualIndex));
+                        Assert.AreEqual(expectedIndex, actualIndex);
+                    }
+#endif
+                }
+            }
+#if NET9_0_OR_GREATER
+            if (!dictionary.TryGetAlternateLookup<ReadOnlySpan<char>>(out _))
+            {
+                var expected = Assert.ThrowsExactly<InvalidOperationException>(
+                    () => dictionary.GetAlternateLookup<ReadOnlySpan<char>>());
+                var actual = Assert.ThrowsExactly<InvalidOperationException>(
+                    () => header.TryIndexOf("Missing".AsSpan(), out _));
+                Assert.AreEqual(expected.Message, actual.Message);
+            }
+#endif
+        }
+    }
+
+    [TestMethod]
+    public void SepReaderHeaderTest_InvalidNamesMatchDictionary()
+    {
+        var dictionary = new Dictionary<string, int>() { { "A", 0 } };
+        var header = Parse(Sep.Default, "A");
+        Assert.ThrowsExactly<ArgumentNullException>(() => header.TryIndexOf((string)null!, out _));
+        var expectedMissing = Assert.ThrowsExactly<KeyNotFoundException>(() => _ = dictionary["Missing"]);
+        var actualMissing = Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("Missing"));
+        Assert.AreEqual(expectedMissing.Message, actualMissing.Message);
+#if NET9_0_OR_GREATER
+        var actualMissingSpan = Assert.ThrowsExactly<KeyNotFoundException>(() => header.IndexOf("Missing".AsSpan()));
+        Assert.AreEqual(expectedMissing.Message, actualMissingSpan.Message);
+#endif
+    }
+
+    sealed class CollisionComparer : IEqualityComparer<string>
+    {
+        public bool Equals(string? x, string? y) => StringComparer.Ordinal.Equals(x, y);
+        public int GetHashCode(string obj) => -1;
+    }
+
+#if NET9_0_OR_GREATER
+    sealed class AlternateCollisionComparer : IEqualityComparer<string>,
+        IAlternateEqualityComparer<ReadOnlySpan<char>, string>
+    {
+        public bool Equals(string? x, string? y) => StringComparer.Ordinal.Equals(x, y);
+        public int GetHashCode(string obj) => -1;
+        public bool Equals(ReadOnlySpan<char> alternate, string other) => alternate.SequenceEqual(other);
+        public int GetHashCode(ReadOnlySpan<char> alternate) => -1;
+        public string Create(ReadOnlySpan<char> alternate) => alternate.ToString();
+    }
+#endif
+
     static void AreEqual<T>(IReadOnlyList<T> expected, IReadOnlyList<T> actual) =>
         CollectionAssert.AreEqual((ICollection)expected, (ICollection)actual);
 
@@ -105,12 +199,6 @@ public class SepReaderHeaderTest
     static SepReaderHeader Parse(Sep sep, string line, IEqualityComparer<string> comparer)
     {
         var colNames = sep.Split(line);
-        var colNameToIndex = new Dictionary<string, int>(colNames.Length, comparer);
-        for (var i = 0; i < colNames.Length; i++)
-        {
-            var colName = colNames[i];
-            colNameToIndex.Add(colName, i);
-        }
-        return new SepReaderHeader(line, colNameToIndex);
+        return new SepReaderHeader(line, colNames, comparer);
     }
 }

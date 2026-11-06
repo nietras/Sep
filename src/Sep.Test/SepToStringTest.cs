@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -43,7 +44,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerCol()
     {
         var create = SepToString.PoolPerCol();
-        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", ["A"], StringComparer.Ordinal);
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 
@@ -65,7 +66,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerColThreadSafe()
     {
         var create = SepToString.PoolPerColThreadSafe();
-        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", ["A"], StringComparer.Ordinal);
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 
@@ -87,7 +88,7 @@ public class SepToStringTest
     public void SepToStringTest_PoolPerColThreadSafeFixedCapacity()
     {
         var create = SepToString.PoolPerColThreadSafeFixedCapacity();
-        var header = new SepReaderHeader("A", new Dictionary<string, int>() { { "A", 0 } });
+        var header = new SepReaderHeader("A", ["A"], StringComparer.Ordinal);
         using var pool0 = create(header, colCount: 1);
         using var pool1 = create(null, colCount: 1);
 

@@ -124,7 +124,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
                 if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
                 {
                     colInfosRefCurrent = ref ParseSeparatorsMask<TColInfoMethods>(
-                        separatorsMask, charsIndex, ref colInfosRefCurrent, colInfosLength);
+                        separatorsMask, charsIndex, ref colInfosRefCurrent);
                 }
                 else
                 {
@@ -134,7 +134,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref lineNumber, colInfosLength);
+                            ref colInfosRefCurrent, ref lineNumber);
                         goto NEWROW;
                     }
                     else
@@ -144,12 +144,12 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
                             separatorsMask, separatorLineEndingsMask, specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
-                            ref colInfosRefCurrent, ref lineNumber, colInfosLength);
+                            ref colInfosRefCurrent, ref lineNumber);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
                         {
                             // Must be a col end and last is then dataIndex
-                            charsIndex = colInfosRefCurrent + rowLineEndingOffset;
+                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
                             goto NEWROW;
                         }
                     }
@@ -165,7 +165,7 @@ sealed class SepParserVector256NrwCmpExtMsbTzcnt : ISepParser
             // Next row start (one before)
             colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
             A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
-            TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex - 1, 0, colInfosLength);
+            colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
             // Update for next row
             colInfosRef = ref colInfosRefCurrent;
             s._parsingRowColEndsOrInfosStartIndex += colCount + 1;

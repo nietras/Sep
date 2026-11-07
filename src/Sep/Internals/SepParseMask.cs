@@ -12,7 +12,7 @@ static partial class SepParseMask
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsMask(nuint mask, int charsIndex, ref int colEndsRef)
         => ref ParseSeparatorsMask<SepColEndMethods>(
-            mask, charsIndex, ref colEndsRef, 0);
+            mask, charsIndex, ref colEndsRef);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseAnyCharsMask(nuint mask, char separator,
@@ -22,7 +22,7 @@ static partial class SepParseMask
         => ref ParseAnyCharsMask<SepColEndMethods>(
             mask, separator, ref charsRef, charsIndex,
             ref rowLineEndingOffset, ref quoteCount,
-            ref colEndsRef, ref lineNumber, 0);
+            ref colEndsRef, ref lineNumber);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
@@ -30,12 +30,12 @@ static partial class SepParseMask
         ref int colEndsRefCurrent, scoped ref int lineNumber)
         => ref ParseSeparatorsLineEndingsMasks<SepColEndMethods>(
             separatorsMask, separatorsLineEndingsMask, ref charsRef, ref charsIndex, separator,
-            ref colEndsRefCurrent, ref lineNumber, 0);
+            ref colEndsRefCurrent, ref lineNumber);
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsMask<TColInfoMethods>(
-        nuint mask, int charsIndex, ref int colInfosRef, int colInfosOffset)
+        nuint mask, int charsIndex, ref int colInfosRef)
         where TColInfoMethods : ISepColInfoMethods
     {
 #if NET10_0_OR_GREATER
@@ -46,9 +46,9 @@ static partial class SepParseMask
             mask > ushort.MaxValue && (mask & (mask - 1)) != 0)
         {
             var count = BitOperations.PopCount(mask);
-            ref var end = ref ParseSeparatorsMaskVbmi2(mask, count, charsIndex, ref colInfosRef);
-            TColInfoMethods.Clear(ref colInfosRef, count, colInfosOffset);
-            return ref end;
+            return ref ParseSeparatorsMaskVbmi2(mask, count,
+                charsIndex + (typeof(TColInfoMethods) == typeof(SepColInfoMethods) ? 1 : 0),
+                ref colInfosRef);
         }
 #endif
         do
@@ -57,7 +57,7 @@ static partial class SepParseMask
             mask &= (mask - 1);
             // Pre-increment colInfosRef since [0] reserved for row start
             colInfosRef = ref Add(ref colInfosRef, 1);
-            TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, 0, colInfosOffset);
+            colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
         }
         while (mask != 0);
         return ref colInfosRef;
@@ -125,7 +125,7 @@ static partial class SepParseMask
         nuint separatorsMask, nuint separatorLineEndingsMask, nuint specialCharMask,
         char separator, scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRef, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         var quotesMask = specialCharMask ^ separatorLineEndingsMask;
@@ -138,7 +138,7 @@ static partial class SepParseMask
             return ref ParseAnyCharsMask<TColInfoMethods>(specialCharMask,
                 separator, ref charsRef, charsIndex,
                 ref rowLineEndingOffset, ref quoteCount,
-                ref colInfosRef, ref lineNumber, colInfosOffset);
+                ref colInfosRef, ref lineNumber);
         }
 
         var mask = separatorLineEndingsMask & ~quotedMask;
@@ -150,7 +150,7 @@ static partial class SepParseMask
             quoteCount += (nuint)BitOperations.PopCount(quotesMask & before);
             quotesMask &= ~before;
             colInfosRef = ref Add(ref colInfosRef, 1);
-            TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, (int)quoteCount, colInfosOffset);
+            colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
             quoteCount = 0;
 
             if ((lineEndingsMask & bit) != 0)
@@ -175,7 +175,7 @@ static partial class SepParseMask
         nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRef, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         do
@@ -186,7 +186,7 @@ static partial class SepParseMask
             colInfosRef = ref ParseAnyChar<TColInfoMethods>(ref charsRef,
                 charsIndex, relativeIndex, separator,
                 ref rowLineEndingOffset, ref quoteCount,
-                ref colInfosRef, ref lineNumber, colInfosOffset);
+                ref colInfosRef, ref lineNumber);
         }
         while (mask != 0 && (rowLineEndingOffset == 0));
         return ref colInfosRef;
@@ -196,7 +196,7 @@ static partial class SepParseMask
     internal static ref int ParseAnyChar<TColInfoMethods>(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRef, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         var c = Add(ref charsRef, relativeIndex);
@@ -241,7 +241,7 @@ static partial class SepParseMask
     ADDCOLEND:
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRef = ref Add(ref colInfosRef, 1);
-        TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, (int)quoteCount, colInfosOffset);
+        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
         quoteCount = 0;
     RETURN:
         return ref colInfosRef;
@@ -251,7 +251,7 @@ static partial class SepParseMask
     internal static ref int ParseSeparatorsLineEndingsMasks<TColInfoMethods>(
         nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
-        ref int colInfosRefCurrent, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRefCurrent, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         var rowLineEndingOffset = 0;
@@ -259,7 +259,7 @@ static partial class SepParseMask
         {
             colInfosRefCurrent = ref ParseLineEndingMask<TColInfoMethods>(
                 separatorsLineEndingsMask, ref charsRef, ref charsIndex, ref colInfosRefCurrent,
-                ref rowLineEndingOffset, ref lineNumber, colInfosOffset);
+                ref rowLineEndingOffset, ref lineNumber);
             charsIndex += rowLineEndingOffset;
         }
         else
@@ -269,14 +269,14 @@ static partial class SepParseMask
             if (((SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(separatorsMask)) < lineEndingIndex)
             {
                 colInfosRefCurrent = ref ParseSeparatorsMask<TColInfoMethods>(
-                    separatorsMask, charsIndex, ref colInfosRefCurrent, colInfosOffset);
+                    separatorsMask, charsIndex, ref colInfosRefCurrent);
 
                 var c = Add(ref charsRef, lineEndingIndex);
                 ++rowLineEndingOffset;
                 // Pre-increment colInfosRef since [0] reserved for row start
                 colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
                 charsIndex += lineEndingIndex;
-                TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex, 0, colInfosOffset);
+                colInfosRefCurrent = TColInfoMethods.Create(charsIndex, 0);
                 if (c == CarriageReturn)
                 {
                     // If \r=CR, we should always be able to look 1 ahead, and if char not valid should not be \n=LF
@@ -291,10 +291,10 @@ static partial class SepParseMask
                 // Used both to indicate row ended and if need to step +2 due to '\r\n'
                 colInfosRefCurrent = ref ParseSeparatorsLineEndingsMask<TColInfoMethods>(
                     separatorsLineEndingsMask, separator, ref charsRef, charsIndex, ref rowLineEndingOffset,
-                    ref colInfosRefCurrent, ref lineNumber, colInfosOffset);
+                    ref colInfosRefCurrent, ref lineNumber);
                 // We know line has ended and RowEnded set so no need to check
                 // Must be a col end and last is then dataIndex, +1 to start at next
-                charsIndex = colInfosRefCurrent + rowLineEndingOffset;
+                charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
             }
         }
         return ref colInfosRefCurrent;
@@ -304,7 +304,7 @@ static partial class SepParseMask
     internal static ref int ParseLineEndingMask<TColInfoMethods>(
         nuint lineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex,
-        ref int colInfosRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         var lineEndingIndex = BitOperations.TrailingZeroCount(lineEndingsMask);
@@ -313,7 +313,7 @@ static partial class SepParseMask
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
         charsIndex += lineEndingIndex;
-        TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex, 0, colInfosOffset);
+        colInfosRefCurrent = TColInfoMethods.Create(charsIndex, 0);
         if (c == CarriageReturn)
         {
             // If \r=CR, we should always be able to look 1 ahead, and if char not valid should not be \n=LF
@@ -329,7 +329,7 @@ static partial class SepParseMask
         nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset,
-        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRef, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         do
@@ -339,7 +339,7 @@ static partial class SepParseMask
 
             colInfosRef = ref ParseSeparatorLineEndingChar<TColInfoMethods>(
                 ref charsRef, charsIndex, relativeIndex, separator,
-                ref rowLineEndingOffset, ref colInfosRef, ref lineNumber, colInfosOffset);
+                ref rowLineEndingOffset, ref colInfosRef, ref lineNumber);
         }
         while (mask != 0 && (rowLineEndingOffset == 0));
         return ref colInfosRef;
@@ -349,7 +349,7 @@ static partial class SepParseMask
     static ref int ParseSeparatorLineEndingChar<TColInfoMethods>(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset,
-        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        ref int colInfosRef, scoped ref int lineNumber)
         where TColInfoMethods : ISepColInfoMethods
     {
         var c = Add(ref charsRef, relativeIndex);
@@ -371,7 +371,7 @@ static partial class SepParseMask
     ADDCOLEND:
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRef = ref Add(ref colInfosRef, 1);
-        TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, 0, colInfosOffset);
+        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
         return ref colInfosRef;
     }
 }

@@ -66,11 +66,11 @@ public partial class SepParseMaskTest
 
             ref var expectedEnd = ref ParseAnyCharsMask<TColInfoMethods>(
                 specialCharMask, Separator, ref chars[0], CharsIndexOffset,
-                ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine, capacity);
+                ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine);
             ref var actualEnd = ref ParseQuotedMask<TColInfoMethods>(
                 separatorsMask, separatorsMask | lineEndingsMask, specialCharMask,
                 Separator, ref chars[0], CharsIndexOffset,
-                ref actualEndingOffset, ref actualQuotes, ref actual[0], ref actualLine, capacity);
+                ref actualEndingOffset, ref actualQuotes, ref actual[0], ref actualLine);
 
             var expectedCount = (int)Unsafe.ByteOffset(ref expected[0], ref expectedEnd) / sizeof(int);
             var actualCount = (int)Unsafe.ByteOffset(ref actual[0], ref actualEnd) / sizeof(int);
@@ -80,6 +80,7 @@ public partial class SepParseMaskTest
             Assert.AreEqual(-1, actual[capacity - 1]);
             Assert.AreEqual(-1, actual[capacity]);
             Assert.AreEqual(-1, actual[^1]);
+            for (var i = capacity; i < actual.Length; ++i) { Assert.AreEqual(-1, actual[i]); }
             Assert.AreEqual(expectedQuotes, actualQuotes);
             Assert.AreEqual(expectedLine, actualLine);
             Assert.AreEqual(expectedEndingOffset, actualEndingOffset);

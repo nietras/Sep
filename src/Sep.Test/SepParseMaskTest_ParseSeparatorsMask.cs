@@ -71,14 +71,14 @@ public partial class SepParseMaskTest
             var capacity = expected.Length + 2;
             var infos = Enumerable.Repeat(-1, capacity * 2).ToArray();
             ref var infoEnd = ref SepParseMask.ParseSeparatorsMask<SepColInfoMethods>(
-                mask, CharsIndexOffset, ref infos[0], capacity);
+                mask, CharsIndexOffset, ref infos[0]);
             Assert.AreEqual(expected.Length, (int)Unsafe.ByteOffset(ref infos[0], ref infoEnd) / sizeof(int));
             Assert.AreEqual(-1, infos[0]);
             Assert.AreEqual(-1, infos[capacity - 1]);
             Assert.AreEqual(-1, infos[capacity]);
             Assert.AreEqual(-1, infos[^1]);
-            CollectionAssert.AreEqual(expected.Select(i => i + CharsIndexOffset).ToArray(), infos[1..(capacity - 1)]);
-            CollectionAssert.AreEqual(new int[expected.Length], infos[(capacity + 1)..^1]);
+            CollectionAssert.AreEqual(expected.Select(i => SepColInfo.Create(i + CharsIndexOffset, 0)).ToArray(), infos[1..(capacity - 1)]);
+            CollectionAssert.AreEqual(Enumerable.Repeat(-1, capacity).ToArray(), infos[capacity..]);
         }
     }
 

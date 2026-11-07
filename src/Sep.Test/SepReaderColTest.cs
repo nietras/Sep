@@ -457,15 +457,19 @@ public class SepReaderColTest
         var firstArray = reader._colEndsOrColInfos;
         var firstCapacity = reader.ColEndsCapacity;
         Assert.AreEqual(firstCapacity * 2, firstArray.Length);
+        Array.Fill(firstArray, -42, firstCapacity, firstCapacity);
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("plain", reader.Current[0].Span.ToString());
         Assert.AreEqual("simple", reader.Current[1].Span.ToString());
-        Assert.AreEqual(0, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
-        Assert.AreEqual(2, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 2]);
+        Assert.AreEqual(0, SepColInfo.GetState(firstArray[reader._currentRowColEndsOrInfosOffset + 1]));
+        Assert.AreEqual(2, SepColInfo.GetState(firstArray[reader._currentRowColEndsOrInfosOffset + 2]));
+        Assert.AreEqual(-42, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
+        Assert.AreEqual(-42, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 2]);
 
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
-        Assert.AreEqual(~3, reader._colEndsOrColInfos[reader.ColEndsCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
+        Assert.AreEqual(3, reader._colEndsOrColInfos[reader.ColEndsCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
+        Assert.IsTrue(SepColInfo.GetState(reader._colEndsOrColInfos[reader._currentRowColEndsOrInfosOffset + 1]) < 0);
         Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
 
         Assert.IsTrue(reader.MoveNext());

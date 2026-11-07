@@ -164,17 +164,11 @@ public sealed partial class SepReader
             var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex, length);
             var destination = colInfosSpan.Slice(0, length);
             source.CopyTo(destination);
-            if (_colUnquoteUnescape != 0)
-            {
-                colInfosSpan.Slice(ColEndsCapacity + _parsingRowColEndsOrInfosStartIndex, length)
-                    .CopyTo(colInfosSpan.Slice(ColEndsCapacity, length));
-            }
             _parsingRowColEndsOrInfosStartIndex = 0;
         }
 
         // Ensure start conditions
-        _colEndsOrColInfos[0] = -1;
-        if (_colUnquoteUnescape != 0) { _colEndsOrColInfos[ColEndsCapacity] = 0; }
+        _colEndsOrColInfos[0] = _colUnquoteUnescape == 0 ? -1 : SepColInfo.Create(-1, 0);
 
         // Reset
 #if DEBUG
@@ -216,12 +210,15 @@ public sealed partial class SepReader
         {
             ++_parsingRowColCount;
             var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
-            _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
-            if (_colUnquoteUnescape != 0)
+            if (_colUnquoteUnescape == 0)
+            {
+                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
+            }
+            else
             {
                 Debug.Assert(_parserOptionsBytes != 0);
                 var quoteCount = (int)_parsingRowQuoteCount;
-                _colEndsOrColInfos[ColEndsCapacity + colInfoIndex] = quoteCount;
+                _colEndsOrColInfos[colInfoIndex] = SepColInfo.Create(_charsDataEnd, quoteCount);
             }
             ++_parsingLineNumber;
             _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);

@@ -232,8 +232,8 @@ public sealed partial class SepReader : SepReaderState
         T.WriteLine($"{nameof(colEnds),-10}:{colEnds.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colEnds[0..Math.Min(_currentRowColCount, colEnds.Length)].ToArray())}");
         if (_colUnquoteUnescape != 0)
         {
-            var colInfos = _colEndsOrColInfos.AsSpan(ColEndsCapacity, ColEndsCapacity);
-            T.WriteLine($"{nameof(colInfos),-10}:{colInfos.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colInfos[0..Math.Min(_currentRowColCount, colInfos.Length)].ToArray())}");
+            var colLengths = _colEndsOrColInfos.AsSpan(ColEndsCapacity, ColEndsCapacity);
+            T.WriteLine($"{nameof(colLengths),-10}:{colLengths.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colLengths[0..Math.Min(_currentRowColCount, colLengths.Length)].ToArray())}");
         }
 
         [ExcludeFromCodeCoverage]
@@ -260,12 +260,13 @@ public sealed partial class SepReader : SepReaderState
         for (var i = 0; i < _currentRowColCount; i++)
         {
             var colEnd = colEnds[i];
+            if (_colUnquoteUnescape != 0) { colEnd = SepColInfo.GetColEnd(colEnd); }
             // colEnds are one before, so first may be before data starts
             colEnd += i == 0 ? 1 : 0;
             A.Assert(_parsingRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
             if (_colUnquoteUnescape != 0 && i > 0)
             {
-                var colStart = colEnds[i - 1] + 1;
+                var colStart = SepColInfo.GetColEnd(colEnds[i - 1]) + 1;
                 var colLength = colEnd - colStart;
                 A.Assert(0 <= colLength && colLength < 1024 * 1024, $"ColIndex {i} Start {colStart} End {colEnd} Length {colLength}");
             }

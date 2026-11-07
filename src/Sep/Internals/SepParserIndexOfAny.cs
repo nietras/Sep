@@ -78,14 +78,15 @@ sealed class SepParserIndexOfAny : ISepParser
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
                 var rowLineEndingOffset = 0;
                 colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
-                    separator, ref rowLineEndingOffset, ref quoteCount,                     ref colInfosRefCurrent, ref lineNumber, colInfosLength);
+                    separator, ref rowLineEndingOffset, ref quoteCount,
+                    ref colInfosRefCurrent, ref lineNumber);
                 charsIndex += relativeIndex + 1;
 
                 // Used both to indicate row ended and if need to step +2 due to '\r\n'
                 if (rowLineEndingOffset != 0)
                 {
                     // Must be a col end and last is then dataIndex
-                    charsIndex = colInfosRefCurrent + rowLineEndingOffset;
+                    charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
 
                     var colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / sizeof(int));
                     // Add new parsed row
@@ -95,7 +96,7 @@ sealed class SepParserIndexOfAny : ISepParser
                     // Next row start (one before)
                     colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
                     A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
-                    TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex - 1, 0, colInfosLength);
+                    colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
                     // Update for next row
                     colInfosRef = ref colInfosRefCurrent;
                     s._parsingRowColEndsOrInfosStartIndex += colCount + 1;

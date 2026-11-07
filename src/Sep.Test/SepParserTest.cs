@@ -130,8 +130,10 @@ public class SepParserTest
         Assert.AreEqual(new SepRowInfo(2, 2), independent._parsedRows[0]);
         if (colInfos)
         {
-            Assert.AreEqual(0, independent._colEndsOrColInfos[independent.ColEndsCapacity + 1]);
-            Assert.AreEqual(0, independent._colEndsOrColInfos[independent.ColEndsCapacity + 2]);
+            Assert.AreEqual(0, SepColInfo.GetState(independent._colEndsOrColInfos[1]));
+            Assert.AreEqual(0, SepColInfo.GetState(independent._colEndsOrColInfos[2]));
+            Assert.AreEqual(-42, independent._colEndsOrColInfos[independent.ColEndsCapacity + 1]);
+            Assert.AreEqual(-42, independent._colEndsOrColInfos[independent.ColEndsCapacity + 2]);
         }
 
         text.AsSpan().CopyTo(state._chars);
@@ -144,7 +146,7 @@ public class SepParserTest
         Assert.AreEqual(1, state._parsingRowColCount);
         if (colInfos)
         {
-            Assert.AreEqual(4, state._colEndsOrColInfos[state.ColEndsCapacity + 1]);
+            Assert.AreEqual(3, SepColInfo.GetState(state._colEndsOrColInfos[1]));
         }
     }
 
@@ -166,7 +168,7 @@ public class SepParserTest
         };
         Array.Clear(state._chars);
         Array.Fill(state._colEndsOrColInfos, -42);
-        state._colEndsOrColInfos[0] = -1;
+        state._colEndsOrColInfos[0] = colInfos ? SepColInfo.Create(-1, 0) : -1;
         text.AsSpan().CopyTo(state._chars);
         return state;
     }

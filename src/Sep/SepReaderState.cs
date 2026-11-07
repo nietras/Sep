@@ -60,7 +60,7 @@ public class SepReaderState : IDisposable
     // 1 for first col end and since pre-increment, 1 for next row start
     internal const int ColEndsOrInfosExtraEndCount = 2;
     // Ends occupy the first ColEndsCapacity integers. With unescaping enabled,
-    // the second half stores quote counts, replaced by ~length after decoding.
+    // they include packed quote state and the second half caches decoded lengths.
     // Multiple rows of format
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1..ColCount] = Col ends/infos e.g. [1] = first col end/info
@@ -169,11 +169,7 @@ public class SepReaderState : IDisposable
         var colInfosStart = _parsingRowColEndsOrInfosStartIndex;
         var colInfosCount = _parsingRowColCount + 1;
         Array.Copy(other._colEndsOrColInfos, colInfosStart, _colEndsOrColInfos, colInfosStart, colInfosCount);
-        if (_colUnquoteUnescape != 0)
-        {
-            Array.Copy(other._colEndsOrColInfos, other.ColEndsCapacity + colInfosStart,
-                _colEndsOrColInfos, ColEndsCapacity + colInfosStart, colInfosCount);
-        }
+        // The incomplete row has not been accessed, so it has no cached lengths.
 
         // Ensure state
         _rowIndex += _parsedRowsCount;
@@ -253,9 +249,10 @@ public class SepReaderState : IDisposable
         if (_currentRowColCount > 0)
         {
             var colEnds = _colEndsOrColInfos;
-            var start = colEnds[_currentRowColEndsOrInfosOffset] + 1; // +1 since previous end
+            var start = colEnds[_currentRowColEndsOrInfosOffset];
             var end = colEnds[_currentRowColEndsOrInfosOffset + _currentRowColCount];
-            return new(start, end);
+            return _colUnquoteUnescape == 0 ? new(start + 1, end) :
+                new(SepColInfo.GetColEnd(start) + 1, SepColInfo.GetColEnd(end));
         }
         else
         {
@@ -364,10 +361,10 @@ public class SepReaderState : IDisposable
         else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
         {
             ref var colInfos = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-            var colStart = Unsafe.Add(ref colInfos, index) + 1;
-            var colEnd = Unsafe.Add(ref colInfos, index + 1);
-            ref var colInfo = ref Unsafe.Add(ref colInfos, (_colEndsOrColInfos.Length >> 1) + index + 1);
-            var state = colInfo;
+            var colStart = SepColInfo.GetColEnd(Unsafe.Add(ref colInfos, index)) + 1;
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var colEnd = SepColInfo.GetColEnd(colInfo);
+            var state = SepColInfo.GetState(colInfo);
 
             A.Assert(colStart >= 0);
             A.Assert(colEnd < _chars.Length);
@@ -381,7 +378,8 @@ public class SepReaderState : IDisposable
             }
             else if (state < 0)
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref colRef, ~state);
+                var unescapedLength = Unsafe.Add(ref colInfo, _colEndsOrColInfos.Length >> 1);
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
             // From now on it is known the first char in col is a quote if not
             // already unescaped. Optimize for common case of outermost quotes.
@@ -393,7 +391,8 @@ public class SepReaderState : IDisposable
             else
             {
                 var unescapedLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
-                colInfo = ~unescapedLength;
+                Unsafe.Add(ref colInfo, _colEndsOrColInfos.Length >> 1) = unescapedLength;
+                colInfo = SepColInfo.SetUnescaped(colInfo);
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
         }
@@ -430,10 +429,10 @@ public class SepReaderState : IDisposable
             A.Assert((_colSpanFlags & UnescapeFlag) != 0);
 
             ref var colInfos = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-            var colStart = Unsafe.Add(ref colInfos, index) + 1;
-            var colEnd = Unsafe.Add(ref colInfos, index + 1);
-            ref var colInfo = ref Unsafe.Add(ref colInfos, (_colEndsOrColInfos.Length >> 1) + index + 1);
-            var state = colInfo;
+            var colStart = SepColInfo.GetColEnd(Unsafe.Add(ref colInfos, index)) + 1;
+            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
+            var colEnd = SepColInfo.GetColEnd(colInfo);
+            var state = SepColInfo.GetState(colInfo);
 
             A.Assert(colStart >= 0);
             A.Assert(colEnd < _chars.Length);
@@ -444,7 +443,8 @@ public class SepReaderState : IDisposable
             scoped ref var colRef = ref colStartRef;
             if (state < 0)
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref colRef, ~state);
+                var unescapedLength = Unsafe.Add(ref colInfo, _colEndsOrColInfos.Length >> 1);
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
@@ -467,7 +467,8 @@ public class SepReaderState : IDisposable
                         .CopyTo(MemoryMarshal.CreateSpan(ref colStartRef, colLength));
                     colRef = ref colStartRef;
                 }
-                colInfo = ~colLength;
+                Unsafe.Add(ref colInfo, _colEndsOrColInfos.Length >> 1) = colLength;
+                colInfo = SepColInfo.SetUnescaped(colInfo);
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)

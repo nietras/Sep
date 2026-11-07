@@ -124,7 +124,6 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             }
             else
             {
-                //ref var charsRef = ref As<byte, char>(ref byteRef);
                 if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                 {
                     colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(

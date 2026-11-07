@@ -99,13 +99,12 @@ SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            ref var byteRef1 = ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex));
-            ref var byteRef2 = ref Add(ref byteRef1, VecUI8.Count);
-            var v1 = ReadUnaligned<VecUI16>(ref byteRef1);
-            var v2 = ReadUnaligned<VecUI16>(ref byteRef2);
+            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
+            var v0 = ReadUnaligned<VecUI16>(ref As<char, byte>(ref charsRef));
+            var v1 = ReadUnaligned<VecUI16>(ref Add(ref As<char, byte>(ref charsRef), VecUI8.Count));
+            var bytes0 = ISA.ConvertToVector256ByteWithSaturation(v0);
             var bytes1 = ISA.ConvertToVector256ByteWithSaturation(v1);
-            var bytes2 = ISA.ConvertToVector256ByteWithSaturation(v2);
-            var bytes = bytes1.ToVector512Unsafe().WithUpper(bytes2);
+            var bytes = bytes0.ToVector512Unsafe().WithUpper(bytes1);
 
             var lineEndings = MoveMask(Vec.Equals(bytes, nls)) | MoveMask(Vec.Equals(bytes, crs));
             var separatorsMask = MoveMask(Vec.Equals(bytes, sps));
@@ -124,7 +123,6 @@ SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt : ISepParser
             }
             else
             {
-                ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
                 if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                 {
                     colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(

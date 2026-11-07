@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
-using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
 using Vec = System.Runtime.Intrinsics.Vector512;
@@ -83,14 +82,13 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - VecUI8.Count));
 
-        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
-
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
-        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
-        var colInfosStopLength = colInfosLength - VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount;
-        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
+        ref var colInfosRefStop = ref Add(ref colInfosRefEnd, -VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount);
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRef, s._parsingRowColCount);
+
+        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
         charsIndex -= VecUI8.Count;
     LOOPSTEP:
@@ -102,28 +100,21 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
             ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-            ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v0 = ReadUnaligned<VecI16>(ref byteRef);
-            var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
+            var v0 = ReadUnaligned<VecI16>(ref As<char, byte>(ref charsRef));
+            var v1 = ReadUnaligned<VecI16>(ref Add(ref As<char, byte>(ref charsRef), VecUI8.Count));
             var packed = ISA.PackUnsignedSaturate(v0, v1);
             // Pack interleaves the two vectors need to permute them back
             var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
             var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
 
-            var nlsEq = MoveMask(Vec.Equals(bytes, nls));
-            var crsEq = MoveMask(Vec.Equals(bytes, crs));
-            var qtsEq = MoveMask(Vec.Equals(bytes, qts));
-            var spsEq = MoveMask(Vec.Equals(bytes, sps));
-
-            var lineEndings = nlsEq | crsEq;
-            var lineEndingsSeparators = spsEq | lineEndings;
-            var specialChars = lineEndingsSeparators | qtsEq;
+            var lineEndings = MoveMask(Vec.Equals(bytes, nls)) | MoveMask(Vec.Equals(bytes, crs));
+            var separatorsMask = MoveMask(Vec.Equals(bytes, sps));
+            var separatorLineEndingsMask = separatorsMask | lineEndings;
+            var specialCharMask = separatorLineEndingsMask | MoveMask(Vec.Equals(bytes, qts));
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars;
             if (specialCharMask != 0u)
             {
-                var separatorsMask = spsEq;
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Combine mask mismatch and quote state without overflowing a full-width mask.
                 if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
@@ -133,7 +124,6 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators;
                     if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(

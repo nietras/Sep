@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.Unsafe;
-using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
 using Vec = System.Runtime.Intrinsics.Vector256;
@@ -81,14 +80,13 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - VecUI8.Count));
 
-        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
-
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
-        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
-        var colInfosStopLength = colInfosLength - VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount;
-        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
+        ref var colInfosRefStop = ref Add(ref colInfosRefEnd, -VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount);
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRef, s._parsingRowColCount);
+
+        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
         charsIndex -= VecUI8.Count;
     LOOPSTEP:
@@ -99,9 +97,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-            ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v = ReadUnaligned<VecUI16>(ref byteRef);
+            var v = ReadUnaligned<VecUI16>(ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex)));
             var bytes = ISA.ConvertToVector256ByteWithSaturation(v);
 
             var nlsEq = Vec.Equals(bytes, nls);
@@ -127,6 +123,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
+                    ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
                     var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {

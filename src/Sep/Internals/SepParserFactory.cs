@@ -52,6 +52,9 @@ static class SepParserFactory
         where TCollector : struct, IParserCollector
     {
 #if NET8_0_OR_GREATER
+        // Requires a 64-bit process for its 64-character masks.
+        if (Environment.Is64BitProcess && Avx512BW.IsSupported)
+        { if (!parsers.TryAdd<SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt))) { return; } }
         // AVX-512 to 256 avoids mask register code gen issues
         if (Avx512BW.IsSupported)
         { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt))) { return; } }

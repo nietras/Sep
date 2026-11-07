@@ -317,9 +317,9 @@ public class SepReaderState : IDisposable
     {
         if ((uint)index >= (uint)_currentRowColCount) { SepThrow.IndexOutOfRangeException(); }
         A.Assert(_currentRowColEndsOrInfosOffset >= 0);
-        index += _currentRowColEndsOrInfosOffset;
         if (_colSpanFlags == 0)
         {
+            index += _currentRowColEndsOrInfosOffset;
             var colEnds = _colEndsOrColInfos;
             var colStart = colEnds[index] + 1; // +1 since previous end
             var colEnd = colEnds[index + 1];
@@ -328,20 +328,9 @@ public class SepReaderState : IDisposable
             A.Assert(colEnd >= colStart);
             return new(colStart, colEnd - colStart);
         }
-        else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
-        {
-            ref var colInfos = ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos));
-            var colStart = Unsafe.Add(ref colInfos, index).ColEnd + 1; // +1 since previous end
-            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
-            var (colEnd, quoteCountOrNegativeUnescapedLength) = colInfo;
-            A.Assert(colStart >= 0);
-            A.Assert(colEnd < _chars.Length);
-            A.Assert(colEnd >= colStart);
-            return new(colStart, colEnd - colStart);
-        }
         else
         {
-            return GetColSpanTrimmedRange(index);
+            return GetColSpanRange(index);
         }
     }
 
@@ -487,9 +476,9 @@ public class SepReaderState : IDisposable
     }
 
     //[MethodImpl(MethodImplOptions.NoInlining)]
-    SepRange GetColSpanTrimmedRange(int index)
+    SepRange GetColSpanRange(int index)
     {
-        var colSpan = GetColSpanTrimmed(index);
+        var colSpan = GetColSpan(index);
         var byteOffset = Unsafe.ByteOffset(ref MemoryMarshal.GetArrayDataReference(_chars),
                                            ref MemoryMarshal.GetReference(colSpan));
         var colStart = (int)(byteOffset >> 1);

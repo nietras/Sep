@@ -55,6 +55,8 @@ static class SepParserFactory
         // AVX-512 to 256 avoids mask register code gen issues
         if (Avx512BW.IsSupported)
         { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt))) { return; } }
+        if (Avx512BW.IsSupported)
+        { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2))) { return; } }
 #endif
         // Avx2 and Vector256 are faster than most AVX-512 due to mask register code gen issues
         if (Avx2.IsSupported)

@@ -1,4 +1,4 @@
-﻿# Sep - the World's Fastest .NET CSV Parser
+﻿# Sep - *one of* the World's Fastest .NET CSV Parser
 
 ![.NET](https://img.shields.io/badge/net8.0%20net9.0%20net10.0%20net11.0-5C2D91?logo=.NET&labelColor=gray)
 ![C#](https://img.shields.io/badge/C%23-15.0-239120?labelColor=gray)
@@ -48,15 +48,15 @@ SIMD vectorized parsing incl. 64/128/256/512-bit paths e.g. AVX2, AVX-512 (.NET
 fast parsing of floating points. See [detailed
 benchmarks](#comparison-benchmarks) for cross-platform results.
 
-**🌪️ Multi-threaded** - unparalleled speed with highly efficient parallel CSV
-parsing that is [up to 35x faster than
-CsvHelper](#floats-reader-comparison-benchmarks), see
-[ParallelEnumerate](#parallelenumerate-and-enumerate) and
+**🌪️ Multi-threaded** - highly efficient parallel CSV
+parsing, see [ParallelEnumerate](#parallelenumerate-and-enumerate) and
 [benchmarks](#comparison-benchmarks).
 
 **🌀 Async support** - efficient `ValueTask` based `async/await` support.
 Requires C# 13.0+ and for .NET 9.0+ includes `SepReader` implementing
-`IAsyncEnumerable<>`. See [Async Support](#async-support) for details.
+`IAsyncEnumerable<>`. From .NET 11 and C# 15.0 built with
+[runtime-async=on](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-11/runtime#runtime-async).
+See [Async Support](#async-support) for details.
 
 **🗑️ Zero allocation** - intelligent and efficient memory management allowing
 for zero allocations after warmup incl. supporting use cases of reading or
@@ -1022,17 +1022,17 @@ constraints:
 ## Comparison Benchmarks
 To investigate the performance of Sep it is compared to:
 
-* [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly
-   used CSV library with a staggering
-   ![downloads](https://img.shields.io/nuget/dt/csvhelper) downloads on NuGet. Fully
-   featured and battle tested.
+* [CsvHelper](https://github.com/JoshClose/csvhelper) - *the* most commonly used
+   CSV library with a staggering
+   ![downloads](https://img.shields.io/nuget/dt/csvhelper) downloads on NuGet.
+   Fully featured, battle tested and since v34 very fast.
 * [Sylvan](https://github.com/MarkPflug/Sylvan) - is well-known and has
    previously been shown to be [the fastest CSV libraries for
-   parsing](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers)
-   (Sep changes that 😉).
+   parsing](https://www.joelverhagen.com/blog/2020/12/fastest-net-csv-parsers).
 * `ReadLine`/`WriteLine` - basic naive implementations that read line by line
    and split on separator. While writing columns, separators and line endings
-   directly. Does not handle quotes or similar correctly.
+   directly. Does not handle quotes or similar correctly. Going forward not
+   always included in benchmarks as it is slow to run.
 
 All benchmarks are run from/to memory either with:
 
@@ -1062,16 +1062,12 @@ than that. Or how many *times* more bytes are allocated in `Alloc Ratio`.
 > Disclaimer: Any comparison made is based on a number of preconditions and
 > assumptions. Sep is a new library written from the ground up to use the latest
 > and greatest features in .NET. CsvHelper has a long history and has to take
-> into account backwards compatibility and still supporting older runtimes, so
-> may not be able to easily utilize more recent features. Same goes for Sylvan.
-> Additionally, Sep has a different feature set compared to the two. Performance
-> is a feature, but not the only feature. Keep that in mind when evaluating
-> results.
+> into account backwards compatibility and still supporting older runtimes. Same
+> goes for Sylvan. Additionally, Sep has a different feature set compared to the
+> two. Performance is a feature, but not the only feature. Keep that in mind
+> when evaluating results.
 
 ### Runtime and Platforms
-The following runtime is used for benchmarking:
-
-* `NET 9.0.X`
 
 NOTE: [Garbage Collection
 DATAS](https://maoni0.medium.com/dynamically-adapting-to-application-sizes-2d72fcb6f1ea)
@@ -1097,12 +1093,17 @@ The following platforms are used for benchmarking:
   OS=Windows 10 (10.0.19044.2846/21H2/November2021Update)
   AMD Ryzen 9 5950X, 1 CPU, 32 logical and 16 physical cores
   ```
-* `AMD 9950X` (Desktop) X64 Platform Information
+* `AMD 9950X` (Desktop) X64 Platform Information (no longer available)
   ```ini
   OS=Windows 10 (10.0.19044.3086/21H2/November2021Update)
   AMD Ryzen 9 9950X, 1 CPU, 32 logical and 16 physical cores
   ```
-* `Apple M1` (Virtual) ARM64 Platform Information
+* `AMD 9950X3D2` (Desktop) X64 Platform Information
+  ```ini
+  Windows 11 (10.0.26300.9711)
+  AMD Ryzen 9 9950X3D2, 1 CPU, 32 logical and 16 physical cores
+  ```
+* * `Apple M1` (Virtual) ARM64 Platform Information
   ```ini
   OS=macOS Sonoma 14.7.1 (23H222) [Darwin 23.6.0]
   Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
@@ -1215,25 +1216,16 @@ and [Unescaping](#unescaping). Therefore, Sep has two methods being tested. The
 default `Sep` without unescaping and `Sep_Unescape` where unescaping is enabled.
 Note that only if there are quotes will there be any unescaping, but to support
 unescape one has to track extra state during parsing which means there is a
-slight cost no matter what, most notably for the `Cols` scope. Sep is still the
-fastest of all (by far in many cases).
+slight cost no matter what, most notably for the `Cols` scope.
 
 ##### PackageAssets Benchmark Results
-The results below show Sep is **the fastest .NET CSV Parser** (for this
-benchmark on these platforms and machines 😀). While for pure parsing allocating
-only a fraction of the memory due to extensive use of pooling and the
-`ArrayPool<T>`.
+For pure parsing Sep minimizes allocations through extensive use of pooling and
+the `ArrayPool<T>`.
 
 This is in many aspects due to Sep having extremely optimized string pooling and
 optimized hashing of `ReadOnlySpan<char>`, and thus not really due to the
 csv-parsing itself, since that is not a big part of the time consumed. At least
 not for a decently fast csv-parser.
-
-With `ParallelEnumerate` (MT) Sep is **>2x faster than Sylvan and up to 9x
-faster than CsvHelper**.
-
-At the lowest level of enumerating rows only, that is csv parsing only, **Sep
-hits a staggering 21 GB/s on 9950X**. Single-threaded.
 
 ###### AMD.EPYC.7763 - PackageAssets Benchmark Results (Sep 0.13.0.0, Sylvan  1.4.4.0, CsvHelper 33.1.0.26)
 
@@ -1446,10 +1438,6 @@ GC becomes a significant bottleneck for the benchmark, especially for
 multi-threaded parsing. Switching to [SERVER
 GC](https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/workstation-server-gc)
 can, therefore, provide significant speedup as can be seen below.
-
-With `ParallelEnumerate` and server GC Sep is **>4x faster than Sylvan and up to
-18x faster than CsvHelper**. Breaking 8 GB/s parsing speed on package assets on
-9950X.
 
 ###### AMD.EPYC.7763 - PackageAssets Benchmark Results (SERVER GC) (Sep 0.13.0.0, Sylvan  1.4.4.0, CsvHelper 33.1.0.26)
 
@@ -1904,7 +1892,7 @@ Similar to the benchmark related to quotes here spaces ` ` and quotes `"` are
 added to relevant columns to benchmark impact of trimming and unescape on low
 level column access. That is, basically ` " ` is prepended and appended to each
 column. This will test the assumed most common case and fast path part of
-trimming and unescaping in Sep. Sep is about 10x faster than CsvHelper for this.
+trimming and unescaping in Sep.
 Sylvan does not appear to support automatic trimming and is, therefore, not
 included.
 
@@ -2038,26 +2026,19 @@ approaches.
 
 As can be seen below, the actual low level parsing of the separated values is a
 tiny part of the total runtime for Sep for which the runtime is dominated by
-parsing the floating points. Since Sep uses
+parsing the floating points. Sep uses
 [csFastFloat](https://github.com/CarlVerret/csFastFloat) for an integrated fast
-floating point parser, it is **>2x faster than Sylvan** for example. If using
-Sylvan one may consider using csFastFloat if that is an option. With the
-multi-threaded (MT) `ParallelEnumerate` implementation Sep is **up to 23x faster
-than Sylvan**.
+floating point parser. If using Sylvan one may consider using csFastFloat if
+that is an option.
 
-CsvHelper suffers from the fact that one can only access the column as a string
-so this has to be allocated for each column (ReadLine by definition always
-allocates a string per column). Still CsvHelper is significantly slower than the
-naive `ReadLine` approach. With Sep being **>4x faster than CsvHelper** and **up to
-35x times faster when using `ParallelEnumerate`**.
+In these benchmarks, CsvHelper accesses columns as strings, which requires an
+allocation for each column (ReadLine by definition always allocates a string
+per column).
 
 Note that `ParallelEnumerate` provides significant speedup over single-threaded
 parsing even though the source is only about 20 MB. This underlines how
 efficient `ParallelEnumerate` is, but bear in mind that this is for the case of
 repeated micro-benchmark runs.
-
-It is a testament to how good the .NET and the .NET GC is that the ReadLine is
-pretty good compared to CsvHelper regardless of allocating a lot of strings.
 
 ##### AMD.EPYC.7763 - FloatsReader Benchmark Results (Sep 0.13.0.0, Sylvan  1.4.4.0, CsvHelper 33.1.0.26)
 

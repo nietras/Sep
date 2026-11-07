@@ -25,21 +25,23 @@ public partial class SepParseMaskTest
     [TestMethod]
     public void SepParseMaskTest_ParseQuotedMask_MatchesScalar()
     {
-        AssertQuotedMaskMatchesScalar<int, SepColEndMethods>();
-        AssertQuotedMaskMatchesScalar<int, SepColInfoMethods>();
+        AssertQuotedMaskMatchesScalar<SepColEndMethods>();
+        AssertQuotedMaskMatchesScalar<SepColInfoMethods>();
     }
 
-    static void AssertQuotedMaskMatchesScalar<TColInfo, TColInfoMethods>()
-        where TColInfo : unmanaged
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    static void AssertQuotedMaskMatchesScalar<TColInfoMethods>()
+        where TColInfoMethods : ISepColInfoMethods
     {
         var random = new Random(18473);
         ReadOnlySpan<char> alphabet = "a;\"\r\n\u0123";
         Span<char> chars = stackalloc char[s_nativeBitSize + 1];
-        Span<TColInfo> expected = stackalloc TColInfo[s_nativeBitSize + 1];
-        Span<TColInfo> actual = stackalloc TColInfo[s_nativeBitSize + 1];
+        var capacity = s_nativeBitSize + 2;
+        Span<int> expected = stackalloc int[capacity * 2];
+        Span<int> actual = stackalloc int[capacity * 2];
         for (var sample = 0; sample < 2048; sample++)
         {
+            expected.Fill(-1);
+            actual.Fill(-1);
             for (var i = 0; i < chars.Length; i++)
             {
                 // Alternate single-line and multiline blocks, with a lookahead character for CRLF.
@@ -62,18 +64,22 @@ public partial class SepParseMaskTest
             var expectedEndingOffset = 0;
             var actualEndingOffset = 0;
 
-            ref var expectedEnd = ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(
+            ref var expectedEnd = ref ParseAnyCharsMask<TColInfoMethods>(
                 specialCharMask, Separator, ref chars[0], CharsIndexOffset,
-                ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine);
-            ref var actualEnd = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
+                ref expectedEndingOffset, ref expectedQuotes, ref expected[0], ref expectedLine, capacity);
+            ref var actualEnd = ref ParseQuotedMask<TColInfoMethods>(
                 separatorsMask, separatorsMask | lineEndingsMask, specialCharMask,
                 Separator, ref chars[0], CharsIndexOffset,
-                ref actualEndingOffset, ref actualQuotes, ref actual[0], ref actualLine);
+                ref actualEndingOffset, ref actualQuotes, ref actual[0], ref actualLine, capacity);
 
-            var expectedCount = (int)Unsafe.ByteOffset(ref expected[0], ref expectedEnd) / Unsafe.SizeOf<TColInfo>();
-            var actualCount = (int)Unsafe.ByteOffset(ref actual[0], ref actualEnd) / Unsafe.SizeOf<TColInfo>();
+            var expectedCount = (int)Unsafe.ByteOffset(ref expected[0], ref expectedEnd) / sizeof(int);
+            var actualCount = (int)Unsafe.ByteOffset(ref actual[0], ref actualEnd) / sizeof(int);
             Assert.AreEqual(expectedCount, actualCount);
-            for (var i = 1; i <= expectedCount; i++) { Assert.AreEqual(expected[i], actual[i]); }
+            CollectionAssert.AreEqual(expected.ToArray(), actual.ToArray());
+            Assert.AreEqual(-1, actual[0]);
+            Assert.AreEqual(-1, actual[capacity - 1]);
+            Assert.AreEqual(-1, actual[capacity]);
+            Assert.AreEqual(-1, actual[^1]);
             Assert.AreEqual(expectedQuotes, actualQuotes);
             Assert.AreEqual(expectedLine, actualLine);
             Assert.AreEqual(expectedEndingOffset, actualEndingOffset);

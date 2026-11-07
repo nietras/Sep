@@ -354,8 +354,9 @@ public bool DisableQuotesParsing { get; init; } = false;
 /// columns. That is, the column span <see cref="SepReader.Col.Span" /> will
 /// be correct with unescaped text, but the row span <see
 /// cref="SepReader.Row.Span" /> may have "garbage" state between columns if
-/// any column had quotes removed. A length array may be rented from a
-/// pool to cache in-place unescaped columns. Header columns/names will also be
+/// any column had quotes removed. Enabling unescaping doubles the column
+/// metadata storage to track quotes and cache decoded lengths in the same
+/// pooled array. Header columns/names will also be
 /// unescaped. Requires <see cref="DisableQuotesParsing"/> to be false.
 /// </remarks>
 public bool Unescape { get; init; } = false;

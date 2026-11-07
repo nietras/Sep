@@ -59,13 +59,18 @@ public class SepReaderState : IDisposable
 #endif
     // 1 for first col end and since pre-increment, 1 for next row start
     internal const int ColEndsOrInfosExtraEndCount = 2;
+    // Ends occupy the first ColEndsCapacity integers. With unescaping enabled,
+    // the second half stores quote counts, replaced by ~length after decoding.
     // Multiple rows of format
     // [0] = Previous row/col end e.g. one before row/first col start
     // [1..ColCount] = Col ends/infos e.g. [1] = first col end/info
     // Length = Sum of All Rows (ColCount + 1) and Current Row
     internal int[] _colEndsOrColInfos = Array.Empty<int>();
-    // Row-relative entries are read only after the column's unescaped flag is set.
-    internal int[] _colLengthsTrimmedAndOrEscaped = Array.Empty<int>();
+    internal int ColEndsCapacity
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _colEndsOrColInfos.Length >> (int)_colUnquoteUnescape;
+    }
 
 #if DEBUG
     internal const int ParsedRowsLength = 3;
@@ -150,8 +155,6 @@ public class SepReaderState : IDisposable
         // Swap buffers
         (other._chars, _chars) = (_chars, other._chars);
         (other._colEndsOrColInfos, _colEndsOrColInfos) = (_colEndsOrColInfos, other._colEndsOrColInfos);
-        (other._colLengthsTrimmedAndOrEscaped, _colLengthsTrimmedAndOrEscaped) =
-            (_colLengthsTrimmedAndOrEscaped, other._colLengthsTrimmedAndOrEscaped);
         (other._parsedRows, _parsedRows) = (_parsedRows, other._parsedRows);
         // Try swap tostring instance to avoid allocations
         (other._toString, _toString) = (_toString, other._toString);
@@ -166,6 +169,11 @@ public class SepReaderState : IDisposable
         var colInfosStart = _parsingRowColEndsOrInfosStartIndex;
         var colInfosCount = _parsingRowColCount + 1;
         Array.Copy(other._colEndsOrColInfos, colInfosStart, _colEndsOrColInfos, colInfosStart, colInfosCount);
+        if (_colUnquoteUnescape != 0)
+        {
+            Array.Copy(other._colEndsOrColInfos, other.ColEndsCapacity + colInfosStart,
+                _colEndsOrColInfos, ColEndsCapacity + colInfosStart, colInfosCount);
+        }
 
         // Ensure state
         _rowIndex += _parsedRowsCount;
@@ -244,21 +252,10 @@ public class SepReaderState : IDisposable
     {
         if (_currentRowColCount > 0)
         {
-            if (_colUnquoteUnescape == 0)
-            {
-                var colEnds = _colEndsOrColInfos;
-                var start = colEnds[_currentRowColEndsOrInfosOffset] + 1; // +1 since previous end
-                var end = colEnds[_currentRowColEndsOrInfosOffset + _currentRowColCount];
-                return new(start, end);
-            }
-            else
-            {
-                ref var colInfos = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-                colInfos = ref Unsafe.Add(ref colInfos, _currentRowColEndsOrInfosOffset);
-                var start = SepColInfo.GetColEnd(colInfos) + 1;
-                var end = SepColInfo.GetColEnd(Unsafe.Add(ref colInfos, _currentRowColCount));
-                return new(start, end);
-            }
+            var colEnds = _colEndsOrColInfos;
+            var start = colEnds[_currentRowColEndsOrInfosOffset] + 1; // +1 since previous end
+            var end = colEnds[_currentRowColEndsOrInfosOffset + _currentRowColCount];
+            return new(start, end);
         }
         else
         {
@@ -367,40 +364,36 @@ public class SepReaderState : IDisposable
         else if (_colSpanFlags == UnescapeFlag) // Unquote/Unescape
         {
             ref var colInfos = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-            var colStart = SepColInfo.GetColEnd(Unsafe.Add(ref colInfos, index)) + 1;
-            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
-            var colEnd = SepColInfo.GetColEnd(colInfo);
-            var state = SepColInfo.GetState(colInfo);
+            var colStart = Unsafe.Add(ref colInfos, index) + 1;
+            var colEnd = Unsafe.Add(ref colInfos, index + 1);
+            ref var colInfo = ref Unsafe.Add(ref colInfos, (_colEndsOrColInfos.Length >> 1) + index + 1);
+            var state = colInfo;
 
             A.Assert(colStart >= 0);
             A.Assert(colEnd < _chars.Length);
             A.Assert(colEnd >= colStart);
 
-            var colLength = colEnd - colStart;
             ref var colRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_chars), colStart);
-            if (state == SepColInfo.NoQuotes ||
-                (state > 0 && colRef != SepDefaults.Quote))
+            var colLength = colEnd - colStart;
+            if (state == 0 || (state > 0 && colRef != SepDefaults.Quote))
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
+            else if (state < 0)
+            {
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, ~state);
+            }
             // From now on it is known the first char in col is a quote if not
             // already unescaped. Optimize for common case of outermost quotes.
-            else if (state == SepColInfo.TwoQuotes &&
+            else if (state == 2 &&
                      Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref colRef, 1), colLength - 2);
             }
-            else if (state < 0)
-            {
-                var unescapedLength = _colLengthsTrimmedAndOrEscaped[index - _currentRowColEndsOrInfosOffset];
-                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
-            }
             else
             {
-                var colLengths = GetColLengthsTrimmedAndOrEscaped();
                 var unescapedLength = SepUnescape.UnescapeInPlace(ref colRef, colLength);
-                colLengths[index - _currentRowColEndsOrInfosOffset] = unescapedLength;
-                colInfo = SepColInfo.SetUnescaped(colInfo);
+                colInfo = ~unescapedLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
             }
         }
@@ -437,10 +430,10 @@ public class SepReaderState : IDisposable
             A.Assert((_colSpanFlags & UnescapeFlag) != 0);
 
             ref var colInfos = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
-            var colStart = SepColInfo.GetColEnd(Unsafe.Add(ref colInfos, index)) + 1;
-            ref var colInfo = ref Unsafe.Add(ref colInfos, index + 1);
-            var colEnd = SepColInfo.GetColEnd(colInfo);
-            var state = SepColInfo.GetState(colInfo);
+            var colStart = Unsafe.Add(ref colInfos, index) + 1;
+            var colEnd = Unsafe.Add(ref colInfos, index + 1);
+            ref var colInfo = ref Unsafe.Add(ref colInfos, (_colEndsOrColInfos.Length >> 1) + index + 1);
+            var state = colInfo;
 
             A.Assert(colStart >= 0);
             A.Assert(colEnd < _chars.Length);
@@ -451,14 +444,13 @@ public class SepReaderState : IDisposable
             scoped ref var colRef = ref colStartRef;
             if (state < 0)
             {
-                var unescapedLength = _colLengthsTrimmedAndOrEscaped[index - _currentRowColEndsOrInfosOffset];
-                return MemoryMarshal.CreateReadOnlySpan(ref colRef, unescapedLength);
+                return MemoryMarshal.CreateReadOnlySpan(ref colRef, ~state);
             }
             if ((_colSpanFlags & TrimOuterFlag) != 0)
             {
                 colRef = ref TrimSpace(ref colRef, ref colLength);
             }
-            if (state == SepColInfo.TwoQuotes &&
+            if (state == 2 &&
                 colRef == SepDefaults.Quote && Unsafe.Add(ref colRef, colLength - 1) == SepDefaults.Quote)
             {
                 colRef = ref Unsafe.Add(ref colRef, 1);
@@ -466,7 +458,6 @@ public class SepReaderState : IDisposable
             }
             else if (colLength > 0 && colRef == SepDefaults.Quote)
             {
-                var colLengths = GetColLengthsTrimmedAndOrEscaped();
                 colLength = (_colSpanFlags & TrimAfterUnescapeFlag) != 0
                     ? SepUnescape.TrimUnescapeInPlace(ref colRef, colLength)
                     : SepUnescape.UnescapeInPlace(ref colRef, colLength);
@@ -476,8 +467,7 @@ public class SepReaderState : IDisposable
                         .CopyTo(MemoryMarshal.CreateSpan(ref colStartRef, colLength));
                     colRef = ref colStartRef;
                 }
-                colLengths[index - _currentRowColEndsOrInfosOffset] = colLength;
-                colInfo = SepColInfo.SetUnescaped(colInfo);
+                colInfo = ~colLength;
                 return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
             }
             if ((_colSpanFlags & TrimAfterUnescapeFlag) != 0)
@@ -486,24 +476,6 @@ public class SepReaderState : IDisposable
             }
             return MemoryMarshal.CreateReadOnlySpan(ref colRef, colLength);
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    int[] GetColLengthsTrimmedAndOrEscaped()
-    {
-        var colLengths = _colLengthsTrimmedAndOrEscaped;
-        return colLengths.Length >= _currentRowColCount ? colLengths : GrowColLengthsTrimmedAndOrEscaped();
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    int[] GrowColLengthsTrimmedAndOrEscaped()
-    {
-        var previous = _colLengthsTrimmedAndOrEscaped;
-        var colLengths = ArrayPool<int>.Shared.Rent(_currentRowColCount);
-        Array.Copy(previous, colLengths, previous.Length);
-        _colLengthsTrimmedAndOrEscaped = colLengths;
-        if (previous.Length > 0) { ArrayPool<int>.Shared.Return(previous); }
-        return colLengths;
     }
 
     //[MethodImpl(MethodImplOptions.NoInlining)]
@@ -1079,11 +1051,6 @@ public class SepReaderState : IDisposable
     {
         ArrayPool<char>.Shared.Return(_chars);
         ArrayPool<int>.Shared.Return(_colEndsOrColInfos);
-        if (_colLengthsTrimmedAndOrEscaped.Length > 0)
-        {
-            ArrayPool<int>.Shared.Return(_colLengthsTrimmedAndOrEscaped);
-            _colLengthsTrimmedAndOrEscaped = Array.Empty<int>();
-        }
         ArrayPool<SepRowInfo>.Shared.Return(_parsedRows);
         if (_colNameCache.Length > 0)
         {

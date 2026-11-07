@@ -27,7 +27,7 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
     internal static void ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColEndMethods>(s, options);
+        Parse<SepColEndMethods>(s, options);
     }
 
     [SkipLocalsInit]
@@ -41,14 +41,13 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
     internal static void ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColInfoMethods>(s, options);
+        Parse<SepColInfoMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, SepParserOptions options)
-        where TColInfo : unmanaged
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    static void Parse<TColInfoMethods>(SepReaderState s, SepParserOptions options)
+        where TColInfoMethods : ISepColInfoMethods
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
@@ -71,6 +70,7 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
         var colInfos = s._colEndsOrColInfos;
 
         var colInfosLength = colInfos.Length;
+        if (typeof(TColInfoMethods) == typeof(SepColInfoMethods)) { colInfosLength >>= 1; }
 
         chars.CheckPaddingAndIsZero(charsEnd, VecUI8.Count);
         SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, VecUI8.Count);
@@ -79,7 +79,7 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
 
         ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
-        ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        ref var colInfosRefOrigin = ref MemoryMarshal.GetArrayDataReference(colInfos);
         ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
@@ -125,33 +125,33 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
                 var testMask = specialCharMask + quoteCount;
                 if (separatorsMask == testMask)
                 {
-                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-                        separatorsMask, charsIndex, ref colInfosRefCurrent);
+                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfoMethods>(
+                        separatorsMask, charsIndex, ref colInfosRefCurrent, colInfosLength);
                 }
                 else
                 {
                     var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (separatorLineEndingsMask == testMask)
                     {
-                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
+                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask,
                             ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref lineNumber);
+                            ref colInfosRefCurrent, ref lineNumber, colInfosLength);
                         goto NEWROW;
                     }
                     else
                     {
                         var rowLineEndingOffset = 0;
-                        colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
+                        colInfosRefCurrent = ref ParseQuotedMask<TColInfoMethods>(
                             separatorsMask, separatorLineEndingsMask, specialCharMask,
                             separator, ref charsRef, charsIndex,
                             ref rowLineEndingOffset, ref quoteCount,
-                            ref colInfosRefCurrent, ref lineNumber);
+                            ref colInfosRefCurrent, ref lineNumber, colInfosLength);
                         // Used both to indicate row ended and if need to step +2 due to '\r\n'
                         if (rowLineEndingOffset != 0)
                         {
                             // Must be a col end and last is then dataIndex
-                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                            charsIndex = colInfosRefCurrent + rowLineEndingOffset;
                             goto NEWROW;
                         }
                     }
@@ -167,7 +167,7 @@ sealed class SepParserVector128NrwCmpExtMsbTzcnt : ISepParser
             // Next row start (one before)
             colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
             A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
-            colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
+            TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex - 1, 0, colInfosLength);
             // Update for next row
             colInfosRef = ref colInfosRefCurrent;
             s._parsingRowColEndsOrInfosStartIndex += colCount + 1;

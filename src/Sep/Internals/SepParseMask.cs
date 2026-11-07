@@ -11,44 +11,44 @@ static partial class SepParseMask
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsMask(nuint mask, int charsIndex, ref int colEndsRef)
-        => ref ParseSeparatorsMask<int, SepColEndMethods>(
-            mask, charsIndex, ref colEndsRef);
+        => ref ParseSeparatorsMask<SepColEndMethods>(
+            mask, charsIndex, ref colEndsRef, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseAnyCharsMask(nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
         ref int colEndsRef, scoped ref int lineNumber)
-        => ref ParseAnyCharsMask<int, SepColEndMethods>(
+        => ref ParseAnyCharsMask<SepColEndMethods>(
             mask, separator, ref charsRef, charsIndex,
             ref rowLineEndingOffset, ref quoteCount,
-            ref colEndsRef, ref lineNumber);
+            ref colEndsRef, ref lineNumber, 0);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref int ParseSeparatorsLineEndingsMasks(nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
         ref int colEndsRefCurrent, scoped ref int lineNumber)
-        => ref ParseSeparatorsLineEndingsMasks<int, SepColEndMethods>(
+        => ref ParseSeparatorsLineEndingsMasks<SepColEndMethods>(
             separatorsMask, separatorsLineEndingsMask, ref charsRef, ref charsIndex, separator,
-            ref colEndsRefCurrent, ref lineNumber);
+            ref colEndsRefCurrent, ref lineNumber, 0);
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-        nuint mask, int charsIndex, ref TColInfo colInfosRef)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    internal static ref int ParseSeparatorsMask<TColInfoMethods>(
+        nuint mask, int charsIndex, ref int colInfosRef, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
 #if NET10_0_OR_GREATER
         // Avoid 512-bit setup for a single separator or a mask confined to 16 positions.
         if ((typeof(TColInfoMethods) == typeof(SepColEndMethods) ||
              typeof(TColInfoMethods) == typeof(SepColInfoMethods)) &&
-            typeof(TColInfo) == typeof(int) && Avx512Vbmi2.IsSupported && Avx512Vbmi.IsSupported &&
+            Avx512Vbmi2.IsSupported && Avx512Vbmi.IsSupported &&
             mask > ushort.MaxValue && (mask & (mask - 1)) != 0)
         {
-            ref var end = ref ParseSeparatorsMaskVbmi2(mask, BitOperations.PopCount(mask),
-                charsIndex + (typeof(TColInfoMethods) == typeof(SepColInfoMethods) ? 1 : 0),
-                ref As<TColInfo, int>(ref colInfosRef));
-            return ref As<int, TColInfo>(ref end);
+            var count = BitOperations.PopCount(mask);
+            ref var end = ref ParseSeparatorsMaskVbmi2(mask, count, charsIndex, ref colInfosRef);
+            TColInfoMethods.Clear(ref colInfosRef, count, colInfosOffset);
+            return ref end;
         }
 #endif
         do
@@ -57,7 +57,7 @@ static partial class SepParseMask
             mask &= (mask - 1);
             // Pre-increment colInfosRef since [0] reserved for row start
             colInfosRef = ref Add(ref colInfosRef, 1);
-            colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
+            TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, 0, colInfosOffset);
         }
         while (mask != 0);
         return ref colInfosRef;
@@ -121,12 +121,12 @@ static partial class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseQuotedMask<TColInfo, TColInfoMethods>(
+    internal static ref int ParseQuotedMask<TColInfoMethods>(
         nuint separatorsMask, nuint separatorLineEndingsMask, nuint specialCharMask,
         char separator, scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref TColInfo colInfosRef, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         var quotesMask = specialCharMask ^ separatorLineEndingsMask;
         // Inclusive quote parity masks separators inside quotes, including a carried opening quote.
@@ -135,10 +135,10 @@ static partial class SepParseMask
         if ((lineEndingsMask & quotedMask) != 0)
         {
             // Keep the scalar line counting for embedded CR, LF and CRLF, including block boundaries.
-            return ref ParseAnyCharsMask<TColInfo, TColInfoMethods>(specialCharMask,
+            return ref ParseAnyCharsMask<TColInfoMethods>(specialCharMask,
                 separator, ref charsRef, charsIndex,
                 ref rowLineEndingOffset, ref quoteCount,
-                ref colInfosRef, ref lineNumber);
+                ref colInfosRef, ref lineNumber, colInfosOffset);
         }
 
         var mask = separatorLineEndingsMask & ~quotedMask;
@@ -150,7 +150,7 @@ static partial class SepParseMask
             quoteCount += (nuint)BitOperations.PopCount(quotesMask & before);
             quotesMask &= ~before;
             colInfosRef = ref Add(ref colInfosRef, 1);
-            colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
+            TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, (int)quoteCount, colInfosOffset);
             quoteCount = 0;
 
             if ((lineEndingsMask & bit) != 0)
@@ -171,33 +171,33 @@ static partial class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseAnyCharsMask<TColInfo, TColInfoMethods>(
+    internal static ref int ParseAnyCharsMask<TColInfoMethods>(
         nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref TColInfo colInfosRef, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         do
         {
             var relativeIndex = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1);
 
-            colInfosRef = ref ParseAnyChar<TColInfo, TColInfoMethods>(ref charsRef,
+            colInfosRef = ref ParseAnyChar<TColInfoMethods>(ref charsRef,
                 charsIndex, relativeIndex, separator,
                 ref rowLineEndingOffset, ref quoteCount,
-                ref colInfosRef, ref lineNumber);
+                ref colInfosRef, ref lineNumber, colInfosOffset);
         }
         while (mask != 0 && (rowLineEndingOffset == 0));
         return ref colInfosRef;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseAnyChar<TColInfo, TColInfoMethods>(
+    internal static ref int ParseAnyChar<TColInfoMethods>(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset, scoped ref nuint quoteCount,
-        ref TColInfo colInfosRef, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         var c = Add(ref charsRef, relativeIndex);
         if ((quoteCount & 1) != 0)
@@ -241,25 +241,25 @@ static partial class SepParseMask
     ADDCOLEND:
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRef = ref Add(ref colInfosRef, 1);
-        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, (int)quoteCount);
+        TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, (int)quoteCount, colInfosOffset);
         quoteCount = 0;
     RETURN:
         return ref colInfosRef;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
+    internal static ref int ParseSeparatorsLineEndingsMasks<TColInfoMethods>(
         nuint separatorsMask, nuint separatorsLineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex, char separator,
-        ref TColInfo colInfosRefCurrent, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRefCurrent, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         var rowLineEndingOffset = 0;
         if (separatorsMask == 0)
         {
-            colInfosRefCurrent = ref ParseLineEndingMask<TColInfo, TColInfoMethods>(
+            colInfosRefCurrent = ref ParseLineEndingMask<TColInfoMethods>(
                 separatorsLineEndingsMask, ref charsRef, ref charsIndex, ref colInfosRefCurrent,
-                ref rowLineEndingOffset, ref lineNumber);
+                ref rowLineEndingOffset, ref lineNumber, colInfosOffset);
             charsIndex += rowLineEndingOffset;
         }
         else
@@ -268,15 +268,15 @@ static partial class SepParseMask
             var lineEndingIndex = BitOperations.TrailingZeroCount(endingsMask);
             if (((SizeOf<nuint>() * 8 - 1) - BitOperations.LeadingZeroCount(separatorsMask)) < lineEndingIndex)
             {
-                colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-                    separatorsMask, charsIndex, ref colInfosRefCurrent);
+                colInfosRefCurrent = ref ParseSeparatorsMask<TColInfoMethods>(
+                    separatorsMask, charsIndex, ref colInfosRefCurrent, colInfosOffset);
 
                 var c = Add(ref charsRef, lineEndingIndex);
                 ++rowLineEndingOffset;
                 // Pre-increment colInfosRef since [0] reserved for row start
                 colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
                 charsIndex += lineEndingIndex;
-                colInfosRefCurrent = TColInfoMethods.Create(charsIndex, 0);
+                TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex, 0, colInfosOffset);
                 if (c == CarriageReturn)
                 {
                     // If \r=CR, we should always be able to look 1 ahead, and if char not valid should not be \n=LF
@@ -289,23 +289,23 @@ static partial class SepParseMask
             else
             {
                 // Used both to indicate row ended and if need to step +2 due to '\r\n'
-                colInfosRefCurrent = ref ParseSeparatorsLineEndingsMask<TColInfo, TColInfoMethods>(
+                colInfosRefCurrent = ref ParseSeparatorsLineEndingsMask<TColInfoMethods>(
                     separatorsLineEndingsMask, separator, ref charsRef, charsIndex, ref rowLineEndingOffset,
-                    ref colInfosRefCurrent, ref lineNumber);
+                    ref colInfosRefCurrent, ref lineNumber, colInfosOffset);
                 // We know line has ended and RowEnded set so no need to check
                 // Must be a col end and last is then dataIndex, +1 to start at next
-                charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                charsIndex = colInfosRefCurrent + rowLineEndingOffset;
             }
         }
         return ref colInfosRefCurrent;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref TColInfo ParseLineEndingMask<TColInfo, TColInfoMethods>(
+    internal static ref int ParseLineEndingMask<TColInfoMethods>(
         nuint lineEndingsMask,
         scoped ref char charsRef, scoped ref int charsIndex,
-        ref TColInfo colInfosRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRefCurrent, scoped ref int rowLineEndingOffset, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         var lineEndingIndex = BitOperations.TrailingZeroCount(lineEndingsMask);
         var c = Add(ref charsRef, lineEndingIndex);
@@ -313,7 +313,7 @@ static partial class SepParseMask
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
         charsIndex += lineEndingIndex;
-        colInfosRefCurrent = TColInfoMethods.Create(charsIndex, 0);
+        TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex, 0, colInfosOffset);
         if (c == CarriageReturn)
         {
             // If \r=CR, we should always be able to look 1 ahead, and if char not valid should not be \n=LF
@@ -325,32 +325,32 @@ static partial class SepParseMask
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ref TColInfo ParseSeparatorsLineEndingsMask<TColInfo, TColInfoMethods>(
+    static ref int ParseSeparatorsLineEndingsMask<TColInfoMethods>(
         nuint mask, char separator,
         scoped ref char charsRef, int charsIndex,
         scoped ref int rowLineEndingOffset,
-        ref TColInfo colInfosRef, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         do
         {
             var relativeIndex = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1);
 
-            colInfosRef = ref ParseSeparatorLineEndingChar<TColInfo, TColInfoMethods>(
+            colInfosRef = ref ParseSeparatorLineEndingChar<TColInfoMethods>(
                 ref charsRef, charsIndex, relativeIndex, separator,
-                ref rowLineEndingOffset, ref colInfosRef, ref lineNumber);
+                ref rowLineEndingOffset, ref colInfosRef, ref lineNumber, colInfosOffset);
         }
         while (mask != 0 && (rowLineEndingOffset == 0));
         return ref colInfosRef;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static ref TColInfo ParseSeparatorLineEndingChar<TColInfo, TColInfoMethods>(
+    static ref int ParseSeparatorLineEndingChar<TColInfoMethods>(
         scoped ref char charsRef, int charsIndex, int relativeIndex, char separator,
         scoped ref int rowLineEndingOffset,
-        ref TColInfo colInfosRef, scoped ref int lineNumber)
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+        ref int colInfosRef, scoped ref int lineNumber, int colInfosOffset)
+        where TColInfoMethods : ISepColInfoMethods
     {
         var c = Add(ref charsRef, relativeIndex);
         if (c == separator) goto ADDCOLEND;
@@ -371,7 +371,7 @@ static partial class SepParseMask
     ADDCOLEND:
         // Pre-increment colInfosRef since [0] reserved for row start
         colInfosRef = ref Add(ref colInfosRef, 1);
-        colInfosRef = TColInfoMethods.Create(charsIndex + relativeIndex, 0);
+        TColInfoMethods.Write(ref colInfosRef, charsIndex + relativeIndex, 0, colInfosOffset);
         return ref colInfosRef;
     }
 }

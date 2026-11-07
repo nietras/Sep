@@ -14,21 +14,20 @@ sealed class SepParserIndexOfAny : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColEnds(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColEndMethods>(s, options);
+        Parse<SepColEndMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<int, SepColInfoMethods>(s, options);
+        Parse<SepColInfoMethods>(s, options);
     }
 
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    static void Parse<TColInfo, TColInfoMethods>(SepReaderState s, SepParserOptions options)
-        where TColInfo : unmanaged
-        where TColInfoMethods : ISepColInfoMethods<TColInfo>
+    static void Parse<TColInfoMethods>(SepReaderState s, SepParserOptions options)
+        where TColInfoMethods : ISepColInfoMethods
     {
         // Method should **not** call other non-inlined methods, since this
         // impacts code-generation severely.
@@ -45,6 +44,7 @@ sealed class SepParserIndexOfAny : ISepParser
         var colInfos = s._colEndsOrColInfos;
 
         var colInfosLength = colInfos.Length;
+        if (typeof(TColInfoMethods) == typeof(SepColInfoMethods)) { colInfosLength >>= 1; }
 
         chars.CheckPaddingAndIsZero(charsEnd, 4);
         SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, 4);
@@ -52,7 +52,7 @@ sealed class SepParserIndexOfAny : ISepParser
         A.Assert(charsEnd <= (chars.Length - 4));
         ref var charsRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
-        ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
+        ref var colInfosRefOrigin = ref MemoryMarshal.GetArrayDataReference(colInfos);
         ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
@@ -77,15 +77,15 @@ sealed class SepParserIndexOfAny : ISepParser
 
                 ref var charsCurrentRef = ref Add(ref charsRef, charsIndex);
                 var rowLineEndingOffset = 0;
-                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfo, TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
-                    separator, ref rowLineEndingOffset, ref quoteCount, ref colInfosRefCurrent, ref lineNumber);
+                colInfosRefCurrent = ref SepParseMask.ParseAnyChar<TColInfoMethods>(ref charsCurrentRef, charsIndex, relativeIndex,
+                    separator, ref rowLineEndingOffset, ref quoteCount,                     ref colInfosRefCurrent, ref lineNumber, colInfosLength);
                 charsIndex += relativeIndex + 1;
 
                 // Used both to indicate row ended and if need to step +2 due to '\r\n'
                 if (rowLineEndingOffset != 0)
                 {
                     // Must be a col end and last is then dataIndex
-                    charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                    charsIndex = colInfosRefCurrent + rowLineEndingOffset;
 
                     var colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / sizeof(int));
                     // Add new parsed row
@@ -95,7 +95,7 @@ sealed class SepParserIndexOfAny : ISepParser
                     // Next row start (one before)
                     colInfosRefCurrent = ref Add(ref colInfosRefCurrent, 1);
                     A.Assert(IsAddressLessThan(ref colInfosRefCurrent, ref colInfosRefEnd));
-                    colInfosRefCurrent = TColInfoMethods.Create(charsIndex - 1, 0);
+                    TColInfoMethods.Write(ref colInfosRefCurrent, charsIndex - 1, 0, colInfosLength);
                     // Update for next row
                     colInfosRef = ref colInfosRefCurrent;
                     s._parsingRowColEndsOrInfosStartIndex += colCount + 1;

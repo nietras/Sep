@@ -49,7 +49,7 @@ public class SepParserTest
             foreach (var disableQuotes in new[] { false, true })
             {
                 var options = new SepParserOptions(new Sep(separator), disableQuotes);
-                using var state = CreateState($"\"a{separator}b\"{separator}\u013B\u017E\u0122\u010A\u010D\r\n");
+                using var state = CreateState($"\"a{separator}b\"{separator}\u013B\u017E\u0122\u010A\u010D\r\n", colInfos);
                 Parse(parser, state, colInfos, options);
                 Assert.AreEqual(1, state._parsedRowsCount);
                 Assert.AreEqual(new SepRowInfo(2, disableQuotes ? 3 : 2), state._parsedRows[0]);
@@ -71,7 +71,7 @@ public class SepParserTest
                 var custom = useLineFeed
                     ? options with { LineFeed = (byte)lineEnding, CarriageReturn = byte.MaxValue }
                     : options with { LineFeed = byte.MaxValue, CarriageReturn = (byte)lineEnding };
-                using var state = CreateState("a;b" + lineEnding);
+                using var state = CreateState("a;b" + lineEnding, colInfos);
                 Parse(parser, state, colInfos, custom);
                 Assert.AreEqual(1, state._parsedRowsCount);
                 Assert.AreEqual(new SepRowInfo(2, 2), state._parsedRows[0]);
@@ -98,7 +98,7 @@ public class SepParserTest
     public void SepParserTest_QuoteCount_NoProgress(object parserObject, bool colInfos)
     {
         var parser = (ISepParser)parserObject;
-        using var state = CreateState("");
+        using var state = CreateState("", colInfos);
         state._parsingRowQuoteCount = nuint.MaxValue;
         Parse(parser, state, colInfos);
         Assert.AreEqual(nuint.MaxValue, state._parsingRowQuoteCount);
@@ -106,7 +106,7 @@ public class SepParserTest
 
         ";".AsSpan().CopyTo(state._chars);
         state._charsDataEnd = 1;
-        state._parsingRowColCount = state._colEndsOrColInfos.Length - parser.PaddingLength;
+        state._parsingRowColCount = state.ColEndsCapacity - parser.PaddingLength;
         state._parsingRowQuoteCount = 3;
         Parse(parser, state, colInfos);
         Assert.AreEqual((nuint)3, state._parsingRowQuoteCount);
@@ -119,15 +119,20 @@ public class SepParserTest
     {
         var parser = (ISepParser)parserObject;
         var text = "\"" + new string('x', 80) + ";\"\"q\r\nmore\";end\r\nplain;\"last\"\"open";
-        using var state = CreateState(text[..81]);
+        using var state = CreateState(text[..81], colInfos);
         Parse(parser, state, colInfos);
         Assert.AreEqual((nuint)1, state._parsingRowQuoteCount);
         Assert.AreEqual(0, state._parsedRowsCount);
 
-        using var independent = CreateState("a;b\n");
+        using var independent = CreateState("a;b\n", colInfos);
         Parse(parser, independent, colInfos);
         Assert.AreEqual((nuint)0, independent._parsingRowQuoteCount);
         Assert.AreEqual(new SepRowInfo(2, 2), independent._parsedRows[0]);
+        if (colInfos)
+        {
+            Assert.AreEqual(0, independent._colEndsOrColInfos[independent.ColEndsCapacity + 1]);
+            Assert.AreEqual(0, independent._colEndsOrColInfos[independent.ColEndsCapacity + 2]);
+        }
 
         text.AsSpan().CopyTo(state._chars);
         state._charsDataEnd = text.Length;
@@ -139,7 +144,7 @@ public class SepParserTest
         Assert.AreEqual(1, state._parsingRowColCount);
         if (colInfos)
         {
-            Assert.AreEqual(SepColInfo.ManyQuotes, SepColInfo.GetState(state._colEndsOrColInfos[1]));
+            Assert.AreEqual(4, state._colEndsOrColInfos[state.ColEndsCapacity + 1]);
         }
     }
 
@@ -150,9 +155,9 @@ public class SepParserTest
         else { parser.ParseColEnds(state, parserOptions); }
     }
 
-    static SepReaderState CreateState(string text)
+    static SepReaderState CreateState(string text, bool colInfos)
     {
-        var state = new SepReaderState
+        var state = new SepReaderState(colUnquoteUnescape: colInfos)
         {
             _chars = ArrayPool<char>.Shared.Rent(2048),
             _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(2048),
@@ -160,7 +165,7 @@ public class SepParserTest
             _arrayPool = new(),
         };
         Array.Clear(state._chars);
-        Array.Clear(state._colEndsOrColInfos);
+        Array.Fill(state._colEndsOrColInfos, -42);
         state._colEndsOrColInfos[0] = -1;
         text.AsSpan().CopyTo(state._chars);
         return state;

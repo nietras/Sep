@@ -326,7 +326,7 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public void PackedUnescape_RepeatedAccessAndOverflow()
+    public void SplitUnescape_RepeatedAccessAndLongFields()
     {
         var quotes = new string('"', 130);
         var text = $"\"{quotes}\";next\n\"a\"\"b\";last\n";
@@ -351,7 +351,7 @@ public class SepReaderColTest
     [DataRow(28)]
     [DataRow(29)]
     [DataRow(65)]
-    public void PackedUnescape_CacheBoundaryAndMultipleColumns(int innerQuotes)
+    public void SplitUnescape_QuoteCountsAndMultipleColumns(int innerQuotes)
     {
         var first = "\"" + new string('"', innerQuotes * 2) + "\"";
         var second = "\"" + new string('"', 140) + "\"";
@@ -374,7 +374,7 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public void PackedUnescape_TrimmedStartAndEmptyResult()
+    public void SplitUnescape_TrimmedStartAndEmptyResult()
     {
         using (var reader = Sep.Reader(o => o with
         { HasHeader = false, Unescape = true, Trim = SepTrim.All }).FromText("   \"a\"\"b\"  ;next"))
@@ -399,7 +399,7 @@ public class SepReaderColTest
     [TestMethod]
     [DataRow(SepTrim.Outer, "  a\" b  ")]
     [DataRow(SepTrim.All, "a\" b")]
-    public void PackedUnescape_TrimmedStartPreservesRequestedSpaces(SepTrim trim, string expected)
+    public void SplitUnescape_TrimmedStartPreservesRequestedSpaces(SepTrim trim, string expected)
     {
         var text = "   \"  a\"\" b  \"  ;tail";
         using var reader = Sep.Default.Reader(o => o with
@@ -415,7 +415,7 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public void PackedUnescape_TrimmedMultilineWithSeparator()
+    public void SplitUnescape_TrimmedMultilineWithSeparator()
     {
         var text = "    \"x;\r\n\"\"y\"   ;tail\n";
         using var reader = Sep.Default.Reader(o => o with
@@ -432,7 +432,7 @@ public class SepReaderColTest
     [DataRow(1)]
     [DataRow(4)]
     [DataRow(64)]
-    public void PackedUnescape_TrimmedStartWithOverlappingCopy(int leadingSpaces)
+    public void SplitUnescape_TrimmedStartWithOverlappingCopy(int leadingSpaces)
     {
         var text = new string(' ', leadingSpaces) + "\" a\"\"b \"   ;next";
         using var reader = Sep.Default.Reader(o => o with
@@ -446,46 +446,48 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public void PackedUnescape_LengthArrayIsLazyGrowsAndIsReused()
+    public void SplitUnescape_InfoPlaneGrowsAndCachesLengths()
     {
         var escaped = "\"a\"\"b\"";
-        var wideRow = string.Join(';', Enumerable.Repeat(escaped, 40));
+        var colCount = SepReaderState.ColEndsInitialLength * 2;
+        var wideRow = string.Join(';', Enumerable.Repeat(escaped, colCount));
         var text = $"plain;\"simple\"\n{escaped};next\n{wideRow}\n{escaped};last\n";
         using var reader = Sep.Default.Reader(o => o with
-        { HasHeader = false, Unescape = true, DisableColCountCheck = true }).FromText(text);
-        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
+        { HasHeader = false, Unescape = true, DisableColCountCheck = true, InitialBufferLength = 128 }).FromText(text);
+        var firstArray = reader._colEndsOrColInfos;
+        var firstCapacity = reader.ColEndsCapacity;
+        Assert.AreEqual(firstCapacity * 2, firstArray.Length);
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("plain", reader.Current[0].Span.ToString());
         Assert.AreEqual("simple", reader.Current[1].Span.ToString());
-        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
+        Assert.AreEqual(0, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
+        Assert.AreEqual(2, firstArray[firstCapacity + reader._currentRowColEndsOrInfosOffset + 2]);
 
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
-        var firstArray = reader._colLengthsTrimmedAndOrEscaped;
-        Assert.IsTrue(firstArray.Length >= 2);
+        Assert.AreEqual(~3, reader._colEndsOrColInfos[reader.ColEndsCapacity + reader._currentRowColEndsOrInfosOffset + 1]);
         Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
 
         Assert.IsTrue(reader.MoveNext());
         var row = reader.Current;
-        Assert.AreEqual("a\"b", row[39].Span.ToString());
-        var grownArray = reader._colLengthsTrimmedAndOrEscaped;
-        Assert.IsTrue(grownArray.Length >= 40);
-        if (firstArray.Length < 40) { Assert.AreNotSame(firstArray, grownArray); }
-        else { Assert.AreSame(firstArray, grownArray); }
+        Assert.AreEqual("a\"b", row[colCount - 1].Span.ToString());
+        var grownArray = reader._colEndsOrColInfos;
+        Assert.IsTrue(reader.ColEndsCapacity > firstCapacity);
+        Assert.AreNotSame(firstArray, grownArray);
+        Assert.AreEqual(reader.ColEndsCapacity * 2, grownArray.Length);
         Assert.AreEqual("a\"b", row[0].Span.ToString());
-        Assert.AreEqual("a\"b", row[39].Span.ToString());
+        Assert.AreEqual("a\"b", row[colCount - 1].Span.ToString());
 
         Assert.IsTrue(reader.MoveNext());
         Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
         Assert.AreEqual("last", reader.Current[1].Span.ToString());
-        Assert.AreSame(grownArray, reader._colLengthsTrimmedAndOrEscaped);
+        Assert.AreSame(grownArray, reader._colEndsOrColInfos);
         reader.Dispose();
-        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
         reader.Dispose();
     }
 
     [TestMethod]
-    public void PackedUnescape_TrimmedStartWithEmptyResult()
+    public void SplitUnescape_TrimmedStartWithEmptyResult()
     {
         using var reader = Sep.Default.Reader(o => o with
         { HasHeader = false, Unescape = true, Trim = SepTrim.Outer }).FromText("   \"");
@@ -495,7 +497,7 @@ public class SepReaderColTest
     }
 
     [TestMethod]
-    public async ValueTask PackedUnescape_AsyncOverflowAcrossRows()
+    public async ValueTask SplitUnescape_AsyncLongFieldsAcrossRows()
     {
         var quotes = new string('"', 130);
         var text = string.Concat(Enumerable.Repeat($"  \"{quotes}\"  ;next\n", 30));

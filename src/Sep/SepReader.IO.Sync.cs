@@ -148,9 +148,8 @@ public sealed partial class SepReader
             A.Assert(_charsParseStart >= offset);
             _charsParseStart -= offset;
 
-            A.Assert(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1 <= _colEndsOrColInfos.Length);
+            A.Assert(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1 <= ColEndsCapacity);
 
-            // Packed ends also subtract directly: their low bits include the row start.
             ref var colInfosRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
             for (var i = 0; i <= _parsingRowColCount; i++)
             {
@@ -165,15 +164,24 @@ public sealed partial class SepReader
             var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex, length);
             var destination = colInfosSpan.Slice(0, length);
             source.CopyTo(destination);
+            if (_colUnquoteUnescape != 0)
+            {
+                colInfosSpan.Slice(ColEndsCapacity + _parsingRowColEndsOrInfosStartIndex, length)
+                    .CopyTo(colInfosSpan.Slice(ColEndsCapacity, length));
+            }
             _parsingRowColEndsOrInfosStartIndex = 0;
         }
 
         // Ensure start conditions
-        _colEndsOrColInfos[0] = _colUnquoteUnescape == 0 ? -1 : SepColInfo.Create(-1, 0);
+        _colEndsOrColInfos[0] = -1;
+        if (_colUnquoteUnescape != 0) { _colEndsOrColInfos[ColEndsCapacity] = 0; }
 
         // Reset
 #if DEBUG
-        _colEndsOrColInfos.AsSpan().Slice(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1).Fill(-42);
+        var debugStart = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1;
+        _colEndsOrColInfos.AsSpan(debugStart, ColEndsCapacity - debugStart).Fill(-42);
+        if (_colUnquoteUnescape != 0)
+        { _colEndsOrColInfos.AsSpan(ColEndsCapacity + debugStart, ColEndsCapacity - debugStart).Fill(-42); }
 #endif
 
         var endOfFile = false;
@@ -208,15 +216,12 @@ public sealed partial class SepReader
         {
             ++_parsingRowColCount;
             var colInfoIndex = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
-            if (_colUnquoteUnescape == 0)
-            {
-                _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
-            }
-            else
+            _colEndsOrColInfos[colInfoIndex] = _charsDataEnd;
+            if (_colUnquoteUnescape != 0)
             {
                 Debug.Assert(_parserOptionsBytes != 0);
                 var quoteCount = (int)_parsingRowQuoteCount;
-                _colEndsOrColInfos[colInfoIndex] = SepColInfo.Create(_charsDataEnd, quoteCount);
+                _colEndsOrColInfos[ColEndsCapacity + colInfoIndex] = quoteCount;
             }
             ++_parsingLineNumber;
             _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);

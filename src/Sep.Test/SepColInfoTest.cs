@@ -18,13 +18,9 @@ public class SepColInfoTest
                 var info = SepColInfo.Create(end, count);
                 Assert.AreEqual(end, SepColInfo.GetColEnd(info));
                 Assert.AreEqual(state, SepColInfo.GetState(info));
-                foreach (var removed in new[] { 0, 1, 30, SepColInfo.Overflow })
-                {
-                    var unescaped = SepColInfo.SetUnescaped(info, removed);
-                    Assert.AreEqual(end, SepColInfo.GetColEnd(unescaped));
-                    Assert.IsTrue(SepColInfo.GetState(unescaped) < 0);
-                    Assert.AreEqual(removed, SepColInfo.GetPayload(unescaped));
-                }
+                var unescaped = SepColInfo.SetUnescaped(info);
+                Assert.AreEqual(end, SepColInfo.GetColEnd(unescaped));
+                Assert.IsTrue(SepColInfo.GetState(unescaped) < 0);
             }
         }
     }

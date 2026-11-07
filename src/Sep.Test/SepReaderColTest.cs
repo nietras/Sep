@@ -397,6 +397,104 @@ public class SepReaderColTest
     }
 
     [TestMethod]
+    [DataRow(SepTrim.Outer, "  a\" b  ")]
+    [DataRow(SepTrim.All, "a\" b")]
+    public void PackedUnescape_TrimmedStartPreservesRequestedSpaces(SepTrim trim, string expected)
+    {
+        var text = "   \"  a\"\" b  \"  ;tail";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = trim }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(expected + "|tail", row[..].JoinToString("|"));
+        Assert.AreEqual(expected, row[0].Span.ToString());
+        Assert.IsTrue(row.Span.StartsWith(expected));
+        Assert.AreEqual(expected, row[0].Span.ToString());
+        Assert.AreEqual("tail", row[1].Span.ToString());
+        Assert.AreEqual(expected + "|tail", row[..].JoinToString("|"));
+    }
+
+    [TestMethod]
+    public void PackedUnescape_TrimmedMultilineWithSeparator()
+    {
+        var text = "    \"x;\r\n\"\"y\"   ;tail\n";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.Outer, InitialBufferLength = 128 }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual("x;\r\n\"y", row[0].Span.ToString());
+        Assert.AreEqual("x;\r\n\"y", row[0].Span.ToString());
+        Assert.AreEqual("tail", row[1].Span.ToString());
+        Assert.IsTrue(row.Span.StartsWith("x;\r\n\"y"));
+    }
+
+    [TestMethod]
+    [DataRow(1)]
+    [DataRow(4)]
+    [DataRow(64)]
+    public void PackedUnescape_TrimmedStartWithOverlappingCopy(int leadingSpaces)
+    {
+        var text = new string(' ', leadingSpaces) + "\" a\"\"b \"   ;next";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.Outer }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(" a\"b ", row[0].Span.ToString());
+        Assert.AreEqual(" a\"b ", row[0].Span.ToString());
+        Assert.AreEqual("next", row[1].Span.ToString());
+        Assert.IsTrue(row.Span.StartsWith(" a\"b "));
+    }
+
+    [TestMethod]
+    public void PackedUnescape_LengthArrayIsLazyGrowsAndIsReused()
+    {
+        var escaped = "\"a\"\"b\"";
+        var wideRow = string.Join(';', Enumerable.Repeat(escaped, 40));
+        var text = $"plain;\"simple\"\n{escaped};next\n{wideRow}\n{escaped};last\n";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, DisableColCountCheck = true }).FromText(text);
+        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual("plain", reader.Current[0].Span.ToString());
+        Assert.AreEqual("simple", reader.Current[1].Span.ToString());
+        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
+
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
+        var firstArray = reader._colLengthsTrimmedAndOrEscaped;
+        Assert.IsTrue(firstArray.Length >= 2);
+        Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
+
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual("a\"b", row[39].Span.ToString());
+        var grownArray = reader._colLengthsTrimmedAndOrEscaped;
+        Assert.IsTrue(grownArray.Length >= 40);
+        if (firstArray.Length < 40) { Assert.AreNotSame(firstArray, grownArray); }
+        else { Assert.AreSame(firstArray, grownArray); }
+        Assert.AreEqual("a\"b", row[0].Span.ToString());
+        Assert.AreEqual("a\"b", row[39].Span.ToString());
+
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual("a\"b", reader.Current[0].Span.ToString());
+        Assert.AreEqual("last", reader.Current[1].Span.ToString());
+        Assert.AreSame(grownArray, reader._colLengthsTrimmedAndOrEscaped);
+        reader.Dispose();
+        Assert.AreEqual(0, reader._colLengthsTrimmedAndOrEscaped.Length);
+        reader.Dispose();
+    }
+
+    [TestMethod]
+    public void PackedUnescape_TrimmedStartWithEmptyResult()
+    {
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.Outer }).FromText("   \"");
+        Assert.IsTrue(reader.MoveNext());
+        Assert.AreEqual(0, reader.Current[0].Span.Length);
+        Assert.AreEqual(0, reader.Current[0].Span.Length);
+    }
+
+    [TestMethod]
     public async ValueTask PackedUnescape_AsyncOverflowAcrossRows()
     {
         var quotes = new string('"', 130);

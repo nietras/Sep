@@ -48,16 +48,16 @@ public class SepReaderExtensionsEnumerationTest
     {
         var quoted = "\"" + new string('"', 130) + "\"";
         var otherQuoted = "\"" + new string('"', 140) + "\"";
-        var text = "A;B;C\n" + string.Concat(Enumerable.Repeat("x;  " + quoted + " ;" + otherQuoted + "\n", TotalRowCount));
+        var text = "A;  \"B\"\"X\" ;C\n" + string.Concat(Enumerable.Repeat("x;  " + quoted + " ;" + otherQuoted + "\n", TotalRowCount));
         using var reader = Sep.Reader(o => o with
         { InitialBufferLength = 128, Unescape = true, Trim = SepTrim.All }).FromText(text);
         var expected = new string('"', 65);
         var expectedOther = new string('"', 70);
         var actual = reader.ParallelEnumerate(row =>
         {
-            var first = row["B"].Span.ToString();
+            var first = row["B\"X"].Span.ToString();
             var second = row["C"].Span.ToString();
-            return first + "|" + second + "|" + row["B"].Span.ToString() + "|" + row["C"].Span.ToString();
+            return first + "|" + second + "|" + row["B\"X"].Span.ToString() + "|" + row["C"].Span.ToString();
         }).ToList();
         Assert.HasCount(TotalRowCount, actual);
         foreach (var value in actual)

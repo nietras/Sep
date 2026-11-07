@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using static System.Runtime.CompilerServices.Unsafe;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
@@ -105,22 +106,22 @@ SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
             var v2 = ReadUnaligned<VecUI16>(ref byteRef2);
             var bytes1 = ISA.ConvertToVector256ByteWithSaturation(v1);
             var bytes2 = ISA.ConvertToVector256ByteWithSaturation(v2);
-            var bytes = Vec.Create(bytes1, bytes2);
+            var bytes = bytes1.ToVector512Unsafe().WithUpper(bytes2);
 
-            var nlsEq = Vec.Equals(bytes, nls);
-            var crsEq = Vec.Equals(bytes, crs);
-            var qtsEq = Vec.Equals(bytes, qts);
-            var spsEq = Vec.Equals(bytes, sps);
+            var nlsEq = MoveMask(Vec.Equals(bytes, nls));
+            var crsEq = MoveMask(Vec.Equals(bytes, crs));
+            var qtsEq = MoveMask(Vec.Equals(bytes, qts));
+            var spsEq = MoveMask(Vec.Equals(bytes, sps));
 
             var lineEndings = nlsEq | crsEq;
             var lineEndingsSeparators = spsEq | lineEndings;
             var specialChars = lineEndingsSeparators | qtsEq;
 
             // Optimize for the case of no special character
-            var specialCharMask = MoveMask(specialChars);
+            var specialCharMask = specialChars;
             if (specialCharMask != 0u)
             {
-                var separatorsMask = MoveMask(spsEq);
+                var separatorsMask = spsEq;
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Combine mask mismatch and quote state without overflowing a full-width mask.
                 if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
@@ -130,7 +131,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
+                    var separatorLineEndingsMask = lineEndingsSeparators;
                     if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(

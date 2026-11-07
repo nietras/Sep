@@ -97,9 +97,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-            ref var byteRef = ref As<char, byte>(ref charsRef);
-            var v = ReadUnaligned<VecUI16>(ref byteRef);
+            var v = ReadUnaligned<VecUI16>(ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex)));
             var bytes = ISA.ConvertToVector256ByteWithSaturation(v);
 
             var nlsEq = Vec.Equals(bytes, nls);
@@ -125,6 +123,7 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
+                    ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
                     var separatorLineEndingsMask = MoveMask(lineEndingsSeparators);
                     if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {

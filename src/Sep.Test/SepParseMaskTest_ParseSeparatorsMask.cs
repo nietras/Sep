@@ -68,11 +68,13 @@ public partial class SepParseMaskTest
             Assert.AreEqual(-1, ends[^1]);
             CollectionAssert.AreEqual(expected.Select(i => i + CharsIndexOffset).ToArray(), ends[1..^1]);
 
-            var infos = new SepColInfo[expected.Length + 1];
-            ref var infoEnd = ref SepParseMask.ParseSeparatorsMask<SepColInfo, SepColInfoMethods>(
+            var infos = Enumerable.Repeat(-1, expected.Length + 2).ToArray();
+            ref var infoEnd = ref SepParseMask.ParseSeparatorsMask<int, SepColInfoMethods>(
                 mask, CharsIndexOffset, ref infos[0]);
-            Assert.AreEqual(expected.Length, SepColInfoMethods.CountOffset(ref infos[0], ref infoEnd));
-            CollectionAssert.AreEqual(expected.Select(i => new SepColInfo(i + CharsIndexOffset, 0)).ToArray(), infos[1..]);
+            Assert.AreEqual(expected.Length, (int)Unsafe.ByteOffset(ref infos[0], ref infoEnd) / sizeof(int));
+            Assert.AreEqual(-1, infos[0]);
+            Assert.AreEqual(-1, infos[^1]);
+            CollectionAssert.AreEqual(expected.Select(i => SepColInfo.Create(i + CharsIndexOffset, 0)).ToArray(), infos[1..^1]);
         }
     }
 

@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
 
@@ -6,11 +6,26 @@ namespace nietras.SeparatedValues.Test;
 public class SepColInfoTest
 {
     [TestMethod]
-    public void SepColInfoTest_()
+    public void PackedEndAndStates()
     {
-        var colInfo = new SepColInfo(12, 34);
-        Assert.AreEqual(12, colInfo.ColEnd);
-        Assert.AreEqual(34, colInfo.QuoteCount);
-        Assert.AreEqual("(12, 34)", colInfo.ToString());
+        foreach (var end in new[] { -1, 0, 12, SepDefaults.RowLengthMax - 2 })
+        {
+            foreach (var (count, state) in new[] {
+                (0, SepColInfo.NoQuotes), (1, SepColInfo.OneQuote),
+                (2, SepColInfo.TwoQuotes), (3, SepColInfo.ManyQuotes),
+                (100, SepColInfo.ManyQuotes) })
+            {
+                var info = SepColInfo.Create(end, count);
+                Assert.AreEqual(end, SepColInfo.GetColEnd(info));
+                Assert.AreEqual(state, SepColInfo.GetState(info));
+                foreach (var removed in new[] { 0, 1, 30, SepColInfo.Overflow })
+                {
+                    var unescaped = SepColInfo.SetUnescaped(info, removed);
+                    Assert.AreEqual(end, SepColInfo.GetColEnd(unescaped));
+                    Assert.IsTrue(SepColInfo.GetState(unescaped) < 0);
+                    Assert.AreEqual(removed, SepColInfo.GetPayload(unescaped));
+                }
+            }
+        }
     }
 }

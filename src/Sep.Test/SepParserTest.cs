@@ -106,7 +106,7 @@ public class SepParserTest
 
         ";".AsSpan().CopyTo(state._chars);
         state._charsDataEnd = 1;
-        state._parsingRowColCount = state._colEndsOrColInfos.Length / (colInfos ? 2 : 1) - parser.PaddingLength;
+        state._parsingRowColCount = state._colEndsOrColInfos.Length - parser.PaddingLength;
         state._parsingRowQuoteCount = 3;
         Parse(parser, state, colInfos);
         Assert.AreEqual((nuint)3, state._parsingRowQuoteCount);
@@ -137,7 +137,10 @@ public class SepParserTest
         Assert.AreEqual(1, state._parsedRowsCount);
         Assert.AreEqual(new SepRowInfo(3, 2), state._parsedRows[0]);
         Assert.AreEqual(1, state._parsingRowColCount);
-        if (colInfos) { Assert.AreEqual(4, state._colEndsOrColInfos[3]); }
+        if (colInfos)
+        {
+            Assert.AreEqual(SepColInfo.ManyQuotes, SepColInfo.GetState(state._colEndsOrColInfos[1]));
+        }
     }
 
     static void Parse(ISepParser parser, SepReaderState state, bool colInfos, SepParserOptions? options = null)

@@ -40,7 +40,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.NoInlining)]
     internal static void ParseColInfos(SepReaderState s, SepParserOptions options)
     {
-        Parse<SepColInfo, SepColInfoMethods>(s, options);
+        Parse<int, SepColInfoMethods>(s, options);
     }
 
     [SkipLocalsInit]
@@ -69,7 +69,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         var lineNumber = s._parsingLineNumber;
         var colInfos = s._colEndsOrColInfos;
 
-        var colInfosLength = TColInfoMethods.IntsLengthToColInfosLength(colInfos.Length);
+        var colInfosLength = colInfos.Length;
 
         chars.CheckPaddingAndIsZero(charsEnd, VecUI8.Count);
         SepArrayExtensions.CheckPadding(colInfosLength, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex, VecUI8.Count);
@@ -158,7 +158,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
             }
             goto LOOPSTEP;
         NEWROW:
-            var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+            var colCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / sizeof(int));
             // Add new parsed row
             ref var parsedRowRef = ref MemoryMarshal.GetArrayDataReference(s._parsedRows);
             Add(ref parsedRowRef, s._parsedRowsCount) = new(lineNumber, colCount);
@@ -179,7 +179,7 @@ sealed class SepParserVector64NrwCmpExtMsbTzcnt : ISepParser
         }
         // Update reader state from enregistered
         s._parsingRowQuoteCount = quoteCount;
-        s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
+        s._parsingRowColCount = (int)(ByteOffset(ref colInfosRef, ref colInfosRefCurrent) / sizeof(int));
         s._parsingLineNumber = lineNumber;
         // Step is VecUI8.Count so may go past end, ensure limited
         s._charsParseStart = Math.Min(charsEnd, charsIndex);

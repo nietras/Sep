@@ -82,7 +82,9 @@ public readonly record struct SepReaderOptions
     /// columns. That is, the column span <see cref="SepReader.Col.Span" /> will
     /// be correct with unescaped text, but the row span <see
     /// cref="SepReader.Row.Span" /> may have "garbage" state between columns if
-    /// any column had quotes removed. Header columns/names will also be
+    /// any column had quotes removed. A reusable metadata cache may be
+    /// allocated when many characters are removed or outer trimming advances
+    /// the start of an unescaped column. Header columns/names will also be
     /// unescaped. Requires <see cref="DisableQuotesParsing"/> to be false.
     /// </remarks>
     public bool Unescape { get; init; } = false;

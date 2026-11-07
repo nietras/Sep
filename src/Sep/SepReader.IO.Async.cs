@@ -148,50 +148,32 @@ public sealed partial class SepReader
             A.Assert(_charsParseStart >= offset);
             _charsParseStart -= offset;
 
-            A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
+            A.Assert(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1 <= _colEndsOrColInfos.Length);
 
-            // Adjust found current row col infos, note includes col count since +1
-            if (_colUnquoteUnescape == 0)
+            // Packed ends also subtract directly: their low bits include the row start.
+            ref var colInfosRef = ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos);
+            for (var i = 0; i <= _parsingRowColCount; i++)
             {
-                ref var colEndsRef = ref GetColsRefAs<int>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colEnd = ref Unsafe.Add(ref colEndsRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colEnd -= offset;
-                }
-            }
-            else
-            {
-                ref var colInfosRef = ref GetColsRefAs<SepColInfo>();
-                for (var i = 0; i <= _parsingRowColCount; i++)
-                {
-                    ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _parsingRowColEndsOrInfosStartIndex);
-                    colInfo.ColEnd -= offset;
-                }
+                ref var colInfo = ref Unsafe.Add(ref colInfosRef, i + _parsingRowColEndsOrInfosStartIndex);
+                colInfo -= offset;
             }
         }
         if (_parsingRowColEndsOrInfosStartIndex > 0)
         {
-            var intsPerColInfo = GetIntegersPerColInfo();
             var colInfosSpan = _colEndsOrColInfos.AsSpan();
-            var length = (_parsingRowColCount + 1) * intsPerColInfo;
-            var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex * intsPerColInfo, length);
+            var length = _parsingRowColCount + 1;
+            var source = colInfosSpan.Slice(_parsingRowColEndsOrInfosStartIndex, length);
             var destination = colInfosSpan.Slice(0, length);
             source.CopyTo(destination);
             _parsingRowColEndsOrInfosStartIndex = 0;
         }
 
         // Ensure start conditions
-        _colEndsOrColInfos[0] = -1;
-        if (_colUnquoteUnescape != 0)
-        {
-            // QuoteCount initialize hack
-            _colEndsOrColInfos[1] = 0;
-        }
+        _colEndsOrColInfos[0] = _colUnquoteUnescape == 0 ? -1 : SepColInfo.Create(-1, 0);
 
         // Reset
 #if DEBUG
-        _colEndsOrColInfos.AsSpan().Slice((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount) * GetIntegersPerColInfo() + GetIntegersPerColInfo()).Fill(-42);
+        _colEndsOrColInfos.AsSpan().Slice(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1).Fill(-42);
 #endif
 
         var endOfFile = false;
@@ -234,8 +216,7 @@ public sealed partial class SepReader
             {
                 Debug.Assert(_parserOptionsBytes != 0);
                 var quoteCount = (int)_parsingRowQuoteCount;
-                Unsafe.Add(ref Unsafe.As<int, SepColInfo>(ref MemoryMarshal.GetArrayDataReference(_colEndsOrColInfos)), colInfoIndex) =
-                    new(_charsDataEnd, quoteCount);
+                _colEndsOrColInfos[colInfoIndex] = SepColInfo.Create(_charsDataEnd, quoteCount);
             }
             ++_parsingLineNumber;
             _parsedRows[_parsedRowsCount] = new(_parsingLineNumber, _parsingRowColCount);

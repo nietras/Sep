@@ -26,7 +26,7 @@ public partial class SepParseMaskTest
     public void SepParseMaskTest_ParseQuotedMask_MatchesScalar()
     {
         AssertQuotedMaskMatchesScalar<int, SepColEndMethods>();
-        AssertQuotedMaskMatchesScalar<SepColInfo, SepColInfoMethods>();
+        AssertQuotedMaskMatchesScalar<int, SepColInfoMethods>();
     }
 
     static void AssertQuotedMaskMatchesScalar<TColInfo, TColInfoMethods>()

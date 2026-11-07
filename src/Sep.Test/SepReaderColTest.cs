@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace nietras.SeparatedValues.Test;
@@ -322,6 +323,97 @@ public class SepReaderColTest
         using var reader = Sep.Reader(o => o with
         { HasHeader = false, Unescape = true, Trim = SepTrim.All }).FromText(src);
         AssertCol(reader, src, expectedCol);
+    }
+
+    [TestMethod]
+    public void PackedUnescape_RepeatedAccessAndOverflow()
+    {
+        var quotes = new string('"', 130);
+        var text = $"\"{quotes}\";next\n\"a\"\"b\";last\n";
+        using var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, InitialBufferLength = 128 }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        var expected = new string('"', 65);
+        Assert.AreEqual(expected, row[0].Span.ToString());
+        var mutatedRow = row.Span.ToString();
+        Assert.AreEqual(expected, row[0].Span.ToString());
+        Assert.AreEqual(mutatedRow, row.Span.ToString());
+        Assert.AreEqual("next", row[1].Span.ToString());
+        Assert.IsTrue(reader.MoveNext());
+        row = reader.Current;
+        Assert.AreEqual("a\"b", row[0].Span.ToString());
+        Assert.AreEqual("a\"b", row[0].Span.ToString());
+        Assert.AreEqual("last", row[1].Span.ToString());
+    }
+
+    [TestMethod]
+    [DataRow(28)]
+    [DataRow(29)]
+    [DataRow(65)]
+    public void PackedUnescape_CacheBoundaryAndMultipleColumns(int innerQuotes)
+    {
+        var first = "\"" + new string('"', innerQuotes * 2) + "\"";
+        var second = "\"" + new string('"', 140) + "\"";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true }).FromText($"{first};{second}\n{second};{first}\n");
+        var expectedFirst = new string('"', innerQuotes);
+        var expectedSecond = new string('"', 70);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(expectedFirst, row[0].Span.ToString());
+        Assert.AreEqual(expectedSecond, row[1].Span.ToString());
+        Assert.AreEqual(expectedFirst, row[0].Span.ToString());
+        Assert.AreEqual(expectedSecond, row[1].Span.ToString());
+        Assert.IsTrue(reader.MoveNext());
+        row = reader.Current;
+        Assert.AreEqual(expectedSecond, row[0].Span.ToString());
+        Assert.AreEqual(expectedFirst, row[1].Span.ToString());
+        Assert.AreEqual(expectedSecond, row[0].Span.ToString());
+        Assert.AreEqual(expectedFirst, row[1].Span.ToString());
+    }
+
+    [TestMethod]
+    public void PackedUnescape_TrimmedStartAndEmptyResult()
+    {
+        using (var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.All }).FromText("   \"a\"\"b\"  ;next"))
+        {
+            Assert.IsTrue(reader.MoveNext());
+            var row = reader.Current;
+            Assert.AreEqual("a\"b", row[0].Span.ToString());
+            var mutatedRow = row.Span.ToString();
+            Assert.AreEqual("a\"b", row[0].Span.ToString());
+            Assert.AreEqual(mutatedRow, row.Span.ToString());
+            Assert.AreEqual("next", row[1].Span.ToString());
+        }
+        using (var reader = Sep.Reader(o => o with
+        { HasHeader = false, Unescape = true }).FromText("\""))
+        {
+            Assert.IsTrue(reader.MoveNext());
+            Assert.AreEqual("", reader.Current[0].Span.ToString());
+            Assert.AreEqual("", reader.Current[0].Span.ToString());
+        }
+    }
+
+    [TestMethod]
+    public async ValueTask PackedUnescape_AsyncOverflowAcrossRows()
+    {
+        var quotes = new string('"', 130);
+        var text = string.Concat(Enumerable.Repeat($"  \"{quotes}\"  ;next\n", 30));
+        using var reader = await Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, Trim = SepTrim.All, InitialBufferLength = 128 })
+            .FromTextAsync(text);
+        var count = 0;
+        while (await reader.MoveNextAsync())
+        {
+            var row = reader.Current;
+            Assert.AreEqual(new string('"', 65), row[0].Span.ToString());
+            Assert.AreEqual(new string('"', 65), row[0].Span.ToString());
+            Assert.AreEqual("next", row[1].Span.ToString());
+            count++;
+        }
+        Assert.AreEqual(30, count);
     }
 
     static void AssertCol(SepReader reader, string src, string expectedCol)

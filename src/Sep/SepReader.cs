@@ -155,7 +155,7 @@ public sealed partial class SepReader : SepReaderState
         // Potential end is current parsing end plus maximum col infos for next parse loop
         var parsingRowColInfosEnd = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount;
         var colInfosPotentialEnd = parsingRowColInfosEnd + paddingLength + ColEndsOrInfosExtraEndCount;
-        var colInfosLength = GetColInfosLength();
+        var colInfosLength = _colEndsOrColInfos.Length;
         if (colInfosLength < colInfosPotentialEnd)
         {
             DoubleColInfosCapacityCopyState();
@@ -167,10 +167,8 @@ public sealed partial class SepReader : SepReaderState
         var previousColEnds = _colEndsOrColInfos;
         _colEndsOrColInfos = ArrayPool<int>.Shared.Rent(_colEndsOrColInfos.Length * 2);
 
-        var factor = GetIntegersPerColInfo();
-        A.Assert(factor > 0);
         // + 1 since one more for start col
-        var lengthInIntegers = (_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * factor;
+        var lengthInIntegers = _parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1;
 
         var previousColEndsSpan = previousColEnds.AsSpan().Slice(0, lengthInIntegers);
         var newColEndsSpan = _colEndsOrColInfos.AsSpan().Slice(0, lengthInIntegers);
@@ -225,12 +223,12 @@ public sealed partial class SepReader : SepReaderState
         T.WriteLine($"{nameof(_chars),-10}:{_chars.Length,5} [{0,4},{_charsDataEnd,4}] ({_charsParseStart,2}) '{FormatValidChars()}'");
         if (_colUnquoteUnescape == 0)
         {
-            var colEnds = GetColsEntireSpanAs<int>();
+            var colEnds = _colEndsOrColInfos.AsSpan();
             T.WriteLine($"{nameof(colEnds),-10}:{colEnds.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colEnds[0..Math.Min(_currentRowColCount, colEnds.Length)].ToArray())}");
         }
         else
         {
-            var colInfos = GetColsEntireSpanAs<SepColInfo>();
+            var colInfos = _colEndsOrColInfos.AsSpan();
             T.WriteLine($"{nameof(colInfos),-10}:{colInfos.Length,5} [{0,4},{_currentRowColCount,4}] {string.Join(',', colInfos[0..Math.Min(_currentRowColCount, colInfos.Length)].ToArray())}");
         }
 
@@ -250,11 +248,11 @@ public sealed partial class SepReader : SepReaderState
         A.Assert(_chars.Length > 0, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _charsDataEnd && _charsDataEnd <= _chars.Length, $"{name}", filePath, lineNumber);
         A.Assert(0 <= _parsingRowCharsStartIndex && _parsingRowCharsStartIndex <= _charsDataEnd, $"{name}", filePath, lineNumber);
-        A.Assert((_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1) * GetIntegersPerColInfo() <= _colEndsOrColInfos.Length);
+        A.Assert(_parsingRowColEndsOrInfosStartIndex + _parsingRowColCount + 1 <= _colEndsOrColInfos.Length);
 
         if (_colUnquoteUnescape == 0)
         {
-            var colEnds = GetColsEntireSpanAs<int>();
+            var colEnds = _colEndsOrColInfos.AsSpan();
             A.Assert(colEnds.Length > 0, $"{name}", filePath, lineNumber);
             A.Assert(-1 <= _currentRowColCount && _currentRowColCount <= colEnds.Length, $"{name}", filePath, lineNumber);
             for (var i = 0; i < _currentRowColCount; i++)
@@ -267,18 +265,18 @@ public sealed partial class SepReader : SepReaderState
         }
         else
         {
-            var colInfos = GetColsEntireSpanAs<SepColInfo>();
+            var colInfos = _colEndsOrColInfos.AsSpan();
             A.Assert(colInfos.Length > 0, $"{name}", filePath, lineNumber);
             A.Assert(-1 <= _currentRowColCount && _currentRowColCount <= colInfos.Length, $"{name}", filePath, lineNumber);
             for (var i = 0; i < _currentRowColCount; i++)
             {
-                var (colEnd, _) = colInfos[i];
+                var colEnd = SepColInfo.GetColEnd(colInfos[i]);
                 // colEnds are one before, so first may be before data starts
                 colEnd += i == 0 ? 1 : 0;
                 A.Assert(_parsingRowCharsStartIndex <= colEnd && colEnd < _charsDataEnd, $"{name}", filePath, lineNumber);
                 if (i > 0)
                 {
-                    var colStart = colInfos[i - 1].ColEnd + 1;
+                    var colStart = SepColInfo.GetColEnd(colInfos[i - 1]) + 1;
                     var colLength = colEnd - colStart;
                     A.Assert(0 <= colLength && colLength < 1024 * 1024, $"ColIndex {i} Start {colStart} End {colEnd} Length {colLength}");
                 }

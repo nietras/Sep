@@ -975,6 +975,20 @@ public partial class SepReaderTest
 
 #if !SEPREADERTRACE // Causes OOMs in Debug due to tracing
     [TestMethod]
+    public void PackedColInfo_EndNearMaximumBufferLength()
+    {
+        var length = SepDefaults.RowLengthMax - SepParserFactory.BestPaddingLength - 3;
+        var text = new string('a', length) + ";\n";
+        using var reader = Sep.Default.Reader(o => o with
+        { HasHeader = false, Unescape = true, InitialBufferLength = SepDefaults.RowLengthMax }).FromText(text);
+        Assert.IsTrue(reader.MoveNext());
+        var row = reader.Current;
+        Assert.AreEqual(length, row[0].Span.Length);
+        Assert.AreEqual(0, row[1].Span.Length);
+        Assert.AreEqual(length + 1, row.Span.Length);
+    }
+
+    [TestMethod]
     public async ValueTask SepReaderTest_TooLongRow_Throws()
     {
         var maxLength = SepDefaults.RowLengthMax + 1;

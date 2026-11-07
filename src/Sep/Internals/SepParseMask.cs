@@ -40,12 +40,14 @@ static partial class SepParseMask
     {
 #if NET10_0_OR_GREATER
         // Avoid 512-bit setup for a single separator or a mask confined to 16 positions.
-        if (typeof(TColInfoMethods) == typeof(SepColEndMethods) &&
+        if ((typeof(TColInfoMethods) == typeof(SepColEndMethods) ||
+             typeof(TColInfoMethods) == typeof(SepColInfoMethods)) &&
             typeof(TColInfo) == typeof(int) && Avx512Vbmi2.IsSupported && Avx512Vbmi.IsSupported &&
             mask > ushort.MaxValue && (mask & (mask - 1)) != 0)
         {
             ref var end = ref ParseSeparatorsMaskVbmi2(mask, BitOperations.PopCount(mask),
-                charsIndex, ref As<TColInfo, int>(ref colInfosRef));
+                charsIndex + (typeof(TColInfoMethods) == typeof(SepColInfoMethods) ? 1 : 0),
+                ref As<TColInfo, int>(ref colInfosRef));
             return ref As<int, TColInfo>(ref end);
         }
 #endif

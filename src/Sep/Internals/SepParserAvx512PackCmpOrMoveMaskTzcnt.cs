@@ -101,8 +101,9 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-            ref var byteRef = ref As<char, byte>(ref charsRef);
+            var charsRemaining = charsEnd - charsIndex;
+        PARSECHARS:
+            ref var byteRef = ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex));
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
             var packed = ISA.PackUnsignedSaturate(v0, v1);
@@ -110,20 +111,14 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             var permuteIndices = Vec.Create(0L, 2L, 4L, 6L, 1L, 3L, 5L, 7L);
             var bytes = ISA.PermuteVar8x64(packed.AsInt64(), permuteIndices).AsByte();
 
-            var nlsEq = MoveMask(Vec.Equals(bytes, nls));
-            var crsEq = MoveMask(Vec.Equals(bytes, crs));
-            var qtsEq = MoveMask(Vec.Equals(bytes, qts));
-            var spsEq = MoveMask(Vec.Equals(bytes, sps));
-
-            var lineEndings = nlsEq | crsEq;
-            var lineEndingsSeparators = spsEq | lineEndings;
-            var specialChars = lineEndingsSeparators | qtsEq;
+            var lineEndings = MoveMask(Vec.Equals(bytes, nls)) | MoveMask(Vec.Equals(bytes, crs));
+            var separatorsMask = MoveMask(Vec.Equals(bytes, sps));
+            var separatorLineEndingsMask = separatorsMask | lineEndings;
+            var specialCharMask = separatorLineEndingsMask | MoveMask(Vec.Equals(bytes, qts));
 
             // Optimize for the case of no special character
-            var specialCharMask = specialChars;
             if (specialCharMask != 0u)
             {
-                var separatorsMask = spsEq;
                 // Optimize for case of only separators i.e. no endings or quotes.
                 // Combine mask mismatch and quote state without overflowing a full-width mask.
                 if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
@@ -133,7 +128,7 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 }
                 else
                 {
-                    var separatorLineEndingsMask = lineEndingsSeparators;
+                    ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
                     if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {
                         colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
@@ -160,6 +155,14 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                 }
             }
+            else
+            {
+                // No columns added, so the column-capacity check still holds.
+                charsIndex += VecUI8.Count;
+                charsRemaining -= VecUI8.Count;
+                if (charsRemaining > 0) { goto PARSECHARS; }
+                goto UPDATESTATE;
+            }
             goto LOOPSTEP;
         NEWROW:
             var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
@@ -181,6 +184,7 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 goto LOOPNOSTEP;
             }
         }
+    UPDATESTATE:
         // Update reader state from enregistered
         s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);

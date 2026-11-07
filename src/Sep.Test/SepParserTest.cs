@@ -183,6 +183,8 @@ public class SepParserTest
 
         static Type GetBestExpectedType()
         {
+            if (Environment.Is64BitProcess && Avx512BW.IsSupported)
+            { return typeof(SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt); }
             if (Avx512BW.IsSupported)
             { return typeof(SepParserAvx512To256CmpOrMoveMaskTzcnt); }
             if (Environment.Is64BitProcess && Vector512.IsHardwareAccelerated)
@@ -221,6 +223,8 @@ public class SepParserTest
     {
         var factories = SepParserFactory.CreateAvailableParsers();
         Assert.IsNotEmpty(factories);
+        Assert.AreEqual(Environment.Is64BitProcess && Avx512BW.IsSupported,
+            factories.ContainsKey(nameof(SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt)));
     }
 
 

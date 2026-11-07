@@ -52,11 +52,12 @@ static class SepParserFactory
         where TCollector : struct, IParserCollector
     {
 #if NET8_0_OR_GREATER
+        // Unroll2 requires a 64-bit process for its 64-character masks.
+        if (Environment.Is64BitProcess && Avx512BW.IsSupported)
+        { if (!parsers.TryAdd<SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt))) { return; } }
         // AVX-512 to 256 avoids mask register code gen issues
         if (Avx512BW.IsSupported)
         { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcnt>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcnt))) { return; } }
-        if (Avx512BW.IsSupported)
-        { if (!parsers.TryAdd<SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2>(nameof(SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2))) { return; } }
 #endif
         // Avx2 and Vector256 are faster than most AVX-512 due to mask register code gen issues
         if (Avx2.IsSupported)

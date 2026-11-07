@@ -18,7 +18,7 @@ struct
 #else
 sealed class
 #endif
-SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
+SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt : ISepParser
 {
     // Parses 4 x char vectors e.g. 2 x 1 byte vector
     public int PaddingLength => VecUI8.Count;
@@ -99,8 +99,6 @@ SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            var charsRemaining = charsEnd - charsIndex;
-        PARSECHARS:
             ref var byteRef1 = ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex));
             ref var byteRef2 = ref Add(ref byteRef1, VecUI8.Count);
             var v1 = ReadUnaligned<VecUI16>(ref byteRef1);
@@ -115,51 +113,42 @@ SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
             var specialCharMask = separatorLineEndingsMask | MoveMask(Vec.Equals(bytes, qts));
 
             // Optimize for the case of no special character
-            if (specialCharMask != 0u)
+            if (specialCharMask == 0u) { goto LOOPSTEP; }
+
+            // Optimize for case of only separators i.e. no endings or quotes.
+            // Combine mask mismatch and quote state without overflowing a full-width mask.
+            if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
             {
-                // Optimize for case of only separators i.e. no endings or quotes.
-                // Combine mask mismatch and quote state without overflowing a full-width mask.
-                if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
-                {
-                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-                        separatorsMask, charsIndex, ref colInfosRefCurrent);
-                }
-                else
-                {
-                    ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
-                    if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
-                    {
-                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
-                            separatorsMask, separatorLineEndingsMask,
-                            ref charsRef, ref charsIndex, separator,
-                            ref colInfosRefCurrent, ref lineNumber);
-                        goto NEWROW;
-                    }
-                    else
-                    {
-                        var rowLineEndingOffset = 0;
-                        colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
-                            separatorsMask, separatorLineEndingsMask, specialCharMask,
-                            separator, ref charsRef, charsIndex,
-                            ref rowLineEndingOffset, ref quoteCount,
-                            ref colInfosRefCurrent, ref lineNumber);
-                        // Used both to indicate row ended and if need to step +2 due to '\r\n'
-                        if (rowLineEndingOffset != 0)
-                        {
-                            // Must be a col end and last is then dataIndex
-                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
-                            goto NEWROW;
-                        }
-                    }
-                }
+                colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
+                    separatorsMask, charsIndex, ref colInfosRefCurrent);
             }
             else
             {
-                // No columns added, so the column-capacity check still holds.
-                charsIndex += VecUI8.Count;
-                charsRemaining -= VecUI8.Count;
-                if (charsRemaining > 0) { goto PARSECHARS; }
-                goto UPDATESTATE;
+                ref var charsRef = ref Add(ref charsOriginRef, (uint)charsIndex);
+                if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
+                {
+                    colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
+                        separatorsMask, separatorLineEndingsMask,
+                        ref charsRef, ref charsIndex, separator,
+                        ref colInfosRefCurrent, ref lineNumber);
+                    goto NEWROW;
+                }
+                else
+                {
+                    var rowLineEndingOffset = 0;
+                    colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
+                        separatorsMask, separatorLineEndingsMask, specialCharMask,
+                        separator, ref charsRef, charsIndex,
+                        ref rowLineEndingOffset, ref quoteCount,
+                        ref colInfosRefCurrent, ref lineNumber);
+                    // Used both to indicate row ended and if need to step +2 due to '\r\n'
+                    if (rowLineEndingOffset != 0)
+                    {
+                        // Must be a col end and last is then dataIndex
+                        charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                        goto NEWROW;
+                    }
+                }
             }
             goto LOOPSTEP;
         NEWROW:
@@ -182,7 +171,6 @@ SepParserAvx512To256CmpOrMoveMaskTzcntUnroll2 : ISepParser
                 goto LOOPNOSTEP;
             }
         }
-    UPDATESTATE:
         // Update reader state from enregistered
         s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);

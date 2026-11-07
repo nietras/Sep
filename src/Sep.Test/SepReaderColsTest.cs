@@ -194,6 +194,42 @@ public class SepReaderColsTest
     }
 
     [TestMethod]
+    [DataRow(false, SepTrim.None, "  plain  | \" quoted \" |\"a\"\"b\"|   |\"\"")]
+    [DataRow(false, SepTrim.Outer, "plain|\" quoted \"|\"a\"\"b\"||\"\"")]
+    [DataRow(false, SepTrim.AfterUnescape, "  plain  | \" quoted \" |\"a\"\"b\"|   |\"\"")]
+    [DataRow(false, SepTrim.All, "plain|\" quoted \"|\"a\"\"b\"||\"\"")]
+    [DataRow(true, SepTrim.None, "  plain  | \" quoted \" |a\"b|   |")]
+    [DataRow(true, SepTrim.Outer, "plain| quoted |a\"b||")]
+    [DataRow(true, SepTrim.AfterUnescape, "plain|\" quoted \"|a\"b||")]
+    [DataRow(true, SepTrim.All, "plain|quoted|a\"b||")]
+    public void SepReaderColsTest_Join_UnescapeAndTrim(bool unescape, SepTrim trim, string expected)
+    {
+        foreach (var indexed in new[] { false, true })
+        {
+            foreach (var accessBeforeJoin in new[] { false, true })
+            {
+                const string rowText = "  plain  ; \" quoted \" ;\"a\"\"b\";   ;\"\"";
+                using var reader = Sep.Default.Reader(o => o with
+                { HasHeader = false, Unescape = unescape, Trim = trim })
+                    .FromText(rowText + "\n" + rowText);
+                for (var i = 0; i < 2; ++i)
+                {
+                    Assert.IsTrue(reader.MoveNext());
+                    var row = reader.Current;
+                    if (accessBeforeJoin)
+                    {
+                        Assert.AreEqual(unescape ? "a\"b" : "\"a\"\"b\"", row[2].Span.ToString());
+                    }
+                    var cols = indexed ? row[new[] { 0, 1, 2, 3, 4 }] : row[..];
+                    Assert.AreEqual(expected, cols.Join("|").ToString());
+                    Assert.AreEqual(expected, cols.JoinToString("|"));
+                    Assert.AreEqual(expected, cols.Join("|").ToString());
+                }
+            }
+        }
+    }
+
+    [TestMethod]
     [DataRow(SepReaderState.StackallocColRangesMaxLength)]
     [DataRow(SepReaderState.StackallocColRangesMaxLength + 1)]
     public void SepReaderColsTest_Join_StackAllocationBoundary(int count)

@@ -101,8 +101,6 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
             // longer guaranteed space enough for next VecUI8.Count + next row start.
             !IsAddressLessThan(ref colInfosRefStop, ref colInfosRefCurrent))
         {
-            var charsRemaining = charsEnd - charsIndex;
-        PARSECHARS:
             ref var byteRef = ref As<char, byte>(ref Add(ref charsOriginRef, (uint)charsIndex));
             var v0 = ReadUnaligned<VecI16>(ref byteRef);
             var v1 = ReadUnaligned<VecI16>(ref Add(ref byteRef, VecUI8.Count));
@@ -155,14 +153,6 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                     }
                 }
             }
-            else
-            {
-                // No columns added, so the column-capacity check still holds.
-                charsIndex += VecUI8.Count;
-                charsRemaining -= VecUI8.Count;
-                if (charsRemaining > 0) { goto PARSECHARS; }
-                goto UPDATESTATE;
-            }
             goto LOOPSTEP;
         NEWROW:
             var colCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);
@@ -184,7 +174,6 @@ SepParserAvx512PackCmpOrMoveMaskTzcnt : ISepParser
                 goto LOOPNOSTEP;
             }
         }
-    UPDATESTATE:
         // Update reader state from enregistered
         s._parsingRowQuoteCount = quoteCount;
         s._parsingRowColCount = TColInfoMethods.CountOffset(ref colInfosRef, ref colInfosRefCurrent);

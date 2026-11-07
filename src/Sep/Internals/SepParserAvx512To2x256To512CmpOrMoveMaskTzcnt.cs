@@ -112,39 +112,40 @@ SepParserAvx512To2x256To512CmpOrMoveMaskTzcnt : ISepParser
             var specialCharMask = separatorLineEndingsMask | MoveMask(Vec.Equals(bytes, qts));
 
             // Optimize for the case of no special character
-            if (specialCharMask == 0u) { goto LOOPSTEP; }
-
-            // Optimize for case of only separators i.e. no endings or quotes.
-            // Combine mask mismatch and quote state without overflowing a full-width mask.
-            if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
+            if (specialCharMask != 0u)
             {
-                colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
-                    separatorsMask, charsIndex, ref colInfosRefCurrent);
-            }
-            else
-            {
-                if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
+                // Optimize for case of only separators i.e. no endings or quotes.
+                // Combine mask mismatch and quote state without overflowing a full-width mask.
+                if (((separatorsMask ^ specialCharMask) | quoteCount) == 0)
                 {
-                    colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
-                        separatorsMask, separatorLineEndingsMask,
-                        ref charsRef, ref charsIndex, separator,
-                        ref colInfosRefCurrent, ref lineNumber);
-                    goto NEWROW;
+                    colInfosRefCurrent = ref ParseSeparatorsMask<TColInfo, TColInfoMethods>(
+                        separatorsMask, charsIndex, ref colInfosRefCurrent);
                 }
                 else
                 {
-                    var rowLineEndingOffset = 0;
-                    colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
-                        separatorsMask, separatorLineEndingsMask, specialCharMask,
-                        separator, ref charsRef, charsIndex,
-                        ref rowLineEndingOffset, ref quoteCount,
-                        ref colInfosRefCurrent, ref lineNumber);
-                    // Used both to indicate row ended and if need to step +2 due to '\r\n'
-                    if (rowLineEndingOffset != 0)
+                    if (((separatorLineEndingsMask ^ specialCharMask) | quoteCount) == 0)
                     {
-                        // Must be a col end and last is then dataIndex
-                        charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                        colInfosRefCurrent = ref ParseSeparatorsLineEndingsMasks<TColInfo, TColInfoMethods>(
+                            separatorsMask, separatorLineEndingsMask,
+                            ref charsRef, ref charsIndex, separator,
+                            ref colInfosRefCurrent, ref lineNumber);
                         goto NEWROW;
+                    }
+                    else
+                    {
+                        var rowLineEndingOffset = 0;
+                        colInfosRefCurrent = ref ParseQuotedMask<TColInfo, TColInfoMethods>(
+                            separatorsMask, separatorLineEndingsMask, specialCharMask,
+                            separator, ref charsRef, charsIndex,
+                            ref rowLineEndingOffset, ref quoteCount,
+                            ref colInfosRefCurrent, ref lineNumber);
+                        // Used both to indicate row ended and if need to step +2 due to '\r\n'
+                        if (rowLineEndingOffset != 0)
+                        {
+                            // Must be a col end and last is then dataIndex
+                            charsIndex = TColInfoMethods.GetColEnd(colInfosRefCurrent) + rowLineEndingOffset;
+                            goto NEWROW;
+                        }
                     }
                 }
             }

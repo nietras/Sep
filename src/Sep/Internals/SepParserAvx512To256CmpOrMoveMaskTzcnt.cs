@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.Unsafe;
-using static nietras.SeparatedValues.SepDefaults;
 using static nietras.SeparatedValues.SepParseMask;
 using ISA = System.Runtime.Intrinsics.X86.Avx512BW;
 using Vec = System.Runtime.Intrinsics.Vector256;
@@ -81,14 +80,13 @@ SepParserAvx512To256CmpOrMoveMaskTzcnt : ISepParser
         A.Assert(charsIndex <= charsEnd);
         A.Assert(charsEnd <= (chars.Length - VecUI8.Count));
 
-        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
-
         ref var colInfosRefOrigin = ref As<int, TColInfo>(ref MemoryMarshal.GetArrayDataReference(colInfos));
-        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
-        ref var colInfosRefCurrent = ref Add(ref colInfosRefOrigin, s._parsingRowColCount + s._parsingRowColEndsOrInfosStartIndex);
         ref var colInfosRefEnd = ref Add(ref colInfosRefOrigin, colInfosLength);
-        var colInfosStopLength = colInfosLength - VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount;
-        ref var colInfosRefStop = ref Add(ref colInfosRefOrigin, colInfosStopLength);
+        ref var colInfosRefStop = ref Add(ref colInfosRefEnd, -VecUI8.Count - SepReaderState.ColEndsOrInfosExtraEndCount);
+        ref var colInfosRef = ref Add(ref colInfosRefOrigin, s._parsingRowColEndsOrInfosStartIndex);
+        ref var colInfosRefCurrent = ref Add(ref colInfosRef, s._parsingRowColCount);
+
+        ref var charsOriginRef = ref MemoryMarshal.GetArrayDataReference(chars);
 
         charsIndex -= VecUI8.Count;
     LOOPSTEP:

@@ -1076,8 +1076,8 @@ slower](https://github.com/dotnet/runtime/issues/109047)) performance for some
 benchmarks due to the bursty accumulated allocations. That is,
 `GarbageCollectionAdaptationMode` is set to `0`.
 
-See [./benchmarks/](./benchmarks/) directory for detail markdown tables with all
-benchmark results including platform details like runtime, OS, CPU, etc.
+See [./benchmarks/](./benchmarks/) directory for detailed tables with benchmark
+results including platform details like runtime, OS, CPU, etc.
 
 ### Reader Comparison Benchmarks
 The following reader scenarios are benchmarked:

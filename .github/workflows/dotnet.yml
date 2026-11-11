@@ -35,7 +35,7 @@ jobs:
             windows-latest,
             macos-latest,
             windows-11-arm,
-            ubuntu-24.04-arm,
+            ubuntu-26.04-arm,
           ]
         configuration: [Debug, Release]
 
@@ -65,7 +65,7 @@ jobs:
         run: dotnet build -c ${{ matrix.configuration }} --no-restore
       - name: Test
         env:
-          VSTEST_DISABLE_ARTIFACTS_DIRECTORY_VERIFICATION: ${{ matrix.os == 'ubuntu-24.04-arm' && '1' || '0' }}
+          VSTEST_DISABLE_ARTIFACTS_DIRECTORY_VERIFICATION: ${{ matrix.os == 'ubuntu-26.04-arm' && '1' || '0' }}
         run: dotnet test -c ${{ matrix.configuration }} --no-build --no-restore --verbosity normal --collect:"XPlat Code Coverage" -p:TestTfmsInParallel=true --logger GitHubActions -- /Parallel
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -109,7 +109,7 @@ jobs:
             windows-latest,
             macos-latest,
             windows-11-arm,
-            ubuntu-24.04-arm,
+            ubuntu-26.04-arm,
           ]
 
     runs-on: ${{ matrix.os }}

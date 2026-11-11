@@ -447,7 +447,7 @@ public partial class ReadMeTest
         CollectionAssert.AreEqual(new int[] { 1, 2 }, values);
     }
 
-#if NET9_0
+#if NET11_0
     // Only update README on latest .NET version to avoid multiple accesses
     [TestMethod]
 #endif
@@ -457,6 +457,9 @@ public partial class ReadMeTest
 
         var processorDirectoriesToExclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "AMD.Ryzen.9.5950X",
+            "AMD.Ryzen.7.PRO.7840U.w.Radeon.780M",
+            "AMD.Ryzen.9.9950X",
             "AMD.EPYC.9V74",
         };
 
@@ -515,7 +518,7 @@ public partial class ReadMeTest
             markdown.Substring(markdown.IndexOf('|'));
     }
 
-#if NET9_0
+#if NET11_0
     // Only update README on latest .NET version to avoid multiple accesses
     [TestMethod]
 #endif
@@ -574,7 +577,7 @@ public partial class ReadMeTest
     }
 
     // Only update public API in README for latest .NET version to keep consistent
-#if NET10_0
+#if NET11_0
     [TestMethod]
 #endif
     public void ReadMeTest_PublicApi()

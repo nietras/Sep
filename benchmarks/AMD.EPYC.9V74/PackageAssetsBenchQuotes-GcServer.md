@@ -1,27 +1,26 @@
 ```
 
-BenchmarkDotNet v0.15.8, Linux Ubuntu 24.04.4 LTS (Noble Numbat)
-AMD EPYC 9V74 2.86GHz, 1 CPU, 4 logical and 2 physical cores
-.NET SDK 10.0.203
-  [Host]    : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
-  .NET 10.0 : .NET 10.0.7 (10.0.7, 10.0.726.21808), X64 RyuJIT x86-64-v3
+BenchmarkDotNet v0.16.0-preview.2, Linux Ubuntu 24.04.5 LTS (Noble Numbat)
+AMD EPYC 9V74 3.68GHz, 1 CPU, 4 logical and 2 physical cores
+Memory: 15.61 GB Total, 11.45 GB Available
+.NET SDK 11.0.100
+  [Host]    : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
+  .NET 11.0 : .NET 11.0.0 (11.0.0, 11.0.26.53018), X64 RyuJIT x86-64-v4
 
-Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
-Server=True  Toolchain=net10.0  InvocationCount=Default  
+Job=.NET 11.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Server=True  
+Runtime=.NET 11.0  Toolchain=CsProjCore  InvocationCount=Default  
 IterationTime=350ms  MaxIterationCount=15  MinIterationCount=5  
 WarmupCount=6  Quotes=True  Reader=String  
 
 ```
-| Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated  | Alloc Ratio |
-|---------- |------ |-------- |------------:|------:|----:|-------:|-------:|-----------:|------------:|
-| Sep______ | Asset | 50000   |    38.03 ms |  1.00 |  33 |  875.1 |  760.7 |   13.48 MB |        1.00 |
-| Sep_MT___ | Asset | 50000   |    22.26 ms |  0.59 |  33 | 1494.9 |  445.3 |   13.53 MB |        1.00 |
-| Sylvan___ | Asset | 50000   |    61.00 ms |  1.60 |  33 |  545.6 | 1220.0 |   13.63 MB |        1.01 |
-| ReadLine_ | Asset | 50000   |    67.50 ms |  1.77 |  33 |  493.1 | 1349.9 |  119.44 MB |        8.86 |
-| CsvHelper | Asset | 50000   |   114.65 ms |  3.01 |  33 |  290.3 | 2293.1 |   13.64 MB |        1.01 |
-|           |       |         |             |       |     |        |        |            |             |
-| Sep______ | Asset | 1000000 |   785.52 ms |  1.00 | 665 |  847.6 |  785.5 |  260.41 MB |        1.00 |
-| Sep_MT___ | Asset | 1000000 |   449.62 ms |  0.57 | 665 | 1480.8 |  449.6 |  261.88 MB |        1.01 |
-| Sylvan___ | Asset | 1000000 | 1,240.42 ms |  1.58 | 665 |  536.8 | 1240.4 |  260.57 MB |        1.00 |
-| ReadLine_ | Asset | 1000000 | 1,400.28 ms |  1.78 | 665 |  475.5 | 1400.3 | 2385.07 MB |        9.16 |
-| CsvHelper | Asset | 1000000 | 2,350.30 ms |  2.99 | 665 |  283.3 | 2350.3 |  260.58 MB |        1.00 |
+| Method    | Scope | Rows    | Mean        | Ratio | MB  | MB/s   | ns/row | Allocated | Alloc Ratio |
+|---------- |------ |-------- |------------:|------:|----:|-------:|-------:|----------:|------------:|
+| Sep______ | Asset | 50000   |    30.15 ms |  1.00 |  33 | 1103.8 |  603.0 |  13.48 MB |        1.00 |
+| Sep_MT___ | Asset | 50000   |    16.65 ms |  0.56 |  33 | 1999.0 |  333.0 |  13.54 MB |        1.00 |
+| Sylvan___ | Asset | 50000   |    50.68 ms |  1.69 |  33 |  656.7 | 1013.6 |  13.63 MB |        1.01 |
+| CsvHelper | Asset | 50000   |    32.66 ms |  1.09 |  33 | 1018.9 |  653.3 |  14.41 MB |        1.07 |
+|           |       |         |             |       |     |        |        |           |             |
+| Sep______ | Asset | 1000000 |   613.83 ms |  1.00 | 665 | 1084.7 |  613.8 | 260.41 MB |        1.00 |
+| Sep_MT___ | Asset | 1000000 |   332.38 ms |  0.54 | 665 | 2003.1 |  332.4 | 268.26 MB |        1.03 |
+| Sylvan___ | Asset | 1000000 | 1,009.96 ms |  1.65 | 665 |  659.2 | 1010.0 | 260.57 MB |        1.00 |
+| CsvHelper | Asset | 1000000 |   656.36 ms |  1.07 | 665 | 1014.4 |  656.4 | 261.35 MB |        1.00 |

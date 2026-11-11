@@ -1,22 +1,23 @@
 ```
 
-BenchmarkDotNet v0.15.8, macOS Sequoia 15.7.4 (24G517) [Darwin 24.6.0]
+BenchmarkDotNet v0.16.0-preview.2, macOS Tahoe 26.7.2 (25G332) [Darwin 25.6.0]
 Apple M1 (Virtual), 1 CPU, 3 logical and 3 physical cores
-.NET SDK 10.0.203
-  [Host]    : .NET 10.0.7 (10.0.7, 10.0.726.21808), Arm64 RyuJIT armv8.0-a
-  .NET 10.0 : .NET 10.0.7 (10.0.7, 10.0.726.21808), Arm64 RyuJIT armv8.0-a
+Memory: 7 GB Total, 0.08 GB Available
+.NET SDK 11.0.100
+  [Host]    : .NET 11.0.0 (11.0.0, 11.0.26.53018), Arm64 RyuJIT armv8.0-a
+  .NET 11.0 : .NET 11.0.0 (11.0.0, 11.0.26.53018), Arm64 RyuJIT armv8.0-a
 
-Job=.NET 10.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 10.0  
-Toolchain=net10.0  InvocationCount=Default  IterationTime=350ms  
+Job=.NET 11.0  EnvironmentVariables=DOTNET_GCDynamicAdaptationMode=0  Runtime=.NET 11.0  
+Toolchain=CsProjCore  InvocationCount=Default  IterationTime=350ms  
 MaxIterationCount=15  MinIterationCount=5  WarmupCount=6  
 Quotes=True  Reader=String  
 
 ```
-| Method                     | Scope | Rows  | Mean      | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
-|--------------------------- |------ |------ |----------:|------:|---:|-------:|-------:|----------:|------------:|
-| Sep_                       | Cols  | 50000 |  8.953 ms |  1.00 | 41 | 4655.0 |  179.1 |     960 B |        1.00 |
-| Sep_Trim                   | Cols  | 50000 | 12.411 ms |  1.39 | 41 | 3357.8 |  248.2 |     960 B |        1.00 |
-| Sep_TrimUnescape           | Cols  | 50000 | 13.070 ms |  1.46 | 41 | 3188.5 |  261.4 |     960 B |        1.00 |
-| Sep_TrimUnescapeTrim       | Cols  | 50000 | 14.613 ms |  1.63 | 41 | 2851.8 |  292.3 |     960 B |        1.00 |
-| CsvHelper_TrimUnescape     | Cols  | 50000 | 88.212 ms |  9.85 | 41 |  472.4 | 1764.2 |  462096 B |      481.35 |
-| CsvHelper_TrimUnescapeTrim | Cols  | 50000 | 86.002 ms |  9.61 | 41 |  484.6 | 1720.0 |  459464 B |      478.61 |
+| Method                     | Scope | Rows  | Mean       | Ratio | MB | MB/s   | ns/row | Allocated | Alloc Ratio |
+|--------------------------- |------ |------ |-----------:|------:|---:|-------:|-------:|----------:|------------:|
+| Sep_                       | Cols  | 50000 |   9.228 ms |  1.00 | 41 | 4516.0 |  184.6 |     288 B |        1.00 |
+| Sep_Trim                   | Cols  | 50000 |  12.763 ms |  1.40 | 41 | 3265.3 |  255.3 |     288 B |        1.00 |
+| Sep_TrimUnescape           | Cols  | 50000 |  15.231 ms |  1.67 | 41 | 2736.2 |  304.6 |     288 B |        1.00 |
+| Sep_TrimUnescapeTrim       | Cols  | 50000 |  17.833 ms |  1.96 | 41 | 2336.9 |  356.7 |     288 B |        1.00 |
+| CsvHelper_TrimUnescape     | Cols  | 50000 | 105.243 ms | 11.56 | 41 |  396.0 | 2104.9 |    1264 B |        4.39 |
+| CsvHelper_TrimUnescapeTrim | Cols  | 50000 |  78.654 ms |  8.64 | 41 |  529.8 | 1573.1 |    1264 B |        4.39 |
